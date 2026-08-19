@@ -16,28 +16,227 @@
     "(the chest body is exactly RGB(200,76,12)) against the ROM tile coordinates,",
     "then checked on the overlay. See tools/overlay_preview.py."
   ],
-  "iceB1": {
-    "rom_map_id": 15,
-    "tile_px": 16,
-    "regions": [ { "offset_x": 7, "offset_y": 49 } ]
-  },
-  "iceB2": {
-    "rom_map_id": 37,
-    "tile_px": 16,
-    "regions": [ { "offset_x": -103, "offset_y": 153 } ]
-  },
   "cardia": {
     "rom_map_id": 16,
     "tile_px": 16,
     "regions": [
-      { "rows": [0, 30],  "offset_x":  -66, "offset_y":  223, "note": "Cardia Grassy" },
-      { "rows": [31, 40], "offset_x": -154, "offset_y": -461, "note": "Cardia Swampy" },
-      { "rows": [41, 63], "offset_x": -204, "offset_y": -269, "note": "Cardia Forest" }
+      {
+        "rows": [
+          0,
+          30
+        ],
+        "offset_x": -66,
+        "offset_y": 223,
+        "note": "Cardia Grassy"
+      },
+      {
+        "rows": [
+          31,
+          40
+        ],
+        "offset_x": -154,
+        "offset_y": -461,
+        "note": "Cardia Swampy"
+      },
+      {
+        "rows": [
+          41,
+          63
+        ],
+        "offset_x": -204,
+        "offset_y": -269,
+        "note": "Cardia Forest"
+      }
+    ]
+  },
+  "con_castle": {
+    "rom_map_id": 8,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 72,
+        "offset_y": -3
+      }
+    ]
+  },
+  "earthB1": {
+    "rom_map_id": 13,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": -51,
+        "offset_y": -124
+      }
+    ]
+  },
+  "elf_castle": {
+    "rom_map_id": 9,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 51,
+        "offset_y": 24
+      }
+    ]
+  },
+  "iceB1": {
+    "rom_map_id": 15,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 7,
+        "offset_y": 49
+      }
+    ]
+  },
+  "iceB2": {
+    "rom_map_id": 37,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": -103,
+        "offset_y": 153
+      }
     ]
   },
   "iceB3": {
     "rom_map_id": 38,
     "tile_px": 16,
-    "regions": [ { "offset_x": -327, "offset_y": -37 } ]
+    "regions": [
+      {
+        "offset_x": -327,
+        "offset_y": -37
+      }
+    ]
+  },
+  "matoya": {
+    "rom_map_id": 20,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 0,
+        "offset_y": 1
+      }
+    ]
+  },
+  "mirage1F": {
+    "rom_map_id": 23,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 17,
+        "offset_y": 43
+      }
+    ]
+  },
+  "mirage2F": {
+    "rom_map_id": 40,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 11,
+        "offset_y": 28
+      }
+    ]
+  },
+  "nw_castle": {
+    "rom_map_id": 10,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 6,
+        "offset_y": 39
+      }
+    ]
+  },
+  "ordeals2F": {
+    "rom_map_id": 25,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 6,
+        "offset_y": 42
+      }
+    ]
+  },
+  "ordeals3F": {
+    "rom_map_id": 26,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 31,
+        "offset_y": 48
+      }
+    ]
+  },
+  "seaB1": {
+    "rom_map_id": 46,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 14,
+        "offset_y": 15
+      }
+    ]
+  },
+  "seaB2": {
+    "rom_map_id": 45,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": -32,
+        "offset_y": 24
+      }
+    ]
+  },
+  "sky1F": {
+    "rom_map_id": 47,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 0,
+        "offset_y": 0
+      }
+    ]
+  },
+  "sky2F": {
+    "rom_map_id": 48,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 0,
+        "offset_y": 0
+      }
+    ]
+  },
+  "titans": {
+    "rom_map_id": 60,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 13,
+        "offset_y": 12
+      }
+    ]
+  },
+  "tofr3F": {
+    "rom_map_id": 54,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 32,
+        "offset_y": 22
+      }
+    ]
+  },
+  "waterfall": {
+    "rom_map_id": 18,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 0,
+        "offset_y": 0
+      }
+    ]
   }
 }

@@ -102,7 +102,8 @@ for path, want in pairs({
   ["@Cardia Forest Incentive Room Lower/Chest"] = 1,
   ["@ToFR/Vanilla Masa"] = 1,
   ["@ToFR/Kary Floor"] = 4,
-  ["@ToFR/Lute Plate Room"] = 2,
+  ["@ToFR Lute Plate Room 1/Chest"] = 1,
+  ["@ToFR Lute Plate Room 2/Chest"] = 1,
   ["@Dwarf Cave/Nerrick (Vanilla Canal)"] = 1,
 }) do
   local got = idsFor[path] or 0
