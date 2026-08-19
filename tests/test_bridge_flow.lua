@@ -103,7 +103,7 @@ local m = textFrames(allSent())
 local joined = table.concat(m)
 check("Sync answered", #m > 0, true)
 check("ready false with no save", joined:find('"ff1/ready","value":false', 1, true) ~= nil, true)
-check("Sync sends flags too", joined:find('"ff1/flags"', 1, true) ~= nil, true)
+check("Sync sends mem too", joined:find('"ff1/mem"', 1, true) ~= nil, true)
 
 -- 4. load a save: guard byte nonzero, one chest opened at byte 0x2B
 MEMORY[0x6102] = 0x41
@@ -111,13 +111,14 @@ MEMORY[0x6200 + 0x2B] = 0x04
 frames(60)   -- past GUARD_STABLE_FRAMES (30) and several scan ticks
 local j2 = table.concat(textFrames(allSent()))
 check("ready flips true", j2:find('"ff1/ready","value":true', 1, true) ~= nil, true)
-local arr = j2:match('"ff1/flags","value":%[([^%]]+)%]')
+local arr
+for m in j2:gmatch('"ff1/mem","value":%[([^%]]+)%]') do arr=m end
 check("flags array present", arr ~= nil, true)
 local vals = {}
 for v in arr:gmatch("[^,]+") do vals[#vals+1] = tonumber(v) end
-check("flags array is 256 long", #vals, 256)
-check("byte 0x2B == 0x04", vals[0x2B + 1], 4)
-check("byte 0x00 == 0", vals[1], 0)
+check("mem array is 768 long", #vals, 768)
+check("flag byte 0x2B == 0x04", vals[0x200 + 0x2B + 1], 4)
+check("mem byte 0x00 == 0", vals[1], 0)
 
 -- 5. no change -> nothing resent (the diff actually diffs)
 frames(30)
@@ -127,7 +128,7 @@ check("idle sends nothing", #allSent(), 0)
 MEMORY[0x6200 + 0x30] = 0x04
 frames(12)
 local j3 = table.concat(textFrames(allSent()))
-check("new chest resends flags", j3:find('"ff1/flags"', 1, true) ~= nil, true)
+check("new chest resends mem", j3:find('"ff1/mem"', 1, true) ~= nil, true)
 check("ready not resent unchanged", j3:find('"ff1/ready"', 1, true) == nil, true)
 
 -- 7. goal bit
@@ -143,8 +144,8 @@ for a = 0x6200, 0x62FF do MEMORY[a] = 0 end
 frames(12)
 local j4 = table.concat(textFrames(allSent()))
 check("reset drops ready", j4:find('"ff1/ready","value":false', 1, true) ~= nil, true)
-local arr4 = j4:match('"ff1/flags","value":%[([^%]]+)%]')
-check("reset does not wipe flags", arr4, nil)
+local arr4 = j4:match('"ff1/mem","value":%[([^%]]+)%]')
+check("reset does not wipe mem", arr4, nil)
 
 -- 9. save reloaded: ready returns, previous chests still reported
 MEMORY[0x6102] = 0x41
@@ -158,6 +159,28 @@ check("ready returns after reload", j5:find('"ff1/ready","value":true', 1, true)
 for a = 0x6200, 0x62FF do MEMORY[a] = 0xFF end
 frames(12)
 check("all-FF rejected", table.concat(textFrames(allSent())):find('"ff1/ready","value":false', 1, true) ~= nil, true)
+
+-- 11. battle guard: $60FC == 0x0B / 0x0C must read as not-in-game
+MEMORY[0x6102] = 0x41
+for a = 0x6200, 0x62FF do MEMORY[a] = 0 end
+MEMORY[0x6200 + 0x2B] = 0x04
+frames(60)
+allSent()
+for _, bad in ipairs({0x0B, 0x0C}) do
+  MEMORY[0x60FC] = bad
+  frames(12)
+  check(string.format("battle state 0x%02X drops ready", bad),
+    table.concat(textFrames(allSent())):find('"ff1/ready","value":false', 1, true) ~= nil, true)
+  MEMORY[0x60FC] = 0
+  frames(60)
+  allSent()
+end
+
+-- 12. the all-0xF2 reset-garbage pattern
+MEMORY[0x6102], MEMORY[0x60FC], MEMORY[0x60A3] = 0xF2, 0xF2, 0xF2
+frames(12)
+check("all-F2 pattern drops ready",
+  table.concat(textFrames(allSent())):find('"ff1/ready","value":false', 1, true) ~= nil, true)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

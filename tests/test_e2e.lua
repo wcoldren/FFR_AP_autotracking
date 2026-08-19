@@ -41,12 +41,12 @@ for _=1,60 do frameCb() end
 -- pull the flags array straight off the wire
 local blob=table.concat(sent)
 -- the bridge sends a zeroed snapshot before the save is loaded, so take the
--- most recent flags var on the wire, not the first
+-- most recent mem var on the wire, not the first
 local arr
-for m in blob:gmatch('"ff1/flags","value":%[([^%]]+)%]') do arr=m end
-assert(arr, "no flags var on the wire")
-local flags={}
-for v in arr:gmatch("[^,]+") do flags[#flags+1]=tonumber(v) end
+for m in blob:gmatch('"ff1/mem","value":%[([^%]]+)%]') do arr=m end
+assert(arr, "no mem var on the wire")
+local mem={}
+for v in arr:gmatch("[^,]+") do mem[#mem+1]=tonumber(v) end
 local ready = blob:find('"ff1/ready","value":true',1,true)~=nil
 
 -- now the pack side, fresh state
@@ -69,7 +69,7 @@ dofile(PACK.."/scripts/autotracking/uat.lua")
 
 local store={ReadVariable=function(self,n)
   if n=="ff1/ready" then return ready end
-  if n=="ff1/flags" then return flags end
+  if n=="ff1/mem" then return mem end
 end}
 
 local fail=0

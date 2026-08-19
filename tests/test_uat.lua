@@ -25,22 +25,27 @@ local function check(name,got,want)
   else print(string.format("ok   %-48s %s",name,tostring(got))) end
 end
 
-check("watch registered", captured and captured.n, "ff1flags")
-check("watches ff1/flags", captured.vars[1], "ff1/flags")
+check("watch registered", captured and captured.n, "ff1mem")
+check("watches ff1/mem", captured.vars[1], "ff1/mem")
 check("watches ff1/ready", captured.vars[2], "ff1/ready")
 
 -- build a store stub
-local function store(ready, flags)
+local function store(ready, mem)
   return { ReadVariable = function(self,name)
     if name=="ff1/ready" then return ready end
-    if name=="ff1/flags" then return flags end
+    if name=="ff1/mem" then return mem end
   end }
 end
-local function blank() local t={} for i=1,256 do t[i]=0 end return t end
+-- 768-byte image; the flag array lives at offset 0x200, so flag byte B is
+-- element 0x200 + B + 1. Everything below indexes through this helper so a
+-- regression in the offset shows up as a test failure, not a silent miss.
+local FLAGS_OFF = 0x200
+local function blank() local t={} for i=1,768 do t[i]=0 end return t end
+local function setflag(t, byte, val) t[FLAGS_OFF + byte + 1] = val end
 
 -- not ready -> nothing happens
 local f = blank()
-f[1+0x2B] = 0x04                       -- byte 0x2B chest -> id 0x12B = 299
+setflag(f, 0x2B, 0x04)                       -- byte 0x2B chest -> id 0x12B = 299
 captured.cb(store(false, f))
 local sec299 = LOCATION_MAPPING[299][1]
 check("not ready leaves section alone", objects[sec299].AvailableChestCount, objects[sec299].ChestCount)
@@ -49,20 +54,28 @@ check("not ready leaves section alone", objects[sec299].AvailableChestCount, obj
 captured.cb(store(true, f))
 check("chest bit 0x04 on byte 0x2B marks id 299", objects[sec299].AvailableChestCount, objects[sec299].ChestCount-1)
 
+-- Same bit written at the WRONG offset (as if FLAGS_OFF were dropped) must do
+-- nothing -- this is the off-by-0x200 guard for the ff1/mem migration.
+local fwrong = blank()
+fwrong[1 + 0x2B] = 0x04
+captured.cb(store(true, fwrong))
+check("bit at offset 0 is not a flag", objects[sec299].AvailableChestCount, objects[sec299].ChestCount)
+captured.cb(store(true, f))
+
 -- idempotent: same state again
 captured.cb(store(true, f))
 check("same flags twice is a no-op", objects[sec299].AvailableChestCount, objects[sec299].ChestCount-1)
 
 -- event bit on a mapped NPC byte: 0x04 -> id 0x204 = 516 (Bikke)
 local f2 = blank()
-f2[1+0x04] = 0x02
+setflag(f2, 0x04, 0x02)
 captured.cb(store(true, f2))
 check("event bit on byte 0x04 sets Bikke hosted item", objects[LOCATION_MAPPING[516][2]].Active, true)
 check("chest 299 released when flags cleared", objects[sec299].AvailableChestCount, objects[sec299].ChestCount)
 
 -- goal bit: byte 0xFE bit 0x02 must NOT invent id 766
 local f3 = blank()
-f3[1+0xFE] = 0x02
+setflag(f3, 0xFE, 0x02)
 captured.cb(store(true, f3))
 check("goal bit does not invent id 766", LOCATION_MAPPING[766], nil)
 local n=0 for _ in pairs(UAT_CHECKED) do n=n+1 end
@@ -70,7 +83,7 @@ check("goal-only frame checks nothing", n, 0)
 
 -- chest bit on the same byte 0xFE IS a real location (0x1FE = 510)
 local f4 = blank()
-f4[1+0xFE] = 0x04 | 0x02
+setflag(f4, 0xFE, 0x04 | 0x02)
 captured.cb(store(true, f4))
 check("byte 0xFE chest bit marks id 510", UAT_CHECKED[510], true)
 check("byte 0xFE event bit still ignored", UAT_CHECKED[766], nil)

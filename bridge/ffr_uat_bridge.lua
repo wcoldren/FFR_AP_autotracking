@@ -28,10 +28,25 @@
 --   only emulator-aware part, so a BizHawk flavor is a swap of that block.
 ------------------------------------------------------------------
 
-local FLAGS_ADDR = 0x6200   -- location flag array, 256 bytes
+-- The whole live save working copy: vehicles and inventory at $6000, character
+-- blocks at $6100, the object/chest flag array at $6200. This is the same
+-- window the EmoTracker FFR pack watches (AddMemoryWatch 0x6000 len 0x300).
+-- $6400-$67FF mirrors all of it but is only written when the player saves, so
+-- it lags and is not what we read.
+local MEM_ADDR = 0x6000
+local MEM_LEN = 0x300
+local FLAGS_OFF = 0x200     -- object/chest flag array, 256 bytes, within MEM
 local FLAGS_LEN = 0x100
-local GUARD_ADDR = 0x6102   -- first character's name; 0 = title / char creation
-local GOAL_BYTE = 0xFE      -- bit 0x02 = Chaos defeated
+local GOAL_BYTE = 0xFE      -- bit 0x02 = Chaos defeated -- but see the note in
+                            -- scripts/autotracking/ram_mapping.lua: FFR also
+                            -- uses this bit for "airship revealed", so the pack
+                            -- deliberately does not act on ff1/goal.
+
+-- In-game guard, matching worlds/ff1/Client.py and the EmoTracker pack's
+-- isInGame(). All three bytes live inside MEM.
+local GUARD_A_OFF = 0x102   -- first character's name; 0 = title / char creation
+local GUARD_B_OFF = 0x0FC   -- 0x0B / 0x0C mean a battle is running
+local GUARD_C_OFF = 0x0A3
 
 local UAT_PORT = 65399      -- PopTracker's default; fallback is 44444
 local SCAN_INTERVAL_FRAMES = 6   -- ~10Hz memory scan; sockets poll every frame
@@ -306,24 +321,24 @@ local INFO_MSG =
   '[{"cmd":"Info","protocol":0,"name":"FF1R Mesen Bridge","version":"1.0.0"}]'
 
 -- Last state actually put on the wire, for diffing.
-local sentFlags, sentReady, sentGoal = nil, nil, nil
+local sentMem, sentReady, sentGoal = nil, nil, nil
 
-local function varFlags(flags)
+local function varMem(mem)
   local parts = {}
-  for i = 1, FLAGS_LEN do
-    parts[i] = tostring(flags:byte(i))
+  for i = 1, MEM_LEN do
+    parts[i] = tostring(mem:byte(i))
   end
-  return '{"cmd":"Var","name":"ff1/flags","value":[' .. table.concat(parts, ",") .. "]}"
+  return '{"cmd":"Var","name":"ff1/mem","value":[' .. table.concat(parts, ",") .. "]}"
 end
 
 local function varBool(name, value)
   return '{"cmd":"Var","name":"' .. name .. '","value":' .. tostring(value) .. "}"
 end
 
-local function sendState(flags, ready, goal, force)
+local function sendState(mem, ready, goal, force)
   local msgs = {}
-  if force or flags ~= sentFlags then
-    msgs[#msgs + 1] = varFlags(flags)
+  if force or mem ~= sentMem then
+    msgs[#msgs + 1] = varMem(mem)
   end
   if force or ready ~= sentReady then
     msgs[#msgs + 1] = varBool("ff1/ready", ready)
@@ -335,7 +350,7 @@ local function sendState(flags, ready, goal, force)
     return
   end
   if send(wsEncodeText("[" .. table.concat(msgs, ",") .. "]")) then
-    sentFlags, sentReady, sentGoal = flags, ready, goal
+    sentMem, sentReady, sentGoal = mem, ready, goal
   end
 end
 
@@ -351,19 +366,45 @@ end
 ------------------------------------------------------------------
 
 local guardValue, guardScans = nil, 0
-local lastFlags = string.rep("\0", FLAGS_LEN)
+local lastMem = string.rep("\0", MEM_LEN)
 local lastGoal = false
 
-local function readFlags()
+local function readMem()
   local bytes = {}
-  for i = 0, FLAGS_LEN - 1 do
-    bytes[i + 1] = string.char(EMU.readByte(FLAGS_ADDR + i) & 0xFF)
+  for i = 0, MEM_LEN - 1 do
+    bytes[i + 1] = string.char(EMU.readByte(MEM_ADDR + i) & 0xFF)
   end
   return table.concat(bytes)
 end
 
-local function looksUninitialised(flags)
+-- 1-based byte at a MEM offset.
+local function at(mem, off)
+  return mem:byte(off + 1)
+end
+
+local function flagsOf(mem)
+  return mem:sub(FLAGS_OFF + 1, FLAGS_OFF + FLAGS_LEN)
+end
+
+-- The flag array initialises to 0x01 almost everywhere, so all-00 is never a
+-- state the game produces; all-FF is uninitialised cart RAM.
+local function looksUninitialised(mem)
+  local flags = flagsOf(mem)
   return flags == string.rep("\0", FLAGS_LEN) or flags == string.rep("\255", FLAGS_LEN)
+end
+
+local function inGame(mem)
+  local a, b, c = at(mem, GUARD_A_OFF), at(mem, GUARD_B_OFF), at(mem, GUARD_C_OFF)
+  if a == 0 then
+    return false                      -- title screen or character creation
+  end
+  if b == 0x0B or b == 0x0C then
+    return false                      -- battle in progress
+  end
+  if a == 0xF2 and b == 0xF2 and c == 0xF2 then
+    return false                      -- known garbage pattern during resets
+  end
+  return true
 end
 
 -- Called on reset / state load: drop trust immediately, so nothing that
@@ -377,29 +418,32 @@ local function isReady()
 end
 
 local function scan()
-  local guard = EMU.readByte(GUARD_ADDR) & 0xFF
-  if guard == 0 or guard ~= guardValue then
+  local mem = readMem()
+
+  if not inGame(mem) or looksUninitialised(mem) then
+    invalidate()
+    sendState(lastMem, false, lastGoal)
+    return
+  end
+
+  -- Require the party marker to hold steady for a few scans before trusting
+  -- anything, so a reset cannot flush a half-initialised frame through.
+  local guard = at(mem, GUARD_A_OFF)
+  if guard ~= guardValue then
     guardValue = guard
-    guardScans = (guard == 0) and 0 or 1
+    guardScans = 1
   elseif guardScans < GUARD_STABLE_SCANS then
     guardScans = guardScans + 1
   end
 
   if not isReady() then
-    sendState(lastFlags, false, lastGoal)
+    sendState(lastMem, false, lastGoal)
     return
   end
 
-  local flags = readFlags()
-  if looksUninitialised(flags) then
-    invalidate()
-    sendState(lastFlags, false, lastGoal)
-    return
-  end
-
-  lastFlags = flags
-  lastGoal = (flags:byte(GOAL_BYTE + 1) & 0x02) ~= 0
-  sendState(lastFlags, true, lastGoal)
+  lastMem = mem
+  lastGoal = (at(mem, FLAGS_OFF + GOAL_BYTE) & 0x02) ~= 0
+  sendState(lastMem, true, lastGoal)
 end
 
 ------------------------------------------------------------------
@@ -432,7 +476,7 @@ local function handleHandshake()
   end
 
   handshaked = true
-  sentFlags, sentReady, sentGoal = nil, nil, nil
+  sentMem, sentReady, sentGoal = nil, nil, nil
   EMU.log("PopTracker connected")
   EMU.notify("PopTracker connected")
   send(wsEncodeText(INFO_MSG))
@@ -457,7 +501,7 @@ local function handleFrames()
       -- is correct for it, so match on the name rather than carrying a JSON
       -- parser for one string.
       if payload:find('"Sync"', 1, true) then
-        sendState(lastFlags, isReady(), lastGoal, true)
+        sendState(lastMem, isReady(), lastGoal, true)
       end
     end
   end

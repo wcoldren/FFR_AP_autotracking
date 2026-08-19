@@ -2,8 +2,8 @@
 -- UAT feed: chest/event flags read out of the emulator by the bridge script
 -- in bridge/ffr_uat_bridge.lua.
 --
--- The bridge is deliberately dumb -- it mirrors the 256 bytes at CPU
--- $6200-$62FF and knows nothing about Final Fantasy. The bit semantics live
+-- The bridge is deliberately dumb -- it mirrors the 768 bytes at CPU
+-- $6000-$62FF and knows nothing about Final Fantasy. The bit semantics live
 -- here, next to LOCATION_MAPPING, and mirror worlds/ff1/Client.py:
 --
 --   byte i & 0x04  chest opened  -> AP location id 0x100 + i
@@ -22,6 +22,7 @@
 -- about ids that are not locations in the first place.
 ------------------------------------------------------------------
 
+local FLAGS_OFF = 0x200   -- the flag array's offset within ff1/mem
 local CHEST_FLAG = 0x04
 local EVENT_FLAG = 0x02
 local CHEST_BASE = 0x100
@@ -39,16 +40,16 @@ function onFF1Flags(store)
     return
   end
 
-  local flags = store:ReadVariable("ff1/flags")
-  if type(flags) ~= "table" then
+  local mem = store:ReadVariable("ff1/mem")
+  if type(mem) ~= "table" then
     return
   end
 
   local checked = {}
-  -- ff1/flags is a 0-indexed byte array sent as a JSON array, so Lua sees it
-  -- 1-based: element n holds byte n-1.
+  -- ff1/mem is a 0-indexed byte array sent as a JSON array, so Lua sees it
+  -- 1-based: element n holds byte n-1. The flag array starts at FLAGS_OFF.
   for n = 1, 256 do
-    local byte = flags[n]
+    local byte = mem[FLAGS_OFF + n]
     if type(byte) == "number" then
       local i = n - 1
       if byte & CHEST_FLAG ~= 0 then
@@ -78,4 +79,4 @@ function onFF1Flags(store)
   end
 end
 
-ScriptHost:AddVariableWatch("ff1flags", {"ff1/flags", "ff1/ready"}, onFF1Flags)
+ScriptHost:AddVariableWatch("ff1mem", {"ff1/mem", "ff1/ready"}, onFF1Flags)
