@@ -1067,12 +1067,32 @@
                 "access_rules": [ "airship" ],
                 "sections": [
                     {
-                        "name": "Cardia Incentive",
-                        "ref": "Cardia Forest Incentive/Cardia Incentive"
+                        "name": "Entrance Top",
+                        "ref": "Cardia Forest Entrance Top/Chest"
                     },
                     {
-                        "name": "Chests",
-                        "ref": "Cardia Forest Chests/Chests"
+                        "name": "Entrance Middle",
+                        "ref": "Cardia Forest Entrance Middle/Chest"
+                    },
+                    {
+                        "name": "Entrance Bottom",
+                        "ref": "Cardia Forest Entrance Bottom/Chest"
+                    },
+                    {
+                        "name": "Incentive Room Left",
+                        "ref": "Cardia Forest Incentive Room Left/Chest"
+                    },
+                    {
+                        "name": "Incentive Room Middle",
+                        "ref": "Cardia Forest Incentive Room Middle/Chest"
+                    },
+                    {
+                        "name": "Cardia Incentive",
+                        "ref": "Cardia Forest Incentive/Incentive"
+                    },
+                    {
+                        "name": "Incentive Room Lower",
+                        "ref": "Cardia Forest Incentive Room Lower/Chest"
                     }
                 ],
                 "map_locations": [
@@ -1084,11 +1104,100 @@
                 ],
                 "children": [
                     {
+                        "name": "Cardia Forest Entrance Top",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 684,
+                                "y": 411,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Cardia Forest Entrance Middle",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 684,
+                                "y": 459,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Cardia Forest Entrance Bottom",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 636,
+                                "y": 491,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Cardia Forest Incentive Room Left",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 348,
+                                "y": 555,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Cardia Forest Incentive Room Middle",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 412,
+                                "y": 555,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
                         "name": "Cardia Forest Incentive",
                         "sections": [
                             {
-                                "name": "Cardia Incentive",
-                                "access_rules": [],
+                                "name": "Incentive",
                                 "item_count": 1,
                                 "hosted_item": "cardiaIncentive"
                             }
@@ -1104,50 +1213,14 @@
                         ]
                     },
                     {
-                        "name": "Cardia Forest Chests",
+                        "name": "Cardia Forest Incentive Room Lower",
                         "sections": [
                             {
-                                "name": "Chests",
-                                "access_rules": [],
-                                "item_count": 6
+                                "name": "Chest",
+                                "item_count": 1
                             }
                         ],
                         "map_locations": [
-                            {
-                                "map": "cardia",
-                                "x": 684,
-                                "y": 411,
-                                "size": 16,
-                                "border_thickness": 2
-                            },
-                            {
-                                "map": "cardia",
-                                "x": 684,
-                                "y": 459,
-                                "size": 16,
-                                "border_thickness": 2
-                            },
-                            {
-                                "map": "cardia",
-                                "x": 636,
-                                "y": 491,
-                                "size": 16,
-                                "border_thickness": 2
-                            },
-                            {
-                                "map": "cardia",
-                                "x": 412,
-                                "y": 555,
-                                "size": 16,
-                                "border_thickness": 2
-                            },
-                            {
-                                "map": "cardia",
-                                "x": 348,
-                                "y": 555,
-                                "size": 16,
-                                "border_thickness": 2
-                            },
                             {
                                 "map": "cardia",
                                 "x": 444,
