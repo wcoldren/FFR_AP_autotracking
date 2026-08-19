@@ -29,10 +29,23 @@
 
 RAM_MEM_BASE = 0x6000
 
+-- Codes whose items set allow_disabled:false. Everything else defaults to
+-- allow_disabled:true, which gives the item a synthetic "not acquired" stage
+-- and pushes its Lua-visible CurrentStage one above the stages[] index
+-- (jsonitem.cpp:381 and :473). Getting this wrong is silent: the item lands on
+-- stages[0] and looks acquired while never providing the turn-in code.
+RAM_NO_STAGE_OFFSET = {
+  earthorb = true, fireorb = true, waterorb = true, airorb = true,
+  shards = true,
+}
+
 -- Each rule: the code, the stage it proves, and the test.
 --   mask set  -> (byte & mask) ~= 0
 --   zero set  -> byte == 0
 --   neither   -> byte ~= 0
+-- `stage` is the index into that item's stages[] array in items/*.json, so
+-- these numbers can be read straight against the JSON; the conversion to
+-- PopTracker's Lua numbering happens in raiseTo.
 -- Highest satisfied stage per code wins. Nothing here is ever lowered.
 RAM_RULES = {
   -- Bosses. Both go through FFR's Talk_fight, flag set after the win.
@@ -129,9 +142,14 @@ local function raiseTo(code, stage)
   if not obj.Active then
     obj.Active = true
   end
-  -- Only touch CurrentStage for real progressives; a toggle has no stages.
-  if stage > 0 and (obj.CurrentStage or 0) < stage then
-    obj.CurrentStage = stage
+  -- stages[0] needs nothing further: a toggle has no stages at all, and an
+  -- offset progressive already sits on stages[0] once it is active.
+  if stage <= 0 then
+    return
+  end
+  local target = RAM_NO_STAGE_OFFSET[code] and stage or (stage + 1)
+  if (obj.CurrentStage or 0) < target then
+    obj.CurrentStage = target
   end
 end
 

@@ -116,5 +116,67 @@ else
   print("ok   every hosted item code in the mapping is defined")
 end
 
+-- 5. every RAM rule's stage must be a real index into that item's stages[].
+--    PopTracker clamps an out-of-range stage silently, so a typo here would
+--    just land on the last stage and look plausible.
+local stagesFor, allowDisabledFor = {}, {}
+for _, file in ipairs({ "items/items.json", "items/hosted_items.json", "items/flags.json", "items/shards.json" }) do
+  for _, it in ipairs(json.load(PACK .. "/" .. file)) do
+    local n = it.stages and #it.stages or 0
+    local ad = it.allow_disabled ~= false
+    for raw in tostring(it.codes or ""):gmatch("[^,]+") do
+      local code = raw:match("^%s*(.-)%s*$")
+      stagesFor[code], allowDisabledFor[code] = n, ad
+    end
+    for _, stage in ipairs(it.stages or {}) do
+      for raw in tostring(stage.codes or ""):gmatch("[^,]+") do
+        local code = raw:match("^%s*(.-)%s*$")
+        if stagesFor[code] == nil then stagesFor[code], allowDisabledFor[code] = n, ad end
+      end
+    end
+  end
+end
+
+Tracker = Tracker or {}
+dofile(PACK .. "/scripts/autotracking/ram_mapping.lua")
+
+local badStage = 0
+for _, rule in ipairs(RAM_RULES) do
+  local n = stagesFor[rule.code]
+  if n == nil then
+    fails("RAM rule for unknown code: " .. rule.code)
+    badStage = badStage + 1
+  elseif rule.stage > 0 and rule.stage >= math.max(n, 1) then
+    fails(string.format("RAM rule %s stage %d is out of range (item has %d stages)",
+      rule.code, rule.stage, n))
+    badStage = badStage + 1
+  end
+end
+if badStage == 0 then
+  print("ok   every RAM rule stage is a valid stages[] index")
+end
+
+-- and the offset table must match the JSON rather than drift from it
+local offsetWrong = 0
+for code, ad in pairs(allowDisabledFor) do
+  local listed = RAM_NO_STAGE_OFFSET[code] and true or false
+  if not ad and stagesFor[code] > 0 then
+    -- allow_disabled:false items may legitimately be absent if no rule uses
+    -- them; only flag ones the rules actually touch.
+    local used = (RAM_SHARDS.code == code)
+    for _, rule in ipairs(RAM_RULES) do if rule.code == code then used = true end end
+    if used and not listed then
+      fails(string.format("%s has allow_disabled:false but is missing from RAM_NO_STAGE_OFFSET", code))
+      offsetWrong = offsetWrong + 1
+    end
+  elseif ad and listed then
+    fails(string.format("%s is in RAM_NO_STAGE_OFFSET but its item allows disabling", code))
+    offsetWrong = offsetWrong + 1
+  end
+end
+if offsetWrong == 0 then
+  print("ok   RAM_NO_STAGE_OFFSET matches allow_disabled in the item JSON")
+end
+
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)
