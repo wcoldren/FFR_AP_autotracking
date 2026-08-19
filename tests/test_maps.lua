@@ -138,6 +138,49 @@ for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json" 
 end
 if badRef == 0 then print("ok   every section ref resolves") end
 
+-- 4b. every per-chest marker must equal what tools/marker_positions.json says
+--     for that chest. This is what makes the coordinates reproducible without a
+--     ROM: regenerate them and the JSON has to still agree.
+do
+  local mk = json.load(PACK .. "/tools/marker_positions.json")
+  dofile(PACK .. "/scripts/autotracking/location_mapping.lua")
+  -- location node name -> its single non-overworld marker
+  local own = {}
+  local function collect(nodes)
+    for _, n in ipairs(nodes) do
+      local secs = n.sections or {}
+      if #secs == 1 and secs[1].item_count == 1 then
+        for _, ml in ipairs(n.map_locations or {}) do
+          if ml.map ~= "overworld" then own[n.name] = ml end
+        end
+      end
+      collect(n.children or {})
+    end
+  end
+  collect(json.load(PACK .. "/locations/overworld.json"))
+
+  local checked, wrong = 0, 0
+  for id, v in pairs(LOCATION_MAPPING) do
+    if id < 512 and v[1] then
+      local node = v[1]:match("^@(.*)/[^/]+$")
+      local ml = node and own[node]
+      local want = mk[tostring(id - 256)]
+      if ml and want and #want == 1 then
+        checked = checked + 1
+        local w = want[1]
+        if ml.map ~= w.map or ml.x ~= w.x or ml.y ~= w.y then
+          fails(string.format("%s is at %s(%d,%d) but chest %d belongs at %s(%d,%d)",
+            node, ml.map, ml.x, ml.y, id - 256, w.map, w.x, w.y))
+          wrong = wrong + 1
+        end
+      end
+    end
+  end
+  if wrong == 0 then
+    print(string.format("ok   %d per-chest markers match the generated coordinates", checked))
+  end
+end
+
 -- 5. the Ice Cave pilot: sixteen per-chest markers, on the three ice floors
 local ice, iceMaps = 0, {}
 for _, m in ipairs(markers) do

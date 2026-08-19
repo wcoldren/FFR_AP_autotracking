@@ -5,30 +5,48 @@
         "children": [
             {
                 "name": "Coneria Castle",
-				"access_rules": [],
+                "access_rules": [],
                 "sections": [
                     {
-                        "name": "Coneria Castle Chests",
-                        "access_rules": [ "key" ],
-                        "item_count": 5
-                    },
-                    {
-                        "name": "Coneria Castle Incentive",
-                        "access_rules": [ "key" ],
-                        "item_count": 1,
-                        "hosted_item": "coneriaLocked"
-                    },
-                    {
                         "name": "King",
-                        "access_rules": [ "earlyKing", "garland" ],
+                        "access_rules": [
+                            "earlyKing",
+                            "garland"
+                        ],
                         "item_count": 1,
                         "hosted_item": "king"
                     },
                     {
                         "name": "Sara",
-                        "access_rules": [ "garland" ],
+                        "access_rules": [
+                            "garland"
+                        ],
                         "item_count": 1,
                         "hosted_item": "sara"
+                    },
+                    {
+                        "name": "Coneria Castle Chests 1",
+                        "ref": "Coneria Castle Chests 1/Chest"
+                    },
+                    {
+                        "name": "Coneria Castle Chests 2",
+                        "ref": "Coneria Castle Chests 2/Chest"
+                    },
+                    {
+                        "name": "Coneria Castle Chests 3",
+                        "ref": "Coneria Castle Chests 3/Chest"
+                    },
+                    {
+                        "name": "Coneria Castle Chests 4",
+                        "ref": "Coneria Castle Chests 4/Chest"
+                    },
+                    {
+                        "name": "Coneria Castle Chests 5",
+                        "ref": "Coneria Castle Chests 5/Chest"
+                    },
+                    {
+                        "name": "Coneria Castle Incentive",
+                        "ref": "Coneria Castle Incentive/Incentive"
                     }
                 ],
                 "map_locations": [
@@ -36,6 +54,117 @@
                         "map": "overworld",
                         "x": 1840,
                         "y": 1740
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Coneria Castle Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "con_castle",
+                                "x": 256,
+                                "y": 181,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Coneria Castle Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "con_castle",
+                                "x": 272,
+                                "y": 181,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Coneria Castle Chests 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "con_castle",
+                                "x": 336,
+                                "y": 181,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Coneria Castle Chests 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "con_castle",
+                                "x": 352,
+                                "y": 181,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Coneria Castle Chests 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "con_castle",
+                                "x": 368,
+                                "y": 181,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Coneria Castle Incentive",
+                        "sections": [
+                            {
+                                "name": "Incentive",
+                                "item_count": 1,
+                                "hosted_item": "coneriaLocked"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "con_castle",
+                                "x": 288,
+                                "y": 181,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -83,16 +212,13 @@
                 "children": [
                     {
                         "name": "ToFR",
-                        "access_rules": [ "$canBreakOrb,lute,key" ],
+                        "access_rules": [
+                            "$canBreakOrb,lute,key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chaos",
                                 "hosted_item": "chaos"
-                            },
-                            {
-                                "name": "Lute Plate Room",
-                                "access_rules": [],
-                                "item_count": 2
                             },
                             {
                                 "name": "Kary Floor",
@@ -103,6 +229,14 @@
                                 "name": "Vanilla Masa",
                                 "access_rules": [],
                                 "item_count": 1
+                            },
+                            {
+                                "name": "Lute Plate Room 1",
+                                "ref": "ToFR Lute Plate Room 1/Chest"
+                            },
+                            {
+                                "name": "Lute Plate Room 2",
+                                "ref": "ToFR Lute Plate Room 2/Chest"
                             }
                         ],
                         "map_locations": [
@@ -110,6 +244,44 @@
                                 "map": "overworld",
                                 "x": 1540,
                                 "y": 1220
+                            }
+                        ],
+                        "children": [
+                            {
+                                "name": "ToFR Lute Plate Room 1",
+                                "sections": [
+                                    {
+                                        "name": "Chest",
+                                        "item_count": 1
+                                    }
+                                ],
+                                "map_locations": [
+                                    {
+                                        "map": "tofr3F",
+                                        "x": 312,
+                                        "y": 270,
+                                        "size": 16,
+                                        "border_thickness": 2
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "ToFR Lute Plate Room 2",
+                                "sections": [
+                                    {
+                                        "name": "Chest",
+                                        "item_count": 1
+                                    }
+                                ],
+                                "map_locations": [
+                                    {
+                                        "map": "tofr3F",
+                                        "x": 408,
+                                        "y": 270,
+                                        "size": 16,
+                                        "border_thickness": 2
+                                    }
+                                ]
                             }
                         ]
                     }
@@ -162,18 +334,27 @@
                     "ship",
                     "airship",
                     "extendedOpen"
-                 ],
+                ],
                 "sections": [
                     {
                         "name": "Astos",
-                        "access_rules": [ "crown" ],
+                        "access_rules": [
+                            "crown"
+                        ],
                         "item_count": 1,
                         "hosted_item": "astos"
                     },
                     {
-                        "name": "Chests",
-                        "access_rules": [ "key" ],
-                        "item_count": 3
+                        "name": "Chests 1",
+                        "ref": "North West Castle Chests 1/Chest"
+                    },
+                    {
+                        "name": "Chests 2",
+                        "ref": "North West Castle Chests 2/Chest"
+                    },
+                    {
+                        "name": "Chests 3",
+                        "ref": "North West Castle Chests 3/Chest"
                     }
                 ],
                 "map_locations": [
@@ -181,6 +362,62 @@
                         "map": "overworld",
                         "x": 1230,
                         "y": 2070
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "North West Castle Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "nw_castle",
+                                "x": 142,
+                                "y": 255,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "North West Castle Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "nw_castle",
+                                "x": 206,
+                                "y": 255,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "North West Castle Chests 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "nw_castle",
+                                "x": 174,
+                                "y": 271,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -192,19 +429,28 @@
                     "airship",
                     "extendedOpen,canoe",
                     "openProgression,canoe",
-					"lefeinBridge"
+                    "lefeinBridge"
                 ],
                 "sections": [
                     {
                         "name": "Matoya",
-                        "access_rules": [ "crystal" ],
+                        "access_rules": [
+                            "crystal"
+                        ],
                         "item_count": 1,
                         "hosted_item": "matoya"
                     },
                     {
-                        "name": "Chests",
-                        "access_rules": [],
-                        "item_count": 3
+                        "name": "Chests 1",
+                        "ref": "Matoya's Cave Chests 1/Chest"
+                    },
+                    {
+                        "name": "Chests 2",
+                        "ref": "Matoya's Cave Chests 2/Chest"
+                    },
+                    {
+                        "name": "Chests 3",
+                        "ref": "Matoya's Cave Chests 3/Chest"
                     }
                 ],
                 "map_locations": [
@@ -212,6 +458,62 @@
                         "map": "overworld",
                         "x": 2040,
                         "y": 1240
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Matoya's Cave Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "matoya",
+                                "x": 24,
+                                "y": 73,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Matoya's Cave Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "matoya",
+                                "x": 24,
+                                "y": 89,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Matoya's Cave Chests 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "matoya",
+                                "x": 24,
+                                "y": 121,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -222,18 +524,31 @@
                     "ship",
                     "airship",
                     "extendedOpen"
-                 ],
+                ],
                 "sections": [
                     {
                         "name": "Elf Prince",
-                        "access_rules": [ "herb" ],
+                        "access_rules": [
+                            "herb"
+                        ],
                         "item_count": 1,
                         "hosted_item": "elfprince"
                     },
                     {
-                        "name": "Chests",
-                        "access_rules": [ "key" ],
-                        "item_count": 4
+                        "name": "Chests 1",
+                        "ref": "Elf Castle Chests 1/Chest"
+                    },
+                    {
+                        "name": "Chests 2",
+                        "ref": "Elf Castle Chests 2/Chest"
+                    },
+                    {
+                        "name": "Chests 3",
+                        "ref": "Elf Castle Chests 3/Chest"
+                    },
+                    {
+                        "name": "Chests 4",
+                        "ref": "Elf Castle Chests 4/Chest"
                     }
                 ],
                 "map_locations": [
@@ -241,6 +556,80 @@
                         "map": "overworld",
                         "x": 1640,
                         "y": 2500
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Elf Castle Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "elf_castle",
+                                "x": 395,
+                                "y": 48,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Elf Castle Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "elf_castle",
+                                "x": 411,
+                                "y": 48,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Elf Castle Chests 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "elf_castle",
+                                "x": 427,
+                                "y": 48,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Elf Castle Chests 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "elf_castle",
+                                "x": 443,
+                                "y": 48,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -380,18 +769,23 @@
                     "ruby,airship",
                     "ruby,ship,canal",
                     "melmondRiver,canoe,ruby"
-                 ],
+                ],
                 "sections": [
                     {
-                        "name": "Incentive",
-                        "access_rules": [],
-                        "item_count": 1,
-                        "hosted_item": "titansTrove"
+                        "name": "Titan's Trove Incentive",
+                        "ref": "Titan's Trove Incentive/Incentive"
                     },
                     {
-                        "name": "Chests",
-                        "access_rules": [],
-                        "item_count": 3
+                        "name": "Chests 1",
+                        "ref": "Titan's Trove Chests 1/Chest"
+                    },
+                    {
+                        "name": "Chests 2",
+                        "ref": "Titan's Trove Chests 2/Chest"
+                    },
+                    {
+                        "name": "Chests 3",
+                        "ref": "Titan's Trove Chests 3/Chest"
                     }
                 ],
                 "map_locations": [
@@ -399,6 +793,81 @@
                         "map": "overworld",
                         "x": 400,
                         "y": 1950
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Titan's Trove Incentive",
+                        "sections": [
+                            {
+                                "name": "Incentive",
+                                "item_count": 1,
+                                "hosted_item": "titansTrove"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "titans",
+                                "x": 101,
+                                "y": 324,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Titan's Trove Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "titans",
+                                "x": 117,
+                                "y": 324,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Titan's Trove Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "titans",
+                                "x": 133,
+                                "y": 324,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Titan's Trove Chests 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "titans",
+                                "x": 149,
+                                "y": 324,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -408,11 +877,13 @@
                     "airship",
                     "ship,canal",
                     "melmondRiver,canoe"
-                 ],
+                ],
                 "sections": [
                     {
                         "name": "Earth Orb",
-                        "access_rules": [ "rod" ],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "hosted_item": "earthorb"
                     },
                     {
@@ -420,16 +891,6 @@
                         "access_rules": [],
                         "item_count": 1,
                         "hosted_item": "earth"
-                    },
-                    {
-                        "name": "1 Top",
-                        "access_rules": [],
-                        "item_count": 1
-                    },
-                    {
-                        "name": "1 Bottom",
-                        "access_rules": [],
-                        "item_count": 4
                     },
                     {
                         "name": "2 Right",
@@ -453,13 +914,29 @@
                     },
                     {
                         "name": "4 Armory",
-                        "access_rules": [ "rod" ],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "item_count": 5
                     },
                     {
                         "name": "4 Bottom",
-                        "access_rules": [ "rod" ],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "item_count": 3
+                    },
+                    {
+                        "name": "1 Bottom 1",
+                        "ref": "Earth Cave 1 Bottom 1/Chest"
+                    },
+                    {
+                        "name": "1 Bottom 2",
+                        "ref": "Earth Cave 1 Bottom 2/Chest"
+                    },
+                    {
+                        "name": "Earth Cave 1 Top",
+                        "ref": "Earth Cave 1 Top/Chest"
                     }
                 ],
                 "map_locations": [
@@ -467,6 +944,62 @@
                         "map": "overworld",
                         "x": 790,
                         "y": 2080
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Earth Cave 1 Bottom 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB1",
+                                "x": 405,
+                                "y": 732,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 1 Bottom 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB1",
+                                "x": 421,
+                                "y": 732,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 1 Top",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB1",
+                                "x": 485,
+                                "y": 140,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -1028,12 +1561,21 @@
             },
             {
                 "name": "Cardia Grassy",
-				"access_rules": [ "airship" ],
+                "access_rules": [
+                    "airship"
+                ],
                 "sections": [
                     {
-                        "name": "Chests",
-			"access_rules": [],
-                        "item_count": 3,
+                        "name": "Chests 1",
+                        "ref": "Cardia Grassy Chests 1/Chest"
+                    },
+                    {
+                        "name": "Chests 2",
+                        "ref": "Cardia Grassy Chests 2/Chest"
+                    },
+                    {
+                        "name": "Chests 3",
+                        "ref": "Cardia Grassy Chests 3/Chest"
                     }
                 ],
                 "map_locations": [
@@ -1042,16 +1584,81 @@
                         "x": 960,
                         "y": 440
                     }
+                ],
+                "children": [
+                    {
+                        "name": "Cardia Grassy Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 102,
+                                "y": 375,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Cardia Grassy Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 134,
+                                "y": 567,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Cardia Grassy Chests 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 182,
+                                "y": 567,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    }
                 ]
             },
             {
                 "name": "Cardia Swampy",
-				"access_rules": [ "airship" ],
+                "access_rules": [
+                    "airship"
+                ],
                 "sections": [
                     {
-                        "name": "Chests",
-                        "access_rules": [],
-                        "item_count": 3,
+                        "name": "Chests 1",
+                        "ref": "Cardia Swampy Chests 1/Chest"
+                    },
+                    {
+                        "name": "Chests 2",
+                        "ref": "Cardia Swampy Chests 2/Chest"
+                    },
+                    {
+                        "name": "Chests 3",
+                        "ref": "Cardia Swampy Chests 3/Chest"
                     }
                 ],
                 "map_locations": [
@@ -1059,6 +1666,62 @@
                         "map": "overworld",
                         "x": 1120,
                         "y": 550
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Cardia Swampy Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 190,
+                                "y": 91,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Cardia Swampy Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 206,
+                                "y": 91,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Cardia Swampy Chests 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 110,
+                                "y": 123,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -1247,15 +1910,13 @@
                 ],
                 "sections": [
                     {
-                        "name": "Incentive",
-                        "access_rules": [ "earlyOrdeals", "crown" ],
-                        "item_count": 1,
-                        "hosted_item": "ordeals"
-                    },
-                    {
                         "name": "Chests",
                         "access_rules": [],
                         "item_count": 8
+                    },
+                    {
+                        "name": "Ordeals Incentive",
+                        "ref": "Ordeals Incentive/Incentive"
                     }
                 ],
                 "map_locations": [
@@ -1263,6 +1924,27 @@
                         "map": "overworld",
                         "x": 1570,
                         "y": 380
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Ordeals Incentive",
+                        "sections": [
+                            {
+                                "name": "Incentive",
+                                "item_count": 1,
+                                "hosted_item": "ordeals"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "ordeals3F",
+                                "x": 279,
+                                "y": 344,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             }
@@ -1332,14 +2014,76 @@
                 ],
                 "sections": [
                     {
-                        "name": "Floor 1",
-                        "access_rules": [],
-                        "item_count": 8
+                        "name": "Floor 1 1",
+                        "ref": "Mirage Tower Floor 1 1/Chest"
                     },
                     {
-                        "name": "< >",
-                        "access_rules": [],
-                        "item_count": 10
+                        "name": "Floor 1 2",
+                        "ref": "Mirage Tower Floor 1 2/Chest"
+                    },
+                    {
+                        "name": "Floor 1 3",
+                        "ref": "Mirage Tower Floor 1 3/Chest"
+                    },
+                    {
+                        "name": "Floor 1 4",
+                        "ref": "Mirage Tower Floor 1 4/Chest"
+                    },
+                    {
+                        "name": "Floor 1 5",
+                        "ref": "Mirage Tower Floor 1 5/Chest"
+                    },
+                    {
+                        "name": "Floor 1 6",
+                        "ref": "Mirage Tower Floor 1 6/Chest"
+                    },
+                    {
+                        "name": "Floor 1 7",
+                        "ref": "Mirage Tower Floor 1 7/Chest"
+                    },
+                    {
+                        "name": "Floor 1 8",
+                        "ref": "Mirage Tower Floor 1 8/Chest"
+                    },
+                    {
+                        "name": "< > 1",
+                        "ref": "Mirage Tower < > 1/Chest"
+                    },
+                    {
+                        "name": "< > 2",
+                        "ref": "Mirage Tower < > 2/Chest"
+                    },
+                    {
+                        "name": "< > 3",
+                        "ref": "Mirage Tower < > 3/Chest"
+                    },
+                    {
+                        "name": "< > 4",
+                        "ref": "Mirage Tower < > 4/Chest"
+                    },
+                    {
+                        "name": "< > 5",
+                        "ref": "Mirage Tower < > 5/Chest"
+                    },
+                    {
+                        "name": "< > 6",
+                        "ref": "Mirage Tower < > 6/Chest"
+                    },
+                    {
+                        "name": "< > 7",
+                        "ref": "Mirage Tower < > 7/Chest"
+                    },
+                    {
+                        "name": "< > 8",
+                        "ref": "Mirage Tower < > 8/Chest"
+                    },
+                    {
+                        "name": "< > 9",
+                        "ref": "Mirage Tower < > 9/Chest"
+                    },
+                    {
+                        "name": "< > 10",
+                        "ref": "Mirage Tower < > 10/Chest"
                     }
                 ],
                 "map_locations": [
@@ -1347,6 +2091,332 @@
                         "map": "overworld",
                         "x": 2300,
                         "y": 660
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Mirage Tower Floor 1 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage1F",
+                                "x": 345,
+                                "y": 227,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower Floor 1 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage1F",
+                                "x": 185,
+                                "y": 291,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower Floor 1 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage1F",
+                                "x": 265,
+                                "y": 291,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower Floor 1 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage1F",
+                                "x": 281,
+                                "y": 291,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower Floor 1 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage1F",
+                                "x": 313,
+                                "y": 291,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower Floor 1 6",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage1F",
+                                "x": 361,
+                                "y": 291,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower Floor 1 7",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage1F",
+                                "x": 297,
+                                "y": 307,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower Floor 1 8",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage1F",
+                                "x": 313,
+                                "y": 323,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower < > 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage2F",
+                                "x": 243,
+                                "y": 244,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower < > 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage2F",
+                                "x": 291,
+                                "y": 244,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower < > 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage2F",
+                                "x": 227,
+                                "y": 260,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower < > 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage2F",
+                                "x": 307,
+                                "y": 260,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower < > 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage2F",
+                                "x": 211,
+                                "y": 276,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower < > 6",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage2F",
+                                "x": 323,
+                                "y": 276,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower < > 7",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage2F",
+                                "x": 227,
+                                "y": 292,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower < > 8",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage2F",
+                                "x": 307,
+                                "y": 292,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower < > 9",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage2F",
+                                "x": 243,
+                                "y": 308,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Mirage Tower < > 10",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "mirage2F",
+                                "x": 291,
+                                "y": 308,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -1356,44 +2426,13 @@
                     "airship,chime,cube",
                     "northernDocks,chime,ship,canal,cube",
                     "lefeinBridge,bridge,hwyOrdeals,chime,cube",
-                    "hwyOrdeals,ship,canal,canoe,chime,cube",
-                 ],
+                    "hwyOrdeals,ship,canal,canoe,chime,cube"
+                ],
                 "sections": [
                     {
                         "name": "Air Orb",
                         "access_rules": [],
                         "hosted_item": "airorb"
-                    },
-                    {
-                        "name": "Sky Incentive",
-                        "access_rules": [],
-                        "item_count": 1,
-                        "hosted_item": "sky"
-                    },
-                    {
-                        "name": "Floor 1 Left",
-                        "access_rules": [],
-                        "item_count": 4
-                    },
-                    {
-                        "name": "Floor 1 Right",
-                        "access_rules": [],
-                        "item_count": 5
-                    },
-                    {
-                        "name": "Floor 1 Bottom",
-                        "access_rules": [],
-                        "item_count": 1
-                    },
-                    {
-                        "name": "Floor 2 Left",
-                        "access_rules": [],
-                        "item_count": 4
-                    },
-                    {
-                        "name": "Floor 2 Right",
-                        "access_rules": [],
-                        "item_count": 5
                     },
                     {
                         "name": "Floor 3 Top",
@@ -1409,6 +2448,86 @@
                         "name": "Floor 3 Right",
                         "access_rules": [],
                         "item_count": 6
+                    },
+                    {
+                        "name": "Floor 1 Left 1",
+                        "ref": "Sky Palace Floor 1 Left 1/Chest"
+                    },
+                    {
+                        "name": "Floor 1 Left 2",
+                        "ref": "Sky Palace Floor 1 Left 2/Chest"
+                    },
+                    {
+                        "name": "Floor 1 Left 3",
+                        "ref": "Sky Palace Floor 1 Left 3/Chest"
+                    },
+                    {
+                        "name": "Floor 1 Left 4",
+                        "ref": "Sky Palace Floor 1 Left 4/Chest"
+                    },
+                    {
+                        "name": "Floor 1 Right 1",
+                        "ref": "Sky Palace Floor 1 Right 1/Chest"
+                    },
+                    {
+                        "name": "Floor 1 Right 2",
+                        "ref": "Sky Palace Floor 1 Right 2/Chest"
+                    },
+                    {
+                        "name": "Floor 1 Right 3",
+                        "ref": "Sky Palace Floor 1 Right 3/Chest"
+                    },
+                    {
+                        "name": "Floor 1 Right 4",
+                        "ref": "Sky Palace Floor 1 Right 4/Chest"
+                    },
+                    {
+                        "name": "Floor 1 Right 5",
+                        "ref": "Sky Palace Floor 1 Right 5/Chest"
+                    },
+                    {
+                        "name": "Sky Palace Floor 1 Bottom",
+                        "ref": "Sky Palace Floor 1 Bottom/Chest"
+                    },
+                    {
+                        "name": "Floor 2 Right 1",
+                        "ref": "Sky Palace Floor 2 Right 1/Chest"
+                    },
+                    {
+                        "name": "Floor 2 Right 2",
+                        "ref": "Sky Palace Floor 2 Right 2/Chest"
+                    },
+                    {
+                        "name": "Floor 2 Right 3",
+                        "ref": "Sky Palace Floor 2 Right 3/Chest"
+                    },
+                    {
+                        "name": "Floor 2 Right 4",
+                        "ref": "Sky Palace Floor 2 Right 4/Chest"
+                    },
+                    {
+                        "name": "Floor 2 Right 5",
+                        "ref": "Sky Palace Floor 2 Right 5/Chest"
+                    },
+                    {
+                        "name": "Floor 2 Left 1",
+                        "ref": "Sky Palace Floor 2 Left 1/Chest"
+                    },
+                    {
+                        "name": "Floor 2 Left 2",
+                        "ref": "Sky Palace Floor 2 Left 2/Chest"
+                    },
+                    {
+                        "name": "Floor 2 Left 3",
+                        "ref": "Sky Palace Floor 2 Left 3/Chest"
+                    },
+                    {
+                        "name": "Floor 2 Left 4",
+                        "ref": "Sky Palace Floor 2 Left 4/Chest"
+                    },
+                    {
+                        "name": "Sky Palace Sky Incentive",
+                        "ref": "Sky Palace Sky Incentive/Incentive"
                     }
                 ],
                 "map_locations": [
@@ -1416,6 +2535,369 @@
                         "map": "overworld",
                         "x": 2300,
                         "y": 580
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Sky Palace Floor 1 Left 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky1F",
+                                "x": 56,
+                                "y": 296,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 1 Left 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky1F",
+                                "x": 40,
+                                "y": 312,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 1 Left 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky1F",
+                                "x": 72,
+                                "y": 312,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 1 Left 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky1F",
+                                "x": 88,
+                                "y": 344,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 1 Right 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky1F",
+                                "x": 568,
+                                "y": 312,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 1 Right 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky1F",
+                                "x": 584,
+                                "y": 312,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 1 Right 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky1F",
+                                "x": 552,
+                                "y": 328,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 1 Right 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky1F",
+                                "x": 536,
+                                "y": 344,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 1 Right 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky1F",
+                                "x": 600,
+                                "y": 360,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 1 Bottom",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky1F",
+                                "x": 312,
+                                "y": 616,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 2 Right 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky2F",
+                                "x": 440,
+                                "y": 152,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 2 Right 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky2F",
+                                "x": 568,
+                                "y": 296,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 2 Right 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky2F",
+                                "x": 584,
+                                "y": 328,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 2 Right 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky2F",
+                                "x": 440,
+                                "y": 536,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 2 Right 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky2F",
+                                "x": 456,
+                                "y": 536,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 2 Left 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky2F",
+                                "x": 136,
+                                "y": 152,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 2 Left 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky2F",
+                                "x": 184,
+                                "y": 152,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 2 Left 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky2F",
+                                "x": 72,
+                                "y": 312,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 2 Left 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky2F",
+                                "x": 24,
+                                "y": 344,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Sky Incentive",
+                        "sections": [
+                            {
+                                "name": "Incentive",
+                                "item_count": 1,
+                                "hosted_item": "sky"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky2F",
+                                "x": 168,
+                                "y": 536,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             }
@@ -1439,9 +2921,28 @@
                         "hosted_item": "robot"
                     },
                     {
-                        "name": "Chests",
-                        "access_rules": [],
-                        "item_count": 6
+                        "name": "Chests 1",
+                        "ref": "Waterfall Chests 1/Chest"
+                    },
+                    {
+                        "name": "Chests 2",
+                        "ref": "Waterfall Chests 2/Chest"
+                    },
+                    {
+                        "name": "Chests 3",
+                        "ref": "Waterfall Chests 3/Chest"
+                    },
+                    {
+                        "name": "Chests 4",
+                        "ref": "Waterfall Chests 4/Chest"
+                    },
+                    {
+                        "name": "Chests 5",
+                        "ref": "Waterfall Chests 5/Chest"
+                    },
+                    {
+                        "name": "Chests 6",
+                        "ref": "Waterfall Chests 6/Chest"
                     }
                 ],
                 "map_locations": [
@@ -1450,6 +2951,116 @@
                         "x": 700,
                         "y": 380
                     }
+                ],
+                "children": [
+                    {
+                        "name": "Waterfall Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "waterfall",
+                                "x": 248,
+                                "y": 840,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Waterfall Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "waterfall",
+                                "x": 264,
+                                "y": 840,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Waterfall Chests 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "waterfall",
+                                "x": 280,
+                                "y": 840,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Waterfall Chests 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "waterfall",
+                                "x": 296,
+                                "y": 840,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Waterfall Chests 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "waterfall",
+                                "x": 312,
+                                "y": 840,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Waterfall Chests 6",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "waterfall",
+                                "x": 328,
+                                "y": 840,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    }
                 ]
             },
             {
@@ -1457,7 +3068,7 @@
                 "access_rules": [
                     "airship,canoe,oxyale",
                     "northernDocks,ship,canal,oxyale",
-					"northernDocks,airBoat,airship,ship,oxyale"
+                    "northernDocks,airBoat,airship,ship,oxyale"
                 ],
                 "sections": [
                     {
@@ -1466,20 +3077,9 @@
                         "hosted_item": "waterorb"
                     },
                     {
-                        "name": "Sea Incentive",
-                        "access_rules": [],
-                        "item_count": 1,
-                        "hosted_item": "sea"
-                    },
-                    {
                         "name": "Sea Split",
                         "access_rules": [],
                         "item_count": 2
-                    },
-                    {
-                        "name": "Mermaids",
-                        "access_rules": [],
-                        "item_count": 12
                     },
                     {
                         "name": "Sea Hallway",
@@ -1492,14 +3092,76 @@
                         "item_count": 10
                     },
                     {
-                        "name": "TFC Floor",
-                        "access_rules": [],
-                        "item_count": 4
+                        "name": "TFC Floor 1",
+                        "ref": "Sea Shrine TFC Floor 1/Chest"
                     },
                     {
-                        "name": "TFC",
-                        "access_rules": [ "key" ],
-                        "item_count": 1
+                        "name": "TFC Floor 2",
+                        "ref": "Sea Shrine TFC Floor 2/Chest"
+                    },
+                    {
+                        "name": "TFC Floor 3",
+                        "ref": "Sea Shrine TFC Floor 3/Chest"
+                    },
+                    {
+                        "name": "TFC Floor 4",
+                        "ref": "Sea Shrine TFC Floor 4/Chest"
+                    },
+                    {
+                        "name": "Sea Shrine TFC",
+                        "ref": "Sea Shrine TFC/Chest"
+                    },
+                    {
+                        "name": "Mermaids 1",
+                        "ref": "Sea Shrine Mermaids 1/Chest"
+                    },
+                    {
+                        "name": "Mermaids 2",
+                        "ref": "Sea Shrine Mermaids 2/Chest"
+                    },
+                    {
+                        "name": "Mermaids 3",
+                        "ref": "Sea Shrine Mermaids 3/Chest"
+                    },
+                    {
+                        "name": "Mermaids 4",
+                        "ref": "Sea Shrine Mermaids 4/Chest"
+                    },
+                    {
+                        "name": "Mermaids 5",
+                        "ref": "Sea Shrine Mermaids 5/Chest"
+                    },
+                    {
+                        "name": "Mermaids 6",
+                        "ref": "Sea Shrine Mermaids 6/Chest"
+                    },
+                    {
+                        "name": "Mermaids 7",
+                        "ref": "Sea Shrine Mermaids 7/Chest"
+                    },
+                    {
+                        "name": "Mermaids 8",
+                        "ref": "Sea Shrine Mermaids 8/Chest"
+                    },
+                    {
+                        "name": "Mermaids 9",
+                        "ref": "Sea Shrine Mermaids 9/Chest"
+                    },
+                    {
+                        "name": "Mermaids 10",
+                        "ref": "Sea Shrine Mermaids 10/Chest"
+                    },
+                    {
+                        "name": "Mermaids 11",
+                        "ref": "Sea Shrine Mermaids 11/Chest"
+                    },
+                    {
+                        "name": "Mermaids 12",
+                        "ref": "Sea Shrine Mermaids 12/Chest"
+                    },
+                    {
+                        "name": "Sea Shrine Sea Incentive",
+                        "ref": "Sea Shrine Sea Incentive/Incentive"
                     }
                 ],
                 "map_locations": [
@@ -1507,6 +3169,333 @@
                         "map": "overworld",
                         "x": 740,
                         "y": 660
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Sea Shrine TFC Floor 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB2",
+                                "x": 328,
+                                "y": 48,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine TFC Floor 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB2",
+                                "x": 424,
+                                "y": 624,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine TFC Floor 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB2",
+                                "x": 88,
+                                "y": 688,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine TFC Floor 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB2",
+                                "x": 584,
+                                "y": 736,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine TFC",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB2",
+                                "x": 424,
+                                "y": 400,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 214,
+                                "y": 87,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 310,
+                                "y": 87,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 342,
+                                "y": 87,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 422,
+                                "y": 87,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 438,
+                                "y": 87,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 6",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 326,
+                                "y": 199,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 7",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 438,
+                                "y": 199,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 8",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 198,
+                                "y": 311,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 9",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 214,
+                                "y": 311,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 10",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 230,
+                                "y": 311,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 11",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 326,
+                                "y": 423,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Mermaids 12",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 438,
+                                "y": 423,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sea Incentive",
+                        "sections": [
+                            {
+                                "name": "Incentive",
+                                "item_count": 1,
+                                "hosted_item": "sea"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB1",
+                                "x": 454,
+                                "y": 87,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
