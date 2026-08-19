@@ -531,44 +531,270 @@
                     "openProgression,canoe",
                     "extendedOpen,canoe"
                 ],
-                "sections": [
-                    {
-                        "name": "Ice Cave Incentive",
-                        "access_rules": [],
-                        "item_count": 1,
-                        "hosted_item": "iceCave"
-                    },
-                    {
-                        "name": "Incentive Floor Chests",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Middle Floor Left",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Middle Floor 6 Pack",
-                        "access_rules": [],
-                        "item_count": 6
-                    },
-                    {
-                        "name": "Bottom Floor First Chests",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Bottom Floor 3 Pack",
-                        "access_rules": [],
-                        "item_count": 3
-                    }
-                ],
                 "map_locations": [
                     {
                         "map": "overworld",
                         "x": 2380,
                         "y": 2050
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Ice Cave Greed Chest Upper",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB1",
+                                "x": 104,
+                                "y": 404
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Greed Chest Lower",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB1",
+                                "x": 152,
+                                "y": 484
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Drop Room Left",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB1",
+                                "x": 312,
+                                "y": 372
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Drop Room Middle",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB1",
+                                "x": 328,
+                                "y": 372
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Drop Room Right",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB1",
+                                "x": 344,
+                                "y": 372
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Incentive Room Left",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB2",
+                                "x": 682,
+                                "y": 284
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Incentive Room Right",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB2",
+                                "x": 714,
+                                "y": 284
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Incentive",
+                        "sections": [
+                            {
+                                "name": "Incentive",
+                                "item_count": 1,
+                                "hosted_item": "iceCave"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB2",
+                                "x": 698,
+                                "y": 300
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Six-Pack Top Left",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB3",
+                                "x": 299,
+                                "y": 654
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Six-Pack Top Middle",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB3",
+                                "x": 315,
+                                "y": 654
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Six-Pack Top Right",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB3",
+                                "x": 331,
+                                "y": 654
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Six-Pack Bottom Left",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB3",
+                                "x": 299,
+                                "y": 686
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Six-Pack Bottom Middle",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB3",
+                                "x": 315,
+                                "y": 686
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave Six-Pack Bottom Right",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB3",
+                                "x": 331,
+                                "y": 686
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave IceD Room Left",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB3",
+                                "x": 139,
+                                "y": 126
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ice Cave IceD Room Right",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "iceB3",
+                                "x": 155,
+                                "y": 126
+                            }
+                        ]
                     }
                 ]
             },

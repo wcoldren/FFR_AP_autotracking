@@ -72,7 +72,27 @@ else
 end
 
 -- 3. the sections this change added line up exactly
+--    The Ice Cave entries are the per-chest split: sixteen chests that used to
+--    share six grouped sections now get one section each, so every one of them
+--    must be mapped by exactly one id. A stray duplicate here would put two
+--    chests behind one marker again without failing anything else.
 for path, want in pairs({
+  ["@Ice Cave Greed Chest Upper/Chest"] = 1,
+  ["@Ice Cave Greed Chest Lower/Chest"] = 1,
+  ["@Ice Cave Drop Room Left/Chest"] = 1,
+  ["@Ice Cave Drop Room Middle/Chest"] = 1,
+  ["@Ice Cave Drop Room Right/Chest"] = 1,
+  ["@Ice Cave Incentive Room Left/Chest"] = 1,
+  ["@Ice Cave Incentive Room Right/Chest"] = 1,
+  ["@Ice Cave Incentive/Incentive"] = 1,
+  ["@Ice Cave Six-Pack Top Left/Chest"] = 1,
+  ["@Ice Cave Six-Pack Top Middle/Chest"] = 1,
+  ["@Ice Cave Six-Pack Top Right/Chest"] = 1,
+  ["@Ice Cave Six-Pack Bottom Left/Chest"] = 1,
+  ["@Ice Cave Six-Pack Bottom Middle/Chest"] = 1,
+  ["@Ice Cave Six-Pack Bottom Right/Chest"] = 1,
+  ["@Ice Cave IceD Room Left/Chest"] = 1,
+  ["@Ice Cave IceD Room Right/Chest"] = 1,
   ["@ToFR/Vanilla Masa"] = 1,
   ["@ToFR/Kary Floor"] = 4,
   ["@ToFR/Lute Plate Room"] = 2,
