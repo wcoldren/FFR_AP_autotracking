@@ -19,6 +19,7 @@ CUR_INDEX = -1
 
 ScriptHost:LoadScript("scripts/autotracking/item_mapping.lua")
 ScriptHost:LoadScript("scripts/autotracking/location_mapping.lua")
+ScriptHost:LoadScript("scripts/autotracking/reconcile.lua")
 --ScriptHost:LoadScript("scripts/mapValues.lua")		//  for possible future auto-swappable map tabbing
 
 function onClear()
@@ -26,34 +27,7 @@ function onClear()
     print(string.format("called onClear"))
   end
   CUR_INDEX = -1
-  for _, v in pairs(LOCATION_MAPPING) do
-    if v[1] then
-      if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
-        print(string.format("onClear: clearing location %s", v[1]))
-      end
-      local obj = Tracker:FindObjectForCode(v[1])
-      if obj then
-        if v[1]:sub(1, 1) == "@" then
-          obj.AvailableChestCount = obj.ChestCount
-        else
-           obj.Active = false
-        end
-      elseif AUTOTRACKER_ENABLE_DEBUG_LOGGING then
-        print(string.format("onClear: could not find object for code %s", v[1]))
-      end
-    end
---     if v[2] then
---       if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
---         print(string.format("onClear: clearing location %s", v[2]))
---       end
---       local obj = Tracker:FindObjectForCode(v[2])
---       if obj then
---          obj.Active = false
---       elseif AUTOTRACKER_ENABLE_DEBUG_LOGGING then
---         print(string.format("onClear: could not find object for code %s", v[1]))
---       end
---     end
-  end
+  resetChecked()
   for _, v in pairs(ITEM_MAPPING) do
     if v[1] and v[2] then
       if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
@@ -122,33 +96,7 @@ function onLocation(location_id, location_name)
   if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
     print(string.format("called onLocation: %s, %s", location_id, location_name))
   end
-  local v = LOCATION_MAPPING[location_id]
-  if not v and AUTOTRACKER_ENABLE_DEBUG_LOGGING then
-    print(string.format("onLocation: could not find location mapping for id %s", location_id))
-  end
-  if not v or not v[1] then
-    return
-  end
-  local obj = Tracker:FindObjectForCode(v[1])
-  if obj then
-    if v[1]:sub(1, 1) == "@" then
-      obj.AvailableChestCount = obj.AvailableChestCount - 1
-    else
-      obj.Active = true
-    end
-  elseif AUTOTRACKER_ENABLE_DEBUG_LOGGING then
-    print(string.format("onLocation: could not find object for code %s", v[1]))
-  end
-  -- Update hosted item as well
-  if v[2] then
-      print(string.format("onLocation: found v2 %s", v[2]))
-    local obj = Tracker:FindObjectForCode(v[2])
-    if obj then
-      obj.Active = true
-    elseif AUTOTRACKER_ENABLE_DEBUG_LOGGING then
-        print(string.format("onLocation: could not find object for code %s", v[2]))
-    end
-  end
+  markAPChecked(location_id)
 end
 
 --this is stuff to update the tabs using the AT, but will need to wait til AP/worlds/ff1 has some updates
