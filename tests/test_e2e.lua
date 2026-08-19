@@ -36,6 +36,11 @@ frameCb(); sent={}
 MEMORY[0x6102]=0x41
 MEMORY[0x6200+0x2B]=0x04
 MEMORY[0x6200+0x04]=0x02
+-- Two of the chests that got map markers, one from each style: Ice Cave
+-- Six-Pack Top Left is its own per-chest location (AP 371, flag byte 115),
+-- Cardia Forest Chests is a group of six (AP 388, flag byte 132).
+MEMORY[0x6200+115]=0x04
+MEMORY[0x6200+132]=0x04
 MEMORY[0x6202]=0x02            -- Garland defeated
 MEMORY[0x6031]=1               -- Earth Orb lit
 for _=1,60 do frameCb() end
@@ -59,12 +64,31 @@ local captured
 ScriptHost={AddVariableWatch=function(self,n,v,cb) captured={cb=cb} end}
 AUTOTRACKER_ENABLE_DEBUG_LOGGING=false
 dofile(PACK.."/scripts/autotracking/location_mapping.lua")
-local counts,hosted={},{}
+
+-- Sections come from the real location JSON, resolved the way PopTracker
+-- resolves them: "@" .. the location's own name .. "/" .. the section name,
+-- with children flattened. Building these from LOCATION_MAPPING instead --
+-- which is what this harness used to do -- meant every path answered for
+-- itself, so a mapping pointing at a section the pack does not actually have
+-- looked fine here and cleared nothing in the app.
+local json = dofile(PACK.."/tests/json.lua")
+local function addSections(nodes)
+  for _,n in ipairs(nodes) do
+    for _,sec in ipairs(n.sections or {}) do
+      -- PopTracker: a section with hosted items and no explicit count is 0
+      local count = sec.item_count or ((sec.hosted_item or sec.ref) and 0 or 1)
+      objects["@"..n.name.."/"..sec.name]={ChestCount=count,AvailableChestCount=count}
+    end
+    addSections(n.children or {})
+  end
+end
+for _,f in ipairs({"locations/overworld.json","locations/incentives.json"}) do
+  addSections(json.load(PACK.."/"..f))
+end
+local hosted={}
 for id,v in pairs(LOCATION_MAPPING) do
-  if v[1] then counts[v[1]]=(counts[v[1]] or 0)+1 end
   if v[2] then hosted[v[2]]=true end
 end
-for p,n in pairs(counts) do objects[p]={ChestCount=n,AvailableChestCount=n} end
 for c in pairs(hosted) do objects[c]={Active=false} end
 dofile(PACK.."/scripts/autotracking/reconcile.lua")
 dofile(PACK.."/scripts/autotracking/ram_mapping.lua")
@@ -95,6 +119,24 @@ check("UAT_CHECKED holds 299", UAT_CHECKED[299], true)
 check("UAT_CHECKED holds 516", UAT_CHECKED[516], true)
 check("garland set from the wire", objects["garland"].Active, true)
 check("earth orb lit from the wire", objects["earthorb"].CurrentStage, 1)
+
+-- The mapped chests behind map markers have to clear through the same chain.
+-- These resolve against the real location JSON, so a renamed node or a section
+-- that moved fails here instead of in the app.
+for _, t in ipairs({
+  { id = 371, want = "@Ice Cave Six-Pack Top Left/Chest", label = "Ice Cave per-chest" },
+  { id = 388, want = "@Cardia Forest Chests/Chests",      label = "Cardia Forest group" },
+}) do
+  local path = LOCATION_MAPPING[t.id][1]
+  check(t.label .. " path", path, t.want)
+  local o = objects[path]
+  if not o then
+    print(string.format("FAIL %-46s no such section in the location JSON", t.label))
+    fail = fail + 1
+  else
+    check(t.label .. " cleared one", o.AvailableChestCount, o.ChestCount - 1)
+  end
+end
 
 -- replay the identical wire state: must not move anything
 captured.cb(store)
