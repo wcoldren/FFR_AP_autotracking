@@ -39,18 +39,24 @@ def build(chests, cal):
         by_rom.setdefault(entry["rom_map_id"], []).append((name, entry))
 
     out = {}
-    for idx, pos in chests.items():
-        for name, entry in by_rom.get(pos["map_id"], []):
-            r = region_for(entry, pos["tile_col"], pos["tile_row"])
-            if r is None:
-                continue
-            half = entry["tile_px"] // 2
-            out[int(idx)] = {
-                "map": name,
-                "x": r["offset_x"] + pos["tile_col"] * entry["tile_px"] + half,
-                "y": r["offset_y"] + pos["tile_row"] * entry["tile_px"] + half,
-            }
-            break
+    for idx, places in chests.items():
+        # A chest index can sit on several tiles; each one wants its own marker,
+        # so this collects a list rather than the last one seen.
+        marks = []
+        for pos in places:
+            for name, entry in by_rom.get(pos["map_id"], []):
+                r = region_for(entry, pos["tile_col"], pos["tile_row"])
+                if r is None:
+                    continue
+                half = entry["tile_px"] // 2
+                marks.append({
+                    "map": name,
+                    "x": r["offset_x"] + pos["tile_col"] * entry["tile_px"] + half,
+                    "y": r["offset_y"] + pos["tile_row"] * entry["tile_px"] + half,
+                })
+                break
+        if marks:
+            out[int(idx)] = marks
     return out
 
 
@@ -61,9 +67,12 @@ def main():
     with open(path, "w") as f:
         json.dump({str(k): out[k] for k in sorted(out)}, f, indent=1)
     per = {}
-    for v in out.values():
-        per[v["map"]] = per.get(v["map"], 0) + 1
-    print(f"wrote {path}: {len(out)} markers")
+    n = 0
+    for marks in out.values():
+        for v in marks:
+            per[v["map"]] = per.get(v["map"], 0) + 1
+            n += 1
+    print(f"wrote {path}: {n} markers for {len(out)} chests")
     for m in sorted(per):
         print(f"  {m}: {per[m]}")
 

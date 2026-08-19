@@ -44,12 +44,13 @@ def main():
     for name in (args.maps or sorted(cal)):
         w, h, rgb = pngio.read_rgb(os.path.join(PACK, "images", "maps", f"{name}.png"))
         n = 0
-        for pos in markers.values():
-            if pos["map"] != name:
-                continue
-            box(rgb, w, h, pos["x"], pos["y"], 10, GREEN)
-            box(rgb, w, h, pos["x"], pos["y"], 11, GREEN)
-            n += 1
+        for marks in markers.values():
+            for pos in marks:
+                if pos["map"] != name:
+                    continue
+                box(rgb, w, h, pos["x"], pos["y"], 8, GREEN)
+                box(rgb, w, h, pos["x"], pos["y"], 9, GREEN)
+                n += 1
         out = os.path.join(args.out_dir, f"{name}_overlay.png")
         pngio.write_rgb(out, w, h, rgb)
         print(f"{name}: {n} markers -> {out}")

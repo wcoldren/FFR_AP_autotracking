@@ -78,6 +78,14 @@ def chest_tiles(rom, tileset_id):
 
 
 def extract(rom):
+    """-> (chests, per_map). chests maps a chest index to a LIST of placements.
+
+    A chest index can be placed on more than one tile, and even on more than one
+    map -- the Ordeals and Marsh look-alike rooms reuse an index so that opening
+    any one of them clears the lot. Six indices do this, for ten extra
+    placements. Keeping only the last would silently lose them, and
+    map_locations is a list anyway.
+    """
     tilesets = rom[TILESET_LUT:TILESET_LUT + MAP_COUNT]
     chests = {}
     per_map = {}
@@ -92,7 +100,8 @@ def extract(rom):
                 continue
             col, row = pos % MAP_DIM, pos // MAP_DIM
             hits.append(idx)
-            chests[idx] = {"map_id": map_id, "tile_col": col, "tile_row": row}
+            chests.setdefault(idx, []).append(
+                {"map_id": map_id, "tile_col": col, "tile_row": row})
         if hits:
             per_map[map_id] = sorted(hits)
     return chests, per_map
@@ -109,10 +118,15 @@ def main():
         sys.exit("not an iNES ROM")
 
     chests, per_map = extract(rom)
+    placements = sum(len(v) for v in chests.values())
+    dupes = {k: v for k, v in chests.items() if len(v) > 1}
     print(f"maps with chests: {len(per_map)}")
-    print(f"distinct chest indices: {len(chests)}")
+    print(f"distinct chest indices: {len(chests)} ({placements} placements)")
     lo, hi = min(chests), max(chests)
     print(f"chest index range: {lo}-{hi} (0x{lo:02X}-0x{hi:02X})")
+    for k in sorted(dupes):
+        where = ", ".join(f"map {p['map_id']} ({p['tile_col']},{p['tile_row']})" for p in dupes[k])
+        print(f"  chest {k} is placed {len(dupes[k])}x: {where}")
 
     if args.out:
         with open(args.out, "w") as f:
