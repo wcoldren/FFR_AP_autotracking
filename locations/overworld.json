@@ -1066,16 +1066,13 @@
                 "name": "Cardia Forest",
                 "access_rules": [ "airship" ],
                 "sections": [
-					{
+                    {
                         "name": "Cardia Incentive",
-                        "access_rules": [],
-                        "item_count": 1,
-                        "hosted_item": "cardiaIncentive"
+                        "ref": "Cardia Forest Incentive/Cardia Incentive"
                     },
                     {
                         "name": "Chests",
-                        "access_rules": [],
-                        "item_count": 6
+                        "ref": "Cardia Forest Chests/Chests"
                     }
                 ],
                 "map_locations": [
@@ -1083,6 +1080,82 @@
                         "map": "overworld",
                         "x": 1400,
                         "y": 650
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Cardia Forest Incentive",
+                        "sections": [
+                            {
+                                "name": "Cardia Incentive",
+                                "access_rules": [],
+                                "item_count": 1,
+                                "hosted_item": "cardiaIncentive"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 444,
+                                "y": 555,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Cardia Forest Chests",
+                        "sections": [
+                            {
+                                "name": "Chests",
+                                "access_rules": [],
+                                "item_count": 6
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "cardia",
+                                "x": 684,
+                                "y": 411,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "cardia",
+                                "x": 684,
+                                "y": 459,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "cardia",
+                                "x": 636,
+                                "y": 491,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "cardia",
+                                "x": 412,
+                                "y": 555,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "cardia",
+                                "x": 348,
+                                "y": 555,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "cardia",
+                                "x": 444,
+                                "y": 571,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             }
