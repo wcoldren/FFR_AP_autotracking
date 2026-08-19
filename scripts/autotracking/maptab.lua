@@ -14,7 +14,14 @@
 -- sharing a callback would run the 256-byte flag decode on every doorway.
 ------------------------------------------------------------------
 
-local OVERWORLD = "Overworld"
+-- Where to go when the player is somewhere with no dungeon tab of its own:
+-- the overworld itself, or one of the eight towns (MAP_VALUE sends those to
+-- "Overworld" because they have no tab either). The incentive map is the same
+-- overworld art carrying the markers you actually want while running a seed,
+-- so it is the more useful of the two to land on. Change this one name to go
+-- back to the plain "Overworld" tab.
+local OVERWORLD = "Incentive Locations"
+local MAP_VALUE_OVERWORLD = "Overworld"   -- what the data table calls it
 
 -- Only two variants lay out dungeon map tabs. The four NoMap variants have no
 -- tabbed widget at all and both NOverworld ones have a single tab, so there is
@@ -62,6 +69,10 @@ function activateMapTab(mapId)
   end
 
   local path = (mapId == -1) and OVERWORLD or (MAP_VALUE and MAP_VALUE[mapId])
+  -- Towns come through the table as "Overworld"; send them the same way.
+  if path == MAP_VALUE_OVERWORLD then
+    path = OVERWORLD
+  end
   if not path then
     if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
       print(string.format("maptab: no tab for map id %s", tostring(mapId)))

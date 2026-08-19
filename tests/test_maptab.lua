@@ -63,6 +63,17 @@ for _, file in ipairs({ "layouts/standard/tracker.json", "layouts/shardHunt/trac
   end
 end
 
+-- 1b. the tab used for anywhere without one of its own is not in MAP_VALUE, so
+--     it needs the same existence check or it fails the same silent way.
+local FALLBACK = "Incentive Locations"
+for _, file in ipairs({ "layouts/standard/tracker.json", "layouts/shardHunt/tracker.json" }) do
+  if not tabTitles(file)[FALLBACK] then
+    fails(string.format("%s has no %q tab for the overworld fallback", file, FALLBACK))
+  else
+    print(string.format("ok   %q exists in %s", FALLBACK, file:match("layouts/([^/]+)")))
+  end
+end
+
 -- 2. the switching logic
 local hints = {}
 local objects = { tab_switch = { Active = true } }
@@ -95,13 +106,14 @@ check("  to the right tab", take(),
 check("a single-level tab works", activateMapTab(60), true)
 check("  Titan's Tunnel", take(), "ActivateTab:Other,ActivateTab:Titan's Tunnel")
 
+-- Anywhere without a tab of its own lands on the incentive map, which is the
+-- same overworld art carrying the markers worth looking at during a run.
 check("leaving for the overworld", activateMapTab(-1), true)
-check("  activates Overworld", take(), "ActivateTab:Overworld")
+check("  activates Incentive Locations", take(), "ActivateTab:Incentive Locations")
 
--- towns are standard maps with no tab of their own; MAP_VALUE sends them to
--- the overworld rather than nowhere
-check("a town falls back to Overworld", activateMapTab(3), true)
-check("  Overworld again", take(), "ActivateTab:Overworld")
+-- towns are standard maps with no tab of their own either
+check("a town goes the same way", activateMapTab(3), true)
+check("  Incentive Locations again", take(), "ActivateTab:Incentive Locations")
 
 -- 3. the toggle gates it, but the map is still tracked, so switching back on
 --    does not replay a stale floor
