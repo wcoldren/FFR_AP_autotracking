@@ -1247,12 +1247,12 @@
                         "ref": "Earth Cave 2 Right 3/Chest"
                     },
                     {
-                        "name": "2 Right 4",
-                        "ref": "Earth Cave 2 Right 4/Chest"
+                        "name": "1 Right 1",
+                        "ref": "Earth Cave 1 Right 1/Chest"
                     },
                     {
-                        "name": "2 Right 5",
-                        "ref": "Earth Cave 2 Right 5/Chest"
+                        "name": "1 Right 2",
+                        "ref": "Earth Cave 1 Right 2/Chest"
                     },
                     {
                         "name": "2 Bottom 1",
@@ -1432,7 +1432,7 @@
                         ]
                     },
                     {
-                        "name": "Earth Cave 2 Right 4",
+                        "name": "Earth Cave 1 Right 1",
                         "sections": [
                             {
                                 "name": "Chest",
@@ -1450,7 +1450,7 @@
                         ]
                     },
                     {
-                        "name": "Earth Cave 2 Right 5",
+                        "name": "Earth Cave 1 Right 2",
                         "sections": [
                             {
                                 "name": "Chest",
