@@ -26,6 +26,15 @@
     "tile_px": 16,
     "regions": [ { "offset_x": -103, "offset_y": 153 } ]
   },
+  "cardia": {
+    "rom_map_id": 16,
+    "tile_px": 16,
+    "regions": [
+      { "rows": [0, 30],  "offset_x":  -66, "offset_y":  223, "note": "Cardia Grassy" },
+      { "rows": [31, 40], "offset_x": -154, "offset_y": -461, "note": "Cardia Swampy" },
+      { "rows": [41, 63], "offset_x": -204, "offset_y": -269, "note": "Cardia Forest" }
+    ]
+  },
   "iceB3": {
     "rom_map_id": 38,
     "tile_px": 16,
