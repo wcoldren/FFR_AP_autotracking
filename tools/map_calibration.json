@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Tile -> pixel transform per map image. The art is not a plain render of the",
+    "ROM map: DarkmoonEX's maps are hand-composited, so some images place parts of",
+    "a floor independently and iceB3 carries two floors side by side. That is why a",
+    "map can need more than one region. 'rows' bounds a region by ROM tile row,",
+    "inclusive; the first matching region wins, and a region with no bounds matches",
+    "everything. Every offset here was verified by finding the drawn chest sprites",
+    "in the art and checking the overlay by eye -- see tools/overlay_preview.py."
+  ],
+  "iceB1": {
+    "rom_map_id": 15,
+    "tile_px": 16,
+    "regions": [ { "offset_x": 0, "offset_y": 44 } ]
+  },
+  "iceB2": {
+    "rom_map_id": 37,
+    "tile_px": 16,
+    "regions": [ { "offset_x": -110, "offset_y": 148 } ]
+  },
+  "iceB3": {
+    "rom_map_id": 38,
+    "tile_px": 16,
+    "regions": [
+      { "rows": [40, 63], "offset_x": -333, "offset_y": -10, "note": "Six-Pack" },
+      { "rows": [0, 39],  "offset_x": -333, "offset_y": -42, "note": "IceD Room" }
+    ]
+  }
+}
