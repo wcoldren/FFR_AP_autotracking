@@ -110,13 +110,11 @@ RAM_RULES = {
 -- exactly, or the two feeds would disagree by one.
 RAM_SHARDS = { code = "shards", addr = 0x6035, maxStage = 36 }
 
--- Deliberately NOT derived from RAM:
+-- Chaos is not here either, but it is tracked: it is an ordinary event flag
+-- ($62FE bit 0x02) and lives in LOCATION_MAPPING with the other events. See the
+-- note there about the airship, which is why it took so long to trust.
 --
---   chaos -- $62FE bit 0x02 is Archipelago's goal flag, but FFR also uses it
---   as OBJID_REVEALAIRSHIP and sets it whenever the airship is on screen
---   (asm/1B_A100_ItemMenuTracker.asm). Whether both patches can land in one
---   ROM is unresolved, so auto-checking the goal risks marking the run
---   complete the first time you see the airship. Left as a manual click.
+-- Deliberately NOT derived from RAM:
 --
 --   sigil and mark -- FFR's no-overworld mode reuses the floater byte
 --   ($602B) for Sigil and the canoe byte ($6012) for Mark. Nothing in RAM

@@ -255,5 +255,14 @@ LOCATION_MAPPING = {
   [530] = {"@Coneria Castle/Sara", "sara"},
   [531] = {"@Gaia/Fairy", "fairy"},
   [533] = {"@Crescent Lake/Sages", "sages"},
+  -- Chaos. Byte 0xFE bit 0x02, the same flag Archipelago's own client treats as
+  -- the goal (worlds/ff1/Client.py: locations_data[0xFE] & 0x02 -> CLIENT_GOAL).
+  -- This was left unmapped for a long time because FFR also uses that bit as
+  -- OBJID_REVEALAIRSHIP, which would have called the run finished the first
+  -- time the airship appeared. That was read out of FFR's source and never
+  -- observed. It has now been: an AP run found the airship without the client
+  -- declaring victory, and the AP client reads exactly this bit, so the two
+  -- patches do not collide in a real ROM.
+  [766] = {"@ToFR/Chaos", "chaos"},
   [767] = {"@I: Shop Item/I: Shop Item", "shopItem"},
 }

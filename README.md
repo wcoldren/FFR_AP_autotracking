@@ -18,9 +18,6 @@ chests outside the pool, orbs lit, items turned in, or shards from lighting
 orbs.
 
 The emulator feed described below covers all of those. What still needs a manual click:
-- Chaos. The flag Archipelago uses for "game complete" is the same bit FFR
-  uses for "airship revealed", so auto-checking it could mark your run
-  finished the first time you see the airship. Not worth the risk.
 - Sigil and Mark, in no-overworld seeds. They share their memory with Floater
   and Canoe, and nothing in RAM tells them apart.
 - The settings flags (Early King, the dock and pass flags, the incentive
@@ -52,8 +49,8 @@ This does not modify the emulator. It is one Lua script that Mesen runs.
    reports anything, so nothing is marked while you sit on the title screen.
 5. Open a chest. It should clear in the tracker within a second.
 
-Once connected it tracks chests and NPCs, Garland and the Vampire, the four
-orbs being lit, key items and every turn-in stage (Crown to Astos, Slab to
+Once connected it tracks chests and NPCs, Chaos, Garland and the Vampire, the
+four orbs being lit, key items and every turn-in stage (Crown to Astos, Slab to
 Unne and then Lefein, Ruby to the Titan, and so on), Bridge/Ship/Canal/Canoe/
 Airship, and the shard count.
 

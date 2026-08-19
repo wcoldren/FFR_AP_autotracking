@@ -74,20 +74,24 @@ captured.cb(store(true, f2))
 check("event bit on byte 0x04 sets Bikke hosted item", objects[LOCATION_MAPPING[516][2]].Active, true)
 check("chest 299 released when flags cleared", objects[sec299].AvailableChestCount, objects[sec299].ChestCount)
 
--- goal bit: byte 0xFE bit 0x02 must NOT invent id 766
+-- goal bit: byte 0xFE bit 0x02 is Chaos, the same flag AP's client calls the
+-- goal. It is a mapped event now, so it must check exactly id 766 and nothing
+-- else -- the chest bit on the same byte is a different location.
 local f3 = blank()
 setflag(f3, 0xFE, 0x02)
 captured.cb(store(true, f3))
-check("goal bit does not invent id 766", LOCATION_MAPPING[766], nil)
+check("goal bit is a mapped location", LOCATION_MAPPING[766] ~= nil, true)
+check("goal bit checks id 766", UAT_CHECKED[766], true)
+check("goal bit sets the chaos item", objects["chaos"].Active, true)
 local n=0 for _ in pairs(UAT_CHECKED) do n=n+1 end
-check("goal-only frame checks nothing", n, 0)
+check("goal-only frame checks just the goal", n, 1)
 
 -- chest bit on the same byte 0xFE IS a real location (0x1FE = 510)
 local f4 = blank()
 setflag(f4, 0xFE, 0x04 | 0x02)
 captured.cb(store(true, f4))
 check("byte 0xFE chest bit marks id 510", UAT_CHECKED[510], true)
-check("byte 0xFE event bit still ignored", UAT_CHECKED[766], nil)
+check("byte 0xFE event bit marks id 766", UAT_CHECKED[766], true)
 
 -- sparse event bits on untracked bytes are silently ignored
 local f5 = blank()
