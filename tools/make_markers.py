@@ -24,10 +24,11 @@ def load():
     return chests, cal
 
 
-def region_for(cal_entry, row):
+def region_for(cal_entry, col, row):
     for r in cal_entry["regions"]:
-        lo, hi = r.get("rows", (0, 63))
-        if lo <= row <= hi:
+        rlo, rhi = r.get("rows", (0, 63))
+        clo, chi = r.get("cols", (0, 63))
+        if rlo <= row <= rhi and clo <= col <= chi:
             return r
     return None
 
@@ -40,7 +41,7 @@ def build(chests, cal):
     out = {}
     for idx, pos in chests.items():
         for name, entry in by_rom.get(pos["map_id"], []):
-            r = region_for(entry, pos["tile_row"])
+            r = region_for(entry, pos["tile_col"], pos["tile_row"])
             if r is None:
                 continue
             half = entry["tile_px"] // 2
