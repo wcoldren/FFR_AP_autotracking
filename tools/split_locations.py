@@ -36,7 +36,9 @@ def lenient(path):
 def load_mapping():
     ids = {}
     for line in open(MAP):
-        m = re.match(r'\s*\[(\d+)\] = \{"([^"]+)"(?:,\s*"([^"]+)")?\}', line)
+        # the pack is not uniformly spaced: at least one row reads
+        # {"@..." ,"earth"}, with the space before the comma
+        m = re.match(r'\s*\[(\d+)\] = \{"([^"]+)"\s*(?:,\s*"([^"]+)")?\s*\}', line)
         if m and int(m.group(1)) < 512:
             ids[int(m.group(1))] = (m.group(2), m.group(3))
     return ids
