@@ -21,7 +21,8 @@ ScriptHost:LoadScript("scripts/autotracking/item_mapping.lua")
 ScriptHost:LoadScript("scripts/autotracking/location_mapping.lua")
 ScriptHost:LoadScript("scripts/autotracking/reconcile.lua")
 ScriptHost:LoadScript("scripts/autotracking/ram_mapping.lua")
---ScriptHost:LoadScript("scripts/mapValues.lua")		//  for possible future auto-swappable map tabbing
+ScriptHost:LoadScript("scripts/autotracking/mapValues.lua")
+ScriptHost:LoadScript("scripts/autotracking/maptab.lua")
 
 function onClear()
   if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
@@ -29,6 +30,7 @@ function onClear()
   end
   CUR_INDEX = -1
   resetChecked()
+  resetMapTab()
   for _, v in pairs(ITEM_MAPPING) do
     if v[1] and v[2] then
       if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
@@ -100,7 +102,15 @@ function onLocation(location_id, location_name)
   markAPChecked(location_id)
 end
 
---this is stuff to update the tabs using the AT, but will need to wait til AP/worlds/ff1 has some updates
+-- The map tab follows the player; see scripts/autotracking/maptab.lua. The
+-- emulator bridge is what actually reports the map, but these two handlers stay
+-- wired up: if AP/worlds/ff1 ever does start publishing it, the same path
+-- works, and until then they are no longer calling a function that does not
+-- exist.
+
+function updateEvents(value)
+  activateMapTab(value)
+end
 
 function onNotify(key, value, old_value)
 	updateEvents(value)
@@ -109,37 +119,6 @@ end
 function onNotifyLaunch(key, value)
 	updateEvents(value)
 end
-
---[[  for possible future auto-swappable map tabbing
-
-function updateEvents(value)
-    if value ~= nil then
-	    print(string.format("updateEvents %x",value))
-		--local tabswitch = Tracker:FindObjectForCode("tab_switch")
-        --Tracker:FindObjectForCode("cur_level_id").CurrentStage = value
-		if tabswitch.Active then
-			local mapValue = MAP_VALUE and MAP_VALUE[value]
-            if mapValue then
-                -- Split by '/' and process each map name/tab
-                for str in string.gmatch(mapValue, "([^/]+)") do
-                    if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
-                        print(string.format("Updating ID %x to Tab %s", value, str))
-                        Tracker:UiHint("ActivateTab", str)
-                    end
-                end
-                if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
-                    print(string.format("Value: %x --- Map: %s", value, mapValue))
-                end
-            else
-                if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
-                    print("Overworld or unknown map value: ", value)
-                end
-            end
-		end
-	end
-end
-
-]]--
 
 Archipelago:AddClearHandler("clear handler", onClear)
 Archipelago:AddItemHandler("item handler", onItem)
