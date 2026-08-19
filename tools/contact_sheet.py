@@ -21,7 +21,7 @@ import pngio  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 PACK = os.path.dirname(HERE)
 CROP = 30          # source pixels around the marker
-ZOOM = 2
+ZOOM = int(os.environ.get("SHEET_ZOOM", "2"))
 CELL = CROP * ZOOM
 PAD = 2
 

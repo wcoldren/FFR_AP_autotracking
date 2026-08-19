@@ -59,6 +59,16 @@
       }
     ]
   },
+  "dwarves": {
+    "rom_map_id": 19,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 20,
+        "offset_y": 30
+      }
+    ]
+  },
   "earthB1": {
     "rom_map_id": 13,
     "tile_px": 16,
@@ -66,6 +76,36 @@
       {
         "offset_x": -51,
         "offset_y": -124
+      }
+    ]
+  },
+  "earthB2": {
+    "rom_map_id": 29,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": -121,
+        "offset_y": -117
+      }
+    ]
+  },
+  "earthB3": {
+    "rom_map_id": 30,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": -121,
+        "offset_y": -81
+      }
+    ]
+  },
+  "earthB4": {
+    "rom_map_id": 31,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": -121,
+        "offset_y": -117
       }
     ]
   },
@@ -189,6 +229,16 @@
       }
     ]
   },
+  "seaB4": {
+    "rom_map_id": 43,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": -31,
+        "offset_y": 76
+      }
+    ]
+  },
   "sky1F": {
     "rom_map_id": 47,
     "tile_px": 16,
@@ -209,6 +259,16 @@
       }
     ]
   },
+  "sky3F": {
+    "rom_map_id": 49,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 0,
+        "offset_y": 0
+      }
+    ]
+  },
   "titans": {
     "rom_map_id": 60,
     "tile_px": 16,
@@ -219,6 +279,16 @@
       }
     ]
   },
+  "tof": {
+    "rom_map_id": 12,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 77,
+        "offset_y": 1
+      }
+    ]
+  },
   "tofr3F": {
     "rom_map_id": 54,
     "tile_px": 16,
@@ -226,6 +296,26 @@
       {
         "offset_x": 32,
         "offset_y": 22
+      }
+    ]
+  },
+  "volcB2": {
+    "rom_map_id": 33,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 7,
+        "offset_y": 123
+      }
+    ]
+  },
+  "volcB5": {
+    "rom_map_id": 36,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": -50,
+        "offset_y": -48
       }
     ]
   },
