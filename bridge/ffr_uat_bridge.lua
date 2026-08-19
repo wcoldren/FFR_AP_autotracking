@@ -42,6 +42,16 @@ local GOAL_BYTE = 0xFE      -- bit 0x02 = Chaos defeated -- but see the note in
                             -- uses this bit for "airship revealed", so the pack
                             -- deliberately does not act on ff1/goal.
 
+-- Where the player is standing. These two live in work RAM rather than the
+-- save window, so they are read on their own rather than out of MEM. Both come
+-- from BenWenger's disassembly (variables.inc): mapflags bit 0 is set while in
+-- a standard map, and cur_map is the standard-map id the tracker's MAP_VALUE
+-- table is keyed by. On the overworld cur_map is stale, so the flag decides
+-- whether it means anything.
+local MAPFLAGS_ADDR = 0x002D
+local CUR_MAP_ADDR = 0x0048
+local MAP_OVERWORLD = -1    -- what we publish when not in a standard map
+
 -- In-game guard, matching worlds/ff1/Client.py and the EmoTracker pack's
 -- isInGame(). All three bytes live inside MEM.
 local GUARD_A_OFF = 0x102   -- first character's name; 0 = title / char creation
@@ -321,7 +331,7 @@ local INFO_MSG =
   '[{"cmd":"Info","protocol":0,"name":"FF1R Mesen Bridge","version":"1.0.0"}]'
 
 -- Last state actually put on the wire, for diffing.
-local sentMem, sentReady, sentGoal = nil, nil, nil
+local sentMem, sentReady, sentGoal, sentMap = nil, nil, nil, nil
 
 local function varMem(mem)
   local parts = {}
@@ -335,7 +345,11 @@ local function varBool(name, value)
   return '{"cmd":"Var","name":"' .. name .. '","value":' .. tostring(value) .. "}"
 end
 
-local function sendState(mem, ready, goal, force)
+local function varNum(name, value)
+  return '{"cmd":"Var","name":"' .. name .. '","value":' .. string.format("%d", value) .. "}"
+end
+
+local function sendState(mem, ready, goal, map, force)
   local msgs = {}
   if force or mem ~= sentMem then
     msgs[#msgs + 1] = varMem(mem)
@@ -346,11 +360,14 @@ local function sendState(mem, ready, goal, force)
   if force or goal ~= sentGoal then
     msgs[#msgs + 1] = varBool("ff1/goal", goal)
   end
+  if force or map ~= sentMap then
+    msgs[#msgs + 1] = varNum("ff1/map", map)
+  end
   if #msgs == 0 then
     return
   end
   if send(wsEncodeText("[" .. table.concat(msgs, ",") .. "]")) then
-    sentMem, sentReady, sentGoal = mem, ready, goal
+    sentMem, sentReady, sentGoal, sentMap = mem, ready, goal, map
   end
 end
 
@@ -368,6 +385,7 @@ end
 local guardValue, guardScans = nil, 0
 local lastMem = string.rep("\0", MEM_LEN)
 local lastGoal = false
+local lastMap = MAP_OVERWORLD
 
 local function readMem()
   local bytes = {}
@@ -417,12 +435,27 @@ local function isReady()
   return guardScans >= GUARD_STABLE_SCANS
 end
 
+-- Which map the player is on, or MAP_OVERWORLD. Only meaningful once the save
+-- guard is happy, so scan() holds the last value rather than reading this while
+-- the game is mid-reset.
+local function readMap()
+  local flags = EMU.readByte(MAPFLAGS_ADDR)
+  if not flags or (flags & 0x01) == 0 then
+    return MAP_OVERWORLD
+  end
+  local id = EMU.readByte(CUR_MAP_ADDR)
+  if not id or id > 60 then
+    return MAP_OVERWORLD
+  end
+  return id
+end
+
 local function scan()
   local mem = readMem()
 
   if not inGame(mem) or looksUninitialised(mem) then
     invalidate()
-    sendState(lastMem, false, lastGoal)
+    sendState(lastMem, false, lastGoal, lastMap)
     return
   end
 
@@ -437,13 +470,14 @@ local function scan()
   end
 
   if not isReady() then
-    sendState(lastMem, false, lastGoal)
+    sendState(lastMem, false, lastGoal, lastMap)
     return
   end
 
   lastMem = mem
   lastGoal = (at(mem, FLAGS_OFF + GOAL_BYTE) & 0x02) ~= 0
-  sendState(lastMem, true, lastGoal)
+  lastMap = readMap()
+  sendState(lastMem, true, lastGoal, lastMap)
 end
 
 ------------------------------------------------------------------
@@ -501,7 +535,7 @@ local function handleFrames()
       -- is correct for it, so match on the name rather than carrying a JSON
       -- parser for one string.
       if payload:find('"Sync"', 1, true) then
-        sendState(lastMem, isReady(), lastGoal, true)
+        sendState(lastMem, isReady(), lastGoal, lastMap, true)
       end
     end
   end
