@@ -92,4 +92,9 @@ earlyOrdeals.Active = true
 -- AutoTracking for Poptracker
 if PopVersion and PopVersion>="0.18.0" then
   ScriptHost:LoadScript("scripts/autotracking.lua")
+  -- Local emulator feed over UAT. AddVariableWatch is always registered, so
+  -- this is a version check, not a check for the "uat" manifest flag.
+  if ScriptHost.AddVariableWatch then
+    ScriptHost:LoadScript("scripts/autotracking/uat.lua")
+  end
 end

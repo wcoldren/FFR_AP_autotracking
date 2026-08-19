@@ -134,12 +134,9 @@ end
 -- UAT feed: full state, replaces whatever the bridge reported last time.
 function setUATChecked(checked)
   reconcileInit()
+  -- No unmapped warning here: the UAT feed screens its own ids and reports
+  -- them with the byte index attached, which is more useful than an id alone.
   UAT_CHECKED = checked or {}
-  for id, _ in pairs(UAT_CHECKED) do
-    if not LOCATION_MAPPING[id] then
-      warnUnmapped(id)
-    end
-  end
   applyAll()
 end
 
