@@ -30,6 +30,12 @@ end
 for path, n in pairs(counts) do mkSection(path, n) end
 for code in pairs(hosted) do mkItem(code) end
 
+-- A path naming a section the pack does not have is the failure that looks
+-- exactly like "I opened the chest and nothing happened", so it has to be
+-- reported without anyone having to turn debug logging on first. Added after
+-- the stubs are built, so nothing answers for it.
+LOCATION_MAPPING[999998] = { "@Nowhere At All/Chest" }
+
 dofile(PACK .. "/scripts/autotracking/reconcile.lua")
 
 local fail = 0
@@ -40,6 +46,22 @@ local function check(name, got, want)
   else
     print(string.format("ok   %-46s %s", name, tostring(got)))
   end
+end
+
+-- The audit runs once, on the first data from either feed, so it has to be
+-- checked before anything else touches reconcile.
+do
+  local said = {}
+  local realPrint = print
+  print = function(...) said[#said + 1] = table.concat({ ... }, " ") end
+  reconcileInit()
+  print = realPrint
+  local found = false
+  for _, line in ipairs(said) do
+    if line:find("Nowhere At All", 1, true) then found = true end
+  end
+  check("unresolved section is reported at startup", found, true)
+  LOCATION_MAPPING[999998] = nil
 end
 
 -- Pick a section with several ids mapped to it.

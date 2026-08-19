@@ -18,6 +18,7 @@ UAT_CHECKED = {}
 
 local SECTION_IDS = nil
 local UNMAPPED_WARNED = {}
+local UNRESOLVED_WARNED = {}
 
 -- path -> list of every AP location id that maps to it
 local function buildSectionIndex()
@@ -49,8 +50,13 @@ local function recomputeSection(path)
   end
   local obj = Tracker:FindObjectForCode(path)
   if not obj then
-    if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
-      print(string.format("reconcile: could not find object for code %s", path))
+    -- Not behind the debug flag on purpose. A path that does not resolve is a
+    -- pack bug -- a renamed location, a section that moved -- and its whole
+    -- failure mode is that checks quietly stop clearing. Someone has to be
+    -- told, and the person watching is the one whose chest just did nothing.
+    if not UNRESOLVED_WARNED[path] then
+      UNRESOLVED_WARNED[path] = true
+      print(string.format("reconcile: no location section named %s -- checks for it cannot clear", path))
     end
     return
   end
@@ -107,9 +113,34 @@ local function applyAll()
   Tracker.BulkUpdate = false
 end
 
+-- One-shot audit the first time either feed sends anything. By then the
+-- locations are loaded, so every path in the mapping can be resolved once and
+-- the whole list of broken ones reported together -- rather than dribbling out
+-- one at a time as the player happens to open the chests behind them.
+local function auditSections()
+  local broken, n = {}, 0
+  for path in pairs(SECTION_IDS) do
+    if not Tracker:FindObjectForCode(path) then
+      broken[#broken + 1] = path
+      UNRESOLVED_WARNED[path] = true
+      n = n + 1
+    end
+  end
+  if n == 0 then
+    return
+  end
+  table.sort(broken)
+  print(string.format("reconcile: %d location section(s) in LOCATION_MAPPING do not exist; "
+    .. "checks for them cannot clear:", n))
+  for _, path in ipairs(broken) do
+    print("  " .. path)
+  end
+end
+
 function reconcileInit()
   if not SECTION_IDS then
     buildSectionIndex()
+    auditSections()
   end
 end
 
