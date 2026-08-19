@@ -178,24 +178,28 @@
                         "hosted_item": "garland"
                     },
                     {
-                        "name": "Top Left",
-                        "access_rules": [],
-                        "item_count": 2
+                        "name": "Top Left 1",
+                        "ref": "Temple of Fiends Top Left 1/Chest"
                     },
                     {
-                        "name": "Bottom Left",
-                        "access_rules": [],
-                        "item_count": 1
+                        "name": "Top Left 2",
+                        "ref": "Temple of Fiends Top Left 2/Chest"
                     },
                     {
-                        "name": "Top Right",
-                        "access_rules": [ "key" ],
-                        "item_count": 2
+                        "name": "Temple of Fiends Bottom Left",
+                        "ref": "Temple of Fiends Bottom Left/Chest"
                     },
                     {
-                        "name": "Bottom Right",
-                        "access_rules": [ "key" ],
-                        "item_count": 1
+                        "name": "Temple of Fiends Bottom Right",
+                        "ref": "Temple of Fiends Bottom Right/Chest"
+                    },
+                    {
+                        "name": "Top Right 1",
+                        "ref": "Temple of Fiends Top Right 1/Chest"
+                    },
+                    {
+                        "name": "Top Right 2",
+                        "ref": "Temple of Fiends Top Right 2/Chest"
                     }
                 ],
                 "map_locations": [
@@ -203,6 +207,116 @@
                         "map": "overworld",
                         "x": 1540,
                         "y": 1300
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Temple of Fiends Top Left 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "tof",
+                                "x": 117,
+                                "y": 57,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Temple of Fiends Top Left 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "tof",
+                                "x": 133,
+                                "y": 57,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Temple of Fiends Bottom Left",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "tof",
+                                "x": 117,
+                                "y": 521,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Temple of Fiends Bottom Right",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "tof",
+                                "x": 709,
+                                "y": 521,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Temple of Fiends Top Right 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "tof",
+                                "x": 693,
+                                "y": 57,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Temple of Fiends Top Right 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "tof",
+                                "x": 709,
+                                "y": 57,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -294,29 +408,63 @@
                     "ship",
                     "airship",
                     "extendedOpen"
-                 ],
+                ],
                 "sections": [
                     {
-                        "name": "Free Chests",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Dwarf Armory",
-                        "access_rules": [ "key" ],
-                        "item_count": 8
-                    },
-                    {
                         "name": "Smithy McBeardSmith",
-                        "access_rules": [ "adamant" ],
+                        "access_rules": [
+                            "adamant"
+                        ],
                         "item_count": 1,
                         "hosted_item": "smith"
                     },
                     {
                         "name": "Nerrick (Vanilla Canal)",
-                        "access_rules": [ "tnt" ],
+                        "access_rules": [
+                            "tnt"
+                        ],
                         "item_count": 1,
                         "hosted_item": "nerrick"
+                    },
+                    {
+                        "name": "Free Chests 1",
+                        "ref": "Dwarf Cave Free Chests 1/Chest"
+                    },
+                    {
+                        "name": "Free Chests 2",
+                        "ref": "Dwarf Cave Free Chests 2/Chest"
+                    },
+                    {
+                        "name": "Dwarf Armory 1",
+                        "ref": "Dwarf Cave Dwarf Armory 1/Chest"
+                    },
+                    {
+                        "name": "Dwarf Armory 2",
+                        "ref": "Dwarf Cave Dwarf Armory 2/Chest"
+                    },
+                    {
+                        "name": "Dwarf Armory 3",
+                        "ref": "Dwarf Cave Dwarf Armory 3/Chest"
+                    },
+                    {
+                        "name": "Dwarf Armory 4",
+                        "ref": "Dwarf Cave Dwarf Armory 4/Chest"
+                    },
+                    {
+                        "name": "Dwarf Armory 5",
+                        "ref": "Dwarf Cave Dwarf Armory 5/Chest"
+                    },
+                    {
+                        "name": "Dwarf Armory 6",
+                        "ref": "Dwarf Cave Dwarf Armory 6/Chest"
+                    },
+                    {
+                        "name": "Dwarf Armory 7",
+                        "ref": "Dwarf Cave Dwarf Armory 7/Chest"
+                    },
+                    {
+                        "name": "Dwarf Armory 8",
+                        "ref": "Dwarf Cave Dwarf Armory 8/Chest"
                     }
                 ],
                 "map_locations": [
@@ -324,6 +472,188 @@
                         "map": "overworld",
                         "x": 1220,
                         "y": 1730
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Dwarf Cave Free Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 380,
+                                "y": 86,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Dwarf Cave Free Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 380,
+                                "y": 102,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Dwarf Cave Dwarf Armory 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 76,
+                                "y": 646,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Dwarf Cave Dwarf Armory 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 92,
+                                "y": 646,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Dwarf Cave Dwarf Armory 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 156,
+                                "y": 694,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Dwarf Cave Dwarf Armory 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 172,
+                                "y": 694,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Dwarf Cave Dwarf Armory 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 188,
+                                "y": 694,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Dwarf Cave Dwarf Armory 6",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 252,
+                                "y": 694,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Dwarf Cave Dwarf Armory 7",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 268,
+                                "y": 694,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Dwarf Cave Dwarf Armory 8",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 284,
+                                "y": 694,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -893,40 +1223,6 @@
                         "hosted_item": "earth"
                     },
                     {
-                        "name": "2 Right",
-                        "access_rules": [],
-                        "item_count": 3
-                    },
-                    {
-                        "name": "2 Bottom",
-                        "access_rules": [],
-                        "item_count": 3
-                    },
-                    {
-                        "name": "3 Chests",
-                        "access_rules": [],
-                        "item_count": 3
-                    },
-                    {
-                        "name": "3 TFC",
-                        "access_rules": [],
-                        "item_count": 1
-                    },
-                    {
-                        "name": "4 Armory",
-                        "access_rules": [
-                            "rod"
-                        ],
-                        "item_count": 5
-                    },
-                    {
-                        "name": "4 Bottom",
-                        "access_rules": [
-                            "rod"
-                        ],
-                        "item_count": 3
-                    },
-                    {
                         "name": "1 Bottom 1",
                         "ref": "Earth Cave 1 Bottom 1/Chest"
                     },
@@ -937,6 +1233,86 @@
                     {
                         "name": "Earth Cave 1 Top",
                         "ref": "Earth Cave 1 Top/Chest"
+                    },
+                    {
+                        "name": "2 Right 1",
+                        "ref": "Earth Cave 2 Right 1/Chest"
+                    },
+                    {
+                        "name": "2 Right 2",
+                        "ref": "Earth Cave 2 Right 2/Chest"
+                    },
+                    {
+                        "name": "2 Right 3",
+                        "ref": "Earth Cave 2 Right 3/Chest"
+                    },
+                    {
+                        "name": "2 Right 4",
+                        "ref": "Earth Cave 2 Right 4/Chest"
+                    },
+                    {
+                        "name": "2 Right 5",
+                        "ref": "Earth Cave 2 Right 5/Chest"
+                    },
+                    {
+                        "name": "2 Bottom 1",
+                        "ref": "Earth Cave 2 Bottom 1/Chest"
+                    },
+                    {
+                        "name": "2 Bottom 2",
+                        "ref": "Earth Cave 2 Bottom 2/Chest"
+                    },
+                    {
+                        "name": "2 Bottom 3",
+                        "ref": "Earth Cave 2 Bottom 3/Chest"
+                    },
+                    {
+                        "name": "3 Chests 1",
+                        "ref": "Earth Cave 3 Chests 1/Chest"
+                    },
+                    {
+                        "name": "3 Chests 2",
+                        "ref": "Earth Cave 3 Chests 2/Chest"
+                    },
+                    {
+                        "name": "3 Chests 3",
+                        "ref": "Earth Cave 3 Chests 3/Chest"
+                    },
+                    {
+                        "name": "Earth Cave 3 TFC",
+                        "ref": "Earth Cave 3 TFC/Chest"
+                    },
+                    {
+                        "name": "4 Bottom 1",
+                        "ref": "Earth Cave 4 Bottom 1/Chest"
+                    },
+                    {
+                        "name": "4 Bottom 2",
+                        "ref": "Earth Cave 4 Bottom 2/Chest"
+                    },
+                    {
+                        "name": "4 Bottom 3",
+                        "ref": "Earth Cave 4 Bottom 3/Chest"
+                    },
+                    {
+                        "name": "4 Armory 1",
+                        "ref": "Earth Cave 4 Armory 1/Chest"
+                    },
+                    {
+                        "name": "4 Armory 2",
+                        "ref": "Earth Cave 4 Armory 2/Chest"
+                    },
+                    {
+                        "name": "4 Armory 3",
+                        "ref": "Earth Cave 4 Armory 3/Chest"
+                    },
+                    {
+                        "name": "4 Armory 4",
+                        "ref": "Earth Cave 4 Armory 4/Chest"
+                    },
+                    {
+                        "name": "4 Armory 5",
+                        "ref": "Earth Cave 4 Armory 5/Chest"
                     }
                 ],
                 "map_locations": [
@@ -996,6 +1372,366 @@
                                 "map": "earthB1",
                                 "x": 485,
                                 "y": 140,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 2 Right 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB2",
+                                "x": 511,
+                                "y": 115,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 2 Right 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB2",
+                                "x": 527,
+                                "y": 115,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 2 Right 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB2",
+                                "x": 559,
+                                "y": 147,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 2 Right 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB1",
+                                "x": 581,
+                                "y": 620,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 2 Right 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB1",
+                                "x": 597,
+                                "y": 636,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 2 Bottom 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB2",
+                                "x": 223,
+                                "y": 547,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 2 Bottom 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB2",
+                                "x": 239,
+                                "y": 579,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 2 Bottom 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB2",
+                                "x": 271,
+                                "y": 579,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 3 Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB3",
+                                "x": 367,
+                                "y": 135,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 3 Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB3",
+                                "x": 143,
+                                "y": 327,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 3 Chests 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB3",
+                                "x": 671,
+                                "y": 519,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 3 TFC",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB3",
+                                "x": 671,
+                                "y": 311,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 4 Bottom 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB4",
+                                "x": 159,
+                                "y": 483,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 4 Bottom 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB4",
+                                "x": 191,
+                                "y": 499,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 4 Bottom 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB4",
+                                "x": 143,
+                                "y": 531,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 4 Armory 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB4",
+                                "x": 479,
+                                "y": 83,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 4 Armory 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB4",
+                                "x": 495,
+                                "y": 83,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 4 Armory 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB4",
+                                "x": 559,
+                                "y": 83,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 4 Armory 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB4",
+                                "x": 591,
+                                "y": 83,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave 4 Armory 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB4",
+                                "x": 479,
+                                "y": 115,
                                 "size": 16,
                                 "border_thickness": 2
                             }
@@ -1444,32 +2180,6 @@
                         "hosted_item": "fireorb"
                     },
                     {
-                        "name": "Volcano Incentive",
-                        "access_rules": [],
-                        "item_count": 1,
-                        "hosted_item": "volcano"
-                    },
-                    {
-                        "name": "Armory Bottom Right",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Armory Right Hairpins",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Armory Left Hairpin",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Armory Main",
-                        "access_rules": [],
-                        "item_count": 12
-                    },
-                    {
                         "name": "Agama Top Right",
                         "access_rules": [],
                         "item_count": 2
@@ -1498,6 +2208,82 @@
                         "name": "Agama Bottom Right",
                         "access_rules": [],
                         "item_count": 2
+                    },
+                    {
+                        "name": "Armory Main 1",
+                        "ref": "Volcano Armory Main 1/Chest"
+                    },
+                    {
+                        "name": "Armory Main 2",
+                        "ref": "Volcano Armory Main 2/Chest"
+                    },
+                    {
+                        "name": "Armory Main 3",
+                        "ref": "Volcano Armory Main 3/Chest"
+                    },
+                    {
+                        "name": "Armory Main 4",
+                        "ref": "Volcano Armory Main 4/Chest"
+                    },
+                    {
+                        "name": "Armory Main 5",
+                        "ref": "Volcano Armory Main 5/Chest"
+                    },
+                    {
+                        "name": "Armory Main 6",
+                        "ref": "Volcano Armory Main 6/Chest"
+                    },
+                    {
+                        "name": "Armory Main 7",
+                        "ref": "Volcano Armory Main 7/Chest"
+                    },
+                    {
+                        "name": "Armory Main 8",
+                        "ref": "Volcano Armory Main 8/Chest"
+                    },
+                    {
+                        "name": "Armory Main 9",
+                        "ref": "Volcano Armory Main 9/Chest"
+                    },
+                    {
+                        "name": "Armory Main 10",
+                        "ref": "Volcano Armory Main 10/Chest"
+                    },
+                    {
+                        "name": "Armory Main 11",
+                        "ref": "Volcano Armory Main 11/Chest"
+                    },
+                    {
+                        "name": "Armory Main 12",
+                        "ref": "Volcano Armory Main 12/Chest"
+                    },
+                    {
+                        "name": "Armory Left Hairpin 1",
+                        "ref": "Volcano Armory Left Hairpin 1/Chest"
+                    },
+                    {
+                        "name": "Armory Left Hairpin 2",
+                        "ref": "Volcano Armory Left Hairpin 2/Chest"
+                    },
+                    {
+                        "name": "Armory Right Hairpins 1",
+                        "ref": "Volcano Armory Right Hairpins 1/Chest"
+                    },
+                    {
+                        "name": "Armory Right Hairpins 2",
+                        "ref": "Volcano Armory Right Hairpins 2/Chest"
+                    },
+                    {
+                        "name": "Armory Bottom Right 1",
+                        "ref": "Volcano Armory Bottom Right 1/Chest"
+                    },
+                    {
+                        "name": "Armory Bottom Right 2",
+                        "ref": "Volcano Armory Bottom Right 2/Chest"
+                    },
+                    {
+                        "name": "Volcano Incentive",
+                        "ref": "Volcano Incentive/Incentive"
                     }
                 ],
                 "map_locations": [
@@ -1505,6 +2291,351 @@
                         "map": "overworld",
                         "x": 2280,
                         "y": 2280
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Volcano Armory Main 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 127,
+                                "y": 547,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 175,
+                                "y": 547,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 111,
+                                "y": 563,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 159,
+                                "y": 563,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 175,
+                                "y": 563,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 6",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 175,
+                                "y": 579,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 7",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 191,
+                                "y": 579,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 8",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 95,
+                                "y": 595,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 9",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 111,
+                                "y": 595,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 10",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 143,
+                                "y": 595,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 11",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 159,
+                                "y": 595,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Main 12",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 175,
+                                "y": 595,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Left Hairpin 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 175,
+                                "y": 195,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Left Hairpin 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 191,
+                                "y": 195,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Right Hairpins 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 303,
+                                "y": 339,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Right Hairpins 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 495,
+                                "y": 339,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Bottom Right 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 415,
+                                "y": 435,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Armory Bottom Right 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB2",
+                                "x": 431,
+                                "y": 595,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Incentive",
+                        "sections": [
+                            {
+                                "name": "Incentive",
+                                "item_count": 1,
+                                "hosted_item": "volcano"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB5",
+                                "x": 102,
+                                "y": 536,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             },
@@ -2435,21 +3566,6 @@
                         "hosted_item": "airorb"
                     },
                     {
-                        "name": "Floor 3 Top",
-                        "access_rules": [],
-                        "item_count": 4
-                    },
-                    {
-                        "name": "Floor 3 Left",
-                        "access_rules": [],
-                        "item_count": 4
-                    },
-                    {
-                        "name": "Floor 3 Right",
-                        "access_rules": [],
-                        "item_count": 6
-                    },
-                    {
                         "name": "Floor 1 Left 1",
                         "ref": "Sky Palace Floor 1 Left 1/Chest"
                     },
@@ -2528,6 +3644,62 @@
                     {
                         "name": "Sky Palace Sky Incentive",
                         "ref": "Sky Palace Sky Incentive/Incentive"
+                    },
+                    {
+                        "name": "Floor 3 Left 1",
+                        "ref": "Sky Palace Floor 3 Left 1/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Left 2",
+                        "ref": "Sky Palace Floor 3 Left 2/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Left 3",
+                        "ref": "Sky Palace Floor 3 Left 3/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Left 4",
+                        "ref": "Sky Palace Floor 3 Left 4/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Right 1",
+                        "ref": "Sky Palace Floor 3 Right 1/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Right 2",
+                        "ref": "Sky Palace Floor 3 Right 2/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Right 3",
+                        "ref": "Sky Palace Floor 3 Right 3/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Right 4",
+                        "ref": "Sky Palace Floor 3 Right 4/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Right 5",
+                        "ref": "Sky Palace Floor 3 Right 5/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Right 6",
+                        "ref": "Sky Palace Floor 3 Right 6/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Top 1",
+                        "ref": "Sky Palace Floor 3 Top 1/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Top 2",
+                        "ref": "Sky Palace Floor 3 Top 2/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Top 3",
+                        "ref": "Sky Palace Floor 3 Top 3/Chest"
+                    },
+                    {
+                        "name": "Floor 3 Top 4",
+                        "ref": "Sky Palace Floor 3 Top 4/Chest"
                     }
                 ],
                 "map_locations": [
@@ -2898,6 +4070,258 @@
                                 "border_thickness": 2
                             }
                         ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Left 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 72,
+                                "y": 328,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Left 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 88,
+                                "y": 328,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Left 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 104,
+                                "y": 328,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Left 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 120,
+                                "y": 328,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Right 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 632,
+                                "y": 280,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Right 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 664,
+                                "y": 280,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Right 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 632,
+                                "y": 296,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Right 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 664,
+                                "y": 296,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Right 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 632,
+                                "y": 312,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Right 6",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 664,
+                                "y": 312,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Top 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 280,
+                                "y": 88,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Top 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 312,
+                                "y": 88,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Top 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 280,
+                                "y": 104,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sky Palace Floor 3 Top 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "sky3F",
+                                "x": 312,
+                                "y": 104,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             }
@@ -3087,11 +4511,6 @@
                         "item_count": 2
                     },
                     {
-                        "name": "Sharknado",
-                        "access_rules": [],
-                        "item_count": 10
-                    },
-                    {
                         "name": "TFC Floor 1",
                         "ref": "Sea Shrine TFC Floor 1/Chest"
                     },
@@ -3162,6 +4581,46 @@
                     {
                         "name": "Sea Shrine Sea Incentive",
                         "ref": "Sea Shrine Sea Incentive/Incentive"
+                    },
+                    {
+                        "name": "Sharknado 1",
+                        "ref": "Sea Shrine Sharknado 1/Chest"
+                    },
+                    {
+                        "name": "Sharknado 2",
+                        "ref": "Sea Shrine Sharknado 2/Chest"
+                    },
+                    {
+                        "name": "Sharknado 3",
+                        "ref": "Sea Shrine Sharknado 3/Chest"
+                    },
+                    {
+                        "name": "Sharknado 4",
+                        "ref": "Sea Shrine Sharknado 4/Chest"
+                    },
+                    {
+                        "name": "Sharknado 5",
+                        "ref": "Sea Shrine Sharknado 5/Chest"
+                    },
+                    {
+                        "name": "Sharknado 6",
+                        "ref": "Sea Shrine Sharknado 6/Chest"
+                    },
+                    {
+                        "name": "Sharknado 7",
+                        "ref": "Sea Shrine Sharknado 7/Chest"
+                    },
+                    {
+                        "name": "Sharknado 8",
+                        "ref": "Sea Shrine Sharknado 8/Chest"
+                    },
+                    {
+                        "name": "Sharknado 9",
+                        "ref": "Sea Shrine Sharknado 9/Chest"
+                    },
+                    {
+                        "name": "Sharknado 10",
+                        "ref": "Sea Shrine Sharknado 10/Chest"
                     }
                 ],
                 "map_locations": [
@@ -3492,6 +4951,186 @@
                                 "map": "seaB1",
                                 "x": 454,
                                 "y": 87,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sharknado 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB4",
+                                "x": 505,
+                                "y": 196,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sharknado 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB4",
+                                "x": 521,
+                                "y": 196,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sharknado 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB4",
+                                "x": 553,
+                                "y": 196,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sharknado 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB4",
+                                "x": 553,
+                                "y": 228,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sharknado 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB4",
+                                "x": 233,
+                                "y": 244,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sharknado 6",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB4",
+                                "x": 73,
+                                "y": 468,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sharknado 7",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB4",
+                                "x": 137,
+                                "y": 468,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sharknado 8",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB4",
+                                "x": 121,
+                                "y": 484,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sharknado 9",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB4",
+                                "x": 633,
+                                "y": 484,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sharknado 10",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB4",
+                                "x": 681,
+                                "y": 484,
                                 "size": 16,
                                 "border_thickness": 2
                             }
