@@ -84,7 +84,61 @@ for _, m in ipairs(markers) do
 end
 if outside == 0 then print("ok   every marker sits inside its image") end
 
--- 3. the Ice Cave pilot: sixteen per-chest markers, on the three ice floors
+-- 3. a location with a marker must have sections of its own.
+--    PopTracker's CalculateLocationState only walks loc.getSections(); it does
+--    not aggregate from children, and a location with nothing visible returns
+--    -1, which mapwidget skips as hidden. So a parent that hands all its
+--    sections to children keeps its map_locations entry and silently stops
+--    drawing. That is exactly what the Ice Cave split did until the parent got
+--    ref sections back.
+local sectionless = 0
+local function checkSections(nodes)
+  for _, n in ipairs(nodes) do
+    if n.map_locations and #n.map_locations > 0 then
+      if not n.sections or #n.sections == 0 then
+        fails(string.format("%s has a map marker but no sections, so it will not draw", n.name))
+        sectionless = sectionless + 1
+      end
+    end
+    checkSections(n.children or {})
+  end
+end
+for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json" }) do
+  checkSections(json.load(PACK .. "/" .. file))
+end
+if sectionless == 0 then print("ok   every marker's location has sections to show") end
+
+-- 4. every section ref points at a section that exists
+local byName = {}
+local function indexSections(nodes)
+  for _, n in ipairs(nodes) do
+    for _, sec in ipairs(n.sections or {}) do
+      byName[n.name .. "/" .. sec.name] = true
+    end
+    indexSections(n.children or {})
+  end
+end
+for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json" }) do
+  indexSections(json.load(PACK .. "/" .. file))
+end
+local badRef = 0
+local function checkRefs(nodes)
+  for _, n in ipairs(nodes) do
+    for _, sec in ipairs(n.sections or {}) do
+      if sec.ref and not byName[sec.ref] then
+        fails(string.format("%s/%s refs %q, which does not exist", n.name, sec.name, sec.ref))
+        badRef = badRef + 1
+      end
+    end
+    checkRefs(n.children or {})
+  end
+end
+for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json" }) do
+  checkRefs(json.load(PACK .. "/" .. file))
+end
+if badRef == 0 then print("ok   every section ref resolves") end
+
+-- 5. the Ice Cave pilot: sixteen per-chest markers, on the three ice floors
 local ice, iceMaps = 0, {}
 for _, m in ipairs(markers) do
   if m.name:match("^Ice Cave ") then
