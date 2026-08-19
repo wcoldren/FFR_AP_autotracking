@@ -125,7 +125,7 @@ check("earth orb lit from the wire", objects["earthorb"].CurrentStage, 1)
 -- that moved fails here instead of in the app.
 for _, t in ipairs({
   { id = 371, want = "@Ice Cave Six-Pack Top Left/Chest", label = "Ice Cave per-chest" },
-  { id = 388, want = "@Cardia Forest Chests/Chests",      label = "Cardia Forest group" },
+  { id = 388, want = "@Cardia Forest Entrance Top/Chest", label = "Cardia Forest per-chest" },
 }) do
   local path = LOCATION_MAPPING[t.id][1]
   check(t.label .. " path", path, t.want)

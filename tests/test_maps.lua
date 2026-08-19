@@ -151,27 +151,32 @@ if ice ~= 16 then
 else
   print("ok   Ice Cave has 16 per-chest markers")
 end
--- Cardia Forest is the grouped style: two groups, a box on each of their
--- chests. Marker count therefore has to match item_count, not section count.
-local cardia = {}
+-- Cardia Forest is per-chest, like Ice Cave: seven nodes, one box each. A node
+-- carrying two boxes would mean two chests sharing a marker again.
+local cardia, cardiaNodes = 0, 0
 local function countCardia(nodes)
   for _, n in ipairs(nodes) do
-    if n.name:match("^Cardia Forest") then
+    if n.name:match("^Cardia Forest ") or n.name == "Cardia Forest Incentive" then
+      local own = 0
       for _, ml in ipairs(n.map_locations or {}) do
-        if ml.map == "cardia" then cardia[n.name] = (cardia[n.name] or 0) + 1 end
+        if ml.map == "cardia" then own = own + 1 end
+      end
+      if own > 0 then
+        cardiaNodes = cardiaNodes + 1
+        cardia = cardia + own
+        if own ~= 1 then
+          fails(string.format("%s has %d boxes, expected exactly one", n.name, own))
+        end
       end
     end
     countCardia(n.children or {})
   end
 end
 countCardia(json.load(PACK .. "/locations/overworld.json"))
-for node, want in pairs({ ["Cardia Forest Chests"] = 6, ["Cardia Forest Incentive"] = 1 }) do
-  local got = cardia[node] or 0
-  if got ~= want then
-    fails(string.format("%s has %d boxes, expected one per chest (%d)", node, got, want))
-  else
-    print(string.format("ok   %-28s %d boxes, one per chest", node, got))
-  end
+if cardia ~= 7 or cardiaNodes ~= 7 then
+  fails(string.format("Cardia Forest has %d boxes across %d nodes, expected 7 and 7", cardia, cardiaNodes))
+else
+  print("ok   Cardia Forest has 7 per-chest markers")
 end
 
 for map, want in pairs({ iceB1 = 5, iceB2 = 3, iceB3 = 8 }) do
