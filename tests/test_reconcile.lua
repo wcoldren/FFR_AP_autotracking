@@ -20,6 +20,15 @@ Tracker = {
 
 dofile(PACK .. "/scripts/autotracking/location_mapping.lua")
 
+-- A section fed by several ids, built here rather than borrowed from the pack.
+-- Every real section is one-to-one now that the dungeons are split per chest,
+-- but reconcile still has to handle the many-to-one case: it is what the union
+-- of two feeds is for, and a pack that regrouped anything would rely on it.
+local MULTI = "@Test Group/Chests"
+for _, id in ipairs({ 999001, 999002, 999003 }) do
+  LOCATION_MAPPING[id] = { MULTI }
+end
+
 -- Build stub sections sized to however many ids the mapping points at them,
 -- so counts are internally consistent for the test.
 local counts, hosted = {}, {}
@@ -64,11 +73,7 @@ do
   LOCATION_MAPPING[999998] = nil
 end
 
--- Pick a section with several ids mapped to it.
-local multi, multiIds
-for path, n in pairs(counts) do
-  if n >= 3 then multi, multiIds = path, {} break end
-end
+local multi, multiIds = MULTI, {}
 for id, v in pairs(LOCATION_MAPPING) do
   if v[1] == multi then multiIds[#multiIds + 1] = id end
 end

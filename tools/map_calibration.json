@@ -149,6 +149,40 @@
       }
     ]
   },
+  "marshB2": {
+    "rom_map_id": 27,
+    "tile_px": 16,
+    "regions": [
+      {
+        "rows": [
+          0,
+          40
+        ],
+        "offset_x": 16,
+        "offset_y": -20,
+        "note": "Marsh Top (B1)"
+      },
+      {
+        "rows": [
+          41,
+          63
+        ],
+        "offset_x": -102,
+        "offset_y": -68,
+        "note": "Marsh Middle (B1)"
+      }
+    ]
+  },
+  "marshB3": {
+    "rom_map_id": 28,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": -5,
+        "offset_y": -22
+      }
+    ]
+  },
   "matoya": {
     "rom_map_id": 20,
     "tile_px": 16,
@@ -229,6 +263,30 @@
       }
     ]
   },
+  "seaB3": {
+    "rom_map_id": 44,
+    "tile_px": 16,
+    "regions": [
+      {
+        "rows": [
+          0,
+          13
+        ],
+        "offset_x": -106,
+        "offset_y": -6,
+        "note": "Sea Greed"
+      },
+      {
+        "rows": [
+          14,
+          63
+        ],
+        "offset_x": -22,
+        "offset_y": -20,
+        "note": "Split Floor"
+      }
+    ]
+  },
   "seaB4": {
     "rom_map_id": 43,
     "tile_px": 16,
@@ -299,6 +357,26 @@
       }
     ]
   },
+  "tofrAir": {
+    "rom_map_id": 58,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 12,
+        "offset_y": 12
+      }
+    ]
+  },
+  "tofrFire": {
+    "rom_map_id": 56,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 10,
+        "offset_y": 9
+      }
+    ]
+  },
   "volcB2": {
     "rom_map_id": 33,
     "tile_px": 16,
@@ -306,6 +384,16 @@
       {
         "offset_x": 7,
         "offset_y": 123
+      }
+    ]
+  },
+  "volcB4": {
+    "rom_map_id": 35,
+    "tile_px": 16,
+    "regions": [
+      {
+        "offset_x": 8,
+        "offset_y": 59
       }
     ]
   },

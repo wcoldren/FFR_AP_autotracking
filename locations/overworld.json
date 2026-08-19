@@ -335,22 +335,32 @@
                                 "hosted_item": "chaos"
                             },
                             {
-                                "name": "Kary Floor",
-                                "access_rules": [],
-                                "item_count": 4
-                            },
-                            {
-                                "name": "Vanilla Masa",
-                                "access_rules": [],
-                                "item_count": 1
-                            },
-                            {
                                 "name": "Lute Plate Room 1",
                                 "ref": "ToFR Lute Plate Room 1/Chest"
                             },
                             {
                                 "name": "Lute Plate Room 2",
                                 "ref": "ToFR Lute Plate Room 2/Chest"
+                            },
+                            {
+                                "name": "ToFR Vanilla Masa",
+                                "ref": "ToFR Vanilla Masa/Chest"
+                            },
+                            {
+                                "name": "Kary Floor 1",
+                                "ref": "ToFR Kary Floor 1/Chest"
+                            },
+                            {
+                                "name": "Kary Floor 2",
+                                "ref": "ToFR Kary Floor 2/Chest"
+                            },
+                            {
+                                "name": "Kary Floor 3",
+                                "ref": "ToFR Kary Floor 3/Chest"
+                            },
+                            {
+                                "name": "Kary Floor 4",
+                                "ref": "ToFR Kary Floor 4/Chest"
                             }
                         ],
                         "map_locations": [
@@ -392,6 +402,96 @@
                                         "map": "tofr3F",
                                         "x": 408,
                                         "y": 270,
+                                        "size": 16,
+                                        "border_thickness": 2
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "ToFR Vanilla Masa",
+                                "sections": [
+                                    {
+                                        "name": "Chest",
+                                        "item_count": 1
+                                    }
+                                ],
+                                "map_locations": [
+                                    {
+                                        "map": "tofrAir",
+                                        "x": 836,
+                                        "y": 532,
+                                        "size": 16,
+                                        "border_thickness": 2
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "ToFR Kary Floor 1",
+                                "sections": [
+                                    {
+                                        "name": "Chest",
+                                        "item_count": 1
+                                    }
+                                ],
+                                "map_locations": [
+                                    {
+                                        "map": "tofrFire",
+                                        "x": 130,
+                                        "y": 497,
+                                        "size": 16,
+                                        "border_thickness": 2
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "ToFR Kary Floor 2",
+                                "sections": [
+                                    {
+                                        "name": "Chest",
+                                        "item_count": 1
+                                    }
+                                ],
+                                "map_locations": [
+                                    {
+                                        "map": "tofrFire",
+                                        "x": 370,
+                                        "y": 497,
+                                        "size": 16,
+                                        "border_thickness": 2
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "ToFR Kary Floor 3",
+                                "sections": [
+                                    {
+                                        "name": "Chest",
+                                        "item_count": 1
+                                    }
+                                ],
+                                "map_locations": [
+                                    {
+                                        "map": "tofrFire",
+                                        "x": 882,
+                                        "y": 561,
+                                        "size": 16,
+                                        "border_thickness": 2
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "ToFR Kary Floor 4",
+                                "sections": [
+                                    {
+                                        "name": "Chest",
+                                        "item_count": 1
+                                    }
+                                ],
+                                "map_locations": [
+                                    {
+                                        "map": "tofrFire",
+                                        "x": 402,
+                                        "y": 849,
                                         "size": 16,
                                         "border_thickness": 2
                                     }
@@ -996,64 +1096,59 @@
                     "ship",
                     "airship",
                     "extendedOpen"
-                 ],
+                ],
                 "sections": [
                     {
-                        "name": "Marsh Incentive",
-                        "access_rules": [],
-                        "item_count": 1,
-                        "hosted_item": "marsh"
+                        "name": "Marsh Cave Bottom Floor 4,1",
+                        "ref": "Marsh Cave Bottom Floor 4,1/Chest"
                     },
                     {
-                        "name": "Marsh Locked Incentive",
-                        "access_rules": [ "key" ],
-                        "item_count": 1,
-                        "hosted_item": "marshLocked"
+                        "name": "Marsh Cave Bottom Floor 1,2",
+                        "ref": "Marsh Cave Bottom Floor 1,2/Chest"
                     },
                     {
-                        "name": "Top Floor Right",
-                        "access_rules": [],
-                        "item_count": 1
+                        "name": "Bottom Floor 2,2 1",
+                        "ref": "Marsh Cave Bottom Floor 2,2 1/Chest"
                     },
                     {
-                        "name": "Top Floor Top Left",
-                        "access_rules": [],
-                        "item_count": 1
+                        "name": "Bottom Floor 2,2 2",
+                        "ref": "Marsh Cave Bottom Floor 2,2 2/Chest"
                     },
                     {
-                        "name": "Top Floor Bottom Left",
-                        "access_rules": [],
-                        "item_count": 2
+                        "name": "Marsh Cave Bottom Floor 3,3",
+                        "ref": "Marsh Cave Bottom Floor 3,3/Chest"
                     },
                     {
-                        "name": "Bottom Floor 1,2",
-                        "access_rules": [],
-                        "item_count": 1
+                        "name": "Top Floor Bottom Left 1",
+                        "ref": "Marsh Cave Top Floor Bottom Left 1/Chest"
                     },
                     {
-                        "name": "Bottom Floor 2,2",
-                        "access_rules": [],
-                        "item_count": 2
+                        "name": "Top Floor Bottom Left 2",
+                        "ref": "Marsh Cave Top Floor Bottom Left 2/Chest"
                     },
                     {
-                        "name": "Bottom Floor 3,3",
-                        "access_rules": [],
-                        "item_count": 1
+                        "name": "Marsh Cave Top Floor Top Left",
+                        "ref": "Marsh Cave Top Floor Top Left/Chest"
                     },
                     {
-                        "name": "Bottom Floor 4,1",
-                        "access_rules": [],
-                        "item_count": 1
+                        "name": "Marsh Cave Top Floor Right",
+                        "ref": "Marsh Cave Top Floor Right/Chest"
                     },
                     {
-                        "name": "Key Locked Left",
-                        "access_rules": [ "key" ],
-                        "item_count": 1
+                        "name": "Marsh Cave Marsh Incentive",
+                        "ref": "Marsh Cave Marsh Incentive/Incentive"
                     },
                     {
-                        "name": "Key Locked Middle",
-                        "access_rules": [ "key" ],
-                        "item_count": 1
+                        "name": "Marsh Cave Key Locked Left",
+                        "ref": "Marsh Cave Key Locked Left/Chest"
+                    },
+                    {
+                        "name": "Marsh Cave Key Locked Middle",
+                        "ref": "Marsh Cave Key Locked Middle/Chest"
+                    },
+                    {
+                        "name": "Marsh Cave Marsh Locked Incentive",
+                        "ref": "Marsh Cave Marsh Locked Incentive/Incentive"
                     }
                 ],
                 "map_locations": [
@@ -1061,6 +1156,279 @@
                         "map": "overworld",
                         "x": 1230,
                         "y": 2680
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Marsh Cave Bottom Floor 4,1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB3",
+                                "x": 835,
+                                "y": 114,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Bottom Floor 1,2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB3",
+                                "x": 163,
+                                "y": 386,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Bottom Floor 2,2 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB3",
+                                "x": 163,
+                                "y": 114,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "marshB3",
+                                "x": 403,
+                                "y": 386,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "marshB3",
+                                "x": 851,
+                                "y": 594,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Bottom Floor 2,2 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB3",
+                                "x": 371,
+                                "y": 354,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Bottom Floor 3,3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB3",
+                                "x": 611,
+                                "y": 626,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Top Floor Bottom Left 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB2",
+                                "x": 168,
+                                "y": 356,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "marshB2",
+                                "x": 322,
+                                "y": 724,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "marshB2",
+                                "x": 498,
+                                "y": 724,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Top Floor Bottom Left 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB2",
+                                "x": 200,
+                                "y": 356,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Top Floor Top Left",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB2",
+                                "x": 216,
+                                "y": 100,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "marshB2",
+                                "x": 130,
+                                "y": 740,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Top Floor Right",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB2",
+                                "x": 440,
+                                "y": 100,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Marsh Incentive",
+                        "sections": [
+                            {
+                                "name": "Incentive",
+                                "item_count": 1,
+                                "hosted_item": "marsh"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB3",
+                                "x": 371,
+                                "y": 610,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Key Locked Left",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB3",
+                                "x": 195,
+                                "y": 850,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Key Locked Middle",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB3",
+                                "x": 435,
+                                "y": 834,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Marsh Cave Marsh Locked Incentive",
+                        "sections": [
+                            {
+                                "name": "Incentive",
+                                "item_count": 1,
+                                "hosted_item": "marshLocked"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "marshB3",
+                                "x": 835,
+                                "y": 834,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
                     }
                 ]
             }
@@ -1217,12 +1585,6 @@
                         "hosted_item": "earthorb"
                     },
                     {
-                        "name": "Earth Incentive",
-                        "access_rules": [],
-                        "item_count": 1,
-                        "hosted_item": "earth"
-                    },
-                    {
                         "name": "1 Bottom 1",
                         "ref": "Earth Cave 1 Bottom 1/Chest"
                     },
@@ -1313,6 +1675,10 @@
                     {
                         "name": "4 Armory 5",
                         "ref": "Earth Cave 4 Armory 5/Chest"
+                    },
+                    {
+                        "name": "Earth Cave Earth Incentive",
+                        "ref": "Earth Cave Earth Incentive/Incentive"
                     }
                 ],
                 "map_locations": [
@@ -1732,6 +2098,25 @@
                                 "map": "earthB4",
                                 "x": 479,
                                 "y": 115,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Earth Cave Earth Incentive",
+                        "sections": [
+                            {
+                                "name": "Incentive",
+                                "item_count": 1,
+                                "hosted_item": "earth"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "earthB3",
+                                "x": 255,
+                                "y": 519,
                                 "size": 16,
                                 "border_thickness": 2
                             }
@@ -2180,36 +2565,6 @@
                         "hosted_item": "fireorb"
                     },
                     {
-                        "name": "Agama Top Right",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Agama Top Middle",
-                        "access_rules": [],
-                        "item_count": 1
-                    },
-                    {
-                        "name": "Agama Top Left",
-                        "access_rules": [],
-                        "item_count": 5
-                    },
-                    {
-                        "name": "Agama Middle Middle",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Agama Middle Right",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Agama Bottom Right",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
                         "name": "Armory Main 1",
                         "ref": "Volcano Armory Main 1/Chest"
                     },
@@ -2284,6 +2639,62 @@
                     {
                         "name": "Volcano Incentive",
                         "ref": "Volcano Incentive/Incentive"
+                    },
+                    {
+                        "name": "Agama Top Right 1",
+                        "ref": "Volcano Agama Top Right 1/Chest"
+                    },
+                    {
+                        "name": "Agama Top Right 2",
+                        "ref": "Volcano Agama Top Right 2/Chest"
+                    },
+                    {
+                        "name": "Volcano Agama Top Middle",
+                        "ref": "Volcano Agama Top Middle/Chest"
+                    },
+                    {
+                        "name": "Agama Bottom Right 1",
+                        "ref": "Volcano Agama Bottom Right 1/Chest"
+                    },
+                    {
+                        "name": "Agama Bottom Right 2",
+                        "ref": "Volcano Agama Bottom Right 2/Chest"
+                    },
+                    {
+                        "name": "Agama Middle Middle 1",
+                        "ref": "Volcano Agama Middle Middle 1/Chest"
+                    },
+                    {
+                        "name": "Agama Middle Middle 2",
+                        "ref": "Volcano Agama Middle Middle 2/Chest"
+                    },
+                    {
+                        "name": "Agama Middle Right 1",
+                        "ref": "Volcano Agama Middle Right 1/Chest"
+                    },
+                    {
+                        "name": "Agama Middle Right 2",
+                        "ref": "Volcano Agama Middle Right 2/Chest"
+                    },
+                    {
+                        "name": "Agama Top Left 1",
+                        "ref": "Volcano Agama Top Left 1/Chest"
+                    },
+                    {
+                        "name": "Agama Top Left 2",
+                        "ref": "Volcano Agama Top Left 2/Chest"
+                    },
+                    {
+                        "name": "Agama Top Left 3",
+                        "ref": "Volcano Agama Top Left 3/Chest"
+                    },
+                    {
+                        "name": "Agama Top Left 4",
+                        "ref": "Volcano Agama Top Left 4/Chest"
+                    },
+                    {
+                        "name": "Agama Top Left 5",
+                        "ref": "Volcano Agama Top Left 5/Chest"
                     }
                 ],
                 "map_locations": [
@@ -2632,6 +3043,286 @@
                                 "map": "volcB5",
                                 "x": 102,
                                 "y": 536,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Top Right 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 512,
+                                "y": 83,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Top Right 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 560,
+                                "y": 115,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "volcB5",
+                                "x": 870,
+                                "y": 56,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "volcB5",
+                                "x": 822,
+                                "y": 536,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "volcB5",
+                                "x": 886,
+                                "y": 824,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Top Middle",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 288,
+                                "y": 211,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Bottom Right 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 784,
+                                "y": 563,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Bottom Right 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 784,
+                                "y": 579,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Middle Middle 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 528,
+                                "y": 371,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Middle Middle 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 560,
+                                "y": 403,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Middle Right 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 736,
+                                "y": 243,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Middle Right 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 752,
+                                "y": 243,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Top Left 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 48,
+                                "y": 83,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Top Left 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 80,
+                                "y": 83,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Top Left 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 80,
+                                "y": 99,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "volcB4",
+                                "x": 784,
+                                "y": 259,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Top Left 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 32,
+                                "y": 115,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Volcano Agama Top Left 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "volcB4",
+                                "x": 80,
+                                "y": 115,
                                 "size": 16,
                                 "border_thickness": 2
                             }
@@ -4679,16 +5370,6 @@
                         "hosted_item": "waterorb"
                     },
                     {
-                        "name": "Sea Split",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
-                        "name": "Sea Hallway",
-                        "access_rules": [],
-                        "item_count": 2
-                    },
-                    {
                         "name": "TFC Floor 1",
                         "ref": "Sea Shrine TFC Floor 1/Chest"
                     },
@@ -4799,6 +5480,22 @@
                     {
                         "name": "Sharknado 10",
                         "ref": "Sea Shrine Sharknado 10/Chest"
+                    },
+                    {
+                        "name": "Sea Split 1",
+                        "ref": "Sea Shrine Sea Split 1/Chest"
+                    },
+                    {
+                        "name": "Sea Split 2",
+                        "ref": "Sea Shrine Sea Split 2/Chest"
+                    },
+                    {
+                        "name": "Sea Hallway 1",
+                        "ref": "Sea Shrine Sea Hallway 1/Chest"
+                    },
+                    {
+                        "name": "Sea Hallway 2",
+                        "ref": "Sea Shrine Sea Hallway 2/Chest"
                     }
                 ],
                 "map_locations": [
@@ -5309,6 +6006,78 @@
                                 "map": "seaB4",
                                 "x": 681,
                                 "y": 484,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sea Split 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB3",
+                                "x": 98,
+                                "y": 212,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sea Split 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB3",
+                                "x": 562,
+                                "y": 388,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sea Hallway 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB3",
+                                "x": 718,
+                                "y": 82,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Sea Shrine Sea Hallway 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "seaB3",
+                                "x": 670,
+                                "y": 210,
                                 "size": 16,
                                 "border_thickness": 2
                             }
