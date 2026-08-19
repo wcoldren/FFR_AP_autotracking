@@ -20,6 +20,7 @@ CUR_INDEX = -1
 ScriptHost:LoadScript("scripts/autotracking/item_mapping.lua")
 ScriptHost:LoadScript("scripts/autotracking/location_mapping.lua")
 ScriptHost:LoadScript("scripts/autotracking/reconcile.lua")
+ScriptHost:LoadScript("scripts/autotracking/ram_mapping.lua")
 --ScriptHost:LoadScript("scripts/mapValues.lua")		//  for possible future auto-swappable map tabbing
 
 function onClear()

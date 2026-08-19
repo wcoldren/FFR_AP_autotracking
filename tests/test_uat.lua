@@ -17,6 +17,7 @@ for p,n in pairs(counts) do objects[p]={ChestCount=n,AvailableChestCount=n} end
 for c in pairs(hosted) do objects[c]={Active=false} end
 
 dofile(PACK .. "/scripts/autotracking/reconcile.lua")
+dofile(PACK .. "/scripts/autotracking/ram_mapping.lua")
 dofile(PACK .. "/scripts/autotracking/uat.lua")
 
 local fail=0

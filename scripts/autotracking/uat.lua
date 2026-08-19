@@ -72,6 +72,12 @@ function onFF1Flags(store)
 
   setUATChecked(checked)
 
+  -- Bosses, orbs, turn-ins and vehicles are not Archipelago locations at all,
+  -- so they come straight off the RAM mirror.
+  applyRamRules(function(addr)
+    return mem[addr - RAM_MEM_BASE + 1]
+  end)
+
   if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
     local n = 0
     for _ in pairs(checked) do n = n + 1 end

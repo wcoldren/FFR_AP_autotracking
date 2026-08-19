@@ -36,6 +36,8 @@ frameCb(); sent={}
 MEMORY[0x6102]=0x41
 MEMORY[0x6200+0x2B]=0x04
 MEMORY[0x6200+0x04]=0x02
+MEMORY[0x6202]=0x02            -- Garland defeated
+MEMORY[0x6031]=1               -- Earth Orb lit
 for _=1,60 do frameCb() end
 
 -- pull the flags array straight off the wire
@@ -65,7 +67,12 @@ end
 for p,n in pairs(counts) do objects[p]={ChestCount=n,AvailableChestCount=n} end
 for c in pairs(hosted) do objects[c]={Active=false} end
 dofile(PACK.."/scripts/autotracking/reconcile.lua")
+dofile(PACK.."/scripts/autotracking/ram_mapping.lua")
 dofile(PACK.."/scripts/autotracking/uat.lua")
+
+-- ram_mapping needs these two codes present
+objects["garland"]={Active=false,CurrentStage=0}
+objects["earthorb"]={Active=false,CurrentStage=0}
 
 local store={ReadVariable=function(self,n)
   if n=="ff1/ready" then return ready end
@@ -86,6 +93,8 @@ check("chest 299 cleared via the wire", objects[sec].AvailableChestCount, before
 check("Bikke event cleared via the wire", objects[LOCATION_MAPPING[516][2]].Active, true)
 check("UAT_CHECKED holds 299", UAT_CHECKED[299], true)
 check("UAT_CHECKED holds 516", UAT_CHECKED[516], true)
+check("garland set from the wire", objects["garland"].Active, true)
+check("earth orb lit from the wire", objects["earthorb"].CurrentStage, 1)
 
 -- replay the identical wire state: must not move anything
 captured.cb(store)
