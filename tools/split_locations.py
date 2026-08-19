@@ -66,8 +66,11 @@ def plan():
         chests = [ap - 256 for ap in aps]
         if not all(str(c) in markers for c in chests):
             continue                      # not fully calibrated yet
-        if any(len(markers[str(c)]) != 1 for c in chests):
-            continue                      # a chest drawn twice needs a human
+        # A chest drawn on more than one tile is still one chest: FF1 keys a
+        # chest by an id stored in the tile, so the same id placed twice means
+        # one flag, one item, reachable from either spot. Ordeals' 2F chest is
+        # four-pack #1 on 3F, which the map art says out loud. Both tiles get a
+        # box; they share a location, so they light and clear together.
         # reading order: top to bottom, then left to right
         def key(ap):
             p = positions[str(ap - 256)][0]
@@ -109,7 +112,7 @@ def rebuild(node, secs, markers, positions, indent):
         label = node_label(node["name"], name)
         for n, ap in enumerate(aps, 1):
             chest = ap - 256
-            mk = markers[str(chest)][0]
+            mks = markers[str(chest)]
             hosted = secs_hosted.get((name, ap))
             child_name = label if len(aps) == 1 else f"{label} {n}"
             sec = {"name": "Incentive" if hosted else "Chest", "item_count": 1}
@@ -118,8 +121,8 @@ def rebuild(node, secs, markers, positions, indent):
             new_children.append({
                 "name": child_name,
                 "sections": [sec],
-                "map_locations": [{"map": mk["map"], "x": mk["x"], "y": mk["y"],
-                                   "size": 16, "border_thickness": 2}],
+                "map_locations": [{"map": m["map"], "x": m["x"], "y": m["y"],
+                                   "size": 16, "border_thickness": 2} for m in mks],
                 "_ref_name": child_name if len(aps) == 1 else f"{name} {n}",
                 "_sec_name": sec["name"],
             })
