@@ -64,7 +64,8 @@ something yourself.
 It also reports which map you are standing on, so the map tab follows you into
 whichever floor you just walked into. `Auto-Tab` in the flags grid turns that
 off if you would rather stay on the floor you are reading; it is on by default.
-Towns and the overworld both land on the Overworld tab. This needs the emulator
+Towns and the overworld both land on the Incentive Locations tab, which is the
+same overworld art carrying the markers worth watching during a run. This needs the emulator
 bridge -- Archipelago on its own does not report your position -- and only the
 two map variants have dungeon tabs to switch between.
 
