@@ -13,23 +13,28 @@ Known Issues:
 
 Known Limitations:
 The Archipelago feed only knows about locations that are in the multiworld's
-pool, because all it does is talk to the AP server. It cannot see:
-- Orbs lit
-- Items turned in (i.e. you won't get the checkmark on the item when you've turned it in)
-- When the slab is translated vs when it's picked up. You'll have to manually click the slab to indicate you translated it.
-- Shards obtained by lighting orbs rather than through AP.
+pool, because all it does is talk to the AP server. On its own it cannot see
+chests outside the pool, orbs lit, items turned in, or shards from lighting
+orbs.
 
-Chests are no longer on that list. See "Chest tracking without Archipelago" below.
+The emulator feed described below covers all of those. What still needs a manual click:
+- Chaos. The flag Archipelago uses for "game complete" is the same bit FFR
+  uses for "airship revealed", so auto-checking it could mark your run
+  finished the first time you see the airship. Not worth the risk.
+- Sigil and Mark, in no-overworld seeds. They share their memory with Floater
+  and Canoe, and nothing in RAM tells them apart.
+- The settings flags (Early King, the dock and pass flags, the incentive
+  flags). Those describe the seed, not your progress.
 
 
-Chest tracking without Archipelago (Mesen)
+Autotracking from the emulator (Mesen)
 
 FFR randomizes every chest, but Archipelago only ever sees the ones you put in
 the pool -- and a plain FFR async has no AP server at all. `bridge/` holds a
-Lua script that reads the game's chest and event flags straight out of the
-emulator and feeds them to PopTracker over UAT, which covers both cases. It
-runs alongside an AP connection rather than replacing it; if a chest is in the
-AP pool, both feeds report it and the tracker counts it once.
+Lua script that reads the game's own progress out of the emulator and feeds it
+to PopTracker over UAT, which covers both cases. It runs alongside an AP
+connection rather than replacing it; if a chest is in the AP pool, both feeds
+report it and the tracker counts it once.
 
 This does not modify the emulator. It is one Lua script that Mesen runs.
 
@@ -46,6 +51,15 @@ This does not modify the emulator. It is one Lua script that Mesen runs.
 4. Load your save. The bridge waits for a save to actually be loaded before it
    reports anything, so nothing is marked while you sit on the title screen.
 5. Open a chest. It should clear in the tracker within a second.
+
+Once connected it tracks chests and NPCs, Garland and the Vampire, the four
+orbs being lit, key items and every turn-in stage (Crown to Astos, Slab to
+Unne and then Lefein, Ruby to the Titan, and so on), Bridge/Ship/Canal/Canoe/
+Airship, and the shard count.
+
+The emulator feed only ever sets things, never un-sets them -- every one of
+these events is one-way in the game -- so it will not fight you if you click
+something yourself.
 
 `AP` and `UAT` are separate labels and you can have both connected at once.
 If `UAT` stays grey, check that the script is actually running in Mesen -- the
