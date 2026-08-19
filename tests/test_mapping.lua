@@ -53,10 +53,11 @@ end
 -- 2. no section is mapped by more ids than it has chests. Over-mapping is not
 --    fatal any more (reconcile clamps at zero) but it silently misplaces a
 --    location, so it should be visible.
-local KNOWN_OVER = {
-  -- Pre-existing, predates the autotracking work, left alone deliberately:
-  ["@Earth Cave/2 Right"] = true,
-}
+-- Nothing is over-mapped any more. "@Earth Cave/2 Right" used to be: five ids
+-- against an item_count of 3, because two chests on B1 had been filed under a
+-- floor-2 section. Splitting Earth Cave per chest gave each of the five its own
+-- section, which dissolved the mismatch rather than papering over it.
+local KNOWN_OVER = {}
 local over = {}
 for path, n in pairs(idsFor) do
   local count = sections[path]
