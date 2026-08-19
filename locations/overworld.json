@@ -3041,13 +3041,40 @@
                 ],
                 "sections": [
                     {
-                        "name": "Chests",
-                        "access_rules": [],
-                        "item_count": 8
-                    },
-                    {
                         "name": "Ordeals Incentive",
                         "ref": "Ordeals Incentive/Incentive"
+                    },
+                    {
+                        "name": "Chests 1",
+                        "ref": "Ordeals Chests 1/Chest"
+                    },
+                    {
+                        "name": "Chests 2",
+                        "ref": "Ordeals Chests 2/Chest"
+                    },
+                    {
+                        "name": "Chests 3",
+                        "ref": "Ordeals Chests 3/Chest"
+                    },
+                    {
+                        "name": "Chests 4",
+                        "ref": "Ordeals Chests 4/Chest"
+                    },
+                    {
+                        "name": "Chests 5",
+                        "ref": "Ordeals Chests 5/Chest"
+                    },
+                    {
+                        "name": "Chests 6",
+                        "ref": "Ordeals Chests 6/Chest"
+                    },
+                    {
+                        "name": "Chests 7",
+                        "ref": "Ordeals Chests 7/Chest"
+                    },
+                    {
+                        "name": "Chests 8",
+                        "ref": "Ordeals Chests 8/Chest"
                     }
                 ],
                 "map_locations": [
@@ -3072,6 +3099,157 @@
                                 "map": "ordeals3F",
                                 "x": 279,
                                 "y": 344,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ordeals Chests 1",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "ordeals3F",
+                                "x": 55,
+                                "y": 72,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ordeals Chests 2",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "ordeals2F",
+                                "x": 366,
+                                "y": 66,
+                                "size": 16,
+                                "border_thickness": 2
+                            },
+                            {
+                                "map": "ordeals3F",
+                                "x": 55,
+                                "y": 408,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ordeals Chests 3",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "ordeals3F",
+                                "x": 391,
+                                "y": 72,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ordeals Chests 4",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "ordeals3F",
+                                "x": 55,
+                                "y": 88,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ordeals Chests 5",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "ordeals3F",
+                                "x": 55,
+                                "y": 104,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ordeals Chests 6",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "ordeals3F",
+                                "x": 71,
+                                "y": 408,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ordeals Chests 7",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "ordeals3F",
+                                "x": 87,
+                                "y": 408,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Ordeals Chests 8",
+                        "sections": [
+                            {
+                                "name": "Chest",
+                                "item_count": 1
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "ordeals3F",
+                                "x": 103,
+                                "y": 408,
                                 "size": 16,
                                 "border_thickness": 2
                             }
