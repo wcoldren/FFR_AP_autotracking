@@ -55,6 +55,9 @@ function activateMapTab(mapId)
   lastMapId = mapId
 
   if not switchingEnabled() then
+    -- lastMapId has already moved, deliberately: turning the toggle back on
+    -- should resume following from wherever the player is, not replay the
+    -- floor they were on when they turned it off.
     return false
   end
 
@@ -83,9 +86,16 @@ function resetMapTab()
 end
 
 function onFF1Map(store)
+  -- The bridge publishes a map with its opening full-state burst, before the
+  -- save guard has settled, and holds the last one across a reset. Acting on
+  -- that would throw whoever just connected mid-dungeon out to the Overworld
+  -- tab for half a second.
+  if store:ReadVariable("ff1/ready") ~= true then
+    return
+  end
   activateMapTab(store:ReadVariable("ff1/map"))
 end
 
 if ScriptHost.AddVariableWatch then
-  ScriptHost:AddVariableWatch("ff1map", { "ff1/map" }, onFF1Map)
+  ScriptHost:AddVariableWatch("ff1map", { "ff1/map", "ff1/ready" }, onFF1Map)
 end

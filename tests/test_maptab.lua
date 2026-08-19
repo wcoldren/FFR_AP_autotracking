@@ -134,5 +134,25 @@ resetMapTab()
 check("shard hunt still switches", activateMapTab(13), true)
 take()
 
+-- 6. the watch itself gates on the bridge being ready. The bridge publishes a
+--    map in its opening full-state burst and holds the last one across a reset,
+--    so acting while not ready throws whoever just connected mid-dungeon out to
+--    the Overworld tab.
+Tracker.ActiveVariantUID = "5standard"
+resetMapTab()
+local function store(ready, map)
+  return { ReadVariable = function(self, k)
+    if k == "ff1/ready" then return ready end
+    if k == "ff1/map" then return map end
+  end }
+end
+onFF1Map(store(false, -1))
+check("not ready is ignored", take(), "")
+onFF1Map(store(true, 13))
+check("ready acts", take(),
+  "ActivateTab:Fiend Dungeons,ActivateTab:Earth Cave,ActivateTab:Earth Cave B1")
+onFF1Map(store(false, -1))
+check("a reset does not drag the tab away", take(), "")
+
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)
