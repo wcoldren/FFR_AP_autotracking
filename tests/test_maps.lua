@@ -1,0 +1,115 @@
+-- Validates map markers against the map definitions and the art itself.
+--
+-- A marker with a typo'd map name, or an x/y off the edge of its image, draws
+-- nothing at all and says nothing about it -- the same silent-failure shape the
+-- section-path check in test_mapping.lua exists to catch.
+local PACK = arg[1]
+local json = dofile(PACK .. "/tests/json.lua")
+
+local fail = 0
+local function fails(msg)
+  print("FAIL " .. msg)
+  fail = fail + 1
+end
+
+-- PNG keeps width and height big-endian in the IHDR, at bytes 17-24. That is
+-- the whole reason this check can live in the Lua suite instead of a tool with
+-- an image dependency.
+local function imageSize(path)
+  local f = io.open(path, "rb")
+  if not f then return nil, "missing" end
+  local head = f:read(24)
+  f:close()
+  -- Only PNG is measurable here; the pack has one .jpg, which still has to
+  -- exist but cannot be bounds-checked.
+  if not head or #head < 24 or head:sub(2, 4) ~= "PNG" then return nil, "unmeasured" end
+  return string.unpack(">I4", head, 17), string.unpack(">I4", head, 21)
+end
+
+-- every map name the pack defines, and how big its art is
+local maps = {}
+for _, file in ipairs({ "maps/maps.json", "maps/NOverworldMaps.json" }) do
+  for _, m in ipairs(json.load(PACK .. "/" .. file)) do
+    local w, h = imageSize(PACK .. "/" .. m.img)
+    if not w and h == "missing" then
+      fails(string.format("map %q points at %s, which does not exist", m.name, m.img))
+    end
+    maps[m.name] = { w = w, h = h, img = m.img, size = m.location_size or 0 }
+  end
+end
+
+-- every marker in every location file
+local markers = {}
+local function walk(nodes)
+  for _, n in ipairs(nodes) do
+    for _, ml in ipairs(n.map_locations or {}) do
+      markers[#markers + 1] = { name = n.name, map = ml.map, x = ml.x, y = ml.y }
+    end
+    walk(n.children or {})
+  end
+end
+for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json" }) do
+  walk(json.load(PACK .. "/" .. file))
+end
+print(string.format("ok   %d markers across %d maps", #markers, (function()
+  local n = 0; for _ in pairs(maps) do n = n + 1 end; return n
+end)()))
+
+-- 1. every marker names a map the pack actually defines
+local unknown = 0
+for _, m in ipairs(markers) do
+  if not maps[m.map] then
+    fails(string.format("%s: marker on undefined map %q", m.name, tostring(m.map)))
+    unknown = unknown + 1
+  end
+end
+if unknown == 0 then print("ok   every marker names a defined map") end
+
+-- 2. every marker sits inside its image. PopTracker takes x/y as the centre,
+--    so a marker within half a box of the edge is clipped rather than drawn.
+local outside = 0
+for _, m in ipairs(markers) do
+  local mp = maps[m.map]
+  if mp and mp.w then
+    local half = math.floor(mp.size / 2)
+    if type(m.x) ~= "number" or type(m.y) ~= "number" then
+      fails(string.format("%s: marker on %s has non-numeric x/y", m.name, m.map))
+      outside = outside + 1
+    elseif m.x - half < 0 or m.y - half < 0 or m.x + half > mp.w or m.y + half > mp.h then
+      fails(string.format("%s: marker (%d,%d) falls outside %s (%dx%d, box %d)",
+        m.name, m.x, m.y, m.map, mp.w, mp.h, mp.size))
+      outside = outside + 1
+    end
+  end
+end
+if outside == 0 then print("ok   every marker sits inside its image") end
+
+-- 3. the Ice Cave pilot: sixteen per-chest markers, on the three ice floors
+local ice, iceMaps = 0, {}
+for _, m in ipairs(markers) do
+  if m.name:match("^Ice Cave ") then
+    ice = ice + 1
+    iceMaps[m.map] = (iceMaps[m.map] or 0) + 1
+  end
+end
+if ice ~= 16 then
+  fails(string.format("Ice Cave has %d per-chest markers, expected 16", ice))
+else
+  print("ok   Ice Cave has 16 per-chest markers")
+end
+for map, want in pairs({ iceB1 = 5, iceB2 = 3, iceB3 = 8 }) do
+  local got = iceMaps[map] or 0
+  if got ~= want then
+    fails(string.format("%s carries %d Ice Cave markers, expected %d", map, got, want))
+  else
+    print(string.format("ok   %-6s carries %d Ice Cave markers", map, got))
+  end
+end
+for map in pairs(iceMaps) do
+  if map ~= "iceB1" and map ~= "iceB2" and map ~= "iceB3" then
+    fails("Ice Cave marker on unexpected map " .. map)
+  end
+end
+
+print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
+os.exit(fail == 0 and 0 or 1)
