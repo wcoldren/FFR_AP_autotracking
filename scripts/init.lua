@@ -88,6 +88,10 @@ local earlySage = Tracker:FindObjectForCode("earlySage")
 earlySage.Active = true
 local earlyOrdeals = Tracker:FindObjectForCode("earlyOrdeals")
 earlyOrdeals.Active = true
+-- The map tab follows the player by default; click it off when you would
+-- rather stay on the floor you are reading.
+local tabSwitch = Tracker:FindObjectForCode("tab_switch")
+tabSwitch.Active = true
 
 -- AutoTracking for Poptracker
 if PopVersion and PopVersion>="0.18.0" then
