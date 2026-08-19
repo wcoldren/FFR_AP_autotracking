@@ -1,0 +1,546 @@
+------------------------------------------------------------------
+-- FF1R chest autotracking bridge: MesenCE -> PopTracker over UAT.
+--
+-- Mirrors Final Fantasy's location-flag array out of cart RAM and serves it
+-- to PopTracker as UAT variables, so chests track with no Archipelago server
+-- involved. Runs happily alongside an AP session; the two feeds are
+-- reconciled inside the tracker pack.
+--
+-- SETUP
+--   1. Mesen: Script -> Settings -> Script Window -> Restrictions.
+--      Tick "Allow access to I/O and OS functions" FIRST, then
+--      "Allow network access" (the second box only becomes real once the
+--      first is ticked). Both default to off.
+--   2. Load your ROM, then open this script in the Script Window and run it.
+--      Or launch both from the command line -- see launch_mesen_ffr.sh.
+--   3. In PopTracker, load the FFR pack and click the "UAT" label.
+--
+-- WHAT IT READS
+--   Final Fantasy keeps its location flags in cart battery RAM. Per
+--   worlds/ff1/Client.py in Archipelago, the array is at WRAM offset 0x200
+--   length 0x100, which is CPU $6200-$62FF, and the save-loaded guard byte is
+--   at offset 0x102 = CPU $6102. This script does not interpret those bits at
+--   all -- it ships the raw bytes and lets the tracker pack decode them.
+--
+-- STRUCTURE
+--   Everything above the "EMULATOR ADAPTER" banner is plain Lua plus
+--   LuaSocket and knows nothing about Mesen. The adapter at the bottom is the
+--   only emulator-aware part, so a BizHawk flavor is a swap of that block.
+------------------------------------------------------------------
+
+local FLAGS_ADDR = 0x6200   -- location flag array, 256 bytes
+local FLAGS_LEN = 0x100
+local GUARD_ADDR = 0x6102   -- first character's name; 0 = title / char creation
+local GOAL_BYTE = 0xFE      -- bit 0x02 = Chaos defeated
+
+local UAT_PORT = 65399      -- PopTracker's default; fallback is 44444
+local SCAN_INTERVAL_FRAMES = 6   -- ~10Hz memory scan; sockets poll every frame
+local GUARD_STABLE_SCANS = 5     -- consecutive scans, so ~0.5s of a valid save
+                                 -- before reads are trusted
+
+------------------------------------------------------------------
+-- EMULATOR SEAM
+-- The adapter at the bottom of this file fills these in.
+------------------------------------------------------------------
+
+local EMU = {
+  readByte = nil,   -- function(addr) -> 0..255
+  log = nil,        -- function(msg)
+  notify = nil,     -- function(msg)  on-screen
+}
+
+------------------------------------------------------------------
+-- SHA-1 and base64, for the WebSocket handshake.
+-- LuaSocket ships base64 in mime.core, but its chunked form needs a
+-- finalizing call and we only ever encode 20 bytes, so it is cheaper to
+-- inline both than to depend on those semantics.
+------------------------------------------------------------------
+
+local M32 = 0xFFFFFFFF
+
+local function rol(x, n)
+  x = x & M32
+  return ((x << n) | (x >> (32 - n))) & M32
+end
+
+local function sha1(msg)
+  local h0, h1, h2, h3, h4 = 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0
+  local bitlen = #msg * 8
+  msg = msg .. "\128"
+  while (#msg % 64) ~= 56 do
+    msg = msg .. "\0"
+  end
+  msg = msg .. string.pack(">I8", bitlen)
+
+  local w = {}
+  for chunk = 1, #msg, 64 do
+    for j = 0, 15 do
+      w[j] = string.unpack(">I4", msg, chunk + j * 4)
+    end
+    for j = 16, 79 do
+      w[j] = rol(w[j - 3] ~ w[j - 8] ~ w[j - 14] ~ w[j - 16], 1)
+    end
+
+    local a, b, c, d, e = h0, h1, h2, h3, h4
+    for j = 0, 79 do
+      local f, k
+      if j < 20 then
+        f = (b & c) | ((~b & M32) & d)
+        k = 0x5A827999
+      elseif j < 40 then
+        f = b ~ c ~ d
+        k = 0x6ED9EBA1
+      elseif j < 60 then
+        f = (b & c) | (b & d) | (c & d)
+        k = 0x8F1BBCDC
+      else
+        f = b ~ c ~ d
+        k = 0xCA62C1D6
+      end
+      local temp = (rol(a, 5) + f + e + k + w[j]) & M32
+      e = d
+      d = c
+      c = rol(b, 30)
+      b = a
+      a = temp
+    end
+
+    h0 = (h0 + a) & M32
+    h1 = (h1 + b) & M32
+    h2 = (h2 + c) & M32
+    h3 = (h3 + d) & M32
+    h4 = (h4 + e) & M32
+  end
+
+  return string.pack(">I4I4I4I4I4", h0, h1, h2, h3, h4)
+end
+
+local B64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+local function b64encode(data)
+  local out = {}
+  for i = 1, #data, 3 do
+    local a, b, c = data:byte(i, i + 2)
+    local n = (a << 16) | ((b or 0) << 8) | (c or 0)
+    local s = B64_ALPHABET:sub(((n >> 18) & 63) + 1, ((n >> 18) & 63) + 1)
+        .. B64_ALPHABET:sub(((n >> 12) & 63) + 1, ((n >> 12) & 63) + 1)
+    if b then
+      s = s .. B64_ALPHABET:sub(((n >> 6) & 63) + 1, ((n >> 6) & 63) + 1)
+    else
+      s = s .. "="
+    end
+    if c then
+      s = s .. B64_ALPHABET:sub((n & 63) + 1, (n & 63) + 1)
+    else
+      s = s .. "="
+    end
+    out[#out + 1] = s
+  end
+  return table.concat(out)
+end
+
+------------------------------------------------------------------
+-- WebSocket framing (RFC 6455). Server side: we send unmasked, the client
+-- always masks.
+------------------------------------------------------------------
+
+local WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+local function wsAccept(key)
+  return b64encode(sha1(key .. WS_GUID))
+end
+
+local function wsEncodeText(payload)
+  local n = #payload
+  if n < 126 then
+    return string.pack(">BB", 0x81, n) .. payload
+  elseif n < 65536 then
+    return string.pack(">BBI2", 0x81, 126, n) .. payload
+  end
+  return string.pack(">BBI8", 0x81, 127, n) .. payload
+end
+
+local function wsEncodeControl(opcode, payload)
+  payload = payload or ""
+  return string.pack(">BB", 0x80 | opcode, #payload) .. payload
+end
+
+-- Pull one frame off the front of buf.
+-- Returns opcode, payload, rest -- or nil when the frame is still incomplete.
+local function wsDecode(buf)
+  if #buf < 2 then
+    return nil
+  end
+  local b1, b2 = buf:byte(1, 2)
+  local opcode = b1 & 0x0F
+  local masked = (b2 & 0x80) ~= 0
+  local len = b2 & 0x7F
+  local pos = 3
+
+  if len == 126 then
+    if #buf < 4 then return nil end
+    len = string.unpack(">I2", buf, 3)
+    pos = 5
+  elseif len == 127 then
+    if #buf < 10 then return nil end
+    len = string.unpack(">I8", buf, 3)
+    pos = 11
+  end
+
+  local mask
+  if masked then
+    if #buf < pos + 3 then return nil end
+    mask = { buf:byte(pos, pos + 3) }
+    pos = pos + 4
+  end
+
+  if #buf < pos + len - 1 then
+    return nil
+  end
+
+  local payload = buf:sub(pos, pos + len - 1)
+  if masked then
+    local out = {}
+    for i = 1, #payload do
+      out[i] = string.char(payload:byte(i) ~ mask[((i - 1) % 4) + 1])
+    end
+    payload = table.concat(out)
+  end
+
+  return opcode, payload, buf:sub(pos + len)
+end
+
+------------------------------------------------------------------
+-- Non-blocking server.
+--
+-- Every socket call is non-blocking and driven from the frame callback. A
+-- blocking accept or receive would stall emulation, which is the failure mode
+-- users report as "the script froze Mesen".
+------------------------------------------------------------------
+
+local socket = nil
+local server, client = nil, nil
+local rxbuf = ""
+local handshaked = false
+
+local function closeClient(why)
+  if client then
+    pcall(function() client:close() end)
+    client = nil
+  end
+  rxbuf = ""
+  handshaked = false
+  if why then
+    EMU.log("client disconnected: " .. tostring(why))
+  end
+end
+
+local function createServer()
+  local sock, err = socket.tcp()
+  if not sock then
+    EMU.log("socket.tcp failed: " .. tostring(err))
+    return
+  end
+  sock:setoption("reuseaddr", true)
+  local ok
+  ok, err = sock:bind("127.0.0.1", UAT_PORT)
+  if not ok then
+    EMU.log("could not bind port " .. UAT_PORT .. ": " .. tostring(err))
+    sock:close()
+    return
+  end
+  ok, err = sock:listen(1)
+  if not ok then
+    EMU.log("listen failed: " .. tostring(err))
+    sock:close()
+    return
+  end
+  sock:settimeout(0)
+  server = sock
+  EMU.log("listening for PopTracker on ws://127.0.0.1:" .. UAT_PORT)
+end
+
+local function tryAccept()
+  local newClient, err = server:accept()
+  if not newClient then
+    if err ~= "timeout" then
+      EMU.log("accept failed: " .. tostring(err))
+    end
+    return
+  end
+  client = newClient
+  client:settimeout(0)
+  client:setoption("tcp-nodelay", true)
+  rxbuf = ""
+  handshaked = false
+end
+
+local function send(data)
+  if not client then
+    return false
+  end
+  local ok, err = client:send(data)
+  if not ok then
+    -- A non-blocking send can report a partial write; treat anything other
+    -- than a clean send as fatal for this connection rather than trying to
+    -- resume mid-frame, since a half-written frame desynchronises the client.
+    if err ~= "timeout" then
+      closeClient(err)
+      return false
+    end
+  end
+  return true
+end
+
+------------------------------------------------------------------
+-- UAT protocol.
+--
+-- Each message is a JSON array of command objects. PopTracker expects the
+-- server to send Info unprompted on connect and drops the connection if it
+-- has not arrived within 5s; it then replies with Sync, and we answer with
+-- Var messages. We advertise no slots, so PopTracker uses the empty slot and
+-- matches Vars that carry no slot of their own.
+------------------------------------------------------------------
+
+local INFO_MSG =
+  '[{"cmd":"Info","protocol":0,"name":"FF1R Mesen Bridge","version":"1.0.0"}]'
+
+-- Last state actually put on the wire, for diffing.
+local sentFlags, sentReady, sentGoal = nil, nil, nil
+
+local function varFlags(flags)
+  local parts = {}
+  for i = 1, FLAGS_LEN do
+    parts[i] = tostring(flags:byte(i))
+  end
+  return '{"cmd":"Var","name":"ff1/flags","value":[' .. table.concat(parts, ",") .. "]}"
+end
+
+local function varBool(name, value)
+  return '{"cmd":"Var","name":"' .. name .. '","value":' .. tostring(value) .. "}"
+end
+
+local function sendState(flags, ready, goal, force)
+  local msgs = {}
+  if force or flags ~= sentFlags then
+    msgs[#msgs + 1] = varFlags(flags)
+  end
+  if force or ready ~= sentReady then
+    msgs[#msgs + 1] = varBool("ff1/ready", ready)
+  end
+  if force or goal ~= sentGoal then
+    msgs[#msgs + 1] = varBool("ff1/goal", goal)
+  end
+  if #msgs == 0 then
+    return
+  end
+  if send(wsEncodeText("[" .. table.concat(msgs, ",") .. "]")) then
+    sentFlags, sentReady, sentGoal = flags, ready, goal
+  end
+end
+
+------------------------------------------------------------------
+-- Game state: read, guard, diff.
+--
+-- The guard mirrors what the Archipelago client does. worlds/ff1/Client.py
+-- reads the same byte at 0x102 and refuses every read and write while it is
+-- zero, because that means the title screen or character creation rather than
+-- a loaded save. We additionally require it to hold steady for a while, and
+-- treat an all-00 or all-FF array as untrustworthy, so a reset or a
+-- power-cycle cannot flush through as "every chest just became unopened".
+------------------------------------------------------------------
+
+local guardValue, guardScans = nil, 0
+local lastFlags = string.rep("\0", FLAGS_LEN)
+local lastGoal = false
+
+local function readFlags()
+  local bytes = {}
+  for i = 0, FLAGS_LEN - 1 do
+    bytes[i + 1] = string.char(EMU.readByte(FLAGS_ADDR + i) & 0xFF)
+  end
+  return table.concat(bytes)
+end
+
+local function looksUninitialised(flags)
+  return flags == string.rep("\0", FLAGS_LEN) or flags == string.rep("\255", FLAGS_LEN)
+end
+
+-- Called on reset / state load: drop trust immediately, so nothing that
+-- happens during the reset window reaches the tracker.
+local function invalidate()
+  guardValue, guardScans = nil, 0
+end
+
+local function isReady()
+  return guardScans >= GUARD_STABLE_SCANS
+end
+
+local function scan()
+  local guard = EMU.readByte(GUARD_ADDR) & 0xFF
+  if guard == 0 or guard ~= guardValue then
+    guardValue = guard
+    guardScans = (guard == 0) and 0 or 1
+  elseif guardScans < GUARD_STABLE_SCANS then
+    guardScans = guardScans + 1
+  end
+
+  if not isReady() then
+    sendState(lastFlags, false, lastGoal)
+    return
+  end
+
+  local flags = readFlags()
+  if looksUninitialised(flags) then
+    invalidate()
+    sendState(lastFlags, false, lastGoal)
+    return
+  end
+
+  lastFlags = flags
+  lastGoal = (flags:byte(GOAL_BYTE + 1) & 0x02) ~= 0
+  sendState(lastFlags, true, lastGoal)
+end
+
+------------------------------------------------------------------
+-- Connection pump.
+------------------------------------------------------------------
+
+local function handleHandshake()
+  local headEnd = rxbuf:find("\r\n\r\n", 1, true)
+  if not headEnd then
+    return
+  end
+  local head = rxbuf:sub(1, headEnd + 1)
+  rxbuf = rxbuf:sub(headEnd + 4)
+
+  local key = head:match("[Ss]ec%-[Ww]eb[Ss]ocket%-[Kk]ey:%s*([^\r\n]+)")
+  if not key then
+    closeClient("handshake had no Sec-WebSocket-Key")
+    return
+  end
+
+  -- Deliberately no Sec-WebSocket-Extensions in the reply: declining
+  -- permessage-deflate keeps every frame plain, which is the whole reason
+  -- this file needs no compression code.
+  local response = "HTTP/1.1 101 Switching Protocols\r\n"
+      .. "Upgrade: websocket\r\n"
+      .. "Connection: Upgrade\r\n"
+      .. "Sec-WebSocket-Accept: " .. wsAccept(key) .. "\r\n\r\n"
+  if not send(response) then
+    return
+  end
+
+  handshaked = true
+  sentFlags, sentReady, sentGoal = nil, nil, nil
+  EMU.log("PopTracker connected")
+  EMU.notify("PopTracker connected")
+  send(wsEncodeText(INFO_MSG))
+end
+
+local function handleFrames()
+  while client do
+    local opcode, payload, rest = wsDecode(rxbuf)
+    if not opcode then
+      return
+    end
+    rxbuf = rest
+
+    if opcode == 0x8 then
+      send(wsEncodeControl(0x8))
+      closeClient("client closed")
+      return
+    elseif opcode == 0x9 then
+      send(wsEncodeControl(0xA, payload))
+    elseif opcode == 0x1 then
+      -- Sync is the only command that matters to us, and a full-state reply
+      -- is correct for it, so match on the name rather than carrying a JSON
+      -- parser for one string.
+      if payload:find('"Sync"', 1, true) then
+        sendState(lastFlags, isReady(), lastGoal, true)
+      end
+    end
+  end
+end
+
+local function pump()
+  if not client then
+    if not server then
+      createServer()
+    end
+    if server then
+      tryAccept()
+    end
+    return
+  end
+
+  local data, err, partial = client:receive("*a")
+  local chunk = data or partial
+  if chunk and #chunk > 0 then
+    rxbuf = rxbuf .. chunk
+  end
+  if err and err ~= "timeout" then
+    closeClient(err)
+    return
+  end
+
+  if not handshaked then
+    handleHandshake()
+  end
+  if handshaked then
+    handleFrames()
+  end
+end
+
+------------------------------------------------------------------
+-- EMULATOR ADAPTER (Mesen)
+-- The only emulator-aware code in this file.
+------------------------------------------------------------------
+
+local ok, sock = pcall(require, "socket.core")
+if not ok then
+  emu.log("ERROR: could not load socket.core: " .. tostring(sock))
+  emu.log("Enable Script -> Settings -> Script Window -> Restrictions ->")
+  emu.log("  'Allow access to I/O and OS functions' AND 'Allow network access',")
+  emu.log("  then reload this script.")
+  error("socket.core unavailable")
+end
+socket = sock
+
+-- nesDebug is the NES CPU bus with side effects suppressed, so $6200 and
+-- $6102 are read directly and it makes no difference whether the cart's
+-- $6000 space is backed by work RAM or save RAM.
+local MEM = emu.memType.nesDebug
+
+EMU.readByte = function(addr)
+  return emu.read(addr, MEM)
+end
+EMU.log = function(msg)
+  emu.log("[ffr-uat] " .. msg)
+end
+EMU.notify = function(msg)
+  emu.displayMessage("FFR UAT", msg)
+end
+
+local frame = 0
+
+local function onFrame()
+  frame = frame + 1
+  local okPump, errPump = pcall(pump)
+  if not okPump then
+    EMU.log("pump error: " .. tostring(errPump))
+    closeClient("internal error")
+  end
+  if client and handshaked and (frame % SCAN_INTERVAL_FRAMES == 0) then
+    local okScan, errScan = pcall(scan)
+    if not okScan then
+      EMU.log("scan error: " .. tostring(errScan))
+    end
+  end
+end
+
+emu.addEventCallback(onFrame, emu.eventType.endFrame)
+emu.addEventCallback(invalidate, emu.eventType.reset)
+emu.addEventCallback(invalidate, emu.eventType.stateLoaded)
+
+EMU.log("ready -- waiting for PopTracker on ws://127.0.0.1:" .. UAT_PORT)

@@ -1,0 +1,163 @@
+-- Drive the real bridge through a simulated PopTracker connection.
+local PACK = arg[1]
+
+MEMORY = {}
+local sent, inbox = {}, ""
+local frameCb, resetCb = nil, nil
+local pendingClient = nil
+
+local fakeClient = {
+  settimeout=function() return 1 end,
+  setoption=function() return 1 end,
+  close=function() end,
+  send=function(self, d) sent[#sent+1] = d; return #d end,
+  receive=function(self, pat)
+    local out = inbox; inbox = ""
+    if #out == 0 then return nil, "timeout", "" end
+    return nil, "timeout", out
+  end,
+}
+
+emu = {
+  memType = { nesDebug = 0x100 },
+  eventType = { endFrame = 3, reset = 4, stateLoaded = 7 },
+  read = function(addr) return MEMORY[addr] or 0 end,
+  log = function(m) end,
+  displayMessage = function() end,
+  addEventCallback = function(fn, ev)
+    if ev == 3 then frameCb = fn elseif ev == 4 or ev == 7 then resetCb = fn end
+  end,
+}
+package.preload["socket.core"] = function()
+  return { tcp = function() return {
+    setoption=function() return 1 end, bind=function() return 1 end,
+    listen=function() return 1 end, settimeout=function() return 1 end,
+    close=function() end,
+    accept=function() local c = pendingClient; pendingClient = nil
+      if c then return c end; return nil, "timeout" end,
+  } end }
+end
+
+assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+
+local fail = 0
+local function check(name, got, want)
+  if got ~= want then print(string.format("FAIL %-46s got=%s want=%s", name, tostring(got), tostring(want))); fail=fail+1
+  else print(string.format("ok   %-46s %s", name, tostring(got))) end
+end
+local function frames(n) for _=1,(n or 1) do frameCb() end end
+local function allSent() local s = table.concat(sent); sent = {}; return s end
+
+-- decode every text frame in a blob
+local function textFrames(blob)
+  local out = {}
+  local i = 1
+  while i <= #blob do
+    local b1, b2 = blob:byte(i, i+1)
+    if not b2 then break end
+    local len = b2 & 0x7F
+    local pos = i + 2
+    if len == 126 then len = string.unpack(">I2", blob, i+2); pos = i + 4
+    elseif len == 127 then len = string.unpack(">I8", blob, i+2); pos = i + 10 end
+    out[#out+1] = blob:sub(pos, pos+len-1)
+    i = pos + len
+  end
+  return out
+end
+
+-- 1. server comes up, no client
+frames(1)
+check("no output before a client", #allSent(), 0)
+
+-- 2. client connects and sends the upgrade
+pendingClient = fakeClient
+frames(1)
+inbox = "GET / HTTP/1.1\r\nHost: localhost:65399\r\nUpgrade: websocket\r\n"
+     .. "Connection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+     .. "Sec-WebSocket-Version: 13\r\n"
+     .. "Sec-WebSocket-Extensions: permessage-deflate\r\n\r\n"
+frames(1)
+local out = allSent()
+check("replies 101", out:find("HTTP/1.1 101 Switching Protocols", 1, true) ~= nil, true)
+check("correct accept key", out:find("s3pPLMBiTxaQ9kYGzzhZRbK+xOo=", 1, true) ~= nil, true)
+check("declines permessage-deflate", out:lower():find("sec%-websocket%-extensions") == nil, true)
+local body = out:sub((out:find("\r\n\r\n", 1, true)) + 4)
+local msgs = textFrames(body)
+check("sends Info unprompted", msgs[1] and msgs[1]:find('"cmd":"Info"', 1, true) ~= nil, true)
+check("Info has protocol", msgs[1]:find('"protocol":0', 1, true) ~= nil, true)
+check("Info advertises no slots", msgs[1]:find("slots", 1, true) == nil, true)
+
+-- 3. Sync before a save is loaded -> ready must be false
+local function clientSend(payload)
+  local key = {1,2,3,4}
+  local o = {}
+  for i=1,#payload do o[i] = string.char(payload:byte(i) ~ key[((i-1)%4)+1]) end
+  local hdr
+  if #payload < 126 then hdr = string.pack(">BB", 0x81, 0x80 | #payload)
+  else hdr = string.pack(">BBI2", 0x81, 0x80 | 126, #payload) end
+  inbox = inbox .. hdr .. string.char(1,2,3,4) .. table.concat(o)
+end
+clientSend('[{"cmd":"Sync","slot":""}]')
+frames(1)
+local m = textFrames(allSent())
+local joined = table.concat(m)
+check("Sync answered", #m > 0, true)
+check("ready false with no save", joined:find('"ff1/ready","value":false', 1, true) ~= nil, true)
+check("Sync sends flags too", joined:find('"ff1/flags"', 1, true) ~= nil, true)
+
+-- 4. load a save: guard byte nonzero, one chest opened at byte 0x2B
+MEMORY[0x6102] = 0x41
+MEMORY[0x6200 + 0x2B] = 0x04
+frames(60)   -- past GUARD_STABLE_FRAMES (30) and several scan ticks
+local j2 = table.concat(textFrames(allSent()))
+check("ready flips true", j2:find('"ff1/ready","value":true', 1, true) ~= nil, true)
+local arr = j2:match('"ff1/flags","value":%[([^%]]+)%]')
+check("flags array present", arr ~= nil, true)
+local vals = {}
+for v in arr:gmatch("[^,]+") do vals[#vals+1] = tonumber(v) end
+check("flags array is 256 long", #vals, 256)
+check("byte 0x2B == 0x04", vals[0x2B + 1], 4)
+check("byte 0x00 == 0", vals[1], 0)
+
+-- 5. no change -> nothing resent (the diff actually diffs)
+frames(30)
+check("idle sends nothing", #allSent(), 0)
+
+-- 6. another chest -> only the flags var moves
+MEMORY[0x6200 + 0x30] = 0x04
+frames(12)
+local j3 = table.concat(textFrames(allSent()))
+check("new chest resends flags", j3:find('"ff1/flags"', 1, true) ~= nil, true)
+check("ready not resent unchanged", j3:find('"ff1/ready"', 1, true) == nil, true)
+
+-- 7. goal bit
+MEMORY[0x6200 + 0xFE] = 0x02
+frames(12)
+check("goal reported", table.concat(textFrames(allSent())):find('"ff1/goal","value":true', 1, true) ~= nil, true)
+
+-- 8. hard reset: guard clears, ready must drop and NOT report an empty array
+--    as a legitimate "everything unopened" state
+resetCb()
+MEMORY[0x6102] = 0
+for a = 0x6200, 0x62FF do MEMORY[a] = 0 end
+frames(12)
+local j4 = table.concat(textFrames(allSent()))
+check("reset drops ready", j4:find('"ff1/ready","value":false', 1, true) ~= nil, true)
+local arr4 = j4:match('"ff1/flags","value":%[([^%]]+)%]')
+check("reset does not wipe flags", arr4, nil)
+
+-- 9. save reloaded: ready returns, previous chests still reported
+MEMORY[0x6102] = 0x41
+MEMORY[0x6200 + 0x2B] = 0x04
+MEMORY[0x6200 + 0x30] = 0x04
+frames(60)
+local j5 = table.concat(textFrames(allSent()))
+check("ready returns after reload", j5:find('"ff1/ready","value":true', 1, true) ~= nil, true)
+
+-- 10. all-FF frame (power cycle garbage) is rejected
+for a = 0x6200, 0x62FF do MEMORY[a] = 0xFF end
+frames(12)
+check("all-FF rejected", table.concat(textFrames(allSent())):find('"ff1/ready","value":false', 1, true) ~= nil, true)
+
+print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
+os.exit(fail == 0 and 0 or 1)
