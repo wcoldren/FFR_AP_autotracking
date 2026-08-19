@@ -61,6 +61,13 @@ The emulator feed only ever sets things, never un-sets them -- every one of
 these events is one-way in the game -- so it will not fight you if you click
 something yourself.
 
+It also reports which map you are standing on, so the map tab follows you into
+whichever floor you just walked into. `Auto-Tab` in the flags grid turns that
+off if you would rather stay on the floor you are reading; it is on by default.
+Towns and the overworld both land on the Overworld tab. This needs the emulator
+bridge -- Archipelago on its own does not report your position -- and only the
+two map variants have dungeon tabs to switch between.
+
 `AP` and `UAT` are separate labels and you can have both connected at once.
 If `UAT` stays grey, check that the script is actually running in Mesen -- the
 Script Window log says which port it is listening on.

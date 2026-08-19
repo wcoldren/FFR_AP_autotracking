@@ -182,5 +182,54 @@ frames(12)
 check("all-F2 pattern drops ready",
   table.concat(textFrames(allSent())):find('"ff1/ready","value":false', 1, true) ~= nil, true)
 
+-- 13. ff1/map. mapflags ($2D) bit 0 says we are in a standard map; cur_map
+--     ($48) is the id. Off the overworld the id is stale, so the flag decides.
+MEMORY[0x6102], MEMORY[0x60FC], MEMORY[0x60A3] = 0x41, 0, 0
+for a = 0x6200, 0x62FF do MEMORY[a] = 0 end
+MEMORY[0x6200 + 0x2B] = 0x04
+MEMORY[0x002D], MEMORY[0x0048] = 0x00, 15    -- overworld, stale id
+frames(60)
+allSent()
+
+MEMORY[0x002D], MEMORY[0x0048] = 0x01, 15    -- Ice Cave exit floor
+frames(12)
+check("entering a standard map publishes its id",
+  table.concat(textFrames(allSent())):find('"ff1/map","value":15', 1, true) ~= nil, true)
+
+MEMORY[0x002D] = 0x00                        -- back out to the overworld
+frames(12)
+check("leaving for the overworld publishes -1",
+  table.concat(textFrames(allSent())):find('"ff1/map","value":-1', 1, true) ~= nil, true)
+
+MEMORY[0x002D], MEMORY[0x0048] = 0x01, 15
+frames(12)
+allSent()
+
+-- staying put must not resend it -- the pack re-activates a tab on every
+-- change, so a chatty var would fight the user ten times a second
+frames(30)
+check("standing still does not resend map", #allSent(), 0)
+
+MEMORY[0x0048] = 38                          -- walk down to the bottom floor
+frames(12)
+check("changing floor publishes the new id",
+  table.concat(textFrames(allSent())):find('"ff1/map","value":38', 1, true) ~= nil, true)
+
+-- an id outside the 61 standard maps is not something MAP_VALUE can name
+MEMORY[0x0048] = 200
+frames(12)
+check("out-of-range id falls back to overworld",
+  table.concat(textFrames(allSent())):find('"ff1/map","value":-1', 1, true) ~= nil, true)
+
+-- and a reset must hold the last map rather than announce a move
+MEMORY[0x002D], MEMORY[0x0048] = 0x01, 22
+frames(12)
+allSent()
+resetCb()
+MEMORY[0x6102] = 0
+frames(12)
+check("reset does not move the map",
+  table.concat(textFrames(allSent())):find('"ff1/map"', 1, true) == nil, true)
+
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)
