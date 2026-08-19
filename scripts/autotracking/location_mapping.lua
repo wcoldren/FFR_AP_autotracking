@@ -233,11 +233,20 @@ LOCATION_MAPPING = {
   [501] = {"@Sky Palace/Floor 3 Top"},
   [502] = {"@Sky Palace/Floor 3 Top"},
   [503] = {"@Sky Palace/Floor 3 Top"},
+  -- Temple of Fiends Revisited. Real chests and real AP locations, they just
+  -- had no mapping until now, so nothing ever cleared them.
+  [504] = {"@ToFR/Vanilla Masa"},
+  [505] = {"@ToFR/Kary Floor"},
+  [506] = {"@ToFR/Kary Floor"},
+  [507] = {"@ToFR/Kary Floor"},
+  [508] = {"@ToFR/Kary Floor"},
+  [509] = {"@ToFR/Lute Plate Room"},
+  [510] = {"@ToFR/Lute Plate Room"},
   [513] = {"@Coneria Castle/King", "king"},
   [516] = {"@Pravoka/Bikke", "bikke"},
   [518] = {"@Elf Castle/Elf Prince", "elfprince"},
   [519] = {"@North West Castle/Astos", "astos"},
-  [520] = {"@Dwarf Cave/Nerrick", "nerrick"},
+  [520] = {"@Dwarf Cave/Nerrick (Vanilla Canal)", "nerrick"},
   [521] = {"@Dwarf Cave/Smithy McBeardSmith", "smith"},
   [522] = {"@Matoya's Cave/Matoya", "matoya"},
   [525] = {"@Sarda's Cave/Sarda", "sarda"},
@@ -246,5 +255,5 @@ LOCATION_MAPPING = {
   [530] = {"@Coneria Castle/Sara", "sara"},
   [531] = {"@Gaia/Fairy", "fairy"},
   [533] = {"@Crescent Lake/Sages", "sages"},
-  [767] = {"@Anywhere/Shop Item", "shopItem"},
+  [767] = {"@I: Shop Item/I: Shop Item", "shopItem"},
 }

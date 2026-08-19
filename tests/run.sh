@@ -16,7 +16,7 @@ if ! command -v "$LUA" >/dev/null 2>&1; then
 fi
 
 status=0
-for t in reconcile uat bridge bridge_flow e2e; do
+for t in reconcile uat mapping bridge bridge_flow e2e; do
     echo "== $t"
     if ! "$LUA" "$ROOT/tests/test_$t.lua" "$ROOT"; then
         status=1
