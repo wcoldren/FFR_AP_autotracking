@@ -114,6 +114,17 @@ Script Window log says which port it is listening on.
 To check the scripts without an emulator or a ROM, run `tests/run.sh`; it
 needs only a Lua 5.4+ interpreter.
 
+The access rules get checked against FFR itself rather than trusted.
+`tools/check_logic.py` reads the requirement expressions FFR wrote down for a
+seed -- in its own spoiler, and in the `rules:` Archipelago is handed -- pins
+the flag grid from the cartridge, and compares the two as truth tables over the
+items they mention. It reports rules that open a location FFR would not and
+rules that hold one closed FFR would open, and it names what it could not map
+rather than counting it as agreement. Point it at a seed, or let it find every
+ROM under Archipelago's output directory:
+
+    python3 tools/check_logic.py
+
 
 Introducing:  Maps!
 - This is in it's most basic form. These maps were mostly created and shared with the FFR community by DarkmoonEX.
