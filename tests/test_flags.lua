@@ -148,6 +148,66 @@ check("a random flag that was on stays on", byCode["gaiaMountain"].Active, true)
 check("a random flag that was off stays off", byCode["lefeinBridge"].Active, false)
 check("a known flag next to it still applies", byCode["hwyOrdeals"].Active, false)
 
+------------------------------------------------------------------
+print("\n-- the goal, once the seed has been read")
+--
+-- canBreakOrb used to compare ActiveVariantUID against "shardHunt", which is
+-- not one of the four UIDs manifest.json declares, so every shard-hunt seed
+-- was gated on four lit orbs and hasEnoughShards never ran.
+------------------------------------------------------------------
+
+dofile(PACK .. "/scripts/logic.lua")
+
+local function lightOrbs(n)
+  local orbs = { "earthorb", "fireorb", "waterorb", "airorb" }
+  for i, code in ipairs(orbs) do
+    byCode[code].Active = i <= n
+    byCode[code].CurrentStage = i <= n and 1 or 0
+  end
+end
+
+local function orbGate(n)
+  lightOrbs(n)
+  return canBreakOrb()
+end
+
+-- The seed applied above wants three orbs and picks which three (mode 1), and
+-- the flag string does not say which, so the rule holds out for all four.
+check("three of four is not enough when the seed names them", orbGate(3), 0)
+check("all four always is", orbGate(4), 1)
+
+-- Any three would do if the seed had not named them.
+FFR_FLAGS.OrbsRequiredMode = 0
+check("three is enough when any three will do", orbGate(3), 1)
+check("two is not", orbGate(2), 0)
+
+-- With no seed read at all, the rule is what it always was.
+FFR_FLAGS = nil
+check("four orbs without a seed", orbGate(4), 1)
+check("three orbs without a seed", orbGate(3), 0)
+
+Tracker.ActiveVariantUID = "6shardHunt"
+byCode["shardsRequired"].Active = true
+byCode["shardsRequired"].CurrentStage = 8   -- what init.lua sets: 24 shards
+byCode["shards"].Active = true
+byCode["shards"].CurrentStage = 23
+check("a shard hunt is not gated on orbs", canBreakOrb(), 0)
+byCode["shards"].CurrentStage = 24
+check("and opens on the shard count", canBreakOrb(), 1)
+Tracker.ActiveVariantUID = "5standard"
+
+------------------------------------------------------------------
+print("\n-- Sarda's Forest")
+--
+-- The flag decides whether the airship can put down outside the cave, and
+-- access_rules cannot ask "not this flag".
+------------------------------------------------------------------
+
+byCode["sardasForest"].Active = true
+check("forested: the airship is not enough", noSardasForest(), 0)
+byCode["sardasForest"].Active = false
+check("clear: the airship lands", noSardasForest(), 1)
+
 print("")
 if fail == 0 then
   print("ALL PASS")

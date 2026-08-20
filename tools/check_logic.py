@@ -68,6 +68,13 @@ FREE_FLAGS = {
     "FreeLute": ["lute"], "FreeRod": ["rod"], "FreeTail": ["tail"],
 }
 
+# The $name calls the rules make, and what they come out as for a given seed.
+# They exist because access_rules cannot say "and not this flag"; the harness
+# has to answer them the same way scripts/logic.lua does.
+LUA_RULES = {
+    "$noSardasForest": lambda flags: flags.get("MapSardasForest") is not True,
+}
+
 # Places the pack is deliberately stricter than FFR, with the reason. FFR folds
 # a step into an item when that step can always be taken; the pack shows the
 # step, because a tracker is read while the step is still outstanding.
@@ -231,6 +238,10 @@ def flag_codes(flags, pack=PACK):
     for flag, granted in FREE_FLAGS.items():
         if flags.get(flag) is True:
             codes.update(granted)
+
+    for name, decide in LUA_RULES.items():
+        if decide(flags):
+            codes.add(name)
     return codes
 
 

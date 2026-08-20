@@ -1468,7 +1468,8 @@
             {
                 "name": "Sarda's Cave",
                 "access_rules": [
-                    "airship",
+                    "$noSardasForest,airship",
+                    "ruby,airship",
                     "ruby,ship,canal",
                     "melmondRiver,canoe,ruby"
                  ],

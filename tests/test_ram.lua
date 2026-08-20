@@ -148,16 +148,16 @@ check("vampire set by event bit", provided("vampire"), true)
 -- which is why they worked while every turn-in did not.
 ------------------------------------------------------------------
 reset()
-check("canBreakOrb false with no orbs", canBreakOrb(), false)
+check("canBreakOrb 0 with no orbs", canBreakOrb(), 0)
 MEM[0x6031], MEM[0x6032], MEM[0x6033] = 1, 1, 1
 applyRamRules(byteAt)
-check("three orbs is not enough", canBreakOrb(), false)
+check("three orbs is not enough", canBreakOrb(), 0)
 MEM[0x6034] = 1
 applyRamRules(byteAt)
 check("earth orb lit provides 'earthorblit'", provided("earthorblit"), true)
 check("air orb lit provides 'airorblit'", provided("airorblit"), true)
 check("lit orb still provides base 'earthorb'", provided("earthorb"), true)
-check("canBreakOrb true with all four lit", canBreakOrb(), true)
+check("canBreakOrb 1 with all four lit", canBreakOrb(), 1)
 check("I: Earth Orb incentive marker clears", markerCleared("earthorblit"), true)
 
 ------------------------------------------------------------------
