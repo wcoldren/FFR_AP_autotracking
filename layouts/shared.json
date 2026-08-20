@@ -59,7 +59,8 @@
 				[ "northernDocks", "luffyDock", "earlyKing" ],
 				[ "cardiaDock", "lefeinRiver", "earlySarda" ],
 				[ "lefeinBridge", "gaiaMountain", "earlySage" ],
-				[ "hwyOrdeals", "melmondRiver", "earlyOrdeals" ]
+				[ "hwyOrdeals", "melmondRiver", "earlyOrdeals" ],
+				[ "sardasForest" ]
 			]
 		}
 	},

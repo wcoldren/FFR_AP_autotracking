@@ -25,14 +25,33 @@ local scriptEndedCb = nil
 -- not provide it at all.
 ROM_INFO = { name = "seedA.nes", path = "/roms/seedA.nes", fileSha1Hash = "sha-A" }
 
+-- PRG ROM, addressed by file offset rather than through the CPU bus. Empty
+-- until a test puts an FFRInfo record in it; a zeroed PRG is what a non-FFR
+-- cartridge looks like.
+PRGROM = {}
+
+-- Write "FFRInfo|...|Flags: <flags>|Version: <version>" where FF1Lib puts it.
+function putFlagRecord(version, flags)
+  PRGROM = {}
+  if not version then return end
+  local record = "FFRInfo|Seed: DEADBEEF|OW Seed: none|Res. Pack Hash: none|Flags: "
+      .. flags .. "|Version: " .. version .. "\0"
+  for i = 1, #record do
+    PRGROM[0x7BE00 + i - 1] = record:byte(i)
+  end
+end
+
 emu = {
-  memType = { nesDebug = 0x100 },
+  memType = { nesDebug = 0x100, nesPrgRom = 0x101 },
   getRomInfo = function()
     if ROM_INFO == nil then error("getRomInfo unavailable") end
     return ROM_INFO
   end,
   eventType = { endFrame = 3, reset = 4, stateLoaded = 7, scriptEnded = 9 },
-  read = function(addr) return MEMORY[addr] or 0 end,
+  read = function(addr, t)
+    if t == 0x101 then return PRGROM[addr] or 0 end
+    return MEMORY[addr] or 0
+  end,
   log = function(m) LOGS[#LOGS+1] = m end,
   displayMessage = function() end,
   addEventCallback = function(fn, ev)
@@ -394,6 +413,44 @@ ROM_INFO = { name = "seedC.nes", path = "/roms/seedC.nes" }
 frames(12)
 check("falls back to the file name",
   table.concat(textFrames(allSent())):find('"ff1/rom","value":"seedC.nes"', 1, true) ~= nil, true)
+
+------------------------------------------------------------------
+-- 19. ff1/flags. FFR stamps the flag string it rolled with into PRG ROM, and
+--     that is the only place the seed's settings exist -- Archipelago sends no
+--     slot data for Final Fantasy and cart RAM holds progress, not settings.
+--     Like ff1/rom this describes the cartridge, so it goes out whether or not
+--     a save is loaded, and it is read once per cartridge rather than every
+--     scan.
+------------------------------------------------------------------
+local SAMPLE = "g5jrLtdMmcv8HX6L"
+
+ROM_INFO = { name = "seedD.nes", path = "/roms/seedD.nes", fileSha1Hash = "sha-D" }
+putFlagRecord("4-9-7", SAMPLE)
+frames(12)
+check("the flag record is published",
+  table.concat(textFrames(allSent())):find('"ff1/flags","value":"4-9-7|' .. SAMPLE .. '"', 1, true) ~= nil, true)
+
+frames(12)
+check("and not resent while the cartridge sits still",
+  table.concat(textFrames(allSent())):find('"ff1/flags"', 1, true) == nil, true)
+
+-- A new cartridge is a new record. The memo is keyed on the ROM id, so this is
+-- also the check that a swap drops it.
+ROM_INFO = { name = "seedE.nes", path = "/roms/seedE.nes", fileSha1Hash = "sha-E" }
+putFlagRecord("4-9-7", "zzzzTOPHAT")
+frames(12)
+check("a swap republishes the flags",
+  table.concat(textFrames(allSent())):find('"ff1/flags","value":"4-9-7|zzzzTOPHAT"', 1, true) ~= nil, true)
+
+-- Anything that is not an FFR ROM, or an FFR build old enough to predate the
+-- record, has to read as "cannot tell" rather than taking the scan down.
+ROM_INFO = { name = "vanilla.nes", path = "/roms/vanilla.nes", fileSha1Hash = "sha-V" }
+putFlagRecord(nil)
+MEMORY[0x6200 + 0x31] = 0x04   -- something to make the mem diff fire
+frames(12)
+local blob = table.concat(textFrames(allSent()))
+check("no record reads as empty", blob:find('"ff1/flags","value":""', 1, true) ~= nil, true)
+check("a non-FFR cart still scans", blob:find('"ff1/mem"', 1, true) ~= nil, true)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

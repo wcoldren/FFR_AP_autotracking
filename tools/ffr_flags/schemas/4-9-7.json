@@ -1,0 +1,3690 @@
+{
+ "version": "4-9-7",
+ "build_sha": "1f31434",
+ "not_encoded": [
+  "ResourcePack:String",
+  "ReplacementMap:OwMapExchangeData"
+ ],
+ "properties": [
+  {
+   "name": "WorldWealth",
+   "kind": "enum",
+   "radix": 3,
+   "type": "WorldWealthMode",
+   "names": {
+    "0": "High",
+    "1": "Standard",
+    "2": "Melmond"
+   }
+  },
+  {
+   "name": "WinnerCircleFiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WhiteNinjaKeep",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WhiteNinja",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WhiteMageMaxMP",
+   "kind": "int",
+   "radix": 10,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "WhiteMageHarmEveryone",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "WHITE_WIZ4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WHITE_WIZ3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WHITE_WIZ2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WHITE_WIZ1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WHITE_MAGE4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WHITE_MAGE3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WHITE_MAGE2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WHITE_MAGE1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WeaponTypeBonusValue",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "WeaponStats",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "WeaponPermissions",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "WeaponizerNamesUseQualityOnly",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WeaponizerCommonWeaponsHavePowers",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "Weaponizer",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "WeaponCritRate",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "WeaponBonuses",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "WarMECHMode",
+   "kind": "enum",
+   "radix": 6,
+   "type": "WarMECHMode",
+   "names": {
+    "0": "Vanilla",
+    "1": "Patrolling",
+    "2": "Required",
+    "3": "Unleashed",
+    "4": "All",
+    "5": "Random"
+   }
+  },
+  {
+   "name": "WaitWhenUnrunnable",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "VolcanoIncentivePlacementType",
+   "kind": "enum",
+   "radix": 4,
+   "type": "IncentivePlacementTypeVolcano",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation",
+    "2": "RandomDeep",
+    "3": "RandomShallow"
+   }
+  },
+  {
+   "name": "VerticallyFlipDungeons",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "UnsafeAstos",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "UnrunnablesStrikeFirstAndSurprise",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "UnrunnablesLow",
+   "kind": "int",
+   "radix": 26,
+   "min": 0,
+   "step": 4
+  },
+  {
+   "name": "UnrunnableShuffle",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "UnrunnablesHigh",
+   "kind": "int",
+   "radix": 26,
+   "min": 0,
+   "step": 4
+  },
+  {
+   "name": "TriState",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "Treasures",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TrappedChaos",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TransmooglifierVariance",
+   "kind": "enum",
+   "radix": 3,
+   "type": "TransmooglifierVariance",
+   "names": {
+    "0": "Low",
+    "1": "Moderate",
+    "2": "High"
+   }
+  },
+  {
+   "name": "TransformFinalFormation",
+   "kind": "enum",
+   "radix": 8,
+   "type": "FinalFormation",
+   "names": {
+    "0": "None",
+    "1": "Random",
+    "2": "WarMECHsAndFriends",
+    "3": "KaryAndTiamat",
+    "4": "TheFundead",
+    "5": "TimeLoop",
+    "6": "KrakensAndSahags",
+    "7": "SnakePit"
+   }
+  },
+  {
+   "name": "TranceHasStatusElement",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "Towns",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TournamentSafe",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "TouchPool",
+   "kind": "enum",
+   "radix": 5,
+   "type": "TouchPool",
+   "names": {
+    "0": "All",
+    "1": "RemoveStun",
+    "2": "BalancedRude",
+    "3": "OnlyDeath",
+    "4": "Random"
+   }
+  },
+  {
+   "name": "TouchMultiplier",
+   "kind": "enum",
+   "radix": 7,
+   "type": "ScriptTouchMultiplier",
+   "names": {
+    "0": "None",
+    "1": "Half",
+    "2": "Vanilla",
+    "3": "OneAndHalf",
+    "4": "Double",
+    "5": "All",
+    "6": "Random"
+   }
+  },
+  {
+   "name": "TouchMode",
+   "kind": "enum",
+   "radix": 4,
+   "type": "TouchMode",
+   "names": {
+    "0": "Standard",
+    "1": "Shuffle",
+    "2": "Randomize",
+    "3": "Random"
+   }
+  },
+  {
+   "name": "TouchIncludeBosses",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ToFRMode",
+   "kind": "enum",
+   "radix": 4,
+   "type": "ToFRMode",
+   "names": {
+    "0": "Long",
+    "1": "Mid",
+    "2": "Short",
+    "3": "Random"
+   }
+  },
+  {
+   "name": "TitansTrove",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TitansIncentivePlacementType",
+   "kind": "enum",
+   "radix": 2,
+   "type": "IncentivePlacementType",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation"
+   }
+  },
+  {
+   "name": "ThiefHitBuff",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ThiefHit",
+   "names": {
+    "1": "HitUseless",
+    "2": "Vanilla",
+    "3": "HitBalanced",
+    "4": "HitDouble",
+    "5": "HitEverything"
+   }
+  },
+  {
+   "name": "ThiefAgilityBuff",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ThiefAGI",
+   "names": {
+    "0": "Vanilla",
+    "1": "Agi80",
+    "2": "Agi100",
+    "3": "Agi120",
+    "4": "Agi30",
+    "5": "Agi50"
+   }
+  },
+  {
+   "name": "THIEF4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "THIEF3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "THIEF2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "THIEF1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TempleOfFiendRefightsOnly",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TCShards",
+   "kind": "enum",
+   "radix": 3,
+   "type": "TCOptions",
+   "names": {
+    "0": "None",
+    "1": "Pooled",
+    "2": "All"
+   }
+  },
+  {
+   "name": "TCProtectIncentives",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "TCMasaGuardian",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TCKeyItems",
+   "kind": "enum",
+   "radix": 3,
+   "type": "TCOptions",
+   "names": {
+    "0": "None",
+    "1": "Pooled",
+    "2": "All"
+   }
+  },
+  {
+   "name": "TCIndicator",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TCFormations",
+   "kind": "enum",
+   "radix": 7,
+   "type": "FormationPool",
+   "names": {
+    "0": "AltFormationDist",
+    "1": "AltFormationRng",
+    "2": "LocalFormations",
+    "3": "VanillaSpikes",
+    "4": "Fiends",
+    "5": "Phantom",
+    "6": "Random"
+   }
+  },
+  {
+   "name": "TCExcludeCommons",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "TCChestCount",
+   "kind": "int",
+   "radix": 14,
+   "min": 0,
+   "step": 20
+  },
+  {
+   "name": "TCBetterTreasure",
+   "kind": "enum",
+   "radix": 3,
+   "type": "TCOptions",
+   "names": {
+    "0": "None",
+    "1": "Pooled",
+    "2": "All"
+   }
+  },
+  {
+   "name": "TAVERN6",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TAVERN5",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TAVERN4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TAVERN3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TAVERN2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TAVERN1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "TailBahamutMode",
+   "kind": "enum",
+   "radix": 4,
+   "type": "TailBahamutMode",
+   "names": {
+    "0": "Random",
+    "1": "TailFirst",
+    "2": "BahamutFirst",
+    "3": "SameFloor"
+   }
+  },
+  {
+   "name": "SwolePirates",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "SwoleBahamut",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "SwoleAstos",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartOfHits",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingLevel",
+   "kind": "enum",
+   "radix": 8,
+   "type": "StartingLevel",
+   "names": {
+    "0": "Level01",
+    "1": "Level03",
+    "2": "Level05",
+    "3": "Level10",
+    "4": "Level16",
+    "5": "Level25",
+    "6": "Level36",
+    "7": "Level50"
+   }
+  },
+  {
+   "name": "StartingItemSet",
+   "kind": "enum",
+   "radix": 15,
+   "type": "StartingItemSet",
+   "names": {
+    "0": "None",
+    "1": "SafetyBit",
+    "2": "BeggarsChoice",
+    "3": "JustTents",
+    "4": "ExplorerStartingPack",
+    "5": "RealEstate",
+    "6": "WarriorsStandard",
+    "7": "RoyalPackmule",
+    "8": "DucklingBoon",
+    "9": "RandomizedBeggarsChoice",
+    "10": "RandomizedExplorerStartingPack",
+    "11": "RandomizedWarriorsStandard",
+    "12": "RandomizedRoyalPackmule",
+    "13": "RandomizedHighRolling",
+    "14": "Randomized"
+   }
+  },
+  {
+   "name": "StartingGold",
+   "kind": "enum",
+   "radix": 10,
+   "type": "StartingGold",
+   "names": {
+    "0": "None",
+    "1": "Gp100",
+    "2": "Gp200",
+    "3": "Gp400",
+    "4": "Gp800",
+    "5": "Gp2500",
+    "6": "Gp9999",
+    "7": "Gp65535",
+    "8": "RandomLow",
+    "9": "RandomHigh"
+   }
+  },
+  {
+   "name": "StartingEquipmentZeusGauntlet",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentWhiteShirt",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentStarterPack",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentRibbon",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentRemoveFromPool",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "StartingEquipmentRandomTypeWeapon",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentRandomEndgameWeapon",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentRandomCrap",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentRandomCasterItem",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentRandomAoe",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentOneItem",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentNoDuplicates",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "StartingEquipmentMasamune",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentLegendKit",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentKatana",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentHealStaff",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentGrandpasSecretStash",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "StartingEquipmentDragonslayer",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "SpookyFlag",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "Spoilers",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "SpoilerBatsDontCheckOrbs",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "SpellNameMadness",
+   "kind": "enum",
+   "radix": 3,
+   "type": "SpellNameMadness",
+   "names": {
+    "0": "None",
+    "1": "MixedUp",
+    "2": "Madness"
+   }
+  },
+  {
+   "name": "SpellcrafterRetainPermissions",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "SpellcrafterMixSpells",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "SpellBugs",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "SpeedHacks",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "SpeedBoat",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "SleepModeDropDown",
+   "kind": "enum",
+   "radix": 2,
+   "type": "SleepMode",
+   "names": {
+    "0": "Fixed",
+    "1": "WakeOnHit"
+   }
+  },
+  {
+   "name": "SkyWarriorSpoilerBats",
+   "kind": "enum",
+   "radix": 4,
+   "type": "SpoilerBatHints",
+   "names": {
+    "0": "Vanilla",
+    "1": "Hints",
+    "2": "Stars",
+    "3": "FullStats"
+   }
+  },
+  {
+   "name": "SkyPalaceIncentivePlacementType",
+   "kind": "enum",
+   "radix": 4,
+   "type": "IncentivePlacementTypeSky",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation",
+    "2": "RandomMirage",
+    "3": "RandomSky"
+   }
+  },
+  {
+   "name": "SkyCastle4FMazeMode",
+   "kind": "enum",
+   "radix": 3,
+   "type": "SkyCastle4FMazeMode",
+   "names": {
+    "0": "Vanilla",
+    "1": "Teleporters",
+    "2": "Maze"
+   }
+  },
+  {
+   "name": "ShuffleSkillsSpellsEnemies",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShuffleSkillsSpellsBosses",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShuffleScriptsEnemies",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShuffleScriptsBosses",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShufflePravokaShops",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShuffleObjectiveNPCs",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShuffleLavaTiles",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShuffleChimeIncludeTowns",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShuffleChimeAccess",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShuffleAstos",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShortToFRFiendsRefights",
+   "kind": "enum",
+   "radix": 8,
+   "type": "ShortToFRFiendsRefights",
+   "names": {
+    "0": "All",
+    "1": "TwoPaths",
+    "2": "Lopsided",
+    "3": "Progressive",
+    "4": "AnythingGoes",
+    "5": "Rude",
+    "6": "None",
+    "7": "Random"
+   }
+  },
+  {
+   "name": "Shops",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShopKillMode_White",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ShopKillMode",
+   "names": {
+    "0": "None",
+    "1": "WholeShops",
+    "2": "AllItemsOfAKind",
+    "3": "Spread",
+    "4": "Chaos",
+    "5": "Random"
+   }
+  },
+  {
+   "name": "ShopKillMode_Weapons",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ShopKillMode",
+   "names": {
+    "0": "None",
+    "1": "WholeShops",
+    "2": "AllItemsOfAKind",
+    "3": "Spread",
+    "4": "Chaos",
+    "5": "Random"
+   }
+  },
+  {
+   "name": "ShopKillMode_Item",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ShopKillMode",
+   "names": {
+    "0": "None",
+    "1": "WholeShops",
+    "2": "AllItemsOfAKind",
+    "3": "Spread",
+    "4": "Chaos",
+    "5": "Random"
+   }
+  },
+  {
+   "name": "ShopKillMode_Black",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ShopKillMode",
+   "names": {
+    "0": "None",
+    "1": "WholeShops",
+    "2": "AllItemsOfAKind",
+    "3": "Spread",
+    "4": "Chaos",
+    "5": "Random"
+   }
+  },
+  {
+   "name": "ShopKillMode_Armor",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ShopKillMode",
+   "names": {
+    "0": "None",
+    "1": "WholeShops",
+    "2": "AllItemsOfAKind",
+    "3": "Spread",
+    "4": "Chaos",
+    "5": "Random"
+   }
+  },
+  {
+   "name": "ShopKillFactor_White",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ShopKillFactor",
+   "names": {
+    "0": "Kill20Percent",
+    "1": "Kill40Percent",
+    "2": "Kill60Percent",
+    "3": "Kill80Percent",
+    "4": "KillAll",
+    "5": "KillRandom"
+   }
+  },
+  {
+   "name": "ShopKillFactor_Weapons",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ShopKillFactor",
+   "names": {
+    "0": "Kill20Percent",
+    "1": "Kill40Percent",
+    "2": "Kill60Percent",
+    "3": "Kill80Percent",
+    "4": "KillAll",
+    "5": "KillRandom"
+   }
+  },
+  {
+   "name": "ShopKillFactor_Item",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ShopKillFactor",
+   "names": {
+    "0": "Kill20Percent",
+    "1": "Kill40Percent",
+    "2": "Kill60Percent",
+    "3": "Kill80Percent",
+    "4": "KillAll",
+    "5": "KillRandom"
+   }
+  },
+  {
+   "name": "ShopKillFactor_Black",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ShopKillFactor",
+   "names": {
+    "0": "Kill20Percent",
+    "1": "Kill40Percent",
+    "2": "Kill60Percent",
+    "3": "Kill80Percent",
+    "4": "KillAll",
+    "5": "KillRandom"
+   }
+  },
+  {
+   "name": "ShopKillFactor_Armor",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ShopKillFactor",
+   "names": {
+    "0": "Kill20Percent",
+    "1": "Kill40Percent",
+    "2": "Kill60Percent",
+    "3": "Kill80Percent",
+    "4": "KillAll",
+    "5": "KillRandom"
+   }
+  },
+  {
+   "name": "ShopKillExcludeConeria_White",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ShopKillExcludeConeria_Weapons",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ShopKillExcludeConeria_Item",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ShopKillExcludeConeria_Black",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ShopKillExcludeConeria_Armor",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ShopInfo",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ShipDrydock",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ShipCanalBeforeFloater",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ShardHunt",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ShardCount",
+   "kind": "enum",
+   "radix": 9,
+   "type": "ShardCount",
+   "names": {
+    "0": "Count16",
+    "1": "Count20",
+    "2": "Count24",
+    "3": "Count28",
+    "4": "Count32",
+    "5": "Count36",
+    "6": "Range16_24",
+    "7": "Range24_32",
+    "8": "Range16_36"
+   }
+  },
+  {
+   "name": "SetRNG",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "SeparateEnemyHPScaling",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "SeparateBossHPScaling",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "SendMasamuneHome",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "SeaShrineIncentivePlacementType",
+   "kind": "enum",
+   "radix": 4,
+   "type": "IncentivePlacementTypeSea",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation",
+    "2": "RandomUnlocked",
+    "3": "RandomLocked"
+   }
+  },
+  {
+   "name": "ScriptMultiplier",
+   "kind": "enum",
+   "radix": 7,
+   "type": "ScriptTouchMultiplier",
+   "names": {
+    "0": "None",
+    "1": "Half",
+    "2": "Vanilla",
+    "3": "OneAndHalf",
+    "4": "Double",
+    "5": "All",
+    "6": "Random"
+   }
+  },
+  {
+   "name": "SaveGameWhenGameOver",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "SaveGameDWMode",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "SafePoolParty",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "RunLengthLow",
+   "kind": "int",
+   "radix": 25,
+   "min": 32,
+   "step": 4
+  },
+  {
+   "name": "RunLengthHigh",
+   "kind": "int",
+   "radix": 25,
+   "min": 32,
+   "step": 4
+  },
+  {
+   "name": "Rng",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RibbonMode",
+   "kind": "enum",
+   "radix": 3,
+   "type": "RibbonMode",
+   "names": {
+    "0": "Vanilla",
+    "1": "Split",
+    "2": "Removed"
+   }
+  },
+  {
+   "name": "ReversedFloors",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RepeatedPotionUse",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "RemoveBossScripts",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RelocateChestsTrapIndicator",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "RelocateChests",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ReducedLuck",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RedMageMaxMP",
+   "kind": "int",
+   "radix": 10,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "RedMageHitBuff",
+   "kind": "enum",
+   "radix": 6,
+   "type": "RedMageHit",
+   "names": {
+    "1": "HitUseless",
+    "2": "Vanilla",
+    "3": "HitBalanced",
+    "4": "HitDouble",
+    "5": "HitEverything"
+   }
+  },
+  {
+   "name": "RED_WIZ4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RED_WIZ3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RED_WIZ2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RED_WIZ1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RED_MAGE4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RED_MAGE3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RED_MAGE2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RED_MAGE1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RecruitmentModeReplaceOnlyNone",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RecruitmentModeHireOnly",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RecruitmentMode",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomWeaponBonusLow",
+   "kind": "int",
+   "radix": 19,
+   "min": -9,
+   "step": 1
+  },
+  {
+   "name": "RandomWeaponBonusHigh",
+   "kind": "int",
+   "radix": 19,
+   "min": -9,
+   "step": 1
+  },
+  {
+   "name": "RandomWeaponBonusExcludeMasa",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomWeaponBonus",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomWaresIncludesSpecialGear",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomWares",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomVampAttackIncludesConeria",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomVampAttack",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomPromotionsSpoilers",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomLoot",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomizeTreasure",
+   "kind": "enum",
+   "radix": 4,
+   "type": "RandomizeTreasureMode",
+   "names": {
+    "0": "None",
+    "1": "RandomizeTreasure",
+    "2": "DeepDungeon",
+    "3": "Random"
+   }
+  },
+  {
+   "name": "RandomizeFormationEnemizer",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomizeEnemizer",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomizeClassMode",
+   "kind": "enum",
+   "radix": 4,
+   "type": "ClassRandomizationMode",
+   "names": {
+    "0": "None",
+    "1": "Blursings",
+    "2": "Transmooglifier",
+    "3": "Chaos"
+   }
+  },
+  {
+   "name": "RandomizeClassMaxMalus",
+   "kind": "int",
+   "radix": 4,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "RandomizeClassMaxBonus",
+   "kind": "int",
+   "radix": 4,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "RandomizeClassKeyItems",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomizeClassIncludeXpBonus",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomizeClassCasting",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "RandomArmorBonusLow",
+   "kind": "int",
+   "radix": 19,
+   "min": -9,
+   "step": 1
+  },
+  {
+   "name": "RandomArmorBonusHigh",
+   "kind": "int",
+   "radix": 19,
+   "min": -9,
+   "step": 1
+  },
+  {
+   "name": "RandomArmorBonus",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ProgressiveScaleMode",
+   "kind": "enum",
+   "radix": 13,
+   "type": "ProgressiveScaleMode",
+   "names": {
+    "0": "Disabled",
+    "1": "FiftyPercentAt12",
+    "2": "FiftyPercentAt15",
+    "3": "DoubledAt12",
+    "4": "DoubledAt15",
+    "5": "Progressive5Percent",
+    "6": "Progressive7Percent",
+    "7": "Progressive10Percent",
+    "8": "Progressive20Percent",
+    "9": "OrbProgressiveSlow",
+    "10": "OrbProgressiveMedium",
+    "11": "OrbProgressiveFast",
+    "12": "OrbProgressiveVFast"
+   }
+  },
+  {
+   "name": "ProcgenWaterfallSpoiler",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ProcgenWaterfallNoLoops",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ProcgenWaterfallMode",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ProcgenWaterfallMode",
+   "names": {
+    "0": "Vanilla",
+    "1": "Chaotic",
+    "2": "Compact",
+    "3": "Lattice",
+    "4": "Hallway",
+    "5": "Random"
+   }
+  },
+  {
+   "name": "ProcgenWaterfallHallwayLength",
+   "kind": "enum",
+   "radix": 5,
+   "type": "ProcgenWaterfallHallwayLength",
+   "names": {
+    "0": "Short",
+    "1": "Mid",
+    "2": "Long",
+    "3": "Absurd",
+    "4": "Random"
+   }
+  },
+  {
+   "name": "ProcgenWaterfallEntrance",
+   "kind": "enum",
+   "radix": 7,
+   "type": "ProcgenWaterfallEntrance",
+   "names": {
+    "0": "Anywhere",
+    "1": "Furthest",
+    "2": "Mid",
+    "3": "Center",
+    "4": "Fork",
+    "5": "Maddening",
+    "6": "Random"
+   }
+  },
+  {
+   "name": "ProcgenWaterfallDensity",
+   "kind": "enum",
+   "radix": 4,
+   "type": "ProcgenWaterfallDensity",
+   "names": {
+    "0": "Normal",
+    "1": "Sparse",
+    "2": "Dense",
+    "3": "Random"
+   }
+  },
+  {
+   "name": "ProcgenWaterfall",
+   "kind": "enum",
+   "radix": 7,
+   "type": "ProcgenWaterfall",
+   "names": {
+    "0": "Off",
+    "1": "Vanillish",
+    "2": "Alt",
+    "3": "Hallway",
+    "4": "Random",
+    "5": "Pandemonium",
+    "6": "Custom"
+   }
+  },
+  {
+   "name": "ProcgenSkyBridge",
+   "kind": "enum",
+   "radix": 10,
+   "type": "ProcgenSkyBridgeMode",
+   "names": {
+    "0": "Off",
+    "4": "Short",
+    "6": "Medium",
+    "9": "Long"
+   }
+  },
+  {
+   "name": "ProcgenEarth",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "PriceScaleFactorLow",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "PriceScaleFactorHigh",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "PoolSize",
+   "kind": "enum",
+   "radix": 5,
+   "type": "PoolSize",
+   "names": {
+    "0": "Size4",
+    "1": "Size5",
+    "2": "Size6",
+    "3": "Size7",
+    "4": "Size8"
+   }
+  },
+  {
+   "name": "PoisonSetDamageValue",
+   "kind": "int",
+   "radix": 500,
+   "min": 1,
+   "step": 1
+  },
+  {
+   "name": "PoisonMode",
+   "kind": "enum",
+   "radix": 7,
+   "type": "PoisonModeOptions",
+   "names": {
+    "0": "Constant",
+    "1": "Halved1",
+    "2": "Halved2",
+    "3": "Halved3",
+    "4": "Dimishing1",
+    "5": "Dimishing2",
+    "6": "Dimishing3"
+   }
+  },
+  {
+   "name": "PlayerSleepScaleLow",
+   "kind": "int",
+   "radix": 256,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "PlayerSleepScaleHigh",
+   "kind": "int",
+   "radix": 256,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "PinkMage",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "OwUnsafeStart",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "OwShuffledAccess",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "OwRandomPregen",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "OwMapExchange",
+   "kind": "enum",
+   "radix": 5,
+   "type": "OwMapExchanges",
+   "names": {
+    "0": "None",
+    "1": "GenerateNewOverworld",
+    "2": "LostWoods",
+    "3": "Desert",
+    "4": "ImportCustomMap"
+   }
+  },
+  {
+   "name": "OWDamageTiles",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "OverworldFiendsOnly",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "OrdealsPillars",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "OrdealsIncentivePlacementType",
+   "kind": "enum",
+   "radix": 2,
+   "type": "IncentivePlacementType",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation"
+   }
+  },
+  {
+   "name": "OrbsRequiredSpoilers",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "OrbsRequiredMode",
+   "kind": "enum",
+   "radix": 2,
+   "type": "OrbsRequiredMode",
+   "names": {
+    "0": "Any",
+    "1": "Random"
+   }
+  },
+  {
+   "name": "OrbsRequiredCount",
+   "kind": "int",
+   "radix": 6,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "OpenChestsInOrder",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "OnlyRequireGameIsBeatable",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ObfuscateItemNames",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NPCSwatter",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "NPCItems",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NPCFetchItems",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NoXcalber",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NoTail",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NormalShopsHaveExtConsumables",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NoPartyShuffle",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "NonesGainXP",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "NONE_CLASS4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NONE_CLASS3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NONE_CLASS2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NoMasamune",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NoFloater",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NoEmptyScripts",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "NoConsecutiveNukes",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NoBossSkillScriptShuffle",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NinjaMaxMP",
+   "kind": "int",
+   "radix": 10,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "NINJA4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NINJA3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NINJA2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "NINJA1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MpGainOnMaxGainMode",
+   "kind": "enum",
+   "radix": 4,
+   "type": "MpGainOnMaxGain",
+   "names": {
+    "0": "None",
+    "1": "Promoted",
+    "2": "All",
+    "3": "Blursed"
+   }
+  },
+  {
+   "name": "MoveToFBats",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MoveGaiaItemShop",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MoreConsumableChests",
+   "kind": "enum",
+   "radix": 8,
+   "type": "ConsumableChestSet",
+   "names": {
+    "0": "Vanilla",
+    "1": "All10",
+    "2": "All15",
+    "3": "All20",
+    "4": "All30",
+    "5": "AllPureSoft",
+    "6": "RandomLow",
+    "7": "Random"
+   }
+  },
+  {
+   "name": "MooglieWeaponBalance",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MermaidPrison",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MelmondClinic",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MDefMode",
+   "kind": "enum",
+   "radix": 3,
+   "type": "MDEFGrowthMode",
+   "names": {
+    "0": "None",
+    "1": "BBFix",
+    "2": "Invert"
+   }
+  },
+  {
+   "name": "MaxLevelLow",
+   "kind": "int",
+   "radix": 50,
+   "min": 1,
+   "step": 1
+  },
+  {
+   "name": "MaxLevelHigh",
+   "kind": "int",
+   "radix": 50,
+   "min": 1,
+   "step": 1
+  },
+  {
+   "name": "MaxEarlySteps",
+   "kind": "int",
+   "radix": 13,
+   "min": 4,
+   "step": 1
+  },
+  {
+   "name": "MASTER4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MASTER3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MASTER2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MASTER1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MarshLockedIncentivePlacementType",
+   "kind": "enum",
+   "radix": 2,
+   "type": "IncentivePlacementType",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation"
+   }
+  },
+  {
+   "name": "MarshIncentivePlacementType",
+   "kind": "enum",
+   "radix": 2,
+   "type": "IncentivePlacementType",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation"
+   }
+  },
+  {
+   "name": "MapSardasForest",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapRiverToMelmond",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapOpenProgressionExtended",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapOpenProgressionDocks",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapOpenProgression",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapLefeinRiver",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapHighwayToOrdeals",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapHallOfDragons",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapGenSeed",
+   "kind": "int",
+   "radix": 2147483647,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "MapGaiaMountainPass",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapDragonsHoard",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapCardiaLandBridge",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapBridgeLefein",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapBahamutCardiaDock",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapAirshipHike",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MapAirshipDock",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MagisizeWeapons",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MagicShops",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MagicShopLocs",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MagicShopLocationPairs",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MagicPermissions",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MagicMenuSpellReordering",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "MagicLevelsTiered",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MagicLevelsMixed",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MagicLevels",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "MagicAutohitThreshold",
+   "kind": "enum",
+   "radix": 9,
+   "type": "AutohitThreshold",
+   "names": {
+    "0": "Vanilla",
+    "1": "Autohit600",
+    "2": "Autohit900",
+    "3": "Autohit1200",
+    "4": "Autohit65535",
+    "5": "Autohit300to600",
+    "6": "Autohit300to900",
+    "7": "Autohit300to1200",
+    "8": "Any"
+   }
+  },
+  {
+   "name": "LoosePlacementMode",
+   "kind": "enum",
+   "radix": 3,
+   "type": "LoosePlacementMode",
+   "names": {
+    "0": "Vanilla",
+    "1": "Spread",
+    "2": "Forward"
+   }
+  },
+  {
+   "name": "LooseItemsSpreadPlacement",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "LooseItemsNpcBalance",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "LooseItemsForwardPlacement",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "LooseExcludePlacedDungeons",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LockpickingLevelRequirement",
+   "kind": "int",
+   "radix": 50,
+   "min": 1,
+   "step": 1
+  },
+  {
+   "name": "Lockpicking",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LockMode",
+   "kind": "enum",
+   "radix": 4,
+   "type": "LockHitMode",
+   "names": {
+    "0": "Vanilla",
+    "1": "Accuracy107",
+    "2": "Accuracy162",
+    "3": "AutoHit"
+   }
+  },
+  {
+   "name": "LegendaryWhiteShop",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LegendaryWeaponShop",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LegendaryShopHasExtConsumables",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LegendaryItemShop",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LegendaryBlackShop",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LegendaryArmorShop",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LefeinSuperStore",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LefeinShortcut",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LefeinShops",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "LaterLoose",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "KnightMaxMP",
+   "kind": "int",
+   "radix": 10,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "Knightlvl4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "KNIGHT4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "KNIGHT3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "KNIGHT2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "KNIGHT1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ItemsWhileMute",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ItemMagicPool",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ItemMagicPool",
+   "names": {
+    "0": "All",
+    "1": "Balanced",
+    "2": "Low",
+    "3": "Support",
+    "4": "Curated",
+    "5": "Random"
+   }
+  },
+  {
+   "name": "ItemMagicMode",
+   "kind": "enum",
+   "radix": 4,
+   "type": "ItemMagicMode",
+   "names": {
+    "0": "Vanilla",
+    "1": "Randomized",
+    "2": "None",
+    "3": "Random"
+   }
+  },
+  {
+   "name": "InventoryAutosort",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "IntAffectsSpells",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "IncreaseRegeneration",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncreaseDarkPenalty",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncludePromClasses",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncludeMorale",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "IncludeConeria",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncludeBaseClasses",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeXcalber",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeVorpal",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeVolcano",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeTitansTrove",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeTail",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeSkyPalace",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeShipAndCanal",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeSeaShrine",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeRibbon",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizePowerRod",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeOtherCastWeapon",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "IncentivizeOtherCastArmor",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeOrdeals",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeOpal",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeOffCastWeapon",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeOffCastArmor",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeMasamune",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeMarshKeyLocked",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeMarsh",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeMainItems",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeKatana",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeIceCave",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeFreeNPCs",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeFetchNPCs",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeFetchItems",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeEarth",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeDefCastWeapon",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeDefCastArmor",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeConeria",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeCardia",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeCanoeItem",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeBridgeItem",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentivizeAirship",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "IncentiveChestItemsFanfare",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ImproveTurnOrderRandomization",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ImprovedClinic",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "IdentifyTreasures",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "IceCaveIncentivePlacementType",
+   "kind": "enum",
+   "radix": 2,
+   "type": "IncentivePlacementType",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation"
+   }
+  },
+  {
+   "name": "HousesFillHp",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "HouseMPRestoration",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "HintsVillage",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "HardcoreAltFiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "GuaranteedPowerItem",
+   "kind": "enum",
+   "radix": 6,
+   "type": "GuaranteedPowerItem",
+   "names": {
+    "0": "None",
+    "1": "TMPR",
+    "2": "SABR",
+    "3": "FAST",
+    "4": "Any",
+    "5": "Random"
+   }
+  },
+  {
+   "name": "GuaranteedMasamune",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "GuaranteedDefenseItem",
+   "kind": "enum",
+   "radix": 6,
+   "type": "GuaranteedDefenseItem",
+   "names": {
+    "0": "None",
+    "1": "INV",
+    "2": "INV2",
+    "3": "RUSE",
+    "4": "Any",
+    "5": "Random"
+   }
+  },
+  {
+   "name": "GuaranteeCustomClassComposition",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "GenerateNewSpellbook",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "GameMode",
+   "kind": "enum",
+   "radix": 3,
+   "type": "GameModes",
+   "names": {
+    "0": "Standard",
+    "1": "DeepDungeon",
+    "2": "NoOverworld"
+   }
+  },
+  {
+   "name": "GaiaShortcut",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FreeTail",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FreeShip",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FreeRod",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FreeLute",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FreeCanoe",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FreeCanal",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FreeBridge",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FreeAirship",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FormationShuffleMode",
+   "kind": "enum",
+   "radix": 5,
+   "type": "FormationShuffleMode",
+   "names": {
+    "0": "None",
+    "1": "Intrazone",
+    "2": "ShuffleRarityTiered",
+    "3": "InterZone",
+    "4": "Randomize"
+   }
+  },
+  {
+   "name": "FORCED4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FORCED3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FORCED2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FORCED1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FogScaling",
+   "kind": "int",
+   "radix": 256,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "FogMDefScaling",
+   "kind": "int",
+   "radix": 256,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "Fog2Scaling",
+   "kind": "int",
+   "radix": 256,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "Fog2MDefScaling",
+   "kind": "int",
+   "radix": 256,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "Floors",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FlipDungeons",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FixMissingBattleRngEntry",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "FixHitChanceCap",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "FinalFantasy6Fiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FinalFantasy5Fiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FinalFantasy4Fiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FinalFantasy3Fiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FinalFantasy2Fiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FinalFantasy1BonusFiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FIGHTER4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FIGHTER3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FIGHTER2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FIGHTER1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FightBahamut",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "FiendsRefights",
+   "kind": "enum",
+   "radix": 4,
+   "type": "FiendsRefights",
+   "names": {
+    "0": "All",
+    "1": "TwoPaths",
+    "2": "None",
+    "3": "Random"
+   }
+  },
+  {
+   "name": "FiendShuffle",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ExtStartingItemSet",
+   "kind": "enum",
+   "radix": 13,
+   "type": "ExtStartingItemSet",
+   "names": {
+    "0": "None",
+    "1": "Lifeline",
+    "2": "JustSmokes",
+    "3": "BangsAndSmokes",
+    "4": "JestersSecret",
+    "5": "AdventurersFortune",
+    "6": "BlackbeltsFavorite",
+    "7": "IllegalAdvantage",
+    "8": "RandomizedJestersSecret",
+    "9": "RandomizedAdventurersFortune",
+    "10": "RandomizedBlackbeltsFavorite",
+    "11": "RandomizedHighRolling",
+    "12": "Randomized"
+   }
+  },
+  {
+   "name": "ExtConsumableTreasureStackSize",
+   "kind": "enum",
+   "radix": 5,
+   "type": "TreasureStackSize",
+   "names": {
+    "0": "Default",
+    "1": "Stingy",
+    "2": "Adequat",
+    "3": "Generous",
+    "4": "Ridiculous"
+   }
+  },
+  {
+   "name": "ExtConsumableSet",
+   "kind": "enum",
+   "radix": 4,
+   "type": "ExtConsumableSet",
+   "names": {
+    "0": "None",
+    "1": "SetA",
+    "2": "SetB",
+    "3": "SetC"
+   }
+  },
+  {
+   "name": "ExtConsumableChests",
+   "kind": "enum",
+   "radix": 7,
+   "type": "ExtConsumableChestSet",
+   "names": {
+    "0": "None",
+    "1": "All1",
+    "2": "All3",
+    "3": "All5",
+    "4": "All10",
+    "5": "RandomLow",
+    "6": "Random"
+   }
+  },
+  {
+   "name": "ExpMultiplierWhiteMage",
+   "kind": "double",
+   "radix": 26,
+   "min": 0.5,
+   "step": 0.1
+  },
+  {
+   "name": "ExpMultiplierThief",
+   "kind": "double",
+   "radix": 26,
+   "min": 0.5,
+   "step": 0.1
+  },
+  {
+   "name": "ExpMultiplierRedMage",
+   "kind": "double",
+   "radix": 26,
+   "min": 0.5,
+   "step": 0.1
+  },
+  {
+   "name": "ExpMultiplierFighter",
+   "kind": "double",
+   "radix": 26,
+   "min": 0.5,
+   "step": 0.1
+  },
+  {
+   "name": "ExpMultiplierBlackMage",
+   "kind": "double",
+   "radix": 26,
+   "min": 0.5,
+   "step": 0.1
+  },
+  {
+   "name": "ExpMultiplierBlackBelt",
+   "kind": "double",
+   "radix": 26,
+   "min": 0.5,
+   "step": 0.1
+  },
+  {
+   "name": "ExpMultiplier",
+   "kind": "double",
+   "radix": 41,
+   "min": 1,
+   "step": 0.1
+  },
+  {
+   "name": "ExpChestMinReward",
+   "kind": "int",
+   "radix": 41,
+   "min": 0,
+   "step": 500
+  },
+  {
+   "name": "ExpChestMaxReward",
+   "kind": "int",
+   "radix": 41,
+   "min": 0,
+   "step": 500
+  },
+  {
+   "name": "ExpChestConversionMin",
+   "kind": "int",
+   "radix": 11,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "ExpChestConversionMax",
+   "kind": "int",
+   "radix": 11,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "ExpBonus",
+   "kind": "int",
+   "radix": 11,
+   "min": 0,
+   "step": 25
+  },
+  {
+   "name": "ExitToFR",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ExclusiveLegendaryWhiteShop",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ExclusiveLegendaryWeaponShop",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ExclusiveLegendaryItemShop",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ExclusiveLegendaryBlackShop",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ExclusiveLegendaryArmorShop",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ExcludeGoldFromScaling",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EvadeCap",
+   "kind": "enum",
+   "radix": 8,
+   "type": "EvadeCapValues",
+   "names": {
+    "0": "veryLow",
+    "1": "low",
+    "2": "medLow",
+    "3": "medium",
+    "4": "medHigh",
+    "5": "high",
+    "6": "extreme",
+    "7": "insane"
+   }
+  },
+  {
+   "name": "Etherizer",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "EntrancesMixedWithTowns",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EntrancesIncludesDeadEnds",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "Entrances",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EnemyTrapTiles",
+   "kind": "enum",
+   "radix": 10,
+   "type": "TrapTileMode",
+   "names": {
+    "0": "Vanilla",
+    "1": "Shuffle",
+    "2": "ASideFormations",
+    "3": "BSideFormations",
+    "4": "Random",
+    "5": "LocalFormations",
+    "6": "Remove",
+    "7": "Undead",
+    "8": "Curated",
+    "9": "Overpowered"
+   }
+  },
+  {
+   "name": "EnemyStatusAttackBug",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "EnemySleepScaleLow",
+   "kind": "int",
+   "radix": 256,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "EnemySleepScaleHigh",
+   "kind": "int",
+   "radix": 256,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "EnemySkillsSpellsTiered",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EnemyScaleStatsLow",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "EnemyScaleStatsHigh",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "EnemyScaleHpLow",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "EnemyScaleHpHigh",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "EnemyFormationsSurprise",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EncounterSpacing",
+   "kind": "enum",
+   "radix": 4,
+   "type": "EncounterSpacing",
+   "names": {
+    "0": "None",
+    "1": "Even",
+    "2": "Clustered",
+    "3": "Random"
+   }
+  },
+  {
+   "name": "EncounterRate",
+   "kind": "double",
+   "radix": 46,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "EncounterPrng",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EnableSoftInBattle",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "EnableRandomPromotions",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EnablePoolParty",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EnableLifeInBattle",
+   "kind": "enum",
+   "radix": 3,
+   "type": "LifeInBattleSetting",
+   "names": {
+    "0": "LifeInBattleAll",
+    "1": "LifeInBattleLife1Only",
+    "2": "LifeInBattleOff"
+   }
+  },
+  {
+   "name": "EnableFogMDefBuff",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "EnableFogBuff",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "EnableCritNumberDisplay",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "EasyMode",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "EarthIncentivePlacementType",
+   "kind": "enum",
+   "radix": 4,
+   "type": "IncentivePlacementTypeEarth",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation",
+    "2": "RandomPreRod",
+    "3": "RandomPostRod"
+   }
+  },
+  {
+   "name": "EarlySarda",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EarlySage",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EarlyOrdeals",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EarlyLongRun",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EarlyKing",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EarlyEncounter",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "EarlierHighTierMagic",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DungeonEncounterRate",
+   "kind": "double",
+   "radix": 46,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "DraftWhiteWiz",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftWhiteMage",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftThief",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftRedWiz",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftRedMage",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftNinja",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftMaster",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftKnight",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftFighter",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftBlackWiz",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftBlackMage",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraftBlackBelt",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DraculasFlag",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "DockAnywhere",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DisableTentSaving",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "DisableMinimap",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "DisableInnSaving",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "DeepDungeonGenerator",
+   "kind": "enum",
+   "radix": 2,
+   "type": "DeepDungeonGeneratorMode",
+   "names": {
+    "0": "Progressive",
+    "1": "Chaotic"
+   }
+  },
+  {
+   "name": "DeadsGainXP",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "DDProgressiveTilesets",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "DDFiendOrbs",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "Dash",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "DamageTilesTowns",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DamageTilesTof",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DamageTilesQuantity",
+   "kind": "enum",
+   "radix": 3,
+   "type": "DamageTilesQuantity",
+   "names": {
+    "0": "Fewer",
+    "1": "Normal",
+    "2": "Excessive"
+   }
+  },
+  {
+   "name": "DamageTilesKill",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DamageTilesDungeons",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DamageTilesCaves",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DamageTilesCastles",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "DamageTileLow",
+   "kind": "int",
+   "radix": 11,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "DamageTileHigh",
+   "kind": "int",
+   "radix": 11,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "CorneriaIncentivePlacementType",
+   "kind": "enum",
+   "radix": 2,
+   "type": "IncentivePlacementType",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation"
+   }
+  },
+  {
+   "name": "ConsumableTreasureStackSize",
+   "kind": "enum",
+   "radix": 5,
+   "type": "TreasureStackSize",
+   "names": {
+    "0": "Default",
+    "1": "Stingy",
+    "2": "Adequat",
+    "3": "Generous",
+    "4": "Ridiculous"
+   }
+  },
+  {
+   "name": "ConfusedOldMen",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ClassAsNpcPromotion",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ClassAsNpcKeyNPC",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ClassAsNpcForcedFiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ClassAsNpcFiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ClassAsNpcDuplicate",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ClassAsNpcCount",
+   "kind": "int",
+   "radix": 14,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "ClampMinimumStatScale",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ClampMinimumPriceScale",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ClampMinimumBossStatScale",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ClampEnemyHpScaling",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ClampBossHPScaling",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ChestsKeyItems",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ChestsAppearOpened",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ChestInfo",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "CheapVendorItem",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ChaosRush",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ChaosFloorEncounters",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ChangeMaxMP",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ChanceToRun",
+   "kind": "enum",
+   "radix": 8,
+   "type": "ChanceToRunMode",
+   "names": {
+    "0": "Vanilla",
+    "1": "Fixed",
+    "2": "Fix25",
+    "3": "Fix40",
+    "4": "Fix55",
+    "5": "Fix70",
+    "6": "Fix85",
+    "7": "Fix100"
+   }
+  },
+  {
+   "name": "CardiaIncentivePlacementType",
+   "kind": "enum",
+   "radix": 2,
+   "type": "IncentivePlacementType",
+   "names": {
+    "0": "Vanilla",
+    "1": "RandomAtLocation"
+   }
+  },
+  {
+   "name": "BuyTen",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "BuffTier1DamageSpells",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "BuffHealingSpells",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "BossScaleStatsLow",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "BossScaleStatsHigh",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "BossScaleHpLow",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "BossScaleHpHigh",
+   "kind": "int",
+   "radix": 51,
+   "min": 0,
+   "step": 10
+  },
+  {
+   "name": "BlindSeed",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "BlackOrbFiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BlackMageMaxMP",
+   "kind": "int",
+   "radix": 10,
+   "min": 0,
+   "step": 1
+  },
+  {
+   "name": "BlackKnightKeep",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BlackKnight",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BlackBeltAbsorb",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "BLACK_WIZ4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_WIZ3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_WIZ2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_WIZ1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_MAGE4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_MAGE3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_MAGE2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_MAGE1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_BELT4",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_BELT3",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_BELT2",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BLACK_BELT1",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BetterTrapChests",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "BBCritRate",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "BattleMagicMenuWrapAround",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "AutoRetargeting",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ArmorResistsDamageTileDamage",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ArmorPermissions",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ArmorCrafter",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "ArchipelagoShards",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ArchipelagoGold",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "ArchipelagoEquipment",
+   "kind": "enum",
+   "radix": 6,
+   "type": "ArchipelagoEquipment",
+   "names": {
+    "0": "None",
+    "1": "Common",
+    "2": "Rare",
+    "3": "Legendary",
+    "4": "CasterItems",
+    "5": "Incentivized"
+   }
+  },
+  {
+   "name": "ArchipelagoConsumables",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "Archipelago",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "AlternateFiends",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "AllSpellLevelsForKnightNinja",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "AllowUnsafeStartArea",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "AllowUnsafePlacement",
+   "kind": "bool",
+   "radix": 2
+  },
+  {
+   "name": "AllowUnsafePirates",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "AllowUnsafeMelmond",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "AllowDeepTowns",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "AllowDeepCastles",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "AirBoat",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "AfterHits",
+   "kind": "tristate",
+   "radix": 3
+  },
+  {
+   "name": "AdvancedEncounterRNG",
+   "kind": "enum",
+   "radix": 4,
+   "type": "AdvancedEncounterRNG",
+   "names": {
+    "0": "None",
+    "1": "PRNG",
+    "2": "Curated",
+    "3": "Random"
+   }
+  },
+  {
+   "name": "AddDamageTiles",
+   "kind": "tristate",
+   "radix": 3
+  }
+ ]
+}

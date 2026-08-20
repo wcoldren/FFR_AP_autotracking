@@ -110,6 +110,12 @@
 		"disabled_img" : "images/flags/noMelmondRiver.png"
     },
     {
+        "name" : "Sarda's Forest",
+        "type" : "toggle",
+        "img" : "images/locations/sarda.png",
+        "codes" : "sardasForest"
+    },
+    {
         "name": "NPCs are Incentive",
         "type": "toggle",
         "active": true,

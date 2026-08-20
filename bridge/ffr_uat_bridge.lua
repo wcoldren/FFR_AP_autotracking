@@ -54,6 +54,20 @@ local MAPFLAGS_ADDR = 0x002D
 local CUR_MAP_ADDR = 0x0048
 local MAP_OVERWORLD = -1    -- what we publish when not in a standard map
 
+-- The seed's own flag string. FF1Rom.WriteSeedAndFlags stamps a plain-ASCII
+-- record into bank 0x1E at 0xBE00, which is PRG offset 0x7BE00 -- PRG
+-- addressing does not count the 16-byte iNES header, so this is 0x10 below the
+-- file offset. It reads:
+--
+--   FFRInfo|Seed: D0E0CDBF|OW Seed: none|Res. Pack Hash: none|Flags: g5jr...|Version: 4-9-7
+--
+-- This is the only thing that tells anyone what the seed was rolled with: the
+-- Archipelago FF1 world sends no slot data, and cart RAM holds progress, not
+-- settings. See tools/ffr_flags/README.md.
+local FLAGS_ROM_OFF = 0x7BE00
+local FLAGS_ROM_LEN = 512   -- comfortably past the longest record
+local FLAGS_MARKER = "FFRInfo"
+
 -- In-game guard, matching worlds/ff1/Client.py and the EmoTracker pack's
 -- isInGame(). All three bytes live inside MEM.
 local GUARD_A_OFF = 0x102   -- first character's name; 0 = title / char creation
@@ -72,6 +86,7 @@ local GUARD_STABLE_SCANS = 5     -- consecutive scans, so ~0.5s of a valid save
 
 local EMU = {
   readByte = nil,   -- function(addr) -> 0..255
+  readRom = nil,    -- function(offset, len) -> string, nil when unsupported
   romId = nil,      -- function() -> string, "" when the emulator will not say
   log = nil,        -- function(msg)
   notify = nil,     -- function(msg)  on-screen
@@ -396,7 +411,8 @@ local INFO_MSG =
   '[{"cmd":"Info","protocol":0,"name":"FF1R Mesen Bridge","version":"1.0.0"}]'
 
 -- Last state actually put on the wire, for diffing.
-local sentMem, sentReady, sentGoal, sentMap, sentRom = nil, nil, nil, nil, nil
+local sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags =
+    nil, nil, nil, nil, nil, nil
 
 local function varMem(mem)
   local parts = {}
@@ -414,15 +430,16 @@ local function varNum(name, value)
   return '{"cmd":"Var","name":"' .. name .. '","value":' .. string.format("%d", value) .. "}"
 end
 
--- The only string we publish is the ROM id, which in practice is a hex SHA-1.
--- It still gets escaped: emu.getRomInfo() can fall back to the file name, and a
--- quote or a backslash in that would otherwise produce a malformed frame.
+-- Both strings we publish -- the ROM id and the flag record -- are escaped.
+-- The flag record cannot contain anything that needs it, but the ROM id can:
+-- emu.getRomInfo() falls back to the file name on a build that does not hash,
+-- and a quote or a backslash in that would produce a malformed frame.
 local function varStr(name, value)
   local escaped = tostring(value):gsub('[\\"]', '\\%0'):gsub("%c", "")
   return '{"cmd":"Var","name":"' .. name .. '","value":"' .. escaped .. '"}'
 end
 
-local function sendState(mem, ready, goal, map, rom, force)
+local function sendState(mem, ready, goal, map, rom, flags, force)
   local msgs = {}
   if force or mem ~= sentMem then
     msgs[#msgs + 1] = varMem(mem)
@@ -442,11 +459,18 @@ local function sendState(mem, ready, goal, map, rom, force)
   if force or rom ~= sentRom then
     msgs[#msgs + 1] = varStr("ff1/rom", rom)
   end
+  -- Same reasoning as ff1/rom: this describes the cartridge, not the save, so
+  -- it goes out whether or not a save is loaded. The pack needs it to configure
+  -- its flag grid before there is any progress to show.
+  if force or flags ~= sentFlags then
+    msgs[#msgs + 1] = varStr("ff1/flags", flags)
+  end
   if #msgs == 0 then
     return
   end
   if send(wsEncodeText("[" .. table.concat(msgs, ",") .. "]")) then
-    sentMem, sentReady, sentGoal, sentMap, sentRom = mem, ready, goal, map, rom
+    sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags =
+        mem, ready, goal, map, rom, flags
   end
 end
 
@@ -466,6 +490,7 @@ local lastMem = string.rep("\0", MEM_LEN)
 local lastGoal = false
 local lastMap = MAP_OVERWORLD
 local lastRom = ""
+local lastFlags = ""
 
 -- Which cartridge is in the slot. The pack uses this to notice that it is
 -- looking at a different game and drop the previous one's board -- without it,
@@ -484,6 +509,55 @@ local function readRom()
     return ""
   end
   return id
+end
+
+-- The flag record, as "<version>|<flagstring>", or "" when it cannot be read.
+--
+-- Memoised on the cartridge id, because unlike the RAM mirror this cannot
+-- change while a ROM is loaded -- and re-reading 512 bytes of PRG ten times a
+-- second to watch a constant would be silly. A swap changes the id, which
+-- drops the memo.
+local flagsFor, flagsValue = nil, ""
+local flagsWarned = false
+
+local function readFlags(rom)
+  if flagsFor == rom then
+    return flagsValue
+  end
+  flagsFor, flagsValue = rom, ""
+
+  if not EMU.readRom then
+    return flagsValue
+  end
+  local ok, raw = pcall(EMU.readRom, FLAGS_ROM_OFF, FLAGS_ROM_LEN)
+  if not ok or type(raw) ~= "string" then
+    if not flagsWarned then
+      flagsWarned = true
+      EMU.log("cannot read PRG ROM -- the flag grid stays manual")
+    end
+    return flagsValue
+  end
+
+  -- Only the documented offset. A wider search would mean sweeping half a
+  -- megabyte a byte at a time, and every FFR build that writes this record at
+  -- all writes it here.
+  if raw:sub(1, #FLAGS_MARKER) ~= FLAGS_MARKER then
+    EMU.log("no FFRInfo record at 0x" .. string.format("%X", FLAGS_ROM_OFF)
+            .. " -- not an FFR ROM, or too old a build")
+    return flagsValue
+  end
+
+  local record = raw:match("^[^%z]*")
+  local flags = record:match("|Flags: ([A-Za-z0-9%.%-]+)")
+  local version = record:match("|Version: ([A-Za-z0-9%.%-]+)")
+  if not flags or not version then
+    EMU.log("FFRInfo record has no Flags/Version field")
+    return flagsValue
+  end
+
+  flagsValue = version .. "|" .. flags
+  EMU.log("seed flags: FFR " .. version .. ", " .. #flags .. " characters")
+  return flagsValue
 end
 
 local function readMem()
@@ -552,10 +626,11 @@ end
 local function scan()
   local mem = readMem()
   lastRom = readRom()
+  lastFlags = readFlags(lastRom)
 
   if not inGame(mem) or looksUninitialised(mem) then
     invalidate()
-    sendState(lastMem, false, lastGoal, lastMap, lastRom)
+    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags)
     return
   end
 
@@ -570,14 +645,14 @@ local function scan()
   end
 
   if not isReady() then
-    sendState(lastMem, false, lastGoal, lastMap, lastRom)
+    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags)
     return
   end
 
   lastMem = mem
   lastGoal = (at(mem, FLAGS_OFF + GOAL_BYTE) & 0x02) ~= 0
   lastMap = readMap()
-  sendState(lastMem, true, lastGoal, lastMap, lastRom)
+  sendState(lastMem, true, lastGoal, lastMap, lastRom, lastFlags)
 end
 
 ------------------------------------------------------------------
@@ -610,10 +685,12 @@ local function handleHandshake()
   end
 
   handshaked = true
-  sentMem, sentReady, sentGoal, sentMap, sentRom = nil, nil, nil, nil, nil
+  sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags =
+      nil, nil, nil, nil, nil, nil
   -- A client can connect and Sync before the first scan tick, and the very
   -- first thing it needs is which cartridge this is.
   lastRom = readRom()
+  lastFlags = readFlags(lastRom)
   EMU.log("PopTracker connected")
   EMU.notify("PopTracker connected")
   send(wsEncodeText(INFO_MSG))
@@ -638,7 +715,7 @@ local function handleFrames()
       -- is correct for it, so match on the name rather than carrying a JSON
       -- parser for one string.
       if payload:find('"Sync"', 1, true) then
-        sendState(lastMem, isReady(), lastGoal, lastMap, lastRom, true)
+        sendState(lastMem, isReady(), lastGoal, lastMap, lastRom, lastFlags, true)
       end
     end
   end
@@ -692,6 +769,26 @@ local MEM = emu.memType.nesDebug
 
 EMU.readByte = function(addr)
   return emu.read(addr, MEM)
+end
+-- PRG ROM, addressed by offset into the file's PRG area rather than through the
+-- CPU bus -- the flag record lives in bank 0x1E, which is not the bank mapped at
+-- $8000 most of the time. Read once per cartridge, so the byte-at-a-time loop
+-- costs nothing worth optimising away.
+local PRG = emu.memType.nesPrgRom
+
+EMU.readRom = function(offset, len)
+  if not PRG then
+    return nil
+  end
+  local bytes = {}
+  for i = 0, len - 1 do
+    local b = emu.read(offset + i, PRG)
+    if type(b) ~= "number" then
+      return nil
+    end
+    bytes[i + 1] = string.char(b & 0xFF)
+  end
+  return table.concat(bytes)
 end
 -- emu.getRomInfo() -> { name, path, fileSha1Hash }. The hash is the identity we
 -- want; the name is a usable stand-in on a build that does not provide it, and

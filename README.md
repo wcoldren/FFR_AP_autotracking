@@ -20,8 +20,6 @@ orbs.
 The emulator feed described below covers all of those. What still needs a manual click:
 - Sigil and Mark, in no-overworld seeds. They share their memory with Floater
   and Canoe, and nothing in RAM tells them apart.
-- The settings flags (Early King, the dock and pass flags, the incentive
-  flags). Those describe the seed, not your progress.
 
 
 Autotracking from the emulator (Mesen)
@@ -53,6 +51,18 @@ Once connected it tracks chests and NPCs, Chaos, Garland and the Vampire, the
 four orbs being lit, key items and every turn-in stage (Crown to Astos, Slab to
 Unne and then Lefein, Ruby to the Titan, and so on), Bridge/Ship/Canal/Canoe/
 Airship, and the shard count.
+
+It also fills in the flags grid. FFR stamps the flag string it rolled with into
+the cartridge, so the settings that used to need clicking -- Early King, the
+dock and pass flags, Sarda's Forest, open progression, the incentive categories
+-- are read off the ROM and applied when you load a seed. A flag you left on
+"random" in the generator is the one thing that cannot be read: the flag string
+records that it was rolled, not which way it landed, so those stay on whatever
+the grid already had and the Script Window names them. Clicking a flag
+afterwards sticks; only a new seed or the resync arrow stamps over it. Seeds
+from an FFR version the pack has no schema for keep the manual grid, and say so
+rather than guessing. `tools/ffr_flags/` has the offline version of the same
+decoder, and the details.
 
 The board follows the game rather than accumulating. Loading an older save
 un-marks the chests it had not opened and walks items back to what that save

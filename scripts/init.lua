@@ -107,6 +107,12 @@ if PopVersion and PopVersion>="0.18.0" then
   -- Local emulator feed over UAT. AddVariableWatch is always registered, so
   -- this is a version check, not a check for the "uat" manifest flag.
   if ScriptHost.AddVariableWatch then
+    -- The seed's own settings, read out of the cartridge by the bridge. Loaded
+    -- with the UAT feed because that is the only feed that carries them --
+    -- Archipelago sends no slot data for Final Fantasy.
+    ScriptHost:LoadScript("scripts/flags/schemas.lua")
+    ScriptHost:LoadScript("scripts/autotracking/flags_decode.lua")
+    ScriptHost:LoadScript("scripts/autotracking/flag_mapping.lua")
     ScriptHost:LoadScript("scripts/autotracking/uat.lua")
   end
 end

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>dump_schema</AssemblyName>
+    <RootNamespace>DumpSchema</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Set FF1LibPath to the FF1Lib directory of an FF1Randomizer checkout:
+         dotnet run -p:FF1LibPath=/path/to/FF1Randomizer/FF1Lib -->
+    <ProjectReference Include="$(FF1LibPath)/FF1Lib.csproj" />
+  </ItemGroup>
+</Project>

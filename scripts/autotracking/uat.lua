@@ -74,6 +74,10 @@ local function makeResyncButton()
   end
   item.OnLeftClickFunc = function()
     print("uat: resync -- rebuilding the board from the feeds")
+    -- Forget which flag string was applied, so the next tick re-reads the
+    -- seed's settings too. Resync is the one place that is meant to throw away
+    -- hand edits, flag-grid clicks included.
+    FFR_FLAGS_SOURCE = nil
     resetForNewGame()
   end
 end
@@ -116,6 +120,14 @@ function onFF1Flags(store)
   -- save-loaded guard says, and the window right after a ROM swap -- guard
   -- unhappy, no save loaded yet -- is exactly when the swap has to be noticed.
   checkRom(store)
+
+  -- Likewise ahead of it, and after checkRom so a swap has already dropped the
+  -- old board: this is what the seed was rolled with, not how far into it you
+  -- are, and it is worth having on screen before a save is even loaded.
+  -- applyFFRFlags is a no-op unless the string actually changed.
+  if applyFFRFlags then
+    applyFFRFlags(store:ReadVariable("ff1/flags"))
+  end
 
   -- The bridge only claims ready once a save is actually loaded, which keeps
   -- a reset or the character-creation screen from reading as a wipe.
@@ -174,4 +186,4 @@ end
 -- ff1/rom rides on the same watch rather than getting its own. Watch firing
 -- order is not defined, and reading both out of one store removes any chance of
 -- decoding the new cartridge's flags against the old cartridge's identity.
-ScriptHost:AddVariableWatch("ff1mem", {"ff1/mem", "ff1/ready", "ff1/rom"}, onFF1Flags)
+ScriptHost:AddVariableWatch("ff1mem", {"ff1/mem", "ff1/ready", "ff1/rom", "ff1/flags"}, onFF1Flags)
