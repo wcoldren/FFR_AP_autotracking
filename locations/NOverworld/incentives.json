@@ -192,7 +192,7 @@
 						"access_rules" : [],
 						"visibility_rules" : [ "marshIsIncentive" ],
 						"hosted_item" : "marsh"
-					},
+					}
 				],
 				"map_locations" : [
 					{

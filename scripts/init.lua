@@ -8,7 +8,11 @@ Tracker:AddItems("items/hosted_items.json")
 Tracker:AddItems("items/flags.json")
 Tracker:AddItems("items/shards.json")
 
+-- NOverworld replaces the overworld art only. It still needs the 53 dungeon
+-- maps, or the per-chest markers in locations/overworld.json have nowhere to
+-- draw; NOverworldMaps.json is loaded second so its "incentives" entry wins.
 if Tracker.ActiveVariantUID == "7NOverworld" or Tracker.ActiveVariantUID == "8shardHuntNOverworld" then
+  Tracker:AddMaps("maps/maps.json")
   Tracker:AddMaps("maps/NOverworldMaps.json")
 else
   Tracker:AddMaps("maps/maps.json")
@@ -16,8 +20,12 @@ end
 
 ScriptHost:LoadScript("scripts/logic.lua")
 
+-- locations/NOverworld/locations.json was loaded here and has never existed --
+-- not in the tree and not in any commit -- so both NOverworld variants loaded
+-- no dungeon locations at all and nothing could clear. The dungeon tree is the
+-- same either way; only the incentive pins differ.
 if Tracker.ActiveVariantUID == "7NOverworld" or Tracker.ActiveVariantUID == "8shardHuntNOverworld" then
-    Tracker:AddLocations("locations/NOverworld/locations.json")
+    Tracker:AddLocations("locations/overworld.json")
     Tracker:AddLocations("locations/NOverworld/incentives.json")
 else
     Tracker:AddLocations("locations/overworld.json")
