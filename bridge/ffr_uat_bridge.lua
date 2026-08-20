@@ -37,10 +37,12 @@ local MEM_ADDR = 0x6000
 local MEM_LEN = 0x300
 local FLAGS_OFF = 0x200     -- object/chest flag array, 256 bytes, within MEM
 local FLAGS_LEN = 0x100
-local GOAL_BYTE = 0xFE      -- bit 0x02 = Chaos defeated -- but see the note in
-                            -- scripts/autotracking/ram_mapping.lua: FFR also
-                            -- uses this bit for "airship revealed", so the pack
-                            -- deliberately does not act on ff1/goal.
+local GOAL_BYTE = 0xFE      -- bit 0x02 = Chaos defeated, the same flag
+                            -- worlds/ff1/Client.py treats as the goal. The pack
+                            -- does not read ff1/goal: byte 0xFE arrives inside
+                            -- ff1/mem anyway, and Chaos is mapped there as an
+                            -- ordinary event location (see location_mapping).
+                            -- It is still published for any other UAT client.
 
 -- Where the player is standing. These two live in work RAM rather than the
 -- save window, so they are read on their own rather than out of MEM. Both come
@@ -248,6 +250,14 @@ local server, client = nil, nil
 local rxbuf = ""
 local handshaked = false
 
+-- Bind retry. A power cycle restarts this script (see the scriptEnded note
+-- below) and the previous instance's listening socket may not have been
+-- released yet, so the first bind can lose the race. Retrying is right;
+-- retrying sixty times a second and logging each attempt is not.
+local BIND_RETRY_FRAMES = 60
+local retryIn = 0
+local bindFailure = nil     -- last failure text, so a streak logs once
+
 local function closeClient(why)
   if client then
     pcall(function() client:close() end)
@@ -260,29 +270,63 @@ local function closeClient(why)
   end
 end
 
+local function closeServer()
+  if server then
+    pcall(function() server:close() end)
+    server = nil
+  end
+  retryIn = 0
+  bindFailure = nil
+end
+
+-- Returns true on success, or false plus a message. Says nothing itself --
+-- ensureServer decides what is worth logging.
 local function createServer()
   local sock, err = socket.tcp()
   if not sock then
-    EMU.log("socket.tcp failed: " .. tostring(err))
-    return
+    return false, "socket.tcp failed: " .. tostring(err)
   end
   sock:setoption("reuseaddr", true)
   local ok
   ok, err = sock:bind("127.0.0.1", UAT_PORT)
   if not ok then
-    EMU.log("could not bind port " .. UAT_PORT .. ": " .. tostring(err))
-    sock:close()
-    return
+    pcall(function() sock:close() end)
+    return false, "could not bind port " .. UAT_PORT .. ": " .. tostring(err)
   end
   ok, err = sock:listen(1)
   if not ok then
-    EMU.log("listen failed: " .. tostring(err))
-    sock:close()
-    return
+    pcall(function() sock:close() end)
+    return false, "listen failed: " .. tostring(err)
   end
   sock:settimeout(0)
   server = sock
-  EMU.log("listening for PopTracker on ws://127.0.0.1:" .. UAT_PORT)
+  return true
+end
+
+-- Called once a frame while there is no client. Holds off for a second
+-- between failed attempts and logs one line per failure streak, so a port
+-- that is briefly still held reads as one message rather than a wall of them.
+-- The "listening" line on the way back out doubles as the recovery notice.
+local function ensureServer()
+  if server then
+    return true
+  end
+  if retryIn > 0 then
+    retryIn = retryIn - 1
+    return false
+  end
+  local ok, err = createServer()
+  if ok then
+    bindFailure = nil
+    EMU.log("listening for PopTracker on ws://127.0.0.1:" .. UAT_PORT)
+    return true
+  end
+  retryIn = BIND_RETRY_FRAMES
+  if err ~= bindFailure then
+    bindFailure = err
+    EMU.log(err .. " -- retrying once a second")
+  end
+  return false
 end
 
 local function tryAccept()
@@ -304,17 +348,37 @@ local function send(data)
   if not client then
     return false
   end
-  local ok, err = client:send(data)
-  if not ok then
-    -- A non-blocking send can report a partial write; treat anything other
-    -- than a clean send as fatal for this connection rather than trying to
-    -- resume mid-frame, since a half-written frame desynchronises the client.
-    if err ~= "timeout" then
+  local sent, err, lastByte = client:send(data)
+  if not sent then
+    -- A non-blocking send reports a partial write as `nil, "timeout", n`, so
+    -- a timeout here is not "nothing happened" -- it is a frame left half on
+    -- the wire. Treat it as fatal for this connection rather than trying to
+    -- resume mid-frame: sendState has no way to re-send a tail, and a client
+    -- holding half a frame would parse the next one as its remainder. The
+    -- reconnect costs a Sync, which restores the whole state anyway.
+    if err == "timeout" then
+      closeClient(string.format("partial write, %d of %d bytes",
+        tonumber(lastByte) or 0, #data))
+    else
       closeClient(err)
-      return false
     end
+    return false
   end
   return true
+end
+
+-- Mesen stops this script and starts a fresh one on a power cycle (Script
+-- Window -> Settings -> "Auto-restart script after power cycle", on by
+-- default), and fires scriptEnded on the way out. Releasing the port here
+-- rather than leaving it to the dying Lua state being collected is what lets
+-- the restarted script bind first time. The close frame is a courtesy: it
+-- tells PopTracker to drop us now instead of noticing a bare FIN.
+local function shutdown()
+  if client then
+    send(wsEncodeControl(0x8))
+  end
+  closeClient()
+  closeServer()
 end
 
 ------------------------------------------------------------------
@@ -510,7 +574,7 @@ local function handleHandshake()
   end
 
   handshaked = true
-  sentMem, sentReady, sentGoal = nil, nil, nil
+  sentMem, sentReady, sentGoal, sentMap = nil, nil, nil, nil
   EMU.log("PopTracker connected")
   EMU.notify("PopTracker connected")
   send(wsEncodeText(INFO_MSG))
@@ -543,10 +607,7 @@ end
 
 local function pump()
   if not client then
-    if not server then
-      createServer()
-    end
-    if server then
+    if ensureServer() then
       tryAccept()
     end
     return
@@ -620,5 +681,9 @@ end
 emu.addEventCallback(onFrame, emu.eventType.endFrame)
 emu.addEventCallback(invalidate, emu.eventType.reset)
 emu.addEventCallback(invalidate, emu.eventType.stateLoaded)
+-- pcall'd like the frame callback: this runs while the script is being torn
+-- down, and a Lua error here would surface as a stop-time error dialog rather
+-- than anything useful.
+emu.addEventCallback(function() pcall(shutdown) end, emu.eventType.scriptEnded)
 
 EMU.log("ready -- waiting for PopTracker on ws://127.0.0.1:" .. UAT_PORT)

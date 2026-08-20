@@ -18,21 +18,36 @@ local fakeClient = {
   end,
 }
 
+local LOGS = {}
+local scriptEndedCb = nil
+
 emu = {
   memType = { nesDebug = 0x100 },
-  eventType = { endFrame = 3, reset = 4, stateLoaded = 7 },
+  eventType = { endFrame = 3, reset = 4, stateLoaded = 7, scriptEnded = 9 },
   read = function(addr) return MEMORY[addr] or 0 end,
-  log = function(m) end,
+  log = function(m) LOGS[#LOGS+1] = m end,
   displayMessage = function() end,
   addEventCallback = function(fn, ev)
-    if ev == 3 then frameCb = fn elseif ev == 4 or ev == 7 then resetCb = fn end
+    if ev == 3 then frameCb = fn
+    elseif ev == 4 or ev == 7 then resetCb = fn
+    elseif ev == 9 then scriptEndedCb = fn end
   end,
 }
+
+-- Server-socket bookkeeping, for the bind-retry and shutdown cases.
+local bindFails = false
+local bindAttempts, serverClosed = 0, 0
+
 package.preload["socket.core"] = function()
   return { tcp = function() return {
-    setoption=function() return 1 end, bind=function() return 1 end,
+    setoption=function() return 1 end,
+    bind=function()
+      bindAttempts = bindAttempts + 1
+      if bindFails then return nil, "address already in use" end
+      return 1
+    end,
     listen=function() return 1 end, settimeout=function() return 1 end,
-    close=function() end,
+    close=function() serverClosed = serverClosed + 1 end,
     accept=function() local c = pendingClient; pendingClient = nil
       if c then return c end; return nil, "timeout" end,
   } end }
@@ -47,6 +62,12 @@ local function check(name, got, want)
 end
 local function frames(n) for _=1,(n or 1) do frameCb() end end
 local function allSent() local s = table.concat(sent); sent = {}; return s end
+local function allLogs() local l = LOGS; LOGS = {}; return l end
+local function logsMatching(logs, pat)
+  local n = 0
+  for _, l in ipairs(logs) do if l:find(pat, 1, true) then n = n + 1 end end
+  return n
+end
 
 -- decode every text frame in a blob
 local function textFrames(blob)
@@ -230,6 +251,99 @@ MEMORY[0x6102] = 0
 frames(12)
 check("reset does not move the map",
   table.concat(textFrames(allSent())):find('"ff1/map"', 1, true) == nil, true)
+
+-- 14. a partial write is a half-delivered frame, not a retryable nothing.
+--     LuaSocket reports it as `nil, "timeout", n`, and the send diff has no
+--     way to re-send a tail, so the connection has to go.
+MEMORY[0x6102] = 0x41
+frames(60)
+allSent()
+local closed = false
+local realClose = fakeClient.close
+fakeClient.close = function() closed = true end
+fakeClient.send = function(self, d) sent[#sent+1] = d; return nil, "timeout", 5 end
+MEMORY[0x6200 + 0x31] = 0x04                 -- something new to report
+frames(12)
+check("partial write closes the client", closed, true)
+
+-- with the client gone nothing more goes out, however much state moves
+fakeClient.close = realClose
+fakeClient.send = function(self, d) sent[#sent+1] = d; return #d end
+allSent()
+MEMORY[0x6200 + 0x32] = 0x04
+frames(12)
+check("nothing sent after the drop", #allSent(), 0)
+
+-- 15. PopTracker restarted mid-run. The fresh connection knows nothing, so
+--     every var has to go out again -- including the map, which has not
+--     changed value and would otherwise be diffed away.
+pendingClient = fakeClient
+frames(1)
+inbox = "GET / HTTP/1.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+     .. "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n"
+frames(13)
+local blob = allSent()
+local re = table.concat(textFrames(blob:sub((blob:find("\r\n\r\n", 1, true)) + 4)))
+check("reconnect resends mem", re:find('"ff1/mem"', 1, true) ~= nil, true)
+check("reconnect resends ready", re:find('"ff1/ready","value":true', 1, true) ~= nil, true)
+check("reconnect resends the unchanged map", re:find('"ff1/map","value":22', 1, true) ~= nil, true)
+
+-- 16. Mesen fires scriptEnded when it stops the script, which is what happens
+--     on a power cycle before it starts a fresh one. Both sockets have to go
+--     here: leaving the listening one to be collected is what makes the
+--     restarted script lose the race for the port.
+local clientClosed = false
+local realClose = fakeClient.close
+fakeClient.close = function() clientClosed = true end
+allSent()
+allLogs()
+check("scriptEnded callback registered", type(scriptEndedCb), "function")
+if type(scriptEndedCb) ~= "function" then scriptEndedCb = function() end end
+scriptEndedCb()
+local bye = allSent()
+check("scriptEnded sends a close frame",
+  #bye == 2 and bye:byte(1) == 0x88 and bye:byte(2) == 0x00, true)
+check("scriptEnded closes the client", clientClosed, true)
+check("scriptEnded closes the server", serverClosed > 0, true)
+fakeClient.close = realClose
+
+-- 17. the restarted script finds the port still held. It must keep trying,
+--     but a per-frame retry would put sixty lines a second in the Script
+--     Window, so failures back off and a streak says its piece once.
+bindFails = true
+bindAttempts = 0
+MEMORY[0x6200 + 0x33] = 0x04                 -- state moves while we are down
+frames(1)
+check("nothing served after shutdown", #allSent(), 0)
+check("first attempt is immediate", bindAttempts, 1)
+check("bind failure logs once", logsMatching(allLogs(), "could not bind port"), 1)
+
+frames(59)                                   -- inside the one-second backoff
+check("no retry during the backoff", bindAttempts, 1)
+check("and nothing logged either", #allLogs(), 0)
+
+frames(2)                                    -- backoff expired
+check("retries after the backoff", bindAttempts, 2)
+check("the repeat does not log again", logsMatching(allLogs(), "could not bind port"), 0)
+
+-- the port frees up: the next attempt takes, and says so exactly once
+bindFails = false
+frames(61)
+check("bind eventually succeeds", bindAttempts, 3)
+check("recovery is announced once", logsMatching(allLogs(), "listening for PopTracker"), 1)
+
+-- and the server that came out of the retry path is a working one
+pendingClient = fakeClient
+frames(1)
+inbox = "GET / HTTP/1.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+     .. "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n"
+frames(1)
+local back = allSent()
+check("rebound server completes a handshake",
+  back:find("HTTP/1.1 101 Switching Protocols", 1, true) ~= nil, true)
+check("rebound server sends Info",
+  table.concat(textFrames(back:sub((back:find("\r\n\r\n", 1, true)) + 4)))
+    :find('"cmd":"Info"', 1, true) ~= nil, true)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

@@ -66,6 +66,18 @@ same overworld art carrying the markers worth watching during a run. This needs 
 bridge -- Archipelago on its own does not report your position -- and only the
 two map variants have dungeon tabs to switch between.
 
+Resetting needs nothing re-run and nothing re-clicked. A soft reset -- the
+controller combo, or Mesen's Reset -- leaves the script running: tracking pauses
+for about half a second and then picks up where it was. A power cycle does stop
+the script, but Mesen starts it again by itself (`Auto-restart script after
+power cycle`, on by default) and PopTracker re-connects within about five
+seconds and asks for the whole board back. Neither one loses a mark either,
+though not because the game preserves anything: every reset re-seeds its flag
+page to new-game defaults on the way to the title screen. It also zeroes the
+byte the bridge uses to tell whether a save is loaded, so the bridge stops
+reporting before that wipe can reach the tracker. Loading a save copies the real
+flags back and the board fills in again.
+
 `AP` and `UAT` are separate labels and you can have both connected at once.
 If `UAT` stays grey, check that the script is actually running in Mesen -- the
 Script Window log says which port it is listening on.
