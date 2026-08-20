@@ -29,6 +29,11 @@ for _, id in ipairs({ 999001, 999002, 999003 }) do
   LOCATION_MAPPING[id] = { MULTI }
 end
 
+-- A section path that is not a "@" location: reconcile drives those as a
+-- plain toggle, and the manual-clear handling differs between the two.
+local TOGGLE = "toggleSection"
+LOCATION_MAPPING[999004] = { TOGGLE }
+
 -- Build stub sections sized to however many ids the mapping points at them,
 -- so counts are internally consistent for the test.
 local counts, hosted = {}, {}
@@ -36,7 +41,9 @@ for id, v in pairs(LOCATION_MAPPING) do
   if v[1] then counts[v[1]] = (counts[v[1]] or 0) + 1 end
   if v[2] then hosted[v[2]] = true end
 end
-for path, n in pairs(counts) do mkSection(path, n) end
+for path, n in pairs(counts) do
+  if path:sub(1, 1) == "@" then mkSection(path, n) else mkItem(path) end
+end
 for code in pairs(hosted) do mkItem(code) end
 
 -- A path naming a section the pack does not have is the failure that looks
@@ -132,6 +139,83 @@ check("hosted item set by check", objects[LOCATION_MAPPING[hostedId][2]].Active,
 markAPChecked(999999)
 markAPChecked(999999)
 check("unmapped id survived", true, true)
+
+-- 10. a clear the player made by hand is not undone by the next feed update.
+--     applyAll() runs on every ff1/mem change, which during play is every few
+--     seconds, so a recompute that ignored the player would wipe the click
+--     almost immediately.
+resetChecked()
+setUATChecked({})
+check("section starts full", sec.AvailableChestCount, full)
+sec.AvailableChestCount = full - 1                        -- player clicks one
+setUATChecked({})                                         -- next RAM tick, no news
+check("manual clear survives an idle tick", sec.AvailableChestCount, full - 1)
+setUATChecked({ [multiIds[1]] = true })
+check("manual clear survives a feed check", sec.AvailableChestCount, full - 2)
+setUATChecked({})                                         -- older save loaded
+check("older save un-marks the feed's chest only", sec.AvailableChestCount, full - 1)
+sec.AvailableChestCount = full                            -- player un-clicks it
+setUATChecked({})
+check("un-clicking releases the manual clear", sec.AvailableChestCount, full)
+
+-- 11. and onClear really is a full wipe, manual clears included
+sec.AvailableChestCount = full - 1
+setUATChecked({})
+check("manual clear held before reset", sec.AvailableChestCount, full - 1)
+resetChecked()
+check("resetChecked drops manual clears too", sec.AvailableChestCount, full)
+
+-- 12. the same, for a section reconcile drives as a toggle
+local tog = objects[TOGGLE]
+setUATChecked({ [999004] = true })
+check("toggle set by the feed", tog.Active, true)
+setUATChecked({})
+check("toggle released by the feed", tog.Active, false)
+tog.Active = true                                         -- player clicks it
+setUATChecked({})
+check("manual toggle survives a feed tick", tog.Active, true)
+tog.Active = false                                        -- player un-clicks it
+setUATChecked({})
+check("un-clicking releases the manual toggle", tog.Active, false)
+
+-- 13. we are not the only writer. PopTracker restores its own saved state
+--     after the pack's scripts have run, and a pack reload does the same
+--     mid-session. Read as hand clears those become offsets that outlive
+--     every later feed update, which pins the whole board cleared -- the
+--     board then cannot be corrected by correct RAM, which is exactly the
+--     failure this guards.
+resetChecked()
+setUATChecked({})
+local sections = {}
+for path, o in pairs(objects) do
+  if o.ChestCount and o.ChestCount > 0 then sections[#sections + 1] = path end
+end
+check("harness has enough sections to be bulk", #sections > 10, true)
+
+for _, path in ipairs(sections) do objects[path].AvailableChestCount = 0 end
+setUATChecked({})                                  -- next RAM tick, no news
+local stillCleared = 0
+for _, path in ipairs(sections) do
+  local o = objects[path]
+  if o.AvailableChestCount ~= o.ChestCount then stillCleared = stillCleared + 1 end
+end
+check("a mass move is not taken as hand clears", stillCleared, 0)
+
+-- and it stays corrected: the offsets were never recorded, so later ticks
+-- have nothing to re-apply
+setUATChecked({ [multiIds[1]] = true })
+check("the feed still owns its own checks", sec.AvailableChestCount, full - 1)
+setUATChecked({})
+check("and releases them again", sec.AvailableChestCount, full)
+
+-- 14. one hand clear still survives, right after a bulk event -- the guard
+--     keys on how many moved at once, not on having seen one.
+sec.AvailableChestCount = full - 1
+setUATChecked({})
+check("a single hand clear still sticks", sec.AvailableChestCount, full - 1)
+sec.AvailableChestCount = full
+setUATChecked({})
+check("and is still released by un-clicking", sec.AvailableChestCount, full)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

@@ -54,9 +54,11 @@ four orbs being lit, key items and every turn-in stage (Crown to Astos, Slab to
 Unne and then Lefein, Ruby to the Titan, and so on), Bridge/Ship/Canal/Canoe/
 Airship, and the shard count.
 
-The emulator feed only ever sets things, never un-sets them -- every one of
-these events is one-way in the game -- so it will not fight you if you click
-something yourself.
+Items, orbs, vehicles and turn-in stages only ever go up, never back down --
+every one of those events is one-way in the game. Chests and NPCs follow the
+save instead, so loading an older one un-marks whatever you had not opened in
+it yet. Either way it will not fight you if you click something yourself:
+anything you clear by hand stays cleared.
 
 It also reports which map you are standing on, so the map tab follows you into
 whichever floor you just walked into. `Auto-Tab` in the flags grid turns that
