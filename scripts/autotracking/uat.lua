@@ -30,7 +30,93 @@ local EVENT_BASE = 0x200
 
 local UNMAPPED_CHEST_WARNED = {}
 
+-- Which cartridge this board belongs to, from ff1/rom. Nearly everything the
+-- pack derives from RAM used to be raise-only, so swapping seeds left the
+-- finished run's orbs, key items and hosted codes on screen with no way for the
+-- new game's zeroed RAM to take them back down. This is the signal that says
+-- "different game" so reconcile can throw the old board away.
+ROM_ID = ROM_ID or nil
+
+-- It has to survive a PopTracker restart, too: a fresh Lua state has nothing to
+-- compare against, and PopTracker restores its saved board after the pack's
+-- scripts run, so the stale board would win. A LuaItem is the pack-side way to
+-- persist a value -- it is saved under lua_items and its LoadFunc runs during
+-- loadState (tracker.cpp:1341). Because the comparison happens on every tick, a
+-- restore that lands after the first message is picked up on the next one.
+--
+-- A LuaItem's stable id is its creation site -- file and line (tracker.cpp:1199)
+-- -- so editing this file above the call drops the memo and PopTracker starts
+-- the next session without one. That costs a reset that would have fired on a
+-- pack update, nothing more: the id is adopted again on the first tick and the
+-- next swap is caught normally.
+local function rememberRomAcrossRestarts()
+
+-- A manual "start this board over", for the states nothing can detect: a pack
+-- edit dropping the ROM memo above, manual clears you no longer want, or an
+-- older save that still has checks in it and so leaves the hosted codes behind
+-- the Incentive Locations pins lit. It costs nothing to press -- everything the
+-- feeds own is re-derived on the next tick, about a second away.
+local function makeResyncButton()
+  if type(Tracker.CreateLuaItem) ~= "function" then
+    return
+  end
+  local ok, item = pcall(function() return Tracker:CreateLuaItem() end)
+  if not ok or not item then
+    return
+  end
+  item.Name = "Resync tracker"
+  item.Icon = "images/flags/resync.png"
+  -- How the layouts find it. CanProvideCodeFunc rather than PotentialCodes,
+  -- which is the newer of the two ways and would raise the PopTracker version
+  -- this pack needs.
+  item.CanProvideCodeFunc = function(_, code)
+    return code == "resync"
+  end
+  item.OnLeftClickFunc = function()
+    print("uat: resync -- rebuilding the board from the feeds")
+    resetForNewGame()
+  end
+end
+makeResyncButton()
+  if type(Tracker.CreateLuaItem) ~= "function" then
+    return
+  end
+  local ok, item = pcall(function() return Tracker:CreateLuaItem() end)
+  if not ok or not item then
+    return
+  end
+  item.Name = "FFR ROM id"
+  item.SaveFunc = function()
+    return { rom = ROM_ID }
+  end
+  item.LoadFunc = function(_, data)
+    if type(data) == "table" and type(data.rom) == "string" and data.rom ~= "" then
+      ROM_ID = data.rom
+    end
+    return true
+  end
+end
+rememberRomAcrossRestarts()
+
+-- "" means the emulator would not tell us, which is not the same as a change.
+local function checkRom(store)
+  local rom = store:ReadVariable("ff1/rom")
+  if type(rom) ~= "string" or rom == "" then
+    return
+  end
+  if ROM_ID ~= nil and rom ~= ROM_ID then
+    print("uat: different ROM -- dropping the previous game's board")
+    resetForNewGame()
+  end
+  ROM_ID = rom
+end
+
 function onFF1Flags(store)
+  -- Ahead of the ready gate on purpose: ff1/rom is published whatever the
+  -- save-loaded guard says, and the window right after a ROM swap -- guard
+  -- unhappy, no save loaded yet -- is exactly when the swap has to be noticed.
+  checkRom(store)
+
   -- The bridge only claims ready once a save is actually loaded, which keeps
   -- a reset or the character-creation screen from reading as a wipe.
   if store:ReadVariable("ff1/ready") ~= true then
@@ -85,4 +171,7 @@ function onFF1Flags(store)
   end
 end
 
-ScriptHost:AddVariableWatch("ff1mem", {"ff1/mem", "ff1/ready"}, onFF1Flags)
+-- ff1/rom rides on the same watch rather than getting its own. Watch firing
+-- order is not defined, and reading both out of one store removes any chance of
+-- decoding the new cartridge's flags against the old cartridge's identity.
+ScriptHost:AddVariableWatch("ff1mem", {"ff1/mem", "ff1/ready", "ff1/rom"}, onFF1Flags)

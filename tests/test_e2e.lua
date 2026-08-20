@@ -13,6 +13,7 @@ local fakeClient = {
 }
 emu = {
   memType={nesDebug=0x100}, eventType={endFrame=3,reset=4,stateLoaded=7},
+  getRomInfo=function() return {name="seedA.nes",path="",fileSha1Hash="sha-A"} end,
   read=function(a) return MEMORY[a] or 0 end,
   log=function() end, displayMessage=function() end,
   addEventCallback=function(fn,ev) if ev==3 then frameCb=fn end end,
@@ -94,13 +95,18 @@ dofile(PACK.."/scripts/autotracking/reconcile.lua")
 dofile(PACK.."/scripts/autotracking/ram_mapping.lua")
 dofile(PACK.."/scripts/autotracking/uat.lua")
 
--- ram_mapping needs these two codes present
-objects["garland"]={Active=false,CurrentStage=0}
-objects["earthorb"]={Active=false,CurrentStage=0}
+-- Every code ram_mapping owns needs an object, or it iterates a board it
+-- cannot write and says so 25 times.
+for _,rule in ipairs(RAM_RULES) do
+  objects[rule.code]=objects[rule.code] or {Active=false,CurrentStage=0}
+end
+objects[RAM_SHARDS.code]={Active=false,CurrentStage=0}
 
+local rom = "sha-A"
 local store={ReadVariable=function(self,n)
   if n=="ff1/ready" then return ready end
   if n=="ff1/mem" then return mem end
+  if n=="ff1/rom" then return rom end
 end}
 
 local fail=0
@@ -145,6 +151,47 @@ check("replayed wire state is a no-op", objects[sec].AvailableChestCount, before
 -- and the AP feed reporting the same location must not double-clear
 markAPChecked(299)
 check("AP agreeing with UAT is a no-op", objects[sec].AvailableChestCount, before-1)
+
+------------------------------------------------------------------
+-- The 2026-08-19 regression, end to end: finish a seed, put a different one
+-- in, and the board has to follow. Everything derived from RAM used to be
+-- raise-only, so the finished run's orbs, key items, turn-ins and hosted codes
+-- stayed on screen with nothing able to take them down.
+------------------------------------------------------------------
+AP_CHECKED = {}
+
+-- Deepen the "finished seed" board first, from the same shape of data the real
+-- save carried: four orbs lit, slab handed to Lefein, twelve shards.
+local function put(addr, value) mem[addr - 0x6000 + 1] = value end
+put(0x6031,1) put(0x6032,1) put(0x6033,1) put(0x6034,1)
+put(0x6035,12)
+put(0x6028,1) put(0x620B,0x02) put(0x620F,0x02)
+put(0x6021,1)
+captured.cb(store)
+check("orbs lit on the finished seed", objects["airorb"].CurrentStage, 1)
+check("slab at Lefein's stage", objects["slab"].CurrentStage, 3)
+check("twelve shards", objects["shards"].CurrentStage, 11)
+check("lute held", objects["lute"].Active, true)
+
+-- A brand new game on a different cartridge: the flag page comes back as
+-- lut_InitGameFlags (0x01 for 249 bytes, 0x00 for 7 -- no chest bit and no
+-- event bit anywhere), and page 0 of unsram has no items in it.
+local fresh = {}
+for i = 1, 768 do fresh[i] = 0 end
+for b = 0, 248 do fresh[0x200 + b + 1] = 0x01 end
+mem = fresh
+rom = "sha-B"
+captured.cb(store)
+
+check("new cartridge released the chest", objects[sec].AvailableChestCount, before)
+check("new cartridge released Ice Cave", objects["@Ice Cave Six-Pack Top Left/Chest"].AvailableChestCount, 1)
+check("new cartridge cleared Bikke", objects[LOCATION_MAPPING[516][2]].Active, false)
+check("new cartridge emptied UAT_CHECKED", next(UAT_CHECKED), nil)
+check("orbs went out", objects["airorb"].Active, false)
+check("slab went out", objects["slab"].CurrentStage, 0)
+check("shards went back to zero", objects["shards"].CurrentStage, 0)
+check("key items went out", objects["lute"].Active, false)
+check("garland went out", objects["garland"].Active, false)
 
 print(fail==0 and "\nALL PASS" or string.format("\n%d FAILURE(S)",fail))
 os.exit(fail==0 and 0 or 1)

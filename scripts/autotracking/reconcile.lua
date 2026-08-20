@@ -141,7 +141,12 @@ end
 -- Take note of what the player changed by hand, before a recompute overwrites
 -- it. Bulk movement is somebody else writing (see MANUAL_BULK_LIMIT) and is
 -- deliberately dropped on the floor.
-
+--
+-- The count that decides that has to be taken across the whole board. An
+-- earlier version let markAPChecked pass a one-element list, which meant the
+-- limit could never be reached on that path: an AP session replaying its
+-- checks one id at a time after a state restore absorbed every restored
+-- section as a hand clear, and pinned the lot.
 local function absorbPlayerEdits(paths)
   local edits, n = {}, 0
   for _, path in ipairs(paths) do
@@ -187,6 +192,34 @@ local function applyHostedItem(id)
   end
 end
 
+-- Every hosted code any location can provide. These are what clear the
+-- hosted_item-only sections in locations/incentives.json -- those carry no
+-- item_count, so PopTracker greys the pin as soon as the code has a provider.
+local function hostedCodes()
+  local codes = {}
+  for _, v in pairs(LOCATION_MAPPING) do
+    if v[2] then
+      codes[v[2]] = true
+    end
+  end
+  return codes
+end
+
+-- The counterpart to applyHostedItem's one-way set. Only reachable from
+-- resetForNewGame: within a session these stay monotonic, so a code the player
+-- toggled by hand is not undone by the next RAM tick.
+local function clearHostedItems()
+  for code in pairs(hostedCodes()) do
+    local obj = Tracker:FindObjectForCode(code)
+    if obj then
+      obj.Active = false
+      if obj.CurrentStage ~= nil and obj.CurrentStage ~= 0 then
+        obj.CurrentStage = 0
+      end
+    end
+  end
+end
+
 -- Unmapped ids are the tripwire for gaps in LOCATION_MAPPING. Warn once each
 -- rather than failing silently.
 local function warnUnmapped(id)
@@ -210,6 +243,22 @@ local function applyAll()
     applyHostedItem(id)
   end
   Tracker.BulkUpdate = false
+end
+
+-- One id at a time, from the Archipelago feed. Scanning all ~256 sections per
+-- id would be wasteful, and scanning only this one cannot see a bulk move, so
+-- do the cheap check first and fall back to the whole board when this section
+-- has actually moved since we wrote it.
+--
+-- The fallback re-asserts as well as counts. A replay walks hundreds of ids
+-- through here; without recomputing in the same pass, every one of them would
+-- rediscover the same untouched restore and log it again.
+local function absorbForPath(path)
+  local obj = Tracker:FindObjectForCode(path)
+  if not obj or deviation(path, obj) == nil then
+    return
+  end
+  applyAll()
 end
 
 -- One-shot audit the first time either feed sends anything. By then the
@@ -256,7 +305,7 @@ function markAPChecked(id)
     return
   end
   if v[1] then
-    absorbPlayerEdits({ v[1] })
+    absorbForPath(v[1])
     recomputeSection(v[1])
   end
   applyHostedItem(id)
@@ -267,7 +316,25 @@ function setUATChecked(checked)
   reconcileInit()
   -- No unmapped warning here: the UAT feed screens its own ids and reports
   -- them with the byte index attached, which is more useful than an id alone.
+  local had = next(UAT_CHECKED) ~= nil
   UAT_CHECKED = checked or {}
+
+  -- Going from checks to no checks at all, on a ROM we are already tracking,
+  -- means a new file on the same seed (or a save from before the first chest).
+  -- The flag page is back at lut_InitGameFlags, which carries no chest bit and
+  -- no event bit anywhere, so this is what a fresh game genuinely looks like --
+  -- and it wants the same wipe a different cartridge gets. Sections and RAM
+  -- items would follow on their own; the hosted codes behind the Incentive
+  -- Locations pins would not, because applyHostedItem is one-way.
+  --
+  -- On the edge only. Holding it every tick would keep re-clearing the board
+  -- through the first few minutes of a run, before anything has been opened.
+  if had and next(UAT_CHECKED) == nil then
+    print("uat: the feed went from checks to none -- treating that as a new game")
+    resetForNewGame()
+    return
+  end
+
   applyAll()
 end
 
@@ -280,5 +347,29 @@ function resetChecked()
   AP_CHECKED = {}
   WRITTEN = {}
   MANUAL = {}
+  applyAll()
+end
+
+-- Called when the bridge reports a different cartridge than the one we have
+-- been tracking. Everything the UAT feed owns goes: the chest/event set, the
+-- manual offsets taken against the old board, the RAM-derived items, and the
+-- hosted codes that grey out the Incentive Locations pins. Without this the
+-- raise-only halves of the pack carry the finished seed straight into the next
+-- one -- which is exactly what they did, in full, on 2026-08-19.
+--
+-- AP_CHECKED is deliberately untouched. An Archipelago session owns its own
+-- reset through onClear and replays every check from scratch there; wiping it
+-- here would drop checks the server is not going to send again.
+function resetForNewGame()
+  reconcileInit()
+  UAT_CHECKED = {}
+  WRITTEN = {}
+  MANUAL = {}
+  Tracker.BulkUpdate = true
+  if clearRamDerivedItems then
+    clearRamDerivedItems()
+  end
+  clearHostedItems()
+  Tracker.BulkUpdate = false
   applyAll()
 end

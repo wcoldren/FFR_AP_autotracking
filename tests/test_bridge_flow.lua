@@ -21,8 +21,16 @@ local fakeClient = {
 local LOGS = {}
 local scriptEndedCb = nil
 
+-- What emu.getRomInfo() will answer. Set to nil to simulate a build that does
+-- not provide it at all.
+ROM_INFO = { name = "seedA.nes", path = "/roms/seedA.nes", fileSha1Hash = "sha-A" }
+
 emu = {
   memType = { nesDebug = 0x100 },
+  getRomInfo = function()
+    if ROM_INFO == nil then error("getRomInfo unavailable") end
+    return ROM_INFO
+  end,
   eventType = { endFrame = 3, reset = 4, stateLoaded = 7, scriptEnded = 9 },
   read = function(addr) return MEMORY[addr] or 0 end,
   log = function(m) LOGS[#LOGS+1] = m end,
@@ -125,6 +133,10 @@ local joined = table.concat(m)
 check("Sync answered", #m > 0, true)
 check("ready false with no save", joined:find('"ff1/ready","value":false', 1, true) ~= nil, true)
 check("Sync sends mem too", joined:find('"ff1/mem"', 1, true) ~= nil, true)
+-- ff1/rom is what tells the pack it is looking at a different cartridge, and
+-- it has to arrive before a save is loaded: that window -- ROM swapped, guard
+-- unhappy -- is exactly when the old board needs dropping.
+check("rom id sent while not ready", joined:find('"ff1/rom","value":"sha-A"', 1, true) ~= nil, true)
 
 -- 4. load a save: guard byte nonzero, one chest opened at byte 0x2B
 MEMORY[0x6102] = 0x41
@@ -344,6 +356,44 @@ check("rebound server completes a handshake",
 check("rebound server sends Info",
   table.concat(textFrames(back:sub((back:find("\r\n\r\n", 1, true)) + 4)))
     :find('"cmd":"Info"', 1, true) ~= nil, true)
+
+------------------------------------------------------------------
+-- ff1/rom over a live connection. The client from the retry case above is
+-- connected and handshaked, so scan ticks reach the wire.
+------------------------------------------------------------------
+MEMORY[0x6102] = 0x41
+for a = 0x6200, 0x62FF do MEMORY[a] = 0 end
+MEMORY[0x6200 + 0x2B] = 0x04
+frames(60)
+allSent()
+
+-- steady state: the id is diffed like everything else
+frames(12)
+check("rom id not resent when unchanged",
+  table.concat(textFrames(allSent())):find('"ff1/rom"', 1, true) == nil, true)
+
+-- the swap
+ROM_INFO = { name = "seedB.nes", path = "/roms/seedB.nes", fileSha1Hash = "sha-B" }
+frames(12)
+check("a ROM swap is published",
+  table.concat(textFrames(allSent())):find('"ff1/rom","value":"sha-B"', 1, true) ~= nil, true)
+
+-- a build without the call, or one that throws, must degrade rather than take
+-- the scan down with it -- "" is what the pack reads as "cannot tell"
+ROM_INFO = nil
+frames(12)
+check("a failing getRomInfo degrades to empty",
+  table.concat(textFrames(allSent())):find('"ff1/rom","value":""', 1, true) ~= nil, true)
+MEMORY[0x6200 + 0x30] = 0x04
+frames(12)
+check("and the scan still runs",
+  table.concat(textFrames(allSent())):find('"ff1/mem"', 1, true) ~= nil, true)
+
+-- no hash, only a name: still an identity worth comparing
+ROM_INFO = { name = "seedC.nes", path = "/roms/seedC.nes" }
+frames(12)
+check("falls back to the file name",
+  table.concat(textFrames(allSent())):find('"ff1/rom","value":"seedC.nes"', 1, true) ~= nil, true)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

@@ -29,6 +29,11 @@ function onClear()
     print(string.format("called onClear"))
   end
   CUR_INDEX = -1
+  -- onClear only fires when an Archipelago session connects, which makes it the
+  -- signal ram_mapping needs: AP grants items through onItem and replays them
+  -- only from here, so RAM must not clear anything AP owns while a session is
+  -- live. See apOwned in scripts/autotracking/ram_mapping.lua.
+  AP_ITEM_FEED_ACTIVE = true
   resetChecked()
   resetMapTab()
   for _, v in pairs(ITEM_MAPPING) do

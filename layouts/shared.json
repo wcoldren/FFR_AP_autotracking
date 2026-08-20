@@ -75,7 +75,7 @@
 				[ "iceCaveIsIncentive", "ordealsIsIncentive", "marshIsIncentive", "titansTroveIsIncentive" ],
 				[ "earthIsIncentive", "volcanoIsIncentive", "seaIsIncentive", "skyIsIncentive" ],
 				[ "coneriaLockedIsIncentive", "marshLockedIsIncentive", "cardiaIsIncentive" ],
-				[ "loose", "dud" ]
+				[ "loose", "dud", "resync" ]
 			]
 		}
 	},

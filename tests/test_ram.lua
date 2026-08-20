@@ -161,23 +161,92 @@ check("canBreakOrb true with all four lit", canBreakOrb(), true)
 check("I: Earth Orb incentive marker clears", markerCleared("earthorblit"), true)
 
 ------------------------------------------------------------------
--- Raise-only
+-- RAM is authoritative, in both directions. This used to be raise-only, which
+-- is how a finished seed's orbs, key items and turn-ins survived into the next
+-- one: the new game's zeroed bytes had no way to take them back down.
 ------------------------------------------------------------------
 reset()
 MEM[0x6028] = 1
 MEM[0x620B] = 0x02
 MEM[0x620F] = 0x02
 applyRamRules(byteAt)
+check("slab reaches Lefein's stage", provided("slabDone"), true)
 MEM[0x6028], MEM[0x620B], MEM[0x620F] = 0, 0, 0
 applyRamRules(byteAt)
-check("stage holds when RAM bits clear", provided("slabDone"), true)
+check("stage clears when RAM bits clear", provided("slabDone"), false)
+check("and the base code goes with it", provided("slab"), false)
+
+-- Partway back, not all the way: still translated, no longer handed in.
+reset()
+MEM[0x6028], MEM[0x620B], MEM[0x620F] = 1, 0x02, 0x02
+applyRamRules(byteAt)
+MEM[0x620F] = 0
+applyRamRules(byteAt)
+check("slab walks back one stage", provided("slabDone"), false)
+check("slab keeps the stage RAM still proves", provided("slabTranslated"), true)
 
 reset()
 byCode["crown"].Active = true
-byCode["crown"].CurrentStage = 2                 -- manually advanced to crownDone
+byCode["crown"].CurrentStage = 2                 -- advanced to crownDone
 MEM[0x6022] = 1                                  -- RAM only proves "holding"
 applyRamRules(byteAt)
-check("manual crownDone not walked back", provided("crownDone"), true)
+check("crownDone walked back to what RAM says", provided("crownDone"), false)
+check("crown still held", provided("crown"), true)
+
+-- The whole-board wipe reconcile uses on a ROM change.
+reset()
+MEM[0x6031], MEM[0x6032], MEM[0x6033], MEM[0x6034] = 1, 1, 1, 1
+MEM[0x6021], MEM[0x6035] = 1, 12
+applyRamRules(byteAt)
+check("board lit before the wipe", provided("earthorblit"), true)
+clearRamDerivedItems()
+check("orbs wiped", provided("earthorblit"), false)
+check("key items wiped", provided("lute"), false)
+-- Every shard stage provides the same "shards" code -- logic.lua reads the
+-- count off CurrentStage -- so this one is asserted on the number.
+check("shards wiped", byCode["shards"].CurrentStage, 0)
+
+------------------------------------------------------------------
+-- Archipelago carve-out. AP grants items through onItem and replays them only
+-- on onClear, so while a session is live RAM must not clear anything AP owns.
+-- Codes RAM alone owns keep following it down.
+------------------------------------------------------------------
+dofile(PACK .. "/scripts/autotracking/item_mapping.lua")
+reset()
+MEM[0x6021] = 1                                  -- lute, also an AP item
+MEM[0x6202] = 0x02                               -- garland, RAM-only
+MEM[0x6031] = 1                                  -- earth orb, RAM-only
+applyRamRules(byteAt)
+check("lute lit", provided("lute"), true)
+check("garland lit", provided("garland"), true)
+AP_ITEM_FEED_ACTIVE = true
+MEM[0x6021], MEM[0x6202], MEM[0x6031] = 0, 0, 0
+applyRamRules(byteAt)
+check("AP-owned code is not cleared by RAM", provided("lute"), true)
+check("RAM-only boss still clears", provided("garland"), false)
+check("RAM-only orb still clears", provided("earthorblit"), false)
+AP_ITEM_FEED_ACTIVE = false
+applyRamRules(byteAt)
+check("and clears once the AP feed is gone", provided("lute"), false)
+
+------------------------------------------------------------------
+-- sigil and mark share bytes with floater and canoe in no-overworld mode, so
+-- nothing here may write them -- in either direction.
+------------------------------------------------------------------
+reset()
+MEM[0x602B], MEM[0x6012] = 1, 1
+applyRamRules(byteAt)
+check("sigil untouched by floater's byte", provided("sigil"), false)
+check("mark untouched by canoe's byte", provided("mark"), false)
+byCode["sigil"].Active = true
+byCode["mark"].Active = true
+MEM[0x602B], MEM[0x6012] = 0, 0
+applyRamRules(byteAt)
+check("sigil survives a clearing pass", provided("sigil"), true)
+check("mark survives a clearing pass", provided("mark"), true)
+clearRamDerivedItems()
+check("sigil survives the ROM-change wipe", provided("sigil"), true)
+check("mark survives the ROM-change wipe", provided("mark"), true)
 
 ------------------------------------------------------------------
 -- Vehicles, canal inversion, shards
@@ -196,6 +265,17 @@ check("canoe", provided("canoe"), true)
 
 -- shards has allow_disabled:false, so no offset, and the AP feed leaves
 -- CurrentStage at count-1. Match it exactly or the feeds disagree.
+reset()
+MEM[0x6035] = 12
+applyRamRules(byteAt)
+check("shards follows the count up", byCode["shards"].CurrentStage, 11)
+MEM[0x6035] = 3
+applyRamRules(byteAt)
+check("shards follows the count down", byCode["shards"].CurrentStage, 2)
+MEM[0x6035] = 0
+applyRamRules(byteAt)
+check("shards clears at zero", byCode["shards"].CurrentStage, 0)
+
 reset()
 MEM[0x6035] = 1
 applyRamRules(byteAt)

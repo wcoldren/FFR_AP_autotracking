@@ -152,11 +152,23 @@ setUATChecked({})                                         -- next RAM tick, no n
 check("manual clear survives an idle tick", sec.AvailableChestCount, full - 1)
 setUATChecked({ [multiIds[1]] = true })
 check("manual clear survives a feed check", sec.AvailableChestCount, full - 2)
-setUATChecked({})                                         -- older save loaded
-check("older save un-marks the feed's chest only", sec.AvailableChestCount, full - 1)
-sec.AvailableChestCount = full                            -- player un-clicks it
+setUATChecked({ [multiIds[2]] = true })                   -- older save, different chest
+check("an older save swaps the feed's chest", sec.AvailableChestCount, full - 2)
+sec.AvailableChestCount = full - 1                        -- player un-clicks their own
+setUATChecked({ [multiIds[2]] = true })
+check("un-clicking releases the manual clear", sec.AvailableChestCount, full - 1)
+
+-- 10b. a feed that goes from checks to none is a new game on the same seed --
+--      the flag page is back at lut_InitGameFlags. That is a full wipe, manual
+--      clears included, because the run those clears belonged to is over.
+setUATChecked({ [multiIds[1]] = true })
+sec.AvailableChestCount = 0                               -- hand clear on top
+setUATChecked({ [multiIds[1]] = true })
+check("board carries a check and a hand clear", sec.AvailableChestCount, 0)
+setUATChecked({})                                         -- new file started
+check("an emptied feed wipes the board", sec.AvailableChestCount, full)
 setUATChecked({})
-check("un-clicking releases the manual clear", sec.AvailableChestCount, full)
+check("and it stays wiped", sec.AvailableChestCount, full)
 
 -- 11. and onClear really is a full wipe, manual clears included
 sec.AvailableChestCount = full - 1
@@ -216,6 +228,57 @@ check("a single hand clear still sticks", sec.AvailableChestCount, full - 1)
 sec.AvailableChestCount = full
 setUATChecked({})
 check("and is still released by un-clicking", sec.AvailableChestCount, full)
+
+-- 15. the per-id door into the bulk guard. markAPChecked used to pass a
+--     one-element list to absorbPlayerEdits, so its count could never reach
+--     MANUAL_BULK_LIMIT: after a state restore, an AP session replaying its
+--     checks one at a time absorbed every restored section as a hand clear and
+--     pinned the whole board.
+AP_CHECKED = {}
+setUATChecked({})
+for _, path in ipairs(sections) do objects[path].AvailableChestCount = 0 end
+markAPChecked(multiIds[1])                         -- one id, through the per-id door
+AP_CHECKED = {}                                    -- forget the check itself, so
+setUATChecked({})                                  -- only an absorbed offset could
+local pinned = 0                                   -- still be holding a section
+for _, path in ipairs(sections) do
+  local o = objects[path]
+  if o.AvailableChestCount ~= o.ChestCount then pinned = pinned + 1 end
+end
+check("an AP check over a restored board pins nothing", pinned, 0)
+
+-- and a genuine single hand clear still gets through that same door: it is
+-- absorbed, so it stacks with the AP check on the same section
+AP_CHECKED = {}
+setUATChecked({})
+sec.AvailableChestCount = full - 1
+markAPChecked(multiIds[2])
+check("hand clear and AP check both count", sec.AvailableChestCount, full - 2)
+setUATChecked({})
+check("and both survive the next tick", sec.AvailableChestCount, full - 2)
+sec.AvailableChestCount = full
+AP_CHECKED = {}
+setUATChecked({})
+
+-- 16. resetForNewGame: the ROM-change wipe. Everything the UAT feed owns goes,
+--     including the hosted codes that grey the incentive pins; AP_CHECKED does
+--     not, because the server replays it only from onClear.
+local hostedId, hostedCode
+for id, v in pairs(LOCATION_MAPPING) do
+  if v[2] and objects[v[2]] then hostedId, hostedCode = id, v[2]; break end
+end
+check("harness has a hosted item to test", hostedCode ~= nil, true)
+setUATChecked({ [multiIds[1]] = true, [hostedId] = true })
+check("hosted item lit by the feed", objects[hostedCode].Active, true)
+markAPChecked(multiIds[3])
+sec.AvailableChestCount = 0                        -- a hand clear, to be dropped
+resetForNewGame()
+check("new game emptied UAT_CHECKED", next(UAT_CHECKED), nil)
+check("new game cleared the hosted item", objects[hostedCode].Active, false)
+check("new game kept AP_CHECKED", AP_CHECKED[multiIds[3]], true)
+check("and the AP check still holds its section", sec.AvailableChestCount, full - 1)
+setUATChecked({})
+check("the dropped hand clear does not come back", sec.AvailableChestCount, full - 1)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

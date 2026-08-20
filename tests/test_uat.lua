@@ -2,7 +2,24 @@ local PACK = arg[1]
 AUTOTRACKER_ENABLE_DEBUG_LOGGING = false
 
 local objects = {}
-Tracker = { BulkUpdate=false, FindObjectForCode=function(self,c) return objects[c] end }
+-- LuaItems, the way PopTracker hands them out: a bare table the pack fills in
+-- with Name/Icon/callbacks. Kept so the tests can find them by the code they
+-- claim, which is how a layout finds them too (tracker.cpp:663).
+local luaItems = {}
+Tracker = {
+  BulkUpdate = false,
+  FindObjectForCode = function(self, c)
+    if objects[c] then return objects[c] end
+    for _, it in ipairs(luaItems) do
+      if it.CanProvideCodeFunc and it.CanProvideCodeFunc(it, c) then return it end
+    end
+  end,
+  CreateLuaItem = function(self)
+    local it = {}
+    luaItems[#luaItems + 1] = it
+    return it
+  end,
+}
 
 local captured = nil
 ScriptHost = { AddVariableWatch = function(self,n,vars,cb) captured = {n=n,vars=vars,cb=cb} end }
@@ -29,6 +46,7 @@ end
 check("watch registered", captured and captured.n, "ff1mem")
 check("watches ff1/mem", captured.vars[1], "ff1/mem")
 check("watches ff1/ready", captured.vars[2], "ff1/ready")
+check("watches ff1/rom", captured.vars[3], "ff1/rom")
 
 -- build a store stub
 local function store(ready, mem)
@@ -99,6 +117,110 @@ for _,b in ipairs({0x20,0x30,0x40,0x50}) do f5[1+b]=0x02 end
 captured.cb(store(true, f5))
 local n2=0 for _ in pairs(UAT_CHECKED) do n2=n2+1 end
 check("untracked event bytes ignored", n2, 0)
+
+------------------------------------------------------------------
+-- ff1/rom: the signal that says "different cartridge". Without it the pack's
+-- raise-only halves carried a finished seed into the next one.
+------------------------------------------------------------------
+local function romStore(ready, mem, rom)
+  return { ReadVariable = function(self,name)
+    if name=="ff1/ready" then return ready end
+    if name=="ff1/mem" then return mem end
+    if name=="ff1/rom" then return rom end
+  end }
+end
+
+-- Build a board that looks like a run in progress: a chest, a hosted NPC, and
+-- a RAM-derived item.
+local function playedBoard(rom)
+  local m = blank()
+  setflag(m, 0x2B, 0x04)                     -- chest -> id 299
+  setflag(m, 0x04, 0x02)                     -- Bikke -> hosted item
+  m[1 + 0x31] = 1                            -- $6031, earth orb lit
+  captured.cb(romStore(true, m, rom))
+  return m
+end
+
+ROM_ID = nil
+local mA = playedBoard("romA")
+check("first rom id is adopted, not a reset", ROM_ID, "romA")
+check("first frame still tracked the chest", objects[sec299].AvailableChestCount, objects[sec299].ChestCount-1)
+check("first frame set the hosted item", objects[LOCATION_MAPPING[516][2]].Active, true)
+
+-- Same cartridge: nothing is thrown away.
+captured.cb(romStore(true, mA, "romA"))
+check("same rom keeps the chest", objects[sec299].AvailableChestCount, objects[sec299].ChestCount-1)
+check("same rom keeps the hosted item", objects[LOCATION_MAPPING[516][2]].Active, true)
+
+-- An id the emulator would not give us is not a change.
+captured.cb(romStore(true, mA, ""))
+check("empty rom id is not a change", ROM_ID, "romA")
+captured.cb(romStore(true, mA, nil))
+check("absent rom id is not a change", ROM_ID, "romA")
+check("and the board is untouched", objects[sec299].AvailableChestCount, objects[sec299].ChestCount-1)
+
+-- Different cartridge, and the bridge has not seen a loaded save on it yet:
+-- ready is false, and the mem it re-sends is still the OLD game's. The board
+-- must go anyway -- this is the window the whole mechanism exists for.
+captured.cb(romStore(false, mA, "romB"))
+check("rom change is adopted", ROM_ID, "romB")
+check("rom change released the chest", objects[sec299].AvailableChestCount, objects[sec299].ChestCount)
+check("rom change cleared the hosted item", objects[LOCATION_MAPPING[516][2]].Active, false)
+check("rom change emptied UAT_CHECKED", next(UAT_CHECKED), nil)
+
+------------------------------------------------------------------
+-- Same cartridge, new game file. The flag page comes back at
+-- lut_InitGameFlags: no chest bit, no event bit. Sections and RAM items would
+-- follow on their own, but the hosted codes behind the Incentive Locations
+-- pins are one-way, so this needs the same wipe a ROM swap gets.
+------------------------------------------------------------------
+ROM_ID = nil
+local m2 = blank()
+setflag(m2, 0x2B, 0x04)
+setflag(m2, 0x04, 0x02)
+captured.cb(romStore(true, m2, "romC"))
+check("run in progress on romC", objects[LOCATION_MAPPING[516][2]].Active, true)
+
+local fresh = blank()
+for b = 0, 248 do fresh[FLAGS_OFF + b + 1] = 0x01 end
+captured.cb(romStore(true, fresh, "romC"))
+check("same rom, new file: chest released", objects[sec299].AvailableChestCount, objects[sec299].ChestCount)
+check("same rom, new file: hosted item cleared", objects[LOCATION_MAPPING[516][2]].Active, false)
+
+-- and it does not keep firing through the opening minutes of the new run
+objects[LOCATION_MAPPING[516][2]].Active = true            -- a hand click
+captured.cb(romStore(true, fresh, "romC"))
+check("no repeat wipe while the board is empty", objects[LOCATION_MAPPING[516][2]].Active, true)
+
+------------------------------------------------------------------
+-- The Resync button. A LuaItem the layouts find by the code it claims.
+------------------------------------------------------------------
+local button = Tracker:FindObjectForCode("resync")
+check("resync button exists", button ~= nil, true)
+check("resync button has an icon", button and button.Icon, "images/flags/resync.png")
+check("resync button does not answer other codes",
+  button.CanProvideCodeFunc(button, "shards"), false)
+
+captured.cb(romStore(true, m2, "romC"))
+check("board repopulated before the press", objects[LOCATION_MAPPING[516][2]].Active, true)
+button.OnLeftClickFunc(button)
+check("pressing resync clears the hosted item", objects[LOCATION_MAPPING[516][2]].Active, false)
+check("pressing resync empties UAT_CHECKED", next(UAT_CHECKED), nil)
+
+------------------------------------------------------------------
+-- The ROM memo round-trips the way PopTracker saves and restores it.
+------------------------------------------------------------------
+local memo
+for _, it in ipairs(luaItems) do if it.SaveFunc then memo = it end end
+check("rom memo exists", memo ~= nil, true)
+ROM_ID = "romZ"
+local saved = memo.SaveFunc(memo)
+check("memo saves the current id", saved.rom, "romZ")
+ROM_ID = nil                                               -- fresh Lua state
+memo.LoadFunc(memo, saved)
+check("memo restores it", ROM_ID, "romZ")
+memo.LoadFunc(memo, { rom = "" })
+check("an empty saved id is ignored", ROM_ID, "romZ")
 
 print(fail==0 and "\nALL PASS" or string.format("\n%d FAILURE(S)",fail))
 os.exit(fail==0 and 0 or 1)

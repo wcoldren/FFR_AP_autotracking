@@ -123,40 +123,116 @@ RAM_SHARDS = { code = "shards", addr = 0x6035, maxStage = 36 }
 
 local UNKNOWN_CODE_WARNED = {}
 
--- Raise-only. RAM can set a code or push it further along, never clear it or
--- walk it back. Every event here is one-way in the game, so the only thing
--- this gives up is un-marking after loading an older save -- and in exchange,
--- a wrong address degrades to "never lights" instead of "cannot be corrected
--- by hand", which matters while these addresses are unverified in play.
-local function raiseTo(code, stage)
+-- Every code this file owns, and which of them have stages worth walking.
+-- Built once from the tables above so adding a rule needs no second edit.
+local RAM_CODES, RAM_HAS_STAGES = {}, {}
+for _, rule in ipairs(RAM_RULES) do
+  RAM_CODES[rule.code] = true
+  if rule.stage > 0 then
+    RAM_HAS_STAGES[rule.code] = true
+  end
+end
+RAM_CODES[RAM_SHARDS.code] = true
+RAM_HAS_STAGES[RAM_SHARDS.code] = true
+
+-- Set by onClear, which fires when an Archipelago session connects. See
+-- apOwned below for why it matters.
+AP_ITEM_FEED_ACTIVE = AP_ITEM_FEED_ACTIVE or false
+
+-- Codes Archipelago also grants through onItem. RAM is authoritative for the
+-- game's own state, but AP's item feed replays only on onClear, so anything we
+-- clear here that AP granted is gone until the player reconnects. While an AP
+-- session is live those codes stay raise-only; the rest -- bosses, orbs, every
+-- turn-in stage -- follow RAM in both directions regardless.
+local function apOwned(code)
+  if not AP_ITEM_FEED_ACTIVE then
+    return false
+  end
+  if type(ITEM_MAPPING) ~= "table" then
+    return false
+  end
+  for _, v in pairs(ITEM_MAPPING) do
+    if v[1] == code then
+      return true
+    end
+  end
+  return false
+end
+
+local function objectFor(code)
   local obj = Tracker:FindObjectForCode(code)
+  if not obj and not UNKNOWN_CODE_WARNED[code] then
+    UNKNOWN_CODE_WARNED[code] = true
+    print(string.format("ram: no tracker object for code %s", code))
+  end
+  return obj
+end
+
+-- The CurrentStage that represents stages[stage] for this code. Items with
+-- allow_disabled:true carry a synthetic "not acquired" stage at 0, so their
+-- Lua-visible stage sits one above the stages[] index (jsonitem.cpp:381, :473).
+local function stageValue(code, stage)
+  return RAM_NO_STAGE_OFFSET[code] and stage or (stage + 1)
+end
+
+-- RAM is authoritative, the same way it already is for chests and NPC events:
+-- what the cart says now is what the tracker shows, so loading an older save or
+-- starting a different seed walks items back instead of stranding the previous
+-- run's board on screen. This replaced a raise-only rule that was defensive
+-- about unverified addresses; the completed-seed sync on 2026-08-19 exercised
+-- every one of them against a running game.
+--
+-- `stage` is nil for "RAM does not have this at all". allowLower is false for
+-- the AP-shared codes described above.
+local function applyCode(code, stage, allowLower)
+  local obj = objectFor(code)
   if not obj then
-    if not UNKNOWN_CODE_WARNED[code] then
-      UNKNOWN_CODE_WARNED[code] = true
-      print(string.format("ram: no tracker object for code %s", code))
+    return
+  end
+  if stage == nil then
+    if not allowLower then
+      return
+    end
+    if obj.Active then
+      obj.Active = false
+    end
+    if RAM_HAS_STAGES[code] and (obj.CurrentStage or 0) ~= 0 then
+      obj.CurrentStage = 0
     end
     return
   end
   if not obj.Active then
     obj.Active = true
   end
-  -- stages[0] needs nothing further: a toggle has no stages at all, and an
-  -- offset progressive already sits on stages[0] once it is active.
-  if stage <= 0 then
+  if not RAM_HAS_STAGES[code] then
+    -- A toggle has no stages to move.
     return
   end
-  local target = RAM_NO_STAGE_OFFSET[code] and stage or (stage + 1)
-  if (obj.CurrentStage or 0) < target then
+  local target = stageValue(code, stage)
+  local current = obj.CurrentStage or 0
+  if current < target or (allowLower and current > target) then
     obj.CurrentStage = target
+  end
+end
+
+-- Wipe everything this file owns. Called when the bridge reports a different
+-- cartridge (see reconcile.resetForNewGame): the previous game's items are not
+-- merely stale, they are about to be replaced wholesale by the new one's RAM.
+-- The AP carve-out still applies -- a code AP granted would not come back.
+function clearRamDerivedItems()
+  for code in pairs(RAM_CODES) do
+    applyCode(code, nil, not apOwned(code))
   end
 end
 
 -- byteAt(addr) returns the byte at a CPU address, or nil if out of range.
 function applyRamRules(byteAt)
   local best = {}
+  local seen = false
   for _, rule in ipairs(RAM_RULES) do
     local byte = byteAt(rule.addr)
     if byte then
+      seen = true
       local hit
       if rule.mask then
         hit = (byte & rule.mask) ~= 0
@@ -170,13 +246,19 @@ function applyRamRules(byteAt)
       end
     end
   end
-  for code, stage in pairs(best) do
-    raiseTo(code, stage)
-  end
 
   local shards = byteAt(RAM_SHARDS.addr)
   if shards and shards > 0 then
-    local stage = math.min(shards - 1, RAM_SHARDS.maxStage)
-    raiseTo(RAM_SHARDS.code, stage)
+    best[RAM_SHARDS.code] = math.min(shards - 1, RAM_SHARDS.maxStage)
+  end
+
+  -- A byteAt that answered nothing at all is a malformed feed, not a game with
+  -- no items. Lowering on it would blank the board.
+  if not seen and shards == nil then
+    return
+  end
+
+  for code in pairs(RAM_CODES) do
+    applyCode(code, best[code], not apOwned(code))
   end
 end

@@ -54,11 +54,28 @@ four orbs being lit, key items and every turn-in stage (Crown to Astos, Slab to
 Unne and then Lefein, Ruby to the Titan, and so on), Bridge/Ship/Canal/Canoe/
 Airship, and the shard count.
 
-Items, orbs, vehicles and turn-in stages only ever go up, never back down --
-every one of those events is one-way in the game. Chests and NPCs follow the
-save instead, so loading an older one un-marks whatever you had not opened in
-it yet. Either way it will not fight you if you click something yourself:
-anything you clear by hand stays cleared.
+The board follows the game rather than accumulating. Loading an older save
+un-marks the chests it had not opened and walks items back to what that save
+actually holds, and putting a different seed in the emulator drops the previous
+one's board wholesale -- the bridge reports which cartridge is loaded, so the
+tracker notices the swap without anything being re-run or re-clicked. It will
+not fight you over a section you clear yourself: anything you clear by hand
+stays cleared.
+
+Starting a new file on the same seed counts too: the moment the feed goes from
+having checks to having none, the game has been started over and the board is
+wiped to match.
+
+The one exception is an Archipelago session. AP hands you items over the wire
+and only replays them when you connect, so while `AP` is online the items it
+grants are left alone rather than being second-guessed against cart RAM.
+
+If the board is ever showing something it should not, the circular arrow in the
+`Incentives` panel throws it away and rebuilds from the feeds. Nothing is lost
+by pressing it while the bridge is connected -- chests, events and items are all
+re-derived within about a second -- so it is the thing to reach for after
+updating the pack, or if you want your own clicks cleared out. What it does not
+bring back is a section you cleared by hand.
 
 It also reports which map you are standing on, so the map tab follows you into
 whichever floor you just walked into. `Auto-Tab` in the flags grid turns that

@@ -72,6 +72,7 @@ local GUARD_STABLE_SCANS = 5     -- consecutive scans, so ~0.5s of a valid save
 
 local EMU = {
   readByte = nil,   -- function(addr) -> 0..255
+  romId = nil,      -- function() -> string, "" when the emulator will not say
   log = nil,        -- function(msg)
   notify = nil,     -- function(msg)  on-screen
 }
@@ -395,7 +396,7 @@ local INFO_MSG =
   '[{"cmd":"Info","protocol":0,"name":"FF1R Mesen Bridge","version":"1.0.0"}]'
 
 -- Last state actually put on the wire, for diffing.
-local sentMem, sentReady, sentGoal, sentMap = nil, nil, nil, nil
+local sentMem, sentReady, sentGoal, sentMap, sentRom = nil, nil, nil, nil, nil
 
 local function varMem(mem)
   local parts = {}
@@ -413,7 +414,15 @@ local function varNum(name, value)
   return '{"cmd":"Var","name":"' .. name .. '","value":' .. string.format("%d", value) .. "}"
 end
 
-local function sendState(mem, ready, goal, map, force)
+-- The only string we publish is the ROM id, which in practice is a hex SHA-1.
+-- It still gets escaped: emu.getRomInfo() can fall back to the file name, and a
+-- quote or a backslash in that would otherwise produce a malformed frame.
+local function varStr(name, value)
+  local escaped = tostring(value):gsub('[\\"]', '\\%0'):gsub("%c", "")
+  return '{"cmd":"Var","name":"' .. name .. '","value":"' .. escaped .. '"}'
+end
+
+local function sendState(mem, ready, goal, map, rom, force)
   local msgs = {}
   if force or mem ~= sentMem then
     msgs[#msgs + 1] = varMem(mem)
@@ -427,11 +436,17 @@ local function sendState(mem, ready, goal, map, force)
   if force or map ~= sentMap then
     msgs[#msgs + 1] = varNum("ff1/map", map)
   end
+  -- Sent whatever ff1/ready says. This is which cartridge is in the slot, not
+  -- game state, and the pack needs it before the save-loaded guard passes --
+  -- that is the whole window in which a ROM swap has to be noticed.
+  if force or rom ~= sentRom then
+    msgs[#msgs + 1] = varStr("ff1/rom", rom)
+  end
   if #msgs == 0 then
     return
   end
   if send(wsEncodeText("[" .. table.concat(msgs, ",") .. "]")) then
-    sentMem, sentReady, sentGoal, sentMap = mem, ready, goal, map
+    sentMem, sentReady, sentGoal, sentMap, sentRom = mem, ready, goal, map, rom
   end
 end
 
@@ -450,6 +465,26 @@ local guardValue, guardScans = nil, 0
 local lastMem = string.rep("\0", MEM_LEN)
 local lastGoal = false
 local lastMap = MAP_OVERWORLD
+local lastRom = ""
+
+-- Which cartridge is in the slot. The pack uses this to notice that it is
+-- looking at a different game and drop the previous one's board -- without it,
+-- raise-only state (orbs, key items, turn-ins, hosted codes) carries across a
+-- ROM swap and the tracker keeps showing the seed you just finished.
+--
+-- Re-read every scan rather than cached once: loading another ROM does not
+-- always tear down the Lua state, and when it does not, a cached value would
+-- report the old cartridge forever. It is a table lookup, not a memory sweep.
+local function readRom()
+  if not EMU.romId then
+    return ""
+  end
+  local ok, id = pcall(EMU.romId)
+  if not ok or type(id) ~= "string" then
+    return ""
+  end
+  return id
+end
 
 local function readMem()
   local bytes = {}
@@ -516,10 +551,11 @@ end
 
 local function scan()
   local mem = readMem()
+  lastRom = readRom()
 
   if not inGame(mem) or looksUninitialised(mem) then
     invalidate()
-    sendState(lastMem, false, lastGoal, lastMap)
+    sendState(lastMem, false, lastGoal, lastMap, lastRom)
     return
   end
 
@@ -534,14 +570,14 @@ local function scan()
   end
 
   if not isReady() then
-    sendState(lastMem, false, lastGoal, lastMap)
+    sendState(lastMem, false, lastGoal, lastMap, lastRom)
     return
   end
 
   lastMem = mem
   lastGoal = (at(mem, FLAGS_OFF + GOAL_BYTE) & 0x02) ~= 0
   lastMap = readMap()
-  sendState(lastMem, true, lastGoal, lastMap)
+  sendState(lastMem, true, lastGoal, lastMap, lastRom)
 end
 
 ------------------------------------------------------------------
@@ -574,7 +610,10 @@ local function handleHandshake()
   end
 
   handshaked = true
-  sentMem, sentReady, sentGoal, sentMap = nil, nil, nil, nil
+  sentMem, sentReady, sentGoal, sentMap, sentRom = nil, nil, nil, nil, nil
+  -- A client can connect and Sync before the first scan tick, and the very
+  -- first thing it needs is which cartridge this is.
+  lastRom = readRom()
   EMU.log("PopTracker connected")
   EMU.notify("PopTracker connected")
   send(wsEncodeText(INFO_MSG))
@@ -599,7 +638,7 @@ local function handleFrames()
       -- is correct for it, so match on the name rather than carrying a JSON
       -- parser for one string.
       if payload:find('"Sync"', 1, true) then
-        sendState(lastMem, isReady(), lastGoal, lastMap, true)
+        sendState(lastMem, isReady(), lastGoal, lastMap, lastRom, true)
       end
     end
   end
@@ -653,6 +692,17 @@ local MEM = emu.memType.nesDebug
 
 EMU.readByte = function(addr)
   return emu.read(addr, MEM)
+end
+-- emu.getRomInfo() -> { name, path, fileSha1Hash }. The hash is the identity we
+-- want; the name is a usable stand-in on a build that does not provide it, and
+-- "" means "cannot tell", which the pack reads as "do not reset".
+EMU.romId = function()
+  local ok, info = pcall(emu.getRomInfo)
+  if not ok or type(info) ~= "table" then
+    return ""
+  end
+  local id = info.fileSha1Hash or info.name
+  return type(id) == "string" and id or ""
 end
 EMU.log = function(msg)
   emu.log("[ffr-uat] " .. msg)
