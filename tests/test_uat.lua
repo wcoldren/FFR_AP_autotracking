@@ -222,5 +222,16 @@ check("memo restores it", ROM_ID, "romZ")
 memo.LoadFunc(memo, { rom = "" })
 check("an empty saved id is ignored", ROM_ID, "romZ")
 
+-- The flag record rides along, so a restart does not stamp the seed's settings
+-- back over a flag the player had put right by hand.
+FFR_FLAGS_SOURCE = "4-9-7|abc"
+saved = memo.SaveFunc(memo)
+check("memo saves the flag record", saved.flags, "4-9-7|abc")
+FFR_FLAGS_SOURCE = nil
+memo.LoadFunc(memo, saved)
+check("memo restores it", FFR_FLAGS_SOURCE, "4-9-7|abc")
+memo.LoadFunc(memo, { rom = "romZ" })
+check("a save from before this existed is fine", FFR_FLAGS_SOURCE, "4-9-7|abc")
+
 print(fail==0 and "\nALL PASS" or string.format("\n%d FAILURE(S)",fail))
 os.exit(fail==0 and 0 or 1)

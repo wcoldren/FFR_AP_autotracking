@@ -91,11 +91,21 @@ makeResyncButton()
   end
   item.Name = "FFR ROM id"
   item.SaveFunc = function()
-    return { rom = ROM_ID }
+    -- The flag record rides along rather than getting a LuaItem of its own:
+    -- both answer "which cartridge is this", and a second item would be a
+    -- second id to keep stable.
+    return { rom = ROM_ID, flags = FFR_FLAGS_SOURCE }
   end
   item.LoadFunc = function(_, data)
     if type(data) == "table" and type(data.rom) == "string" and data.rom ~= "" then
       ROM_ID = data.rom
+    end
+    -- Without this a PopTracker restart would re-apply the seed's settings
+    -- over a flag the player had corrected by hand -- most likely one FFR
+    -- rolled at generation, which is exactly the one the cartridge cannot
+    -- answer and the player had to set themselves.
+    if type(data) == "table" and type(data.flags) == "string" and data.flags ~= "" then
+      FFR_FLAGS_SOURCE = data.flags
     end
     return true
   end
