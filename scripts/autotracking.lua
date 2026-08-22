@@ -76,6 +76,10 @@ function onClear()
   AP_ITEM_FEED_ACTIVE = true
   resetChecked()
   resetMapTab()
+  -- The pool is known by now (aptracker.h fills MissingLocations before it
+  -- emits onClear) and cannot change while the slot is connected, so this is
+  -- the one place worth asking whether the chests are checks this seed.
+  refreshOverworldTab()
   for _, v in pairs(ITEM_MAPPING) do
     if v[1] and v[2] then
       if AUTOTRACKER_ENABLE_DEBUG_LOGGING then

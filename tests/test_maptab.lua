@@ -63,14 +63,19 @@ for _, file in ipairs({ "layouts/standard/tracker.json", "layouts/shardHunt/trac
   end
 end
 
--- 1b. the tab used for anywhere without one of its own is not in MAP_VALUE, so
---     it needs the same existence check or it fails the same silent way.
-local FALLBACK = "Incentive Locations"
+-- 1b. the tabs used for anywhere without one of its own are not in MAP_VALUE,
+--     so they need the same existence check or they fail the same silent way.
+--     Both are live now: which one the overworld lands on depends on whether
+--     the seed put the chests in the pool.
+local FALLBACKS = { "Incentive Locations", "Overworld" }
 for _, file in ipairs({ "layouts/standard/tracker.json", "layouts/shardHunt/tracker.json" }) do
-  if not tabTitles(file)[FALLBACK] then
-    fails(string.format("%s has no %q tab for the overworld fallback", file, FALLBACK))
-  else
-    print(string.format("ok   %q exists in %s", FALLBACK, file:match("layouts/([^/]+)")))
+  local titles = tabTitles(file)
+  for _, fallback in ipairs(FALLBACKS) do
+    if not titles[fallback] then
+      fails(string.format("%s has no %q tab for the overworld fallback", file, fallback))
+    else
+      print(string.format("ok   %q exists in %s", fallback, file:match("layouts/([^/]+)")))
+    end
   end
 end
 
@@ -84,6 +89,7 @@ Tracker = {
 }
 ScriptHost = { AddVariableWatch = function() end }
 
+dofile(PACK .. "/scripts/autotracking/location_mapping.lua")
 dofile(PACK .. "/scripts/autotracking/maptab.lua")
 
 local function take()
@@ -165,6 +171,75 @@ check("ready acts", take(),
   "ActivateTab:Fiend Dungeons,ActivateTab:Earth Cave,ActivateTab:Earth Cave B1")
 onFF1Map(store(false, -1))
 check("a reset does not drag the tab away", take(), "")
+
+
+-- 7. which overworld tab the fallback lands on follows the Archipelago pool.
+--
+-- The two pools below are real. The incentive-only one is the location list
+-- off an ordinary generation (spoiler "locations:" line, 19 ids); the chest
+-- pool is every id the pack maps, which is what a shard hunt or a chest
+-- shuffle produces. The gap between them is the whole detection: 0 chests
+-- against 230, with nothing observed in between.
+local INCENTIVE_ONLY_POOL = {
+  259, 370, 387, 284, 317, 489, 436, 767,      -- incentive slots + shop
+  513, 530, 519, 516, 522, 533, 518, 520, 525, 531, 529,  -- NPCs
+}
+local function poolOf(ids, checkedCount)
+  local missing, checked = {}, {}
+  for i, id in ipairs(ids) do
+    if i <= (checkedCount or 0) then checked[#checked + 1] = id
+    else missing[#missing + 1] = id end
+  end
+  return { MissingLocations = missing, CheckedLocations = checked }
+end
+
+Tracker.ActiveVariantUID = "5standard"
+
+-- No host support at all: the pack keeps the behaviour it has always had.
+Archipelago = nil
+resetMapTab()
+refreshOverworldTab()
+check("no AP host -> incentive map", overworldTab(), "Incentive Locations")
+check("  and the overworld goes there", activateMapTab(-1), true)
+check("  hint", take(), "ActivateTab:Incentive Locations")
+
+-- An ordinary seed. Every id in the pool is an incentive slot or an NPC.
+Archipelago = poolOf(INCENTIVE_ONLY_POOL, 4)
+resetMapTab()
+refreshOverworldTab()
+check("incentive-only pool has no chests", apPoolChestCount(), 0)
+check("incentive-only pool -> incentive map", overworldTab(), "Incentive Locations")
+check("  overworld lands on it", activateMapTab(-1), true)
+check("  hint", take(), "ActivateTab:Incentive Locations")
+check("  a town lands on it too", activateMapTab(3), true)
+check("  hint", take(), "ActivateTab:Incentive Locations")
+
+-- Shard hunt / chests shuffled in: the incentive map would hide almost every
+-- check the player has, so the fallback moves to the full Overworld.
+local everything = {}
+for id in pairs(LOCATION_MAPPING) do everything[#everything + 1] = id end
+table.sort(everything)
+Archipelago = poolOf(everything, 10)
+resetMapTab()
+refreshOverworldTab()
+check("chest pool is counted", apPoolChestCount(), 230)
+check("chest pool -> full overworld", overworldTab(), "Overworld")
+check("  overworld lands on it", activateMapTab(-1), true)
+check("  hint", take(), "ActivateTab:Overworld")
+check("  a town lands on it too", activateMapTab(3), true)
+check("  hint", take(), "ActivateTab:Overworld")
+
+-- A host too old to report the pool must not walk back what an earlier
+-- connect proved: a reconnect through such a host keeps the full overworld.
+Archipelago = { MissingLocations = nil, CheckedLocations = nil }
+refreshOverworldTab()
+check("unreportable pool leaves the answer alone", overworldTab(), "Overworld")
+
+-- And a genuinely incentive-only reconnect does move it back.
+Archipelago = poolOf(INCENTIVE_ONLY_POOL, 0)
+refreshOverworldTab()
+check("a new incentive-only seed moves it back", overworldTab(), "Incentive Locations")
+Archipelago = nil
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

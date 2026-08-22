@@ -266,3 +266,43 @@ LOCATION_MAPPING = {
   [766] = {"@ToFR/Chaos", "chaos"},
   [767] = {"@I: Shop Item/I: Shop Item", "shopItem"},
 }
+
+------------------------------------------------------------------
+-- Is this a seed where the chests are checks?
+--
+-- A plain FFR seed hands Archipelago only the incentive slots and the NPCs.
+-- One measured off an ordinary generation: 19 locations, of which 7 are
+-- "/Incentive" and 12 are NPCs -- not a single "/Chest" among them. Shard hunt
+-- and the chest-shuffle flags put all 230 chests in as well.
+--
+-- Nothing in between has turned up, and the pool is built from whole classes
+-- of location rather than sampled, so the count is either zero or essentially
+-- all of them. That makes presence the whole test: no threshold to pick, and
+-- no need to read FFR's flag word to guess at what AP already states outright.
+--
+-- Returns nil when the host cannot say. Archipelago.MissingLocations and
+-- .CheckedLocations landed in PopTracker 0.25.2 and this pack's manifest still
+-- admits 0.23.0, so an older host gets the previous behaviour rather than an
+-- error. Both are populated before onClear fires (aptracker.h:130-134), which
+-- is the only place worth asking: the pool cannot change while a slot is
+-- connected.
+function apPoolChestCount()
+  if type(Archipelago) ~= "table" and type(Archipelago) ~= "userdata" then
+    return nil
+  end
+  local ok, missing = pcall(function() return Archipelago.MissingLocations end)
+  local ok2, checked = pcall(function() return Archipelago.CheckedLocations end)
+  if not (ok and ok2) or type(missing) ~= "table" or type(checked) ~= "table" then
+    return nil
+  end
+  local n = 0
+  for _, list in ipairs({ missing, checked }) do
+    for _, id in ipairs(list) do
+      local entry = LOCATION_MAPPING[id]
+      if entry and entry[1] and entry[1]:match("/Chest$") then
+        n = n + 1
+      end
+    end
+  end
+  return n
+end
