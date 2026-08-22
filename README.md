@@ -52,6 +52,21 @@ four orbs being lit, key items and every turn-in stage (Crown to Astos, Slab to
 Unne and then Lefein, Ruby to the Titan, and so on), Bridge/Ship/Canal/Canoe/
 Airship, and the shard count.
 
+It also times the run. Nothing else on the machine can: FF1 keeps no play-time
+counter in its save, FFR adds no timer flag, and Mesen does not track time per
+game. The bridge appends two kinds of line to `ffr_times.log`, in the same
+directory as the ROM:
+
+    2026-08-21 17:30:08  start  FFR_6BF0DEA9_XsBTKFAK.nes
+    2026-08-21 20:11:02  chaos  FFR_6BF0DEA9_XsBTKFAK.nes  2:40:54 this sitting
+
+`start` is written the first time the bridge trusts a loaded save, once per
+sitting; `chaos` is written when the goal flag appears, once per cartridge. A
+seed played over several evenings leaves one `start` per evening and a single
+`chaos`, so the total is the last stamp minus the first. It only runs while
+PopTracker is connected, and it needs the same `Allow access to I/O and OS
+functions` restriction the script already requires.
+
 It also fills in the flags grid. FFR stamps the flag string it rolled with into
 the cartridge, so the settings that used to need clicking -- Early King, the
 dock and pass flags, Sarda's Forest, open progression, the incentive categories

@@ -74,6 +74,15 @@ local GUARD_A_OFF = 0x102   -- first character's name; 0 = title / char creation
 local GUARD_B_OFF = 0x0FC   -- 0x0B / 0x0C mean a battle is running
 local GUARD_C_OFF = 0x0A3
 
+-- Wall-clock markers for a run, appended to a file next to the ROM. Nothing
+-- else on the machine can answer "how long did that seed take": FF1 keeps no
+-- play-time counter in SRAM, FFR adds no timer flag, Mesen does not track time
+-- per game, and the script log window is gone the moment Mesen restarts. One
+-- line per event with an absolute timestamp. A seed played over several
+-- sittings leaves one `start` line per sitting and a single `chaos` line, so
+-- the elapsed total is the last stamp minus the first.
+local TIMES_FILE = "ffr_times.log"
+
 local UAT_PORT = 65399      -- PopTracker's default; fallback is 44444
 local SCAN_INTERVAL_FRAMES = 6   -- ~10Hz memory scan; sockets poll every frame
 local GUARD_STABLE_SCANS = 5     -- consecutive scans, so ~0.5s of a valid save
@@ -88,6 +97,8 @@ local EMU = {
   readByte = nil,   -- function(addr) -> 0..255
   readRom = nil,    -- function(offset, len) -> string, nil when unsupported
   romId = nil,      -- function() -> string, "" when the emulator will not say
+  romPath = nil,    -- function() -> string, nil when the emulator will not say
+  appendFile = nil, -- function(path, text) -> ok, err
   log = nil,        -- function(msg)
   notify = nil,     -- function(msg)  on-screen
 }
@@ -623,6 +634,90 @@ local function readMap()
   return id
 end
 
+------------------------------------------------------------------
+-- Run timing. Two markers: the first scan this sitting that the save guard
+-- trusts, and the moment the goal flag appears.
+------------------------------------------------------------------
+
+local timedRom = nil        -- the cartridge the two below belong to
+local runStart = nil        -- os.time() of the first trusted scan this sitting
+local goalRecorded = false
+local timesWarned = false
+
+-- The ROM's own directory, so a seed's times land beside the seed. Both
+-- separators, because the path comes from the emulator rather than from us.
+local function timesPath()
+  if not EMU.romPath then
+    return nil
+  end
+  local ok, romPath = pcall(EMU.romPath)
+  if not ok or type(romPath) ~= "string" then
+    return nil
+  end
+  local dir, sep = romPath:match("^(.*)([/\\])[^/\\]*$")
+  if not dir then
+    return nil
+  end
+  return dir .. sep .. TIMES_FILE, romPath:match("([^/\\]*)$")
+end
+
+local function hms(seconds)
+  return string.format("%d:%02d:%02d",
+    seconds // 3600, (seconds % 3600) // 60, seconds % 60)
+end
+
+-- Always to the script log, so the number is visible while playing; to the file
+-- as well when the emulator will say where the ROM lives. A write that fails
+-- warns once and is then left alone -- a read-only ROM directory is a reason to
+-- lose the file, not a reason to spam the log sixty times a second.
+local function record(line)
+  EMU.log(line)
+  local path = timesPath()
+  if not path or not EMU.appendFile then
+    return
+  end
+  local called, ok = pcall(EMU.appendFile, path, line .. "\n")
+  if called and ok then
+    return
+  end
+  if not timesWarned then
+    timesWarned = true
+    EMU.log("cannot append to " .. path .. " -- run times stay in this log only")
+  end
+end
+
+-- Called once per trusted scan. The guard drops on every battle, so `ready`
+-- flaps throughout normal play: the start is latched per cartridge rather than
+-- recorded on each transition, and only a ROM swap starts a new run.
+local function noteRunProgress(rom, goal)
+  -- "Allow network access" and "Allow access to I/O and OS functions" are
+  -- separate toggles, so a clock is not guaranteed just because sockets work.
+  -- Say so once and carry on; timing is not worth taking the scan down for.
+  if type(os) ~= "table" or not os.time or not os.date then
+    if not timesWarned then
+      timesWarned = true
+      EMU.log("no os.date -- run times need Restrictions -> "
+        .. "'Allow access to I/O and OS functions'")
+    end
+    return
+  end
+  if rom ~= timedRom then
+    timedRom, runStart, goalRecorded = rom, nil, false
+  end
+  local _, romName = timesPath()
+  romName = romName or (rom ~= "" and rom) or "unknown cartridge"
+  if not runStart then
+    runStart = os.time()
+    record(string.format("%s  start  %s", os.date("%Y-%m-%d %H:%M:%S"), romName))
+  end
+  if goal and not goalRecorded then
+    goalRecorded = true
+    record(string.format("%s  chaos  %s  %s this sitting",
+      os.date("%Y-%m-%d %H:%M:%S"), romName,
+      hms(math.floor(os.difftime(os.time(), runStart)))))
+  end
+end
+
 local function scan()
   local mem = readMem()
   lastRom = readRom()
@@ -652,6 +747,7 @@ local function scan()
   lastMem = mem
   lastGoal = (at(mem, FLAGS_OFF + GOAL_BYTE) & 0x02) ~= 0
   lastMap = readMap()
+  noteRunProgress(lastRom, lastGoal)
   sendState(lastMem, true, lastGoal, lastMap, lastRom, lastFlags)
 end
 
@@ -800,6 +896,28 @@ EMU.romId = function()
   end
   local id = info.fileSha1Hash or info.name
   return type(id) == "string" and id or ""
+end
+-- Where the cartridge came from, for parking the run-times file beside it.
+EMU.romPath = function()
+  local ok, info = pcall(emu.getRomInfo)
+  if not ok or type(info) ~= "table" then
+    return nil
+  end
+  return type(info.path) == "string" and info.path or nil
+end
+-- Needs Script -> Settings -> Restrictions -> "Allow access to I/O and OS
+-- functions", which this script already requires for sockets.
+EMU.appendFile = function(path, text)
+  if type(io) ~= "table" or not io.open then
+    return false
+  end
+  local f = io.open(path, "a")
+  if not f then
+    return false
+  end
+  f:write(text)
+  f:close()
+  return true
 end
 EMU.log = function(msg)
   emu.log("[ffr-uat] " .. msg)

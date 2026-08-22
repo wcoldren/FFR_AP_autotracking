@@ -61,6 +61,23 @@ emu = {
   end,
 }
 
+-- The run-times file, captured in memory. Appends are the only mode the bridge
+-- uses; anything else falls through to the real io so the harness itself is
+-- unaffected.
+FILES = {}
+local realIo = io
+io = setmetatable({
+  open = function(path, mode)
+    if mode ~= "a" then
+      return realIo.open(path, mode)
+    end
+    return {
+      write = function(_, text) FILES[path] = (FILES[path] or "") .. text end,
+      close = function() end,
+    }
+  end,
+}, { __index = realIo })
+
 -- Server-socket bookkeeping, for the bind-retry and shutdown cases.
 local bindFails = false
 local bindAttempts, serverClosed = 0, 0
@@ -93,6 +110,14 @@ local function allLogs() local l = LOGS; LOGS = {}; return l end
 local function logsMatching(logs, pat)
   local n = 0
   for _, l in ipairs(logs) do if l:find(pat, 1, true) then n = n + 1 end end
+  return n
+end
+local TIMES = "/roms/ffr_times.log"
+local function timesMatching(pat)
+  local n = 0
+  for line in (FILES[TIMES] or ""):gmatch("[^\n]+") do
+    if line:find(pat, 1, true) then n = n + 1 end
+  end
   return n
 end
 
@@ -172,9 +197,15 @@ check("mem array is 768 long", #vals, 768)
 check("flag byte 0x2B == 0x04", vals[0x200 + 0x2B + 1], 4)
 check("mem byte 0x00 == 0", vals[1], 0)
 
+-- 4b. the run clock starts with the first trusted scan, and lands in a file
+--     beside the ROM -- the script log does not survive a Mesen restart.
+check("run start recorded", timesMatching("  start  seedA.nes"), 1)
+check("no goal line yet", timesMatching("  chaos  "), 0)
+
 -- 5. no change -> nothing resent (the diff actually diffs)
 frames(30)
 check("idle sends nothing", #allSent(), 0)
+check("start is not re-recorded while idle", timesMatching("  start  "), 1)
 
 -- 6. another chest -> only the flags var moves
 MEMORY[0x6200 + 0x30] = 0x04
@@ -187,6 +218,9 @@ check("ready not resent unchanged", j3:find('"ff1/ready"', 1, true) == nil, true
 MEMORY[0x6200 + 0xFE] = 0x02
 frames(12)
 check("goal reported", table.concat(textFrames(allSent())):find('"ff1/goal","value":true', 1, true) ~= nil, true)
+check("chaos time recorded", timesMatching("  chaos  seedA.nes"), 1)
+frames(12)
+check("chaos is recorded once, not per scan", timesMatching("  chaos  "), 1)
 
 -- 8. hard reset: guard clears, ready must drop and NOT report an empty array
 --    as a legitimate "everything unopened" state
@@ -206,6 +240,11 @@ MEMORY[0x6200 + 0x30] = 0x04
 frames(60)
 local j5 = table.concat(textFrames(allSent()))
 check("ready returns after reload", j5:find('"ff1/ready","value":true', 1, true) ~= nil, true)
+-- The save guard drops on every battle and every reset, so `ready` flaps all
+-- through normal play. The clock is latched per cartridge: a flap must not
+-- restart the run or re-announce a goal already reached.
+check("a reset does not restart the clock", timesMatching("  start  "), 1)
+check("a reset does not re-record chaos", timesMatching("  chaos  "), 1)
 
 -- 10. all-FF frame (power cycle garbage) is rejected
 for a = 0x6200, 0x62FF do MEMORY[a] = 0xFF end
@@ -441,6 +480,10 @@ putFlagRecord("4-9-7", "zzzzTOPHAT")
 frames(12)
 check("a swap republishes the flags",
   table.concat(textFrames(allSent())):find('"ff1/flags","value":"4-9-7|zzzzTOPHAT"', 1, true) ~= nil, true)
+-- A different cartridge is a different run, so the clock restarts for it. The
+-- times file is shared, hence the ROM name on every line.
+check("a new cartridge starts its own run", timesMatching("  start  seedE.nes"), 1)
+check("the finished seed keeps its own lines", timesMatching("  chaos  seedA.nes"), 1)
 
 -- Anything that is not an FFR ROM, or an FFR build old enough to predate the
 -- record, has to read as "cannot tell" rather than taking the scan down.
