@@ -108,7 +108,11 @@ for path, want in pairs({
   ["@ToFR Kary Floor 4/Chest"] = 1,
   ["@ToFR Lute Plate Room 1/Chest"] = 1,
   ["@ToFR Lute Plate Room 2/Chest"] = 1,
-  ["@Dwarf Cave/Nerrick (Vanilla Canal)"] = 1,
+  -- The two Dwarf Cave turn-ins. They moved out of the parent node and into
+  -- one child apiece so each could carry its own square on the dwarves map;
+  -- the paths below are what that move made of them.
+  ["@Dwarf Cave Nerrick/Nerrick (Vanilla Canal)"] = 1,
+  ["@Dwarf Cave Smith/Smithy McBeardSmith"] = 1,
 }) do
   local got = idsFor[path] or 0
   local count = sections[path]

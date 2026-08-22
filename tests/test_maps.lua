@@ -181,6 +181,67 @@ do
   end
 end
 
+
+-- 4c. the same reproducibility guarantee for the NPC turn-ins that carry a
+--     dungeon marker. Chests come out of the map tile data; NPCs come out of
+--     lut_MapObjects, so they get their own extractor and their own file, but
+--     the pixel maths is the one in tools/make_markers.py and the answer has to
+--     agree with what is in the location JSON.
+do
+  local npcs = json.load(PACK .. "/tools/npc_positions.json")
+  local cal = json.load(PACK .. "/tools/map_calibration.json")
+
+  -- Which node carries which NPC's marker, and which calibrated map it is on.
+  local PLACED = {
+    ["Dwarf Cave Smith"]   = { npc = "smith",   map = "dwarves" },
+    ["Dwarf Cave Nerrick"] = { npc = "nerrick", map = "dwarves" },
+  }
+
+  local nodes = {}
+  local function collect(list)
+    for _, n in ipairs(list) do
+      nodes[n.name] = n
+      collect(n.children or {})
+    end
+  end
+  collect(json.load(PACK .. "/locations/overworld.json"))
+
+  for name, want in pairs(PLACED) do
+    local node = nodes[name]
+    local entry = cal[want.map]
+    local places = npcs[want.npc]
+    if not node then
+      fails(string.format("no location node named %q for the %s marker", name, want.npc))
+    elseif not entry then
+      fails(string.format("%s has no calibration entry", want.map))
+    elseif not places or #places ~= 1 then
+      fails(string.format("npc_positions.json does not place %s exactly once", want.npc))
+    else
+      local pos = places[1]
+      if pos.map_id ~= entry.rom_map_id then
+        fails(string.format("%s is on ROM map %d but %s is calibrated for %d",
+          want.npc, pos.map_id, want.map, entry.rom_map_id))
+      else
+        -- make_markers.py: offset + tile * tile_px + half
+        local r = entry.regions[1]
+        local half = entry.tile_px // 2
+        local x = r.offset_x + pos.tile_col * entry.tile_px + half
+        local y = r.offset_y + pos.tile_row * entry.tile_px + half
+        local ml = (node.map_locations or {})[1]
+        if not ml then
+          fails(string.format("%s has no map_location", name))
+        elseif ml.map ~= want.map or ml.x ~= x or ml.y ~= y then
+          fails(string.format("%s is at %s(%d,%d) but %s belongs at %s(%d,%d)",
+            name, tostring(ml.map), ml.x or -1, ml.y or -1, want.npc, want.map, x, y))
+        else
+          print(string.format("ok   %-22s marker matches %s at %s(%d,%d)",
+            name, want.npc, want.map, x, y))
+        end
+      end
+    end
+  end
+end
+
 -- 5. the Ice Cave pilot: sixteen per-chest markers, on the three ice floors
 local ice, iceMaps = 0, {}
 for _, m in ipairs(markers) do

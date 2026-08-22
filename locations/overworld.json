@@ -521,19 +521,11 @@
                 "sections": [
                     {
                         "name": "Smithy McBeardSmith",
-                        "access_rules": [
-                            "adamant"
-                        ],
-                        "item_count": 1,
-                        "hosted_item": "smith"
+                        "ref": "Dwarf Cave Smith/Smithy McBeardSmith"
                     },
                     {
                         "name": "Nerrick (Vanilla Canal)",
-                        "access_rules": [
-                            "tnt"
-                        ],
-                        "item_count": 1,
-                        "hosted_item": "nerrick"
+                        "ref": "Dwarf Cave Nerrick/Nerrick (Vanilla Canal)"
                     },
                     {
                         "name": "Free Chests 1",
@@ -584,6 +576,50 @@
                     }
                 ],
                 "children": [
+                    {
+                        "name": "Dwarf Cave Smith",
+                        "sections": [
+                            {
+                                "name": "Smithy McBeardSmith",
+                                "access_rules": [
+                                    "adamant"
+                                ],
+                                "item_count": 1,
+                                "hosted_item": "smith"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 140,
+                                "y": 70,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Dwarf Cave Nerrick",
+                        "sections": [
+                            {
+                                "name": "Nerrick (Vanilla Canal)",
+                                "access_rules": [
+                                    "tnt"
+                                ],
+                                "item_count": 1,
+                                "hosted_item": "nerrick"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "dwarves",
+                                "x": 284,
+                                "y": 758,
+                                "size": 16,
+                                "border_thickness": 2
+                            }
+                        ]
+                    },
                     {
                         "name": "Dwarf Cave Free Chests 1",
                         "sections": [
