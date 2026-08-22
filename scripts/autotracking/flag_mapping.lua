@@ -84,6 +84,19 @@ local PROGRESSIVES = {
   },
 }
 
+-- Shard hunt: how many shards the black orb wants.
+--
+-- Six fixed counts and three ranges. A range is rolled at generation the way a
+-- tri-state is -- the string records that it was rolled, not where it landed --
+-- so those join the same "left as they were" list the toggles use.
+--
+-- Shards Required counts from sixteen, one stage per shard, and is not an
+-- allow_disabled progressive, so its stage is the stages[] index rather than
+-- one above it: stage 8 is the 24 that init.lua starts every shard-hunt
+-- variant on. That sixteen is the same one hasEnoughShards adds back in
+-- scripts/logic.lua.
+local SHARD_COUNTS = { [0] = 16, [1] = 20, [2] = 24, [3] = 28, [4] = 32, [5] = 36 }
+
 -- A setting by FFR's name, falling back to `default` when no seed has been read
 -- or the flag was rolled at generation. Logic that depends on a setting with no
 -- item on the board goes through here.
@@ -121,6 +134,34 @@ local function setStage(code, stage)
   return true
 end
 
+-- Written straight rather than through setStage: Shards Required has no
+-- disabled state, so the Active dance that setStage does for stage 0 would
+-- land count sixteen on the wrong stage.
+local function setShardsRequired(count)
+  local item = Tracker:FindObjectForCode("shardsRequired")
+  if not item then
+    print("flags: no item for shardsRequired")
+    return false
+  end
+  item.CurrentStage = count - 16
+  return true
+end
+
+-- Only on a shard hunt. Every seed carries a ShardCount, orb goals included,
+-- so applying it unconditionally would move a number the player can see for a
+-- goal that never reads it.
+local function applyShardCount(flags, random)
+  if flags.ShardHunt ~= true then
+    return 0
+  end
+  local count = SHARD_COUNTS[flags.ShardCount]
+  if not count then
+    random[#random + 1] = "ShardCount"
+    return 0
+  end
+  return setShardsRequired(count) and 1 or 0
+end
+
 -- Push a decoded set onto the flag grid. Returns how many settings were applied.
 function applyFFRFlagsToBoard(flags)
   local applied, random = 0, {}
@@ -139,6 +180,8 @@ function applyFFRFlagsToBoard(flags)
       applied = applied + 1
     end
   end
+
+  applied = applied + applyShardCount(flags, random)
 
   if #random > 0 then
     table.sort(random)
@@ -178,6 +221,19 @@ function applyFFRFlags(record)
   if flags.GameMode ~= 0 then
     print("flags: this seed is not a standard game (GameMode " .. tostring(flags.GameMode)
           .. ") -- load the matching pack variant")
+  end
+  -- The goal rule is chosen by variant, not by flag: scripts/logic.lua reads
+  -- Tracker.ActiveVariantUID, so a shard-hunt seed tracked on a standard
+  -- variant is gated on four lit orbs and never on the shard count. Nothing
+  -- downstream can correct that, so say so where the rest of the flag report
+  -- goes.
+  local variantIsShardHunt = Tracker.ActiveVariantUID:find("shardHunt") ~= nil
+  if flags.ShardHunt == true and not variantIsShardHunt then
+    print("flags: this seed is a shard hunt -- load a Shard Hunt pack variant, "
+          .. "the goal on this one is gated on the four orbs")
+  elseif flags.ShardHunt ~= true and variantIsShardHunt then
+    print("flags: this seed is not a shard hunt -- load a non-Shard-Hunt pack "
+          .. "variant, the goal on this one is gated on the shard count")
   end
   if flags.OwMapExchange ~= 0 then
     print("flags: this seed has a non-vanilla overworld (OwMapExchange "

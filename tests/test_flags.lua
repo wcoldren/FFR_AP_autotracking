@@ -208,6 +208,94 @@ check("forested: the airship is not enough", noSardasForest(), 0)
 byCode["sardasForest"].Active = false
 check("clear: the airship lands", noSardasForest(), 1)
 
+------------------------------------------------------------------
+print("\n-- shard hunt")
+--
+-- A second real fixture: FFR_CB6414F9_NXBGBhKK.nes, the 4.9.7 shard-hunt seed
+-- from an Archipelago multiworld. It wants 28 shards, which FFR encodes as
+-- ShardCount 3 -- and nothing carried that onto the board before, so every
+-- shard-hunt seed sat on init.lua's default of 24.
+------------------------------------------------------------------
+
+local SHARD_FLAGS = "omlY4N4.V52WES0FKfb3ZxqHNRewObPWrp0keW4wjHQk75ON22XOGtSwrxhJa3i8yc4fU1Jdd9sE"
+    .. "UrFQ96DyNrA5wAexni92MMVEJCkftnhxAq2PHaL4g0pZGJFcgOAwicDmBndclzeEIMGfegxxO2Sd8l"
+    .. "Q8SvZID-d.IPXduLuhTy62ki-t2H6ylljIdXYCxVNLqv"
+
+local shardFlags = decodeFFRFlags("4-9-7", SHARD_FLAGS)
+check("shard-hunt seed decodes", shardFlags ~= nil, true)
+check("it is a shard hunt", shardFlags.ShardHunt, true)
+check("ShardCount is Count28", shardFlags.ShardCount, 3)
+
+local required = byCode["shardsRequired"]
+local INIT_DEFAULT = 8    -- what scripts/init.lua starts every shard variant on
+
+Tracker.ActiveVariantUID = "6shardHunt"
+required.CurrentStage = INIT_DEFAULT
+applyFFRFlagsToBoard(shardFlags)
+check("28 shards lands on stage 12", required.CurrentStage, 12)
+-- The stage is the number hasEnoughShards adds sixteen back to.
+check("which reads back as 28", required.CurrentStage + 16, 28)
+
+-- A range is rolled at generation: the string says it was rolled, not where it
+-- landed, so it has to be left alone the way a random tri-state is.
+local ranged = {}
+for k, v in pairs(shardFlags) do ranged[k] = v end
+ranged.ShardCount = 7                       -- Range24_32
+required.CurrentStage = INIT_DEFAULT
+applyFFRFlagsToBoard(ranged)
+check("a rolled range is left alone", required.CurrentStage, INIT_DEFAULT)
+
+-- Every seed carries a ShardCount, orb goals included. The orb fixture at the
+-- top of this file must not have its count stamped over.
+required.CurrentStage = INIT_DEFAULT
+applyFFRFlagsToBoard(flags)
+check("an orb seed leaves the count alone", required.CurrentStage, INIT_DEFAULT)
+
+-- Every fixed count maps to its own stage, and the two ends are the bounds of
+-- the Shards Required item.
+Tracker.ActiveVariantUID = "6shardHunt"
+for value, count in pairs({ [0] = 16, [1] = 20, [2] = 24, [3] = 28, [4] = 32, [5] = 36 }) do
+  local one = {}
+  for k, v in pairs(shardFlags) do one[k] = v end
+  one.ShardCount = value
+  required.CurrentStage = INIT_DEFAULT
+  applyFFRFlagsToBoard(one)
+  check("ShardCount " .. value .. " -> " .. count .. " shards", required.CurrentStage + 16, count)
+end
+
+-- The goal rule is picked by variant, not by flag, so a shard-hunt seed on a
+-- standard variant is silently gated on orbs. applyFFRFlags is the only place
+-- that can notice, so it has to say so.
+local SHARD_RECORD = "4-9-7|" .. SHARD_FLAGS
+local function applyCapturing(record)
+  local said, realPrint = {}, print
+  print = function(...)
+    local parts = {}
+    for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
+    said[#said + 1] = table.concat(parts, " ")
+  end
+  FFR_FLAGS_SOURCE = nil            -- applyFFRFlags skips a record it just read
+  applyFFRFlags(record)
+  print = realPrint
+  return table.concat(said, "\n")
+end
+
+Tracker.ActiveVariantUID = "5standard"
+local said = applyCapturing(SHARD_RECORD)
+check("shard seed on a standard variant is called out",
+      said:find("this seed is a shard hunt", 1, true) ~= nil, true)
+
+Tracker.ActiveVariantUID = "6shardHunt"
+said = applyCapturing(SHARD_RECORD)
+check("and says nothing once the variant matches",
+      said:find("shard hunt --", 1, true) ~= nil, false)
+
+said = applyCapturing(RECORD)
+check("orb seed on a shard variant is called out",
+      said:find("this seed is not a shard hunt", 1, true) ~= nil, true)
+
+Tracker.ActiveVariantUID = "5standard"
+
 print("")
 if fail == 0 then
   print("ALL PASS")
