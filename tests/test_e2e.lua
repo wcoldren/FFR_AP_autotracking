@@ -193,5 +193,74 @@ check("shards went back to zero", objects["shards"].CurrentStage, 0)
 check("key items went out", objects["lute"].Active, false)
 check("garland went out", objects["garland"].Active, false)
 
+------------------------------------------------------------------
+-- The same story on the Archipelago side. PopTracker restores the board it
+-- saved last session after the pack's scripts have run, so anyone who tracked
+-- an earlier seed connects to a fresh multiworld with the old one on screen.
+-- resetForNewGame has dropped that since the seed swap; the AP path goes
+-- through resetChecked, which used to leave every hosted code standing --
+-- and the hosted codes are what the Incentive Locations pins read.
+------------------------------------------------------------------
+local restoredSec = "@Ice Cave Six-Pack Top Left/Chest"
+local bikke = LOCATION_MAPPING[516][2]
+local astos = LOCATION_MAPPING[519][2]
+local sages = LOCATION_MAPPING[533][2]
+
+-- A restore writes straight onto the objects. reconcile is not consulted and
+-- WRITTEN knows nothing about it, which is the whole difficulty.
+objects[restoredSec].AvailableChestCount = 0
+objects[bikke].Active = true
+objects[astos].Active = true
+objects[sages].Active = true
+
+resetChecked()
+
+check("AP connect released the chest", objects[restoredSec].AvailableChestCount, objects[restoredSec].ChestCount)
+check("AP connect cleared Bikke", objects[bikke].Active, false)
+check("AP connect cleared Astos", objects[astos].Active, false)
+check("AP connect cleared the Sages", objects[sages].Active, false)
+
+-- A reconnect mid-run must not cost the bridge anything: applyAll re-applies
+-- the hosted codes for everything still in UAT_CHECKED.
+setUATChecked({ [516] = true })
+check("bridge set Bikke", objects[bikke].Active, true)
+objects[astos].Active = true            -- stale, no feed reports it
+resetChecked()
+check("reconnect kept the bridge's Bikke", objects[bikke].Active, true)
+check("reconnect dropped the stale Astos", objects[astos].Active, false)
+check("reconnect left UAT_CHECKED alone", UAT_CHECKED[516], true)
+
+-- The restore that lands *after* the connect, on a slot with nothing checked:
+-- no location ever reaches markAPChecked, so absorbForPath never gets to
+-- notice and only reassertBoard can put the board back.
+local moved, seen = {}, {}
+for id = 257, 400 do
+  local v = LOCATION_MAPPING[id]
+  local path = v and v[1]
+  if path and path:sub(1,1) == "@" and objects[path] and not seen[path] and #moved < 6 then
+    if objects[path].ChestCount > 0 then
+      seen[path] = true
+      moved[#moved+1] = path
+    end
+  end
+end
+check("found sections to move", #moved, 6)
+for _, path in ipairs(moved) do objects[path].AvailableChestCount = 0 end
+
+reassertBoard()
+
+local restored = 0
+for _, path in ipairs(moved) do
+  if objects[path].AvailableChestCount == objects[path].ChestCount then restored = restored + 1 end
+end
+check("reassert put every moved section back", restored, #moved)
+check("reassert kept the bridge's Bikke", objects[bikke].Active, true)
+
+-- A move small enough to be a person is still a person: it is carried, not
+-- overwritten. MANUAL_BULK_LIMIT is 3.
+objects[moved[1]].AvailableChestCount = 0
+reassertBoard()
+check("a single hand clear survives reassert", objects[moved[1]].AvailableChestCount, 0)
+
 print(fail==0 and "\nALL PASS" or string.format("\n%d FAILURE(S)",fail))
 os.exit(fail==0 and 0 or 1)

@@ -24,6 +24,46 @@ ScriptHost:LoadScript("scripts/autotracking/ram_mapping.lua")
 ScriptHost:LoadScript("scripts/autotracking/mapValues.lua")
 ScriptHost:LoadScript("scripts/autotracking/maptab.lua")
 
+-- Re-assert the board a moment after a session connects.
+--
+-- PopTracker restores its own saved state after the pack's scripts have run
+-- and gives a pack no signal that it did. onClear's reset runs on connect, so
+-- a restore landing after it wins -- and a slot with nothing checked yet sends
+-- no locations, so no feed event ever comes along to put it right. What the
+-- player sees is the seed they tracked last, on a seed they have not started.
+-- See reassertBoard in scripts/autotracking/reconcile.lua.
+--
+-- One shot per connect. The handler removes itself once it has fired, so it
+-- cannot come back and argue with sections cleared by hand later on.
+--
+-- os.clock is CPU time, not wall time, so under a GUI that spends most of a
+-- second idle this deadline arrives later than the number suggests. That is
+-- the harmless direction: firing late still catches the restore, where firing
+-- early would re-assert before it and change nothing. The same call is what
+-- the crystal pack times its entrance highlight on.
+local REASSERT_DELAY = 2.0   -- seconds of CPU time, so a generous wall margin
+local REASSERT_HANDLER = "ap board reassert"
+local reassertDeadline = nil
+
+local function reassertOnce()
+  if reassertDeadline and os.clock() < reassertDeadline then
+    return
+  end
+  ScriptHost:RemoveOnFrameHandler(REASSERT_HANDLER)
+  reassertDeadline = nil
+  reassertBoard()
+end
+
+-- Guarded the way scripts/init.lua guards AddVariableWatch: an older host
+-- without the hook keeps the pre-existing behaviour rather than erroring out.
+local function armReassert()
+  if not ScriptHost.AddOnFrameHandler then
+    return
+  end
+  reassertDeadline = os.clock() + REASSERT_DELAY
+  ScriptHost:AddOnFrameHandler(REASSERT_HANDLER, reassertOnce)
+end
+
 function onClear()
   if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
     print(string.format("called onClear"))
@@ -58,6 +98,7 @@ function onClear()
       end
     end
   end
+  armReassert()
 end
 
 function onItem(index, item_id, item_name)

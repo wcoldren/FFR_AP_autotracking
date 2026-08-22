@@ -342,11 +342,47 @@ end
 -- UAT state is independent of the AP server and is deliberately left alone.
 -- The manual offsets do go, though: onClear wipes every item too, so this is
 -- a fresh board rather than a mid-session update the player might be reading.
+--
+-- The hosted codes go with them. They are the one thing here applyAll cannot
+-- take back down on its own, because applyHostedItem is one-way, so without
+-- this the previous seed's NPCs and incentive pins survive an AP connect for
+-- the rest of the session. PopTracker restores its own saved state on load,
+-- which makes "the previous seed" the ordinary case for anyone who tracked one
+-- before, and Incentive Locations is the tab the pack opens on -- so a seed
+-- that had not been started came up looking finished. resetForNewGame has
+-- cleared these since the 2026-08-19 seed swap; this path was left out, and
+-- connecting the bridge was the only way to get a clean board.
+--
+-- Nothing a live feed owns is lost: applyAll re-applies the hosted codes for
+-- everything still in AP_CHECKED and UAT_CHECKED, and AP replays its own
+-- checks through markAPChecked straight after. A code the player set by hand
+-- does go, which is the same deal the manual offsets get just above.
 function resetChecked()
   reconcileInit()
   AP_CHECKED = {}
   WRITTEN = {}
   MANUAL = {}
+  Tracker.BulkUpdate = true
+  clearHostedItems()
+  Tracker.BulkUpdate = false
+  applyAll()
+end
+
+-- Re-assert the whole board from the feeds, for a caller with reason to think
+-- something else moved it.
+--
+-- PopTracker restores its own saved state after the pack's scripts have run,
+-- and nothing tells a pack when that has happened. resetChecked's recompute
+-- runs on connect, so a restore landing after it gets the last word -- and on
+-- a slot with no checks yet there is nothing to replay, so markAPChecked never
+-- runs and absorbForPath never gets to notice. The restored board then stands
+-- with no feed event able to correct it.
+--
+-- applyAll is already the right answer: absorbPlayerEdits sees the whole board
+-- moved in one pass, drops the deviations as a restore rather than as hand
+-- clears, and the recompute puts back what the feeds actually report.
+function reassertBoard()
+  reconcileInit()
   applyAll()
 end
 
