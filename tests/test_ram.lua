@@ -146,6 +146,104 @@ applyRamRules(byteAt)
 check("fairy turn-in keeps 'bottle'", provided("bottle"), true)
 check("fairy turn-in keeps 'bottlepopped'", provided("bottlepopped"), true)
 
+-- The Ruby's consequence outlives the item by the widest margin of any turn-in:
+-- Talk_Titan takes it, and from that moment Titan's Tunnel is simply open for
+-- the rest of the seed. Both Titan's Trove and Sarda's Cave gate on the bare
+-- `ruby` code, so if the spent Ruby stopped providing it, the chests behind
+-- Titan would go red on the seed where they had just opened -- the same shape
+-- of bug as the Bottle above, but on four chests and Sarda rather than one NPC.
+--
+-- Stage 1 carries "ruby,titan" for exactly this reason. These cases pin the
+-- real access_rules out of locations/overworld.json to it rather than asserting
+-- on the code alone, so a later edit that swaps `ruby` for a code the consumed
+-- state does not provide fails here instead of in someone's run.
+local OVERWORLD = json.load(PACK .. "/locations/overworld.json")
+
+-- First node with this name, depth first. Names are unique in the tree.
+local function findLocation(nodes, name)
+  for _, node in ipairs(nodes or {}) do
+    if node.name == name then return node end
+    local hit = findLocation(node.children, name)
+    if hit then return hit end
+  end
+end
+
+-- One access_rules entry: comma-separated terms, all of which must hold.
+-- Only the two forms these locations use are understood; anything else is a
+-- hard error rather than a quiet pass, so the day a rule grows a `@section`
+-- or a `count:` term this stops claiming to have checked it.
+local function ruleHolds(rule)
+  for raw in string.gmatch(rule, "[^,]+") do
+    local term = raw:match("^%s*(.-)%s*$")
+    local held
+    if term:sub(1, 1) == "$" then
+      local fn = _G[term:sub(2)]
+      if not fn then error("access rule calls unknown logic function " .. term) end
+      held = (fn() or 0) > 0
+    elseif term:match("^[%w_]+$") then
+      held = provided(term)
+    else
+      error("test cannot evaluate access rule term: " .. term)
+    end
+    if not held then return false end
+  end
+  return true
+end
+
+-- PopTracker takes a location as reachable if ANY of its access_rules holds.
+local function inLogic(name)
+  local node = findLocation(OVERWORLD, name)
+  if not node then error("no location named " .. name .. " in overworld.json") end
+  if not node.access_rules or #node.access_rules == 0 then return true end
+  for _, rule in ipairs(node.access_rules) do
+    if ruleHolds(rule) then return true end
+  end
+  return false
+end
+
+reset()
+-- A forested seed, so the one Sarda route that does not need the Ruby
+-- ($noSardasForest,airship) is closed and both locations really do hang on it.
+byCode["sardasForest"].Active = true
+MEM[0x602B] = 1                                  -- Floater
+MEM[0x6004] = 1                                  -- airship flying
+MEM[0x6029] = 1                                  -- Ruby in the bag
+applyRamRules(byteAt)
+check("ruby held provides 'ruby'", provided("ruby"), true)
+check("ruby held does NOT provide 'titan'", provided("titan"), false)
+check("ruby held: Titan's Trove in logic", inLogic("Titan's Trove"), true)
+check("ruby held: Sarda's Cave in logic", inLogic("Sarda's Cave"), true)
+
+MEM[0x6029] = 0                                  -- Talk_Titan eats the Ruby
+MEM[0x6214] = 0x02                               -- and sets his event flag
+applyRamRules(byteAt)
+check("spent ruby keeps 'ruby'", provided("ruby"), true)
+check("Titan done provides 'titan'", provided("titan"), true)
+check("spent ruby: Titan's Trove stays in logic", inLogic("Titan's Trove"), true)
+check("spent ruby: Sarda's Cave stays in logic", inLogic("Sarda's Cave"), true)
+
+-- Attaching the tracker to a save that is already past Titan never sees the
+-- stage-0 sighting at all, so stage 1 has to stand on the event flag alone.
+reset()
+byCode["sardasForest"].Active = true
+MEM[0x602B] = 1
+MEM[0x6004] = 1
+MEM[0x6214] = 0x02                               -- only Titan's flag survives
+applyRamRules(byteAt)
+check("cold start past Titan provides 'ruby'", provided("ruby"), true)
+check("cold start past Titan: Titan's Trove in logic", inLogic("Titan's Trove"), true)
+check("cold start past Titan: Sarda's Cave in logic", inLogic("Sarda's Cave"), true)
+
+-- The negative: without the Ruby a forested Sarda and the Trove are both shut,
+-- so the cases above are not passing on some unrelated always-true route.
+reset()
+byCode["sardasForest"].Active = true
+MEM[0x602B] = 1
+MEM[0x6004] = 1
+applyRamRules(byteAt)
+check("no ruby: Titan's Trove out of logic", inLogic("Titan's Trove"), false)
+check("no ruby: Sarda's Cave out of logic", inLogic("Sarda's Cave"), false)
+
 ------------------------------------------------------------------
 -- Bosses
 ------------------------------------------------------------------
