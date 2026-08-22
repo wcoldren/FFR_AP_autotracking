@@ -122,7 +122,11 @@ function onItem(index, item_id, item_name)
   end
   local obj = Tracker:FindObjectForCode(v[1])
   if obj then
-    print(string.format("onItem: Found object %s", obj))
+    -- Debug-gated like everything else in this handler. Ungated it printed a
+    -- bare table address to the PopTracker log once per item received.
+    if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
+      print(string.format("onItem: found object for %s", v[1]))
+    end
     if v[2] == "toggle" then
       obj.Active = true
     elseif v[2] == "progressive" then
