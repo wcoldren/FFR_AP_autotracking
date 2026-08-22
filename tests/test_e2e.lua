@@ -170,7 +170,7 @@ put(0x6021,1)
 captured.cb(store)
 check("orbs lit on the finished seed", objects["airorb"].CurrentStage, 1)
 check("slab at Lefein's stage", objects["slab"].CurrentStage, 3)
-check("twelve shards", objects["shards"].CurrentStage, 11)
+check("twelve shards", objects["shards"].CurrentStage, 12)
 check("lute held", objects["lute"].Active, true)
 
 -- A brand new game on a different cartridge: the flag page comes back as

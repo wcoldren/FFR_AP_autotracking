@@ -88,6 +88,8 @@ function onClear()
         elseif v[2] == "progressive" then
           obj.CurrentStage = 0
           obj.Active = false
+        elseif v[2] == "count" then
+          obj.CurrentStage = 0
         elseif v[2] == "consumable" then
           obj.AcquiredCount = 0
         elseif AUTOTRACKER_ENABLE_DEBUG_LOGGING then
@@ -135,6 +137,13 @@ function onItem(index, item_id, item_name)
       else
         obj.Active = true
       end
+    elseif v[2] == "count" then
+      -- A plain tally. "progressive" cannot be used here: on an item that
+      -- allows a disabled state, setting Active is itself stage 1, but Shards
+      -- has allow_disabled:false and no such state -- so the first shard set
+      -- Active, left CurrentStage at 0, and every count after it read one low.
+      -- The goal then opened a shard late and the grid drew the wrong gif.
+      obj.CurrentStage = (obj.CurrentStage or 0) + 1
     elseif v[2] == "consumable" then
       obj.AcquiredCount = obj.AcquiredCount + 1
     elseif AUTOTRACKER_ENABLE_DEBUG_LOGGING then

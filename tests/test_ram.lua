@@ -283,15 +283,16 @@ check("ship", provided("ship"), true)
 check("bridge", provided("bridge"), true)
 check("canoe", provided("canoe"), true)
 
--- shards has allow_disabled:false, so no offset, and the AP feed leaves
--- CurrentStage at count-1. Match it exactly or the feeds disagree.
+-- shards has allow_disabled:false, so RAM_NO_STAGE_OFFSET holds and the stage
+-- is the count itself. Both feeds used to sit one low; see ITEM_MAPPING type
+-- "count".
 reset()
 MEM[0x6035] = 12
 applyRamRules(byteAt)
-check("shards follows the count up", byCode["shards"].CurrentStage, 11)
+check("shards follows the count up", byCode["shards"].CurrentStage, 12)
 MEM[0x6035] = 3
 applyRamRules(byteAt)
-check("shards follows the count down", byCode["shards"].CurrentStage, 2)
+check("shards follows the count down", byCode["shards"].CurrentStage, 3)
 MEM[0x6035] = 0
 applyRamRules(byteAt)
 check("shards clears at zero", byCode["shards"].CurrentStage, 0)
@@ -299,10 +300,10 @@ check("shards clears at zero", byCode["shards"].CurrentStage, 0)
 reset()
 MEM[0x6035] = 1
 applyRamRules(byteAt)
-check("1 shard -> stage 0", byCode["shards"].CurrentStage, 0)
+check("1 shard -> stage 1", byCode["shards"].CurrentStage, 1)
 MEM[0x6035] = 25
 applyRamRules(byteAt)
-check("25 shards -> stage 24", byCode["shards"].CurrentStage, 24)
+check("25 shards -> stage 25", byCode["shards"].CurrentStage, 25)
 MEM[0x6035] = 99
 applyRamRules(byteAt)
 check("99 shards clamps to max stage", byCode["shards"].CurrentStage, RAM_SHARDS.maxStage)

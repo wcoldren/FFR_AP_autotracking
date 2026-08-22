@@ -15,7 +15,10 @@ ITEM_MAPPING = {
   [270] = {"cube", "toggle"},
   [271] = {"bottle", "progressive"},
   [272] = {"oxyale", "toggle"},
-  [277] = {"shards", "progressive"},
+  -- Not "progressive": Shards is the pack's only allow_disabled:false
+  -- progressive, so Active is not a separate off state and the first grant has
+  -- to advance the stage like every other one. See onItem.
+  [277] = {"shards", "count"},
   [480] = {"ship", "toggle"},
   [488] = {"bridge", "toggle"},
   [492] = {"canal", "toggle"},

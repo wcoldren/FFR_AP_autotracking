@@ -190,10 +190,13 @@ Tracker.ActiveVariantUID = "6shardHunt"
 byCode["shardsRequired"].Active = true
 byCode["shardsRequired"].CurrentStage = 8   -- what init.lua sets: 24 shards
 byCode["shards"].Active = true
+-- The stage is the shard count itself, so the goal opens on the 24th shard
+-- and not the 25th. Both feeds published count-1 before, which cost a shard.
 byCode["shards"].CurrentStage = 23
 check("a shard hunt is not gated on orbs", canBreakOrb(), 0)
+check("23 of 24 shards is not enough", canBreakOrb(), 0)
 byCode["shards"].CurrentStage = 24
-check("and opens on the shard count", canBreakOrb(), 1)
+check("and opens on the 24th shard", canBreakOrb(), 1)
 Tracker.ActiveVariantUID = "5standard"
 
 ------------------------------------------------------------------

@@ -116,10 +116,15 @@ RAM_RULES = {
   { code = "canal",  stage = 0, addr = 0x600C, zero = true },
 }
 
--- Shard count is a number, not a flag, so it gets its own rule.
--- The AP feed advances this item once per shard received, leaving
--- CurrentStage at count-1 (the first shard only sets Active). Match that
--- exactly, or the two feeds would disagree by one.
+-- Shard count is a number, not a flag, so it gets its own rule. The stage is
+-- the count itself: Shards is allow_disabled:false, so RAM_NO_STAGE_OFFSET
+-- holds and CurrentStage is the stages[] index directly.
+--
+-- This used to publish count-1, to agree with an AP feed that granted the
+-- first shard as Active and left the stage at zero. Both ends were one low --
+-- one shard drew shard-00.gif, and hasEnoughShards wanted 29 for a 28-shard
+-- goal. The AP side counts properly now (ITEM_MAPPING type "count"), so this
+-- one no longer has to be bent to match it.
 RAM_SHARDS = { code = "shards", addr = 0x6035, maxStage = 36 }
 
 -- Chaos is not here either, but it is tracked: it is an ordinary event flag
@@ -261,7 +266,7 @@ function applyRamRules(byteAt)
 
   local shards = byteAt(RAM_SHARDS.addr)
   if shards and shards > 0 then
-    best[RAM_SHARDS.code] = math.min(shards - 1, RAM_SHARDS.maxStage)
+    best[RAM_SHARDS.code] = math.min(shards, RAM_SHARDS.maxStage)
   end
 
   -- A byteAt that answered nothing at all is a malformed feed, not a game with
