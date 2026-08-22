@@ -126,6 +126,26 @@ check("Lefein -> slabTurnIn", provided("slabTurnIn"), true)
 check("slabTranslated survives stage 2", provided("slabTranslated"), true)
 check("Dr Unne marker stays cleared", markerCleared("slabTranslated"), true)
 
+-- The Bottle is the one item spent by using it rather than by a turn-in: the
+-- inventory byte clears the moment it is popped, while the Fairy's event bit
+-- does not arrive until she is talked to, potentially hours later. @Gaia/Fairy
+-- is gated on the bare `bottle` code, so the popped state has to hold that
+-- code across the whole gap or the check falls out of logic while it is open.
+reset()
+MEM[0x602F] = 1
+applyRamRules(byteAt)
+check("bottle held provides 'bottle'", provided("bottle"), true)
+check("bottle held is not popped yet", provided("bottlepopped"), false)
+MEM[0x602F] = 0                                  -- UseItem_Bottle empties it
+MEM[0x6213] = 0x01                               -- ShowMapObject(OBJID_FAIRY)
+applyRamRules(byteAt)
+check("popped bottle keeps 'bottle'", provided("bottle"), true)
+check("popped bottle provides 'bottlepopped'", provided("bottlepopped"), true)
+MEM[0x6213] = 0x03                               -- then the Fairy hands over
+applyRamRules(byteAt)
+check("fairy turn-in keeps 'bottle'", provided("bottle"), true)
+check("fairy turn-in keeps 'bottlepopped'", provided("bottlepopped"), true)
+
 ------------------------------------------------------------------
 -- Bosses
 ------------------------------------------------------------------

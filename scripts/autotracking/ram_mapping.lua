@@ -68,7 +68,9 @@ RAM_RULES = {
   { code = "oxyale", stage = 0, addr = 0x6030 },
 
   -- Key items with a turn-in. Stage 0 is holding it; stage 1 is the NPC's
-  -- event flag, which is what survives after the item is consumed.
+  -- event flag, which is what survives after the item is consumed. The talk
+  -- that takes the item is the same talk that sets the flag, so there is no
+  -- window where neither stage holds. The Bottle below does not work this way.
   { code = "crown",   stage = 0, addr = 0x6022 },
   { code = "crown",   stage = 1, addr = 0x6207, mask = 0x02 },  -- Astos
   { code = "crystal", stage = 0, addr = 0x6023 },
@@ -83,8 +85,18 @@ RAM_RULES = {
   { code = "ruby",    stage = 1, addr = 0x6214, mask = 0x02 },  -- Titan
   { code = "tail",    stage = 0, addr = 0x602D },
   { code = "tail",    stage = 1, addr = 0x620E, mask = 0x02 },  -- Bahamut
+  -- The Bottle is spent by USING it, not by handing it over, so its two events
+  -- are an unbounded stretch of play apart. UseItem_Bottle zeroes $602F and
+  -- calls ShowMapObject(OBJID_FAIRY) in the same breath (bank_0E.asm:6925),
+  -- and ShowMapObject sets the object-visible bit, 0x01. The Fairy's event bit
+  -- 0x02 only arrives later, when she is actually talked to. Matching 0x02
+  -- alone left nothing providing `bottle` for exactly the stretch where the
+  -- Fairy check is open, which is what @Gaia/Fairy's access rule reads -- so
+  -- the marker went red on the seed where it had just gone live. 0x03 rather
+  -- than 0x01 so the stage holds either way, in case FFR hides the object on
+  -- the turn-in the way Talk_Titan does.
   { code = "bottle",  stage = 0, addr = 0x602F },
-  { code = "bottle",  stage = 1, addr = 0x6213, mask = 0x02 },  -- Fairy
+  { code = "bottle",  stage = 1, addr = 0x6213, mask = 0x03 },  -- Fairy popped
 
   -- Slab has two turn-ins: Unne translates it, Lefein takes it.
   { code = "slab", stage = 0, addr = 0x6028 },
