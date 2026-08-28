@@ -47,7 +47,10 @@ emu = {
     if ROM_INFO == nil then error("getRomInfo unavailable") end
     return ROM_INFO
   end,
-  eventType = { endFrame = 3, reset = 4, stateLoaded = 7, scriptEnded = 9 },
+  -- Real ordinals, from the eventType enum in Mesen's embedded API docs:
+  -- nmi, irq, startFrame, endFrame, reset, scriptEnded, inputPolled,
+  -- stateLoaded, stateSaved, codeBreak. scriptEnded is 5; 9 is codeBreak.
+  eventType = { endFrame = 3, reset = 4, scriptEnded = 5, stateLoaded = 7 },
   read = function(addr, t)
     if t == 0x101 then return PRGROM[addr] or 0 end
     return MEMORY[addr] or 0
@@ -57,7 +60,7 @@ emu = {
   addEventCallback = function(fn, ev)
     if ev == 3 then frameCb = fn
     elseif ev == 4 or ev == 7 then resetCb = fn
-    elseif ev == 9 then scriptEndedCb = fn end
+    elseif ev == 5 then scriptEndedCb = fn end
   end,
   -- The run clock's HUD. Every draw is captured so a test can assert on the
   -- text that would have been on screen that frame.
@@ -566,8 +569,13 @@ local function advance(n)
 end
 
 -- A save that is mid-run does not start a run. seedA above was loaded with a
--- chest already open at byte 0x2B, so the clock never armed for it.
-check("a mid-run save does not start the clock", FILES[TIMER], nil)
+-- chest already open at byte 0x2B, so the clock never armed for it. The state
+-- file exists by now -- the teardown at scriptEnded wrote one -- so the thing
+-- to assert is what it says, which is "waiting" rather than "running". Those
+-- have to be distinct: resuming a "running" clock starts it ticking, and a run
+-- nobody began must not tick.
+check("a mid-run save leaves the clock waiting",
+  (FILES[TIMER] or ""):find("\twaiting\t", 1, true) ~= nil, true)
 
 -- A brand new game: the flag page back at lut_InitGameFlags, which is 0x01
 -- almost everywhere -- visible objects, nothing opened and nobody talked to.
@@ -607,10 +615,12 @@ check("and recorded once, not per frame", timesMatching("  clock  "), 1)
 -- disk -- and with PopTracker shut, since scan() never runs without a client.
 -- Re-running the file gives a fresh set of locals and re-registers the
 -- callbacks, which is what a restart looks like from in here.
+-- The cartridge is re-read at the scan cadence, so give the restarted script
+-- more than one tick to notice which seed it is looking at.
 local savedState = FILES[TIMER]
 assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
 DRAWN = {}
-frames(2)
+frames(12)
 check("a restart resumes the run off disk", shown(), stopped)
 
 -- ...but only for the cartridge the file names. Another seed's state file is
@@ -619,8 +629,61 @@ FILES[TIMER] = savedState
 ROM_INFO = { name = "seedG.nes", path = "/roms/seedG.nes", fileSha1Hash = "sha-G" }
 assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
 DRAWN = {}
-frames(2)
+frames(12)
 check("another cartridge does not adopt it", shown(), "0:00:00.00")
+
+------------------------------------------------------------------
+-- The restart gap.
+--
+-- A power cycle destroys the Lua state without firing scriptEnded, and Mesen
+-- keeps emulating while the replacement script starts up. Those frames are
+-- real run time and nothing counts them, so a resume adds the wall-clock gap
+-- back -- bounded, because the same "script started and found a state file"
+-- situation is also what closing Mesen and reopening it tomorrow looks like.
+------------------------------------------------------------------
+
+local function stateLine(rom, frameCount, state, stamp)
+  return string.format("%s\t%d\t%s\t%d\n", rom, frameCount, state, stamp)
+end
+local function restartWith(rom, line)
+  FILES[TIMER] = line
+  ROM_INFO = { name = rom .. ".nes", path = "/roms/" .. rom .. ".nes", fileSha1Hash = rom }
+  assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+  DRAWN = {}
+  frames(12)
+  return framesOf(shown())
+end
+
+-- 600 frames banked, three seconds down: about 180 frames of NTSC come back,
+-- plus the handful this harness itself advances before reading the HUD.
+local short = restartWith("sha-H", stateLine("sha-H", 600, "running", os.time() - 3))
+check("a power cycle's gap is added back", short >= 770 and short <= 800, true)
+
+-- An hour is not a power cycle.
+local long = restartWith("sha-I", stateLine("sha-I", 600, "running", os.time() - 3600))
+check("an overnight gap is not", long >= 600 and long <= 615, true)
+
+-- A run that already stopped does not gain time from either.
+local done = restartWith("sha-J", stateLine("sha-J", 600, "done", os.time() - 3))
+check("a finished run is never advanced", done, 600)
+
+-- A cartridge seen but never started stays at zero rather than resuming into a
+-- run nobody began.
+local waiting = restartWith("sha-K", stateLine("sha-K", 0, "waiting", os.time() - 3))
+check("a waiting clock does not start itself", waiting, 0)
+
+-- The teardown write. It cannot be counted on for a power cycle, but a manual
+-- stop does route through it, and it costs nothing to have.
+for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
+MEMORY[0x6102] = 0x41
+ROM_INFO = { name = "seedL.nes", path = "/roms/seedL.nes", fileSha1Hash = "sha-L" }
+FILES[TIMER] = nil
+assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+frames(45)                       -- starts the clock, still short of a checkpoint
+local beforeStop = FILES[TIMER]
+scriptEndedCb()
+check("the clock was not checkpointed yet", beforeStop ~= FILES[TIMER], true)
+check("teardown wrote it", (FILES[TIMER] or ""):find("sha-L", 1, true) ~= nil, true)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

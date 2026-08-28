@@ -78,10 +78,24 @@ menus and a debugger break all do the same. Nothing in Mesen's Lua API reports
 focus or pause state, so counting frames is not a shortcut here -- it is the only
 way to get that behaviour, and it is exact at the split as a bonus.
 
-The clock does not need PopTracker. It keeps its position in `ffr_timer.state`
-beside the ROM and resumes from it, so a power cycle, a script re-run or picking
-the seed up tomorrow all continue the same run rather than starting a new one --
-and the file names the cartridge, so another seed's clock is never adopted. The
+The clock does not need PopTracker, for starting it or for keeping it. It keeps
+its position in `ffr_timer.state` beside the ROM and resumes from it, so a power
+cycle, a script re-run or picking the seed up tomorrow all continue the same run
+rather than starting a new one -- and the file names the cartridge, so another
+seed's clock is never adopted.
+
+Resets are the case that matters, and the two kinds are not alike. A soft reset
+-- the controller combo, or Mesen's Reset, which is the one a run actually
+leans on -- leaves the script alive, so frames keep arriving and the clock does
+not so much as flinch. A power cycle destroys the script. Mesen starts a fresh
+one, and it reads the clock back off disk, but the frames in between are gone:
+Mesen tears the Lua state down in a way that fires no `scriptEnded`, so nothing
+gets a last write in. Two things keep the damage small. The clock is written
+down once a second, so at most a second of it dies with the script; and the
+state file carries a timestamp, so the restart itself is measured and added
+back. That bridge is capped at fifteen seconds -- a power cycle is back well
+inside it, and an emulator closed overnight must not donate the night to the
+run. The
 final time is appended to `ffr_times.log` as a third kind of line:
 
     2026-08-21 20:11:02  clock  FFR_6BF0DEA9_XsBTKFAK.nes  2:40:54.38

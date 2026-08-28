@@ -90,7 +90,18 @@ local TIMER_FILE = "ffr_timer.state"
 -- Frames to seconds. The Lua API reports no frame rate, so this is the NES
 -- NTSC figure written down; a PAL cartridge would want 50.007.
 local TIMER_FPS = 60.0988
-local TIMER_SAVE_FRAMES = 300    -- checkpoint the state file about every 5s
+-- How often the clock is written down, and how much a power cycle can cost.
+-- A power cycle destroys the Lua state through ~Debugger -> ~ScriptManager,
+-- which -- unlike ScriptManager::RemoveScript -- emits no scriptEnded, so the
+-- teardown hook cannot be relied on to get a last write in. The checkpoint
+-- interval is therefore the real bound on what a hard reset loses, and one
+-- second of a run is worth more than one small file write per second.
+local TIMER_SAVE_FRAMES = 60
+
+-- How long a gap the clock will bridge when it resumes. A power cycle has the
+-- script back in well under this; anything longer is the emulator having been
+-- closed, and that time is not part of the run.
+local TIMER_RESUME_MAX_SECONDS = 15
 
 -- ARGB, matching the pairing Mesen's own bundled example script uses.
 local TIMER_FG_RUNNING = 0xFFFFFF
@@ -765,7 +776,21 @@ local runFrames = 0
 local runRunning = false
 local runFinished = false
 local runSinceSave = 0
-local timerWarned = false
+local startScans = 0
+local clockScan = 0
+-- One flag per failure class. Sharing one silences the other two diagnostics
+-- the first time any of them trips.
+local timerWarned = false     -- the state file
+local drawWarned = false      -- the HUD
+local clockWarned = false     -- the tick itself
+
+local function nowSeconds()
+  if type(os) ~= "table" or not os.time then
+    return nil
+  end
+  local ok, t = pcall(os.time)
+  return ok and type(t) == "number" and t or nil
+end
 
 local function timerPath()
   return besideRom(TIMER_FILE)
@@ -786,15 +811,21 @@ local function saveTimer()
   if not path or not EMU.writeFile then
     return
   end
+  -- The stamp is what lets a resume bridge the restart. 0 when there is no
+  -- clock to read, which reads back as "cannot tell" rather than as 1970.
+  -- Three states, not two. "waiting" is a cartridge whose run has not begun,
+  -- and it has to be distinct from "running" or a resume would set a clock
+  -- ticking for a run nobody started.
+  local state = runFinished and "done" or (runRunning and "running" or "waiting")
   local called, ok = pcall(EMU.writeFile, path,
-    string.format("%s\t%d\t%s\n", runRom or "", runFrames,
-      runFinished and "done" or "running"))
+    string.format("%s\t%d\t%s\t%d\n", runRom or "", runFrames, state,
+      nowSeconds() or 0))
   if called and ok then
     return
   end
   if not timerWarned then
     timerWarned = true
-    EMU.log("cannot write " .. path .. " -- the run clock will not survive a restart")
+    EMU.log("cannot write " .. path .. " -- a power cycle will lose this run")
   end
 end
 
@@ -809,14 +840,30 @@ local function loadTimer(rom)
   if not called or type(text) ~= "string" then
     return
   end
-  local savedRom, frames, state = text:match("^([^\t]*)\t(%d+)\t(%a+)")
+  local savedRom, frames, state, stamp = text:match("^([^\t]*)\t(%d+)\t(%a+)\t?(%d*)")
   if not savedRom or savedRom ~= rom then
     return
   end
   runFrames = tonumber(frames) or 0
   runFinished = (state == "done")
-  runRunning = not runFinished
-  EMU.log("resuming the run clock at " .. clockText(runFrames))
+  runRunning = (state == "running")
+  if not runRunning and not runFinished then
+    return          -- a cartridge we had seen but never started timing
+  end
+
+  -- Bridge the restart. Emulation was running for that window and we were not
+  -- listening, so those frames are real run time -- but only up to a point:
+  -- past the cap this is the emulator having been closed and reopened, and
+  -- that is not the run. A finished run is never advanced.
+  local wrote, now = tonumber(stamp) or 0, nowSeconds()
+  local gap = (runRunning and now and wrote > 0) and (now - wrote) or 0
+  if gap > 0 and gap <= TIMER_RESUME_MAX_SECONDS then
+    runFrames = runFrames + math.floor(gap * TIMER_FPS + 0.5)
+    EMU.log(string.format("resuming the run clock at %s (+%ds across the restart)",
+      clockText(runFrames), gap))
+  else
+    EMU.log("resuming the run clock at " .. clockText(runFrames))
+  end
 end
 
 local function ensureTimerFor(rom)
@@ -841,19 +888,35 @@ local function freshGame(mem)
   return true
 end
 
--- Called from the trusted scan, where the flag page is already in hand. Start
--- only: once a run is going, a mid-run save load cannot satisfy freshGame, so
--- loading a save resumes rather than restarts.
-local function noteRunClock(rom, mem)
-  ensureTimerFor(rom)
-  if runRunning or runFinished then
+-- Watch for a new game. Start only: once a run is going, a mid-run save load
+-- cannot satisfy freshGame, so loading a save resumes rather than restarts.
+--
+-- This used to hang off scan(), which only runs while PopTracker is connected
+-- -- so starting a new game with the tracker shut left the run untimed
+-- altogether. It reads the flag page itself instead, at the scan cadence
+-- because that is what it costs and because a run only starts once.
+--
+-- The stability count is its own rather than the scan's `guardScans`, which
+-- only advances from scan() and would have carried the same dependency. Same
+-- purpose: a half-initialised frame on the way out of a reset must not read as
+-- a new game.
+local function pollForStart()
+  if runRunning or runFinished or not runRom or runRom == "" then
+    startScans = 0
     return
   end
-  if freshGame(mem) then
-    runFrames, runRunning = 0, true
-    EMU.log("new game -- run clock started")
-    saveTimer()
+  local mem = readMem()
+  if not inGame(mem) or looksUninitialised(mem) or not freshGame(mem) then
+    startScans = 0
+    return
   end
+  startScans = startScans + 1
+  if startScans < GUARD_STABLE_SCANS then
+    return
+  end
+  runFrames, runRunning = 0, true
+  EMU.log("new game -- run clock started")
+  saveTimer()
 end
 
 -- Every frame, and deliberately not behind the socket gate: the clock is worth
@@ -863,12 +926,26 @@ local function tickRunClock()
   -- only runs while PopTracker is connected, and a script restarted by a power
   -- cycle has to be able to pick its own run back up off disk with the tracker
   -- closed. "" is the emulator declining to say, so keep asking.
-  if runRom == nil or runRom == "" then
+  -- Everything that needs more than a byte runs at the scan cadence rather
+  -- than every frame: which cartridge is in the slot, and whether a new game
+  -- has begun. Both used to hang off scan(), which only runs while PopTracker
+  -- is connected -- so a swap went unnoticed and a new game with the tracker
+  -- shut was never timed at all.
+  clockScan = clockScan + 1
+  if clockScan >= SCAN_INTERVAL_FRAMES then
+    clockScan = 0
+    -- "" is the emulator declining to answer, usually for a frame or two around
+    -- a load. Adopting it would zero the clock and then read it back off disk,
+    -- which costs a checkpoint interval of run time for nothing.
     local rom = EMU.romId and EMU.romId() or ""
     if rom ~= "" then
-      ensureTimerFor(rom)
+      ensureTimerFor(rom)     -- a no-op unless the cartridge actually changed
+    end
+    if not runRunning and not runFinished then
+      pollForStart()
     end
   end
+
   if not runRunning then
     return
   end
@@ -900,10 +977,10 @@ local function drawRunClock()
     return
   end
   local ok = pcall(EMU.drawText, clockText(runFrames), runFinished)
-  if ok or timerWarned then
+  if ok or drawWarned then
     return
   end
-  timerWarned = true
+  drawWarned = true
   EMU.log("cannot draw the run clock -- it is still being kept and logged")
 end
 
@@ -937,7 +1014,6 @@ local function scan()
   lastGoal = (at(mem, FLAGS_OFF + GOAL_BYTE) & 0x02) ~= 0
   lastMap = readMap()
   noteRunProgress(lastRom, lastGoal)
-  noteRunClock(lastRom, mem)
   sendState(lastMem, true, lastGoal, lastMap, lastRom, lastFlags)
 end
 
@@ -1175,8 +1251,8 @@ local function onFrame()
   -- Ahead of the pump and outside the client gate: the run clock follows the
   -- emulator, not PopTracker.
   local okClock, errClock = pcall(tickRunClock)
-  if not okClock and not timerWarned then
-    timerWarned = true
+  if not okClock and not clockWarned then
+    clockWarned = true
     EMU.log("run clock error: " .. tostring(errClock))
   end
   drawRunClock()
@@ -1199,6 +1275,14 @@ emu.addEventCallback(invalidate, emu.eventType.stateLoaded)
 -- pcall'd like the frame callback: this runs while the script is being torn
 -- down, and a Lua error here would surface as a stop-time error dialog rather
 -- than anything useful.
-emu.addEventCallback(function() pcall(shutdown) end, emu.eventType.scriptEnded)
+emu.addEventCallback(function()
+  -- Clock first: the socket close is a courtesy to PopTracker, losing the run
+  -- time is not recoverable. Note this does NOT fire on a power cycle -- that
+  -- tears the Lua state down through ~ScriptManager, which emits nothing -- so
+  -- it covers a manual stop and a reloaded script, and TIMER_SAVE_FRAMES is
+  -- what bounds the loss on a hard reset.
+  pcall(saveTimer)
+  pcall(shutdown)
+end, emu.eventType.scriptEnded)
 
 EMU.log("ready -- waiting for PopTracker on ws://127.0.0.1:" .. UAT_PORT)
