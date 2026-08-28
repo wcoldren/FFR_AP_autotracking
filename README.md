@@ -140,6 +140,23 @@ ROM under Archipelago's output directory:
 
     python3 tools/check_logic.py
 
+One rule that reads like a mistake and is not: the `hwyOrdeals,ship,canal,canoe`
+alternatives on Gaia, Lefein, Mirage Tower and Sky Palace. Those four sit on a
+continent with no dock tile anywhere on it, so a ship cannot land there and
+FFR's vanilla table says plainly `{MapLocation.Gaia, MapChange.Airship}`. The
+canoe is what makes them reachable: it can be taken from the ship straight into
+a river mouth, and there is exactly one river touching that continent, at
+overworld (134, 33). Highway to Ordeals and Gaia Mountain Pass then move you
+around *inside* it -- neither is what gets you on.
+
+So the reachability question for that continent is "does a river touch both the
+ocean and this landmass", not "is there a dock". Walking the map to confirm also
+needs the coast tiles (0x06-0x08, 0x16, 0x18, 0x26-0x28) treated as shoreline
+the ship enters *and* you can walk; making them purely land cuts the ship off
+from the river mouth, and making them purely water severs the path up the pass.
+Either way you get a false negative and four correct rules look like false
+greens.
+
 
 Introducing:  Maps!
 - This is in it's most basic form. These maps were mostly created and shared with the FFR community by DarkmoonEX.
