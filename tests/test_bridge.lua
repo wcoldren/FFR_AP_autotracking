@@ -42,7 +42,7 @@ local T = assert(load(src:sub(1, cut) .. [[
 return {
   sha1 = sha1, b64encode = b64encode, wsAccept = wsAccept,
   wsEncodeText = wsEncodeText, wsEncodeControl = wsEncodeControl,
-  wsDecode = wsDecode,
+  wsDecode = wsDecode, clockText = clockText, TIMER_FPS = TIMER_FPS,
 }
 ]], "bridge-internals"))()
 
@@ -120,6 +120,25 @@ local ping = T.wsEncodeControl(0x9, "pp")
 local po, pp = T.wsDecode(ping)
 check("ping opcode", po, 0x9)
 check("ping payload", pp, "pp")
+
+-- The run clock's readout. Frames rather than seconds, so these are exact
+-- rather than approximate -- which is the point of counting frames.
+local FPS = T.TIMER_FPS
+check("zero frames", T.clockText(0), "0:00:00.00")
+check("one frame", T.clockText(1), "0:00:00.02")
+-- 120 frames of NTSC is 1.9967s. Truncating would read 0:00:01.99, which is
+-- the wrong answer to "how long is two seconds of gameplay".
+check("two seconds", T.clockText(120), "0:00:02.00")
+check("one minute", T.clockText(math.floor(60 * FPS + 0.5)), "0:01:00.00")
+-- No whole frame lands exactly on the hour -- 3600s is 216355.68 frames -- so
+-- the rollover is asserted on the two frames either side of it rather than on
+-- a round number that cannot occur.
+check("last frame under the hour", T.clockText(216355), "0:59:59.99")
+check("first frame past it", T.clockText(216356), "1:00:00.01")
+check("a realistic run", T.clockText(math.floor((2*3600 + 40*60 + 54) * FPS + 0.5)),
+  "2:40:54.00")
+check("hours are not zero padded away", T.clockText(math.floor(10 * 3600 * FPS + 0.5)),
+  "10:00:00.00")
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

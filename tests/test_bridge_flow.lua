@@ -59,17 +59,40 @@ emu = {
     elseif ev == 4 or ev == 7 then resetCb = fn
     elseif ev == 9 then scriptEndedCb = fn end
   end,
+  -- The run clock's HUD. Every draw is captured so a test can assert on the
+  -- text that would have been on screen that frame.
+  drawSurface = { consoleScreen = 0, scriptHud = 1 },
+  selectDrawSurface = function() end,
+  getDrawSurfaceSize = function() return { width = 256, height = 240 } end,
+  measureString = function(text) return 8 * #text end,
+  drawString = function(x, y, text, fg, bg)
+    DRAWN[#DRAWN+1] = { x = x, y = y, text = text, fg = fg, bg = bg }
+  end,
 }
 
--- The run-times file, captured in memory. Appends are the only mode the bridge
--- uses; anything else falls through to the real io so the harness itself is
--- unaffected.
+-- Whatever the HUD drew, most recent last. Cleared by lastDrawn().
+DRAWN = {}
+
+-- Everything the bridge writes beside the ROM, captured in memory: the times
+-- log it appends to, and the run clock's state file, which it truncates and
+-- rewrites. Keyed on the /roms/ prefix rather than on the mode, so a real read
+-- somewhere else in the harness still reaches the real filesystem.
 FILES = {}
 local realIo = io
 io = setmetatable({
   open = function(path, mode)
-    if mode ~= "a" then
+    if type(path) ~= "string" or not path:find("^/roms/") then
       return realIo.open(path, mode)
+    end
+    if mode == "r" then
+      if not FILES[path] then
+        return nil, path .. ": no such file"
+      end
+      local text = FILES[path]
+      return { read = function() return text end, close = function() end }
+    end
+    if mode == "w" then
+      FILES[path] = ""
     end
     return {
       write = function(_, text) FILES[path] = (FILES[path] or "") .. text end,
@@ -494,6 +517,110 @@ frames(12)
 local blob = table.concat(textFrames(allSent()))
 check("no record reads as empty", blob:find('"ff1/flags","value":""', 1, true) ~= nil, true)
 check("a non-FFR cart still scans", blob:find('"ff1/mem"', 1, true) ~= nil, true)
+
+------------------------------------------------------------------
+-- The run clock.
+--
+-- Counted in emulated frames, so this suite can state exact times: frames(n)
+-- calls the endFrame callback n times and that is the only clock involved. A
+-- wall-clock timer could not be asserted on at all, which is a large part of
+-- why the bridge counts frames -- the other part being that frames stop when
+-- the emulator pauses, which is the only auto-pause Mesen's Lua API allows.
+------------------------------------------------------------------
+
+local TIMER = "/roms/ffr_timer.state"
+
+-- What the HUD has on screen right now. DRAWN is cleared before each
+-- measurement rather than by reading, so a frame that drew nothing reads as
+-- nil instead of quietly returning the previous instance's last draw.
+local function shown()
+  local d = DRAWN[#DRAWN]
+  return d and d.text
+end
+local function csOf(text)
+  local h, m, s, c = (text or ""):match("^(%d+):(%d%d):(%d%d)%.(%d%d)$")
+  if not h then return nil end
+  return (tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s)) * 100 + tonumber(c)
+end
+-- A reading back to the frame count that produced it. One NTSC frame is 1.66
+-- hundredths, so no two frame counts round to the same reading and this inverse
+-- is exact. Subtracting two *readings* would not be: each is rounded on its own
+-- and the errors compound into a frame either way. The formatting itself is
+-- asserted exactly in test_bridge.lua.
+local function framesOf(text)
+  local cs = csOf(text)
+  if not cs then return nil end
+  return math.floor((cs / 100) * 60.0988 + 0.5)        -- NES NTSC
+end
+local function framesBetween(before, after)
+  local a, b = framesOf(before), framesOf(after)
+  if not a or not b then return nil end
+  return b - a
+end
+-- Advance n frames and report how many the clock thinks went by.
+local function advance(n)
+  local before = shown()
+  DRAWN = {}
+  frames(n)
+  return framesBetween(before, shown())
+end
+
+-- A save that is mid-run does not start a run. seedA above was loaded with a
+-- chest already open at byte 0x2B, so the clock never armed for it.
+check("a mid-run save does not start the clock", FILES[TIMER], nil)
+
+-- A brand new game: the flag page back at lut_InitGameFlags, which is 0x01
+-- almost everywhere -- visible objects, nothing opened and nobody talked to.
+-- All-zero would read as uninitialised cart RAM and never be trusted at all.
+ROM_INFO = { name = "seedF.nes", path = "/roms/seedF.nes", fileSha1Hash = "sha-F" }
+putFlagRecord("4-9-7", "freshseed")
+for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
+MEMORY[0x6102] = 0x41
+frames(60)
+check("a new game starts the clock", logsMatching(allLogs(), "run clock started"), 1)
+check("the clock is checkpointed to disk", (FILES[TIMER] or ""):find("sha-F", 1, true) ~= nil, true)
+
+DRAWN = {}
+frames(1)
+check("the clock is on screen", csOf(shown()) ~= nil, true)
+check("120 frames advance it by 120", advance(120), 120)
+check("and it keeps counting", advance(60), 60)
+
+-- A soft reset drops the save guard but must not lose the run.
+local beforeReset = shown()
+resetCb()
+DRAWN = {}
+frames(60)
+check("a reset does not zero the clock", framesBetween(beforeReset, shown()), 60)
+
+-- The split is sampled every frame rather than on the 10Hz scan, so it lands
+-- on the frame the flag flips rather than up to six frames later.
+MEMORY[0x6200 + 0xFE] = 0x02
+check("the goal frame is the last one counted", advance(1), 1)
+local stopped = shown()
+check("a stopped clock does not resume", advance(120), 0)
+check("the final time is recorded", timesMatching("  clock  seedF.nes  " .. stopped), 1)
+frames(120)
+check("and recorded once, not per frame", timesMatching("  clock  "), 1)
+
+-- Mesen restarts the script on a power cycle, so the clock has to come back off
+-- disk -- and with PopTracker shut, since scan() never runs without a client.
+-- Re-running the file gives a fresh set of locals and re-registers the
+-- callbacks, which is what a restart looks like from in here.
+local savedState = FILES[TIMER]
+assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+DRAWN = {}
+frames(2)
+check("a restart resumes the run off disk", shown(), stopped)
+
+-- ...but only for the cartridge the file names. Another seed's state file is
+-- somebody else's run.
+FILES[TIMER] = savedState
+ROM_INFO = { name = "seedG.nes", path = "/roms/seedG.nes", fileSha1Hash = "sha-G" }
+assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+DRAWN = {}
+frames(2)
+check("another cartridge does not adopt it", shown(), "0:00:00.00")
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

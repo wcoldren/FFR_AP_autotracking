@@ -83,6 +83,21 @@ local GUARD_C_OFF = 0x0A3
 -- the elapsed total is the last stamp minus the first.
 local TIMES_FILE = "ffr_times.log"
 
+-- The run clock, kept beside the ROM so a seed picked up tomorrow resumes
+-- rather than restarting. One line, rewritten in place rather than appended.
+local TIMER_FILE = "ffr_timer.state"
+
+-- Frames to seconds. The Lua API reports no frame rate, so this is the NES
+-- NTSC figure written down; a PAL cartridge would want 50.007.
+local TIMER_FPS = 60.0988
+local TIMER_SAVE_FRAMES = 300    -- checkpoint the state file about every 5s
+
+-- ARGB, matching the pairing Mesen's own bundled example script uses.
+local TIMER_FG_RUNNING = 0xFFFFFF
+local TIMER_FG_DONE = 0x7CFC7C
+local TIMER_BG = 0xFF000000
+local TIMER_MARGIN = 4
+
 local UAT_PORT = 65399      -- PopTracker's default; fallback is 44444
 local SCAN_INTERVAL_FRAMES = 6   -- ~10Hz memory scan; sockets poll every frame
 local GUARD_STABLE_SCANS = 5     -- consecutive scans, so ~0.5s of a valid save
@@ -99,6 +114,10 @@ local EMU = {
   romId = nil,      -- function() -> string, "" when the emulator will not say
   romPath = nil,    -- function() -> string, nil when the emulator will not say
   appendFile = nil, -- function(path, text) -> ok, err
+  writeFile = nil,  -- function(path, text) -> ok, err   truncating, for state
+  readFile = nil,   -- function(path) -> string, nil when there is no such file
+  drawText = nil,   -- function(text, done) one frame's worth of HUD, nil when
+                    -- the emulator cannot draw
   log = nil,        -- function(msg)
   notify = nil,     -- function(msg)  on-screen
 }
@@ -644,9 +663,10 @@ local runStart = nil        -- os.time() of the first trusted scan this sitting
 local goalRecorded = false
 local timesWarned = false
 
--- The ROM's own directory, so a seed's times land beside the seed. Both
+-- The ROM's own directory, so a seed's files land beside the seed. Both
 -- separators, because the path comes from the emulator rather than from us.
-local function timesPath()
+-- Returns the full path and the cartridge's file name.
+local function besideRom(name)
   if not EMU.romPath then
     return nil
   end
@@ -658,7 +678,11 @@ local function timesPath()
   if not dir then
     return nil
   end
-  return dir .. sep .. TIMES_FILE, romPath:match("([^/\\]*)$")
+  return dir .. sep .. name, romPath:match("([^/\\]*)$")
+end
+
+local function timesPath()
+  return besideRom(TIMES_FILE)
 end
 
 local function hms(seconds)
@@ -718,6 +742,171 @@ local function noteRunProgress(rom, goal)
   end
 end
 
+------------------------------------------------------------------
+-- The run clock: starts on a new game, stops on the goal flag, drawn on the
+-- emulator's own screen.
+--
+-- Counted in frames rather than seconds, and that is the whole design. Mesen's
+-- Lua API exposes no pause state and no window focus -- there is no isPaused,
+-- no hasFocus, and no eventType for either -- so a wall-clock timer cannot tell
+-- a tabbed-away emulator from a running one. Frames can: endFrame stops firing
+-- the moment emulation stops, so the clock holds by itself through Preferences
+-- -> "Pause when in background", a manual pause, the menus and a debugger
+-- break, and resumes without being told. It is also exact at the split, and it
+-- makes the whole thing testable, because the test harness drives time by
+-- calling the frame callback rather than by sleeping.
+--
+-- ffr_times.log above is untouched by any of this. It answers "which evenings
+-- did I play this seed"; the clock here answers "how long has the run taken".
+------------------------------------------------------------------
+
+local runRom = nil
+local runFrames = 0
+local runRunning = false
+local runFinished = false
+local runSinceSave = 0
+local timerWarned = false
+
+local function timerPath()
+  return besideRom(TIMER_FILE)
+end
+
+-- Frames to h:mm:ss.cc. Rounded to the nearest hundredth rather than truncated,
+-- so a whole number of seconds reads as one: 120 frames is 1.9967s of NTSC and
+-- would otherwise show 0:00:01.99.
+local function clockText(frames)
+  local cs = math.floor((frames / TIMER_FPS) * 100 + 0.5)
+  return string.format("%d:%02d:%02d.%02d",
+    cs // 360000, (cs % 360000) // 6000, (cs % 6000) // 100, cs % 100)
+end
+
+local function saveTimer()
+  runSinceSave = 0
+  local path = timerPath()
+  if not path or not EMU.writeFile then
+    return
+  end
+  local called, ok = pcall(EMU.writeFile, path,
+    string.format("%s\t%d\t%s\n", runRom or "", runFrames,
+      runFinished and "done" or "running"))
+  if called and ok then
+    return
+  end
+  if not timerWarned then
+    timerWarned = true
+    EMU.log("cannot write " .. path .. " -- the run clock will not survive a restart")
+  end
+end
+
+-- Only ever adopted when the file names the cartridge in the slot. A state file
+-- left behind by another seed is somebody else's run, not this one's.
+local function loadTimer(rom)
+  local path = timerPath()
+  if not path or not EMU.readFile then
+    return
+  end
+  local called, text = pcall(EMU.readFile, path)
+  if not called or type(text) ~= "string" then
+    return
+  end
+  local savedRom, frames, state = text:match("^([^\t]*)\t(%d+)\t(%a+)")
+  if not savedRom or savedRom ~= rom then
+    return
+  end
+  runFrames = tonumber(frames) or 0
+  runFinished = (state == "done")
+  runRunning = not runFinished
+  EMU.log("resuming the run clock at " .. clockText(runFrames))
+end
+
+local function ensureTimerFor(rom)
+  if runRom == rom then
+    return
+  end
+  runRom, runFrames, runRunning, runFinished = rom, 0, false, false
+  loadTimer(rom)
+end
+
+-- A flag page carrying no chest bit and no event bit anywhere is a game that
+-- has just been started: FF1 re-seeds the page from lut_InitGameFlags on the
+-- way to a new file, and nothing has been opened or talked to yet. It is the
+-- same test the pack uses on its side for "the feed went from checks to none".
+local function freshGame(mem)
+  local flags = flagsOf(mem)
+  for i = 1, #flags do
+    if (flags:byte(i) & 0x06) ~= 0 then     -- 0x02 event, 0x04 chest
+      return false
+    end
+  end
+  return true
+end
+
+-- Called from the trusted scan, where the flag page is already in hand. Start
+-- only: once a run is going, a mid-run save load cannot satisfy freshGame, so
+-- loading a save resumes rather than restarts.
+local function noteRunClock(rom, mem)
+  ensureTimerFor(rom)
+  if runRunning or runFinished then
+    return
+  end
+  if freshGame(mem) then
+    runFrames, runRunning = 0, true
+    EMU.log("new game -- run clock started")
+    saveTimer()
+  end
+end
+
+-- Every frame, and deliberately not behind the socket gate: the clock is worth
+-- having whether or not PopTracker is up.
+local function tickRunClock()
+  -- Adopt the cartridge here rather than waiting for a trusted scan: scan()
+  -- only runs while PopTracker is connected, and a script restarted by a power
+  -- cycle has to be able to pick its own run back up off disk with the tracker
+  -- closed. "" is the emulator declining to say, so keep asking.
+  if runRom == nil or runRom == "" then
+    local rom = EMU.romId and EMU.romId() or ""
+    if rom ~= "" then
+      ensureTimerFor(rom)
+    end
+  end
+  if not runRunning then
+    return
+  end
+  runFrames = runFrames + 1
+
+  -- The split is sampled here rather than on the 10Hz scan so it lands on the
+  -- frame the flag actually flips. One byte, not the whole 0x300 window.
+  local byte = EMU.readByte and EMU.readByte(MEM_ADDR + FLAGS_OFF + GOAL_BYTE)
+  if type(byte) == "number" and (byte & 0x02) ~= 0 then
+    runRunning, runFinished = false, true
+    local stamp = (type(os) == "table" and os.date) and os.date("%Y-%m-%d %H:%M:%S") or "?"
+    local _, romName = timerPath()
+    record(string.format("%s  clock  %s  %s",
+      stamp, romName or runRom or "unknown cartridge", clockText(runFrames)))
+    saveTimer()
+    return
+  end
+
+  runSinceSave = runSinceSave + 1
+  if runSinceSave >= TIMER_SAVE_FRAMES then
+    saveTimer()
+  end
+end
+
+-- Drawn every frame because Mesen's draw calls last exactly one frame by
+-- default, so a stale readout is not a state this can get into.
+local function drawRunClock()
+  if not EMU.drawText or not runRom then
+    return
+  end
+  local ok = pcall(EMU.drawText, clockText(runFrames), runFinished)
+  if ok or timerWarned then
+    return
+  end
+  timerWarned = true
+  EMU.log("cannot draw the run clock -- it is still being kept and logged")
+end
+
 local function scan()
   local mem = readMem()
   lastRom = readRom()
@@ -748,6 +937,7 @@ local function scan()
   lastGoal = (at(mem, FLAGS_OFF + GOAL_BYTE) & 0x02) ~= 0
   lastMap = readMap()
   noteRunProgress(lastRom, lastGoal)
+  noteRunClock(lastRom, mem)
   sendState(lastMem, true, lastGoal, lastMap, lastRom, lastFlags)
 end
 
@@ -919,6 +1109,58 @@ EMU.appendFile = function(path, text)
   f:close()
   return true
 end
+-- Truncating, for the run clock's one-line state file. Separate from
+-- appendFile because that one is open("a") and this has to replace.
+EMU.writeFile = function(path, text)
+  if type(io) ~= "table" or not io.open then
+    return false
+  end
+  local f = io.open(path, "w")
+  if not f then
+    return false
+  end
+  f:write(text)
+  f:close()
+  return true
+end
+EMU.readFile = function(path)
+  if type(io) ~= "table" or not io.open then
+    return nil
+  end
+  local f = io.open(path, "r")
+  if not f then
+    return nil            -- no state file yet is the ordinary first run
+  end
+  local text = f:read("a")
+  f:close()
+  return text
+end
+-- The run clock, top right. Positioned off the surface rather than off a
+-- hardcoded 256x240 so an overscan setting cannot push it off the edge.
+-- consoleScreen rather than scriptHud so it lands in screenshots and video,
+-- which is the point of a run timer.
+EMU.drawText = function(text, done)
+  local surface = emu.drawSurface and emu.drawSurface.consoleScreen
+  if surface and emu.selectDrawSurface then
+    pcall(emu.selectDrawSurface, surface)
+  end
+  local width = 256
+  if emu.getDrawSurfaceSize then
+    local okSize, size = pcall(emu.getDrawSurfaceSize, surface)
+    if okSize and type(size) == "table" and type(size.width) == "number" then
+      width = size.width
+    end
+  end
+  local textWidth = 8 * #text     -- the default font is 8px wide per glyph
+  if emu.measureString then
+    local okM, measured = pcall(emu.measureString, text)
+    if okM and type(measured) == "number" then
+      textWidth = measured
+    end
+  end
+  emu.drawString(width - textWidth - TIMER_MARGIN, TIMER_MARGIN, text,
+    done and TIMER_FG_DONE or TIMER_FG_RUNNING, TIMER_BG)
+end
 EMU.log = function(msg)
   emu.log("[ffr-uat] " .. msg)
 end
@@ -930,6 +1172,14 @@ local frame = 0
 
 local function onFrame()
   frame = frame + 1
+  -- Ahead of the pump and outside the client gate: the run clock follows the
+  -- emulator, not PopTracker.
+  local okClock, errClock = pcall(tickRunClock)
+  if not okClock and not timerWarned then
+    timerWarned = true
+    EMU.log("run clock error: " .. tostring(errClock))
+  end
+  drawRunClock()
   local okPump, errPump = pcall(pump)
   if not okPump then
     EMU.log("pump error: " .. tostring(errPump))

@@ -67,6 +67,32 @@ seed played over several evenings leaves one `start` per evening and a single
 PopTracker is connected, and it needs the same `Allow access to I/O and OS
 functions` restriction the script already requires.
 
+Separately from that log there is a run clock, drawn in the top right of the
+emulator's own screen. It starts itself when you start a new game -- a flag page
+back at its new-game defaults, with nothing opened and nobody talked to -- and
+stops itself on the frame the Chaos flag appears. It counts emulated frames
+rather than seconds, which is what makes it pause when the emulation does: tab
+away with Mesen's `Preferences -> General -> Pause when in background` ticked and
+the clock holds, and it picks up again when you come back. A manual pause, the
+menus and a debugger break all do the same. Nothing in Mesen's Lua API reports
+focus or pause state, so counting frames is not a shortcut here -- it is the only
+way to get that behaviour, and it is exact at the split as a bonus.
+
+The clock does not need PopTracker. It keeps its position in `ffr_timer.state`
+beside the ROM and resumes from it, so a power cycle, a script re-run or picking
+the seed up tomorrow all continue the same run rather than starting a new one --
+and the file names the cartridge, so another seed's clock is never adopted. The
+final time is appended to `ffr_times.log` as a third kind of line:
+
+    2026-08-21 20:11:02  clock  FFR_6BF0DEA9_XsBTKFAK.nes  2:40:54.38
+
+Two things worth knowing. Mesen has its own `Show game timer` HUD, which times
+the session rather than the run; leave it off unless you want both, since they
+share a corner. And the community rule is that timing ends when the battle text
+on Chaos clears, whereas what the cartridge gives us is the goal flag FFR sets
+when the fight is won -- close to that moment but not verified identical, so
+check it against a recording before submitting a time.
+
 It also fills in the flags grid. FFR stamps the flag string it rolled with into
 the cartridge, so the settings that used to need clicking -- Early King, the
 dock and pass flags, Sarda's Forest, open progression, the incentive categories
