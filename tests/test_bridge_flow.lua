@@ -531,7 +531,12 @@ check("a non-FFR cart still scans", blob:find('"ff1/mem"', 1, true) ~= nil, true
 -- the emulator pauses, which is the only auto-pause Mesen's Lua API allows.
 ------------------------------------------------------------------
 
-local TIMER = "/roms/ffr_timer.state"
+-- The state file is named after the cartridge rather than just parked in its
+-- directory. Seeds share an output directory, so one shared file would have
+-- each seed's checkpoint truncate the other seed's run -- and unlike
+-- ffr_times.log, which is append-only with the ROM name on every line, this
+-- one is rewritten in place.
+local function timerFile(rom) return "/roms/ffr_timer." .. rom .. ".state" end
 
 -- What the HUD has on screen right now. DRAWN is cleared before each
 -- measurement rather than by reading, so a frame that drew nothing reads as
@@ -568,14 +573,18 @@ local function advance(n)
   return framesBetween(before, shown())
 end
 
--- A save that is mid-run does not start a run. seedA above was loaded with a
--- chest already open at byte 0x2B, so the clock never armed for it. The state
--- file exists by now -- the teardown at scriptEnded wrote one -- so the thing
--- to assert is what it says, which is "waiting" rather than "running". Those
--- have to be distinct: resuming a "running" clock starts it ticking, and a run
--- nobody began must not tick.
+-- A save that is mid-run does not start a run. seedA at the top of this file
+-- was loaded with a chest already open at byte 0x2B, so the clock never armed
+-- for it. Its state file exists by now -- the teardown at scriptEnded wrote one
+-- -- so the thing to assert is what it says, which is "waiting" rather than
+-- "running". Those have to be distinct: resuming a "running" clock starts it
+-- ticking, and a run nobody began must not tick.
 check("a mid-run save leaves the clock waiting",
-  (FILES[TIMER] or ""):find("\twaiting\t", 1, true) ~= nil, true)
+  (FILES[timerFile("sha-A")] or ""):find("\twaiting\t", 1, true) ~= nil, true)
+-- And it is seedA's own file. Five more cartridges have been through the slot
+-- since, none of them touching this line.
+check("the waiting clock names its own cartridge",
+  (FILES[timerFile("sha-A")] or ""):find("^sha%-A\t") ~= nil, true)
 
 -- A brand new game: the flag page back at lut_InitGameFlags, which is 0x01
 -- almost everywhere -- visible objects, nothing opened and nobody talked to.
@@ -586,7 +595,8 @@ for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
 MEMORY[0x6102] = 0x41
 frames(60)
 check("a new game starts the clock", logsMatching(allLogs(), "run clock started"), 1)
-check("the clock is checkpointed to disk", (FILES[TIMER] or ""):find("sha-F", 1, true) ~= nil, true)
+check("the clock is checkpointed to disk",
+  (FILES[timerFile("sha-F")] or ""):find("\trunning\t", 1, true) ~= nil, true)
 
 DRAWN = {}
 frames(1)
@@ -617,20 +627,66 @@ check("and recorded once, not per frame", timesMatching("  clock  "), 1)
 -- callbacks, which is what a restart looks like from in here.
 -- The cartridge is re-read at the scan cadence, so give the restarted script
 -- more than one tick to notice which seed it is looking at.
-local savedState = FILES[TIMER]
+local savedState = FILES[timerFile("sha-F")]
 assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
 DRAWN = {}
 frames(12)
 check("a restart resumes the run off disk", shown(), stopped)
 
--- ...but only for the cartridge the file names. Another seed's state file is
--- somebody else's run.
-FILES[TIMER] = savedState
+-- ...but only for the cartridge the file names. The file name says that too
+-- now, so this is the copied-or-renamed-by-hand case: seedF's line sitting in
+-- seedG's file is still somebody else's run.
+FILES[timerFile("sha-G")] = savedState
 ROM_INFO = { name = "seedG.nes", path = "/roms/seedG.nes", fileSha1Hash = "sha-G" }
 assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
 DRAWN = {}
 frames(12)
 check("another cartridge does not adopt it", shown(), "0:00:00.00")
+
+-- Two seeds in one directory, which is how seeds actually sit on disk: an
+-- evening spent alternating between them must not cost either one its clock.
+-- The state file is truncated on every write, so a shared name would have
+-- seedN's first checkpoint delete seedM's run outright.
+local function loadCart(rom)
+  ROM_INFO = { name = rom .. ".nes", path = "/roms/" .. rom .. ".nes", fileSha1Hash = rom }
+  DRAWN = {}
+  frames(12)
+end
+for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
+MEMORY[0x6102] = 0x41
+loadCart("sha-M")
+frames(120)                                  -- a short run on the first seed
+local mFrames = framesOf(shown())
+check("the first seed is running", mFrames > 0, true)
+loadCart("sha-N")
+frames(600)                                  -- a much longer one on the second
+local nFrames = framesOf(shown())
+check("the second seed runs its own clock", nFrames > mFrames + 300, true)
+-- Back to the first seed. It resumes from its own last checkpoint, so it lands
+-- a little behind where it was and nowhere near the second seed's time. With a
+-- shared state file the second seed's line is all that is left, this cartridge
+-- refuses to adopt it, and the flag page still reading new-game arms a *fresh*
+-- run -- a clock that has quietly restarted rather than one that reads zero,
+-- which is why the bound below is a checkpoint interval rather than nonzero.
+loadCart("sha-M")
+local mBack = framesOf(shown())
+check("the first seed's clock survived the other seed",
+  mBack >= 60 and mBack < mFrames, true)
+check("both seeds have a file of their own",
+  (FILES[timerFile("sha-M")] or ""):find("^sha%-M\t") ~= nil
+  and (FILES[timerFile("sha-N")] or ""):find("^sha%-N\t") ~= nil, true)
+
+-- A finished seed is not closed out for good. Practice runs, a second attempt
+-- on race night, a reset after a bad start past the goal -- each is a new game
+-- on a cartridge whose state file says "done", and each deserves a clock.
+MEMORY[0x6200 + 0xFE] = 0x02
+frames(2)
+check("the replayed seed is finished for now", advance(60), 0)
+for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end   -- start it again
+allLogs()
+frames(60)
+check("a new game re-arms a finished clock", logsMatching(allLogs(), "run clock started"), 1)
+check("and it is ticking again", advance(60), 60)
 
 ------------------------------------------------------------------
 -- The restart gap.
@@ -646,7 +702,7 @@ local function stateLine(rom, frameCount, state, stamp)
   return string.format("%s\t%d\t%s\t%d\n", rom, frameCount, state, stamp)
 end
 local function restartWith(rom, line)
-  FILES[TIMER] = line
+  FILES[timerFile(rom)] = line
   ROM_INFO = { name = rom .. ".nes", path = "/roms/" .. rom .. ".nes", fileSha1Hash = rom }
   assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
   DRAWN = {}
@@ -672,18 +728,46 @@ check("a finished run is never advanced", done, 600)
 local waiting = restartWith("sha-K", stateLine("sha-K", 0, "waiting", os.time() - 3))
 check("a waiting clock does not start itself", waiting, 0)
 
+-- The debounce is real run time, not overhead. The clock arms on the fifth
+-- consecutive fresh-game read, six frames apart, so four scan intervals of
+-- actual play go by first -- they used to be thrown away, and the clock is
+-- advertised as exact at the split. Frame 30 is the arming scan and counts
+-- itself, hence 25 rather than 24.
+ROM_INFO = { name = "seedP.nes", path = "/roms/seedP.nes", fileSha1Hash = "sha-P" }
+for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
+MEMORY[0x6102] = 0x41
+assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+DRAWN = {}
+frames(30)
+check("the debounce window is credited to the run", framesOf(shown()), 25)
+
 -- The teardown write. It cannot be counted on for a power cycle, but a manual
 -- stop does route through it, and it costs nothing to have.
 for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
 MEMORY[0x6102] = 0x41
 ROM_INFO = { name = "seedL.nes", path = "/roms/seedL.nes", fileSha1Hash = "sha-L" }
-FILES[TIMER] = nil
+FILES[timerFile("sha-L")] = nil
 assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
 frames(45)                       -- starts the clock, still short of a checkpoint
-local beforeStop = FILES[TIMER]
+local beforeStop = FILES[timerFile("sha-L")]
 scriptEndedCb()
-check("the clock was not checkpointed yet", beforeStop ~= FILES[TIMER], true)
-check("teardown wrote it", (FILES[TIMER] or ""):find("sha-L", 1, true) ~= nil, true)
+check("the clock was not checkpointed yet", beforeStop ~= FILES[timerFile("sha-L")], true)
+check("teardown wrote it",
+  (FILES[timerFile("sha-L")] or ""):find("^sha%-L\t") ~= nil, true)
+
+-- ...and a teardown before any cartridge has been adopted writes nothing at
+-- all. A script stopped inside the first six frames used to leave a state file
+-- named after the directory with an empty cartridge id on its line, which then
+-- sat where a real seed's file belonged.
+ROM_INFO = { name = "seedQ.nes", path = "/roms/seedQ.nes", fileSha1Hash = "sha-Q" }
+local before = {}
+for k, v in pairs(FILES) do before[k] = v end
+assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+frames(3)                        -- short of the first scan, so no cartridge yet
+scriptEndedCb()
+local wrote = 0
+for k, v in pairs(FILES) do if before[k] ~= v then wrote = wrote + 1 end end
+check("a teardown with no cartridge writes nothing", wrote, 0)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

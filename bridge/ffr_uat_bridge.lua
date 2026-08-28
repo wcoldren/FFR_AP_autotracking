@@ -84,8 +84,12 @@ local GUARD_C_OFF = 0x0A3
 local TIMES_FILE = "ffr_times.log"
 
 -- The run clock, kept beside the ROM so a seed picked up tomorrow resumes
--- rather than restarting. One line, rewritten in place rather than appended.
-local TIMER_FILE = "ffr_timer.state"
+-- rather than restarting. One line, rewritten in place rather than appended,
+-- and named after the cartridge rather than after the directory: seeds share
+-- an output directory, and a single shared file would have each seed's
+-- checkpoint truncate the other seed's run. ffr_times.log gets away with one
+-- shared file only because it is append-only with the ROM name on every line.
+local TIMER_FILE = "ffr_timer.%s.state"
 
 -- Frames to seconds. The Lua API reports no frame rate, so this is the NES
 -- NTSC figure written down; a PAL cartridge would want 50.007.
@@ -113,6 +117,15 @@ local UAT_PORT = 65399      -- PopTracker's default; fallback is 44444
 local SCAN_INTERVAL_FRAMES = 6   -- ~10Hz memory scan; sockets poll every frame
 local GUARD_STABLE_SCANS = 5     -- consecutive scans, so ~0.5s of a valid save
                                  -- before reads are trusted
+
+-- What the run clock's new-game debounce costs, and therefore what it owes the
+-- run back when it arms. The clock starts on the GUARD_STABLE_SCANS'th
+-- consecutive fresh-game read, which lands GUARD_STABLE_SCANS - 1 scan
+-- intervals after the first one: every frame of that window is play, and
+-- starting from zero threw all of it away. The frames before the first read
+-- are not credited -- the scan cadence cannot see them, and guessing at them
+-- would trade a bounded under-count for an unbounded over-count.
+local START_DEBOUNCE_FRAMES = (GUARD_STABLE_SCANS - 1) * SCAN_INTERVAL_FRAMES
 
 ------------------------------------------------------------------
 -- EMULATOR SEAM
@@ -609,6 +622,29 @@ local function readMem()
   return table.concat(bytes)
 end
 
+-- The same buffer readMem() returns, but with only the bytes the new-game test
+-- actually looks at fetched off the bus: the flag page and the three guard
+-- bytes. Everything else reads as zero, which none of inGame(),
+-- looksUninitialised() or freshGame() consults -- so those three stay the one
+-- definition of each test rather than being restated here in cheaper form.
+-- A third of readMem()'s traffic, which is worth having because this runs on
+-- the same frames the scan does and used to double them.
+local START_OFFSETS = { GUARD_A_OFF, GUARD_B_OFF, GUARD_C_OFF }
+
+local function readStartMem()
+  local bytes = {}
+  for i = 1, MEM_LEN do
+    bytes[i] = "\0"
+  end
+  for i = 0, FLAGS_LEN - 1 do
+    bytes[FLAGS_OFF + i + 1] = string.char(EMU.readByte(MEM_ADDR + FLAGS_OFF + i) & 0xFF)
+  end
+  for _, off in ipairs(START_OFFSETS) do
+    bytes[off + 1] = string.char(EMU.readByte(MEM_ADDR + off) & 0xFF)
+  end
+  return table.concat(bytes)
+end
+
 -- 1-based byte at a MEM offset.
 local function at(mem, off)
   return mem:byte(off + 1)
@@ -792,8 +828,19 @@ local function nowSeconds()
   return ok and type(t) == "number" and t or nil
 end
 
-local function timerPath()
-  return besideRom(TIMER_FILE)
+-- Where one cartridge's clock lives, or nil when the emulator will not say
+-- which cartridge that is. That nil is load-bearing twice over: it keeps a
+-- teardown write from landing on a file named after nobody, and it is why two
+-- seeds in one directory can no longer overwrite each other.
+local function timerPath(rom)
+  rom = rom or runRom
+  if type(rom) ~= "string" or rom == "" then
+    return nil
+  end
+  -- The id is a SHA-1 where the emulator gives one and the cartridge's file
+  -- name where it does not, so it has to survive being part of a file name.
+  local safe = (rom:gsub("[^%w%-%.]", "_"))
+  return besideRom(string.format(TIMER_FILE, safe))
 end
 
 -- Frames to h:mm:ss.cc. Rounded to the nearest hundredth rather than truncated,
@@ -807,6 +854,9 @@ end
 
 local function saveTimer()
   runSinceSave = 0
+  -- nil when we do not know which cartridge this is -- the teardown hook can
+  -- reach here before the first scan has adopted one, and a write then would
+  -- be a run with no name.
   local path = timerPath()
   if not path or not EMU.writeFile then
     return
@@ -818,7 +868,7 @@ local function saveTimer()
   -- ticking for a run nobody started.
   local state = runFinished and "done" or (runRunning and "running" or "waiting")
   local called, ok = pcall(EMU.writeFile, path,
-    string.format("%s\t%d\t%s\t%d\n", runRom or "", runFrames, state,
+    string.format("%s\t%d\t%s\t%d\n", runRom, runFrames, state,
       nowSeconds() or 0))
   if called and ok then
     return
@@ -829,10 +879,12 @@ local function saveTimer()
   end
 end
 
--- Only ever adopted when the file names the cartridge in the slot. A state file
--- left behind by another seed is somebody else's run, not this one's.
+-- Only ever adopted when the file names the cartridge in the slot. The file
+-- name says the same thing now, so this is the second lock rather than the
+-- first -- but it still catches a state file copied or renamed by hand, and a
+-- run adopted by the wrong seed is not a mistake worth being relaxed about.
 local function loadTimer(rom)
-  local path = timerPath()
+  local path = timerPath(rom)
   if not path or not EMU.readFile then
     return
   end
@@ -891,6 +943,11 @@ end
 -- Watch for a new game. Start only: once a run is going, a mid-run save load
 -- cannot satisfy freshGame, so loading a save resumes rather than restarts.
 --
+-- A finished run does not close the cartridge out either. Practice runs, a
+-- second attempt on race night, a reset after a bad start past the goal -- all
+-- of them are a new game on the same seed, and only a new game can get here,
+-- so the finished clock is replaced rather than frozen for good.
+--
 -- This used to hang off scan(), which only runs while PopTracker is connected
 -- -- so starting a new game with the tracker shut left the run untimed
 -- altogether. It reads the flag page itself instead, at the scan cadence
@@ -901,11 +958,11 @@ end
 -- purpose: a half-initialised frame on the way out of a reset must not read as
 -- a new game.
 local function pollForStart()
-  if runRunning or runFinished or not runRom or runRom == "" then
+  if runRunning or not runRom or runRom == "" then
     startScans = 0
     return
   end
-  local mem = readMem()
+  local mem = readStartMem()
   if not inGame(mem) or looksUninitialised(mem) or not freshGame(mem) then
     startScans = 0
     return
@@ -914,7 +971,9 @@ local function pollForStart()
   if startScans < GUARD_STABLE_SCANS then
     return
   end
-  runFrames, runRunning = 0, true
+  -- Not zero: the scans above spanned four tenths of a second of a real run,
+  -- and the clock is advertised as exact at the split.
+  runFrames, runRunning, runFinished = START_DEBOUNCE_FRAMES, true, false
   EMU.log("new game -- run clock started")
   saveTimer()
 end
@@ -941,7 +1000,7 @@ local function tickRunClock()
     if rom ~= "" then
       ensureTimerFor(rom)     -- a no-op unless the cartridge actually changed
     end
-    if not runRunning and not runFinished then
+    if not runRunning then
       pollForStart()
     end
   end
@@ -957,7 +1016,7 @@ local function tickRunClock()
   if type(byte) == "number" and (byte & 0x02) ~= 0 then
     runRunning, runFinished = false, true
     local stamp = (type(os) == "table" and os.date) and os.date("%Y-%m-%d %H:%M:%S") or "?"
-    local _, romName = timerPath()
+    local _, romName = timesPath()
     record(string.format("%s  clock  %s  %s",
       stamp, romName or runRom or "unknown cartridge", clockText(runFrames)))
     saveTimer()

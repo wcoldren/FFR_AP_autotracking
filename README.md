@@ -79,10 +79,18 @@ focus or pause state, so counting frames is not a shortcut here -- it is the onl
 way to get that behaviour, and it is exact at the split as a bonus.
 
 The clock does not need PopTracker, for starting it or for keeping it. It keeps
-its position in `ffr_timer.state` beside the ROM and resumes from it, so a power
-cycle, a script re-run or picking the seed up tomorrow all continue the same run
-rather than starting a new one -- and the file names the cartridge, so another
-seed's clock is never adopted.
+its position in `ffr_timer.<cartridge>.state` beside the ROM and resumes from
+it, so a power cycle, a script re-run or picking the seed up tomorrow all
+continue the same run rather than starting a new one. There is one such file per
+cartridge, not one per directory, which is what lets two seeds sitting in the
+same folder each keep a clock -- alternating between them in an evening costs
+neither one its time. The line inside names the cartridge too, so a file copied
+or renamed by hand is not adopted either.
+
+Starting a new game on a seed whose run already finished starts a new clock for
+it. Practice runs, a second attempt on race night and a reset after a bad start
+past the goal are all the same thing to the bridge: only a brand new game can
+arm the clock, so a finished time is replaced rather than kept forever.
 
 Resets are the case that matters, and the two kinds are not alike. A soft reset
 -- the controller combo, or Mesen's Reset, which is the one a run actually
