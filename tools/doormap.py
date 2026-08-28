@@ -62,12 +62,23 @@ CHIPS = [
 
 
 def read_flags(rom_path):
-    """(seed, version, [(label, on)]) from the cartridge's FFRInfo record."""
+    """(seed, version, [(label, on)]) from the cartridge's FFRInfo record.
+
+    A cartridge whose flags cannot be read still gets a page -- the shuffle
+    itself comes from the teleport tables, not from here -- but it gets one
+    with no seed, no version and none of the chips, so the failure has to reach
+    the terminal. An FFR build with no schema yet is the common case, and a
+    silent empty flag row on an entrance-shuffled seed reads as "nothing is
+    shuffled".
+    """
     sys.path.insert(0, os.path.join(HERE, "ffr_flags"))
     try:
         import ffr_flags
         info, flags = ffr_flags.decode_rom(open(rom_path, "rb").read())
-    except Exception:
+    except Exception as e:
+        print(f"cannot read the flag record: {e}", file=sys.stderr)
+        print("  the page will have no seed, no version and no flag chips",
+              file=sys.stderr)
         return None, None, []
     chips = [(label, bool(flags.get(key))) for key, label in CHIPS if key in flags]
     if not flags.get("OwMapExchange"):
@@ -116,7 +127,17 @@ def build(g, npcs):
     routes = []
     for name in npcs:
         spot = resolve_npc(g, name)
-        found = g.route(spot["map_id"], have)
+
+        # Landing on his floor is not the same as being able to walk to him:
+        # two staircase chains into one map commonly arrive on two sides of a
+        # locked door, and the shorter chain is not always the useful one. Fall
+        # back to the plain route so the page can still say "the map is
+        # reachable, he is not" rather than drawing nothing.
+        def lands_by_npc(map_id, arrive, spot=spot):
+            return g.can_reach_npc(map_id, arrive, spot, have) is not None
+
+        found = (g.route(spot["map_id"], have, lands_by_npc)
+                 or g.route(spot["map_id"], have))
         label, item = NPC_LABEL.get(name, (name, None))
         if found is None:
             routes.append({"npc": name, "label": label, "item": item, "steps": None})
@@ -139,10 +160,15 @@ def build(g, npcs):
             "unchanged": VANILLA_DOOR_MAP.get(door) == g.entr_map[door],
         })
 
+    # A door counts towards "maps open empty-handed" only if it is a door you
+    # can stand on: the same test Graph.starts() routes by. FFR's unused pair
+    # carries an ordinary map byte and no overworld tile, and a byte past the
+    # end of MAP_NAMES is not a map at all.
     return {"doors": doors, "routes": routes,
             "floors": sorted(floors, key=lambda f: (f["fromId"], f["y"], f["x"])),
             "reachable": sorted({f["toId"] for f in floors}
-                                | {d["mapId"] for d in doors if not d["unused"]})}
+                                | {d["mapId"] for d in doors
+                                   if d["ow"] and d["map"] is not None})}
 
 
 def main():
@@ -401,7 +427,7 @@ el('routes').innerHTML = DATA.routes.map(r => {
     if (s.stairs) bits.push(`stairs <span class="mono">${xy(s.stairs)}</span>, ${s.walk} steps`);
     const npc = s.npc
       ? (s.npc.walk === null
-          ? `<div class="hit">&rarr; ${s.npc.label} is at ${xy(s.npc.at)}, but you cannot walk to him from here</div>`
+          ? `<div class="hit">&rarr; ${s.npc.label} is at ${xy(s.npc.at)}, but no way into this map lands you where you can reach him</div>`
           : `<div class="hit">&rarr; ${s.npc.label} at ${xy(s.npc.at)}, ${s.npc.walk} steps further</div>`)
       : '';
     return `<li class="step${i === 0 ? ' first' : ''}">
@@ -433,37 +459,46 @@ for (const r of DATA.routes) for (const s of (r.steps || [])) {
   if (s.stairs) routeLinks.add(`${s.mapId}:${s.stairs[0]}:${s.stairs[1]}`);
 }
 
+/* Rows render against the row visible above them, not against the row that
+   happened to precede them in the data: filter the first row of a run of
+   same-map staircases away and the next one would otherwise still show the
+   continuation arrow, with no map name anywhere to say which floor it is on. */
 const doorRows = DATA.doors.map(d => ({
   text: `${d.id} ${d.name} ${d.map || ''}`.toLowerCase(),
   mark: routeDoors.has(d.id),
-  html: `<td class="num mono">${d.id}</td>
+  html: () => `<td class="num mono">${d.id}</td>
     <td>${pretty(d.name)}${d.unused ? '<span class="tag dim">unused</span>' : ''}</td>
     <td class="mono">${xy(d.ow)}${d.tiles > 1 ? ` <span class="arrive">+${d.tiles - 1}</span>` : ''}</td>
     <td><span class="dest">${d.map ? pretty(d.map) : '—'}</span>${d.unchanged && !d.unused ? '<span class="tag">unchanged</span>' : ''}</td>
     <td class="mono arrive">${d.unused ? '—' : xy(d.arrive)}</td>`
 }));
 
-let lastFrom = null;
-const floorRows = DATA.floors.map(f => {
-  const grouped = f.from === lastFrom;
-  lastFrom = f.from;
-  return {
-    text: `${f.from} ${f.to}`.toLowerCase(),
-    mark: routeLinks.has(`${f.fromId}:${f.x}:${f.y}`),
-    html: `<td class="${grouped ? 'grp' : ''}">${grouped ? '↳' : pretty(f.from)}</td>
+const floorRows = DATA.floors.map(f => ({
+  text: `${f.from} ${f.to}`.toLowerCase(),
+  mark: routeLinks.has(`${f.fromId}:${f.x}:${f.y}`),
+  from: f.from,
+  html: prev => {
+    const grouped = prev && prev.from === f.from;
+    return `<td class="${grouped ? 'grp' : ''}">${grouped ? '↳' : pretty(f.from)}</td>
       <td class="mono">${f.x}, ${f.y}</td>
       <td><span class="dest">${pretty(f.to)}</span></td>
       <td class="mono arrive">${xy(f.arrive)}</td>
-      <td class="mono arrive">${f.steps}</td>`
-  };
-});
+      <td class="mono arrive">${f.steps}</td>`;
+  }
+}));
 
 const draw = () => {
   const q = el('q').value.trim().toLowerCase();
   const paint = (id, rows) => {
     const keep = rows.filter(r => !q || r.text.includes(q));
+    let prev = null;
+    const body = keep.map(r => {
+      const cells = r.html(prev);
+      prev = r;
+      return `<tr class="${r.mark ? 'mark' : ''}">${cells}</tr>`;
+    }).join('');
     el(id).innerHTML = keep.length
-      ? keep.map(r => `<tr class="${r.mark ? 'mark' : ''}">${r.html}</tr>`).join('')
+      ? body
       : `<tr><td class="none" colspan="5">Nothing matches &ldquo;${q}&rdquo;.</td></tr>`;
     return keep.length;
   };

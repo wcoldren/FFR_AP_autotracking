@@ -431,23 +431,48 @@ class Graph:
         return found
 
     def starts(self):
-        """[(door_id, map_id, (x, y))] for every usable overworld entrance."""
+        """[(door_id, map_id, (x, y))] for every overworld entrance you can take.
+
+        A door with no tile on the overworld cannot be entered, whatever its
+        row in lut_EntrTele_Map says. Doors 30 and 31 are FFR's unused pair and
+        their map bytes are ordinary small numbers, so admitting them routes
+        the player in through a door that is not on the map -- and seeds the
+        floor-link walk from rooms nothing opens into.
+
+        The tile lookup is skipped entirely when the overworld's own tile
+        properties named no entrance at all, since filtering on an empty table
+        would leave nothing to route from.
+        """
         out = []
         for i in range(ENTR_COUNT):
             m = self.entr_map[i]
-            if m < MAP_COUNT:
-                out.append((i, m, (coord(self.entr_x[i]), coord(self.entr_y[i]))))
+            if m >= MAP_COUNT:
+                continue
+            if self.doors and i not in self.doors:
+                continue
+            out.append((i, m, (coord(self.entr_x[i]), coord(self.entr_y[i]))))
         return out
 
-    def route(self, target_map, have):
-        """Shortest door-and-staircase chain into target_map, or None."""
+    def route(self, target_map, have, accept=None):
+        """Shortest door-and-staircase chain into target_map, or None.
+
+        `accept(map_id, arrive)` narrows what counts as having arrived. A floor
+        is commonly entered at two different landing spots by two different
+        staircase chains, and the chain with fewer hops is not always the one
+        that lands on your side of a locked door -- so a caller that wants to
+        reach something *on* the map has to say so, or it gets told the map is
+        a dead end when only the first chain into it was.
+        """
+        if accept is None:
+            def accept(map_id, arrive):
+                return True
         best = None
         for door, m0, arrive0 in self.starts():
             prev = {(m0, arrive0): None}
             q = deque([(m0, arrive0)])
             while q:
                 m, arrive = q.popleft()
-                if m == target_map:
+                if m == target_map and accept(m, arrive):
                     break
                 for (x, y), (kind, pay, steps) in self.reachable_teleports(m, arrive, have).items():
                     if kind != TP_TELE_NORM:
@@ -460,7 +485,7 @@ class Graph:
                         continue
                     prev[nxt] = (m, arrive, x, y, steps)
                     q.append(nxt)
-            hits = [k for k in prev if k[0] == target_map]
+            hits = [k for k in prev if k[0] == target_map and accept(*k)]
             if not hits:
                 continue
             node = hits[0]
@@ -505,8 +530,13 @@ def print_doors(g, tabs):
     for i in range(ENTR_COUNT):
         m = g.entr_map[i]
         where, _ = door_where(g, i)
-        dest = fmt_map(m, tabs) if m < MAP_COUNT else f"?? ({m})"
-        same = "  (unchanged)" if DOOR_NAMES[i].rstrip("123") in MAP_NAMES[m] else ""
+        if m < MAP_COUNT:
+            dest = fmt_map(m, tabs)
+            same = "  (unchanged)" if DOOR_NAMES[i].rstrip("123") in MAP_NAMES[m] else ""
+        else:
+            # The unused pair is not the only way this happens -- --tables
+            # counts out-of-range entries in these tables on real seeds.
+            dest, same = f"?? ({m})", ""
         print(f"  {i:>2}  {DOOR_NAMES[i]:<20} {where:<12} {dest}{same}")
 
 
@@ -536,8 +566,11 @@ def print_floors(g, tabs, have):
                         stack.append(nxt)
 
 
-def print_route(g, tabs, target, have):
-    r = g.route(target, have)
+def print_route(g, tabs, target, have, accept=None):
+    return show_route(g, tabs, target, have, g.route(target, have, accept))
+
+
+def show_route(g, tabs, target, have, r):
     print(f"=== route to {fmt_map(target, tabs)} ===")
     if r is None:
         print("  no route found from any overworld door"
@@ -675,18 +708,29 @@ def main():
         print()
         print(f"{args.to_npc} stands in {MAP_NAMES[spot['map_id']]} at "
               f"({spot['tile_col']},{spot['tile_row']})")
-        arrive = print_route(g, tabs, spot["map_id"], have)
-        if arrive is not None:
+
+        def lands_by_npc(map_id, arrive):
+            return g.can_reach_npc(map_id, arrive, spot, have) is not None
+
+        # Ask for a landing spot he can be walked to from, not merely for the
+        # right map. Falling back to the plain route keeps "the map is
+        # reachable but he is not" reading differently from "there is no way
+        # in at all", which are not the same answer.
+        r = g.route(spot["map_id"], have, lands_by_npc)
+        reached = r is not None
+        arrive = show_route(g, tabs, spot["map_id"], have,
+                            r if reached else g.route(spot["map_id"], have))
+        if arrive is not None and reached:
             steps = g.can_reach_npc(spot["map_id"], arrive, spot, have)
-            if steps is None:
-                ok = False
-                print(f"    ...but you cannot walk to {args.to_npc} from where you land"
-                      + (f" carrying only {', '.join(sorted(have))}" if have
-                         else " with nothing in hand")
-                      + " -- try --have key")
-            else:
-                print(f"    walk {steps} more steps to {args.to_npc} at "
-                      f"({spot['tile_col']},{spot['tile_row']})")
+            print(f"    walk {steps} more steps to {args.to_npc} at "
+                  f"({spot['tile_col']},{spot['tile_row']})")
+        elif arrive is not None:
+            ok = False
+            print(f"    ...but you cannot walk to {args.to_npc} from anywhere this"
+                  " map can be entered"
+                  + (f" carrying only {', '.join(sorted(have))}" if have
+                     else " with nothing in hand")
+                  + " -- try --have key")
     if not any((args.self_check, args.tables, args.dump, args.to, args.to_npc, args.out)):
         print_doors(g, tabs)
 
