@@ -73,6 +73,35 @@ Last updated 2026-08-28.
   complaint.
 - **`shopItem`** is the one Locations-grid cell with no incentive toggle behind
   it and no FFR flag mapped to it.
+- **The Chaos goal flag only exists on Archipelago seeds, and three things
+  depend on it.** `$62FE` bit 0x02 is written by a patch FFR applies only in
+  `FF1Lib/archipelago/Archipelago.cs:225-226`, which rewrites bank `0x0B`
+  `$9ADF` to `20 40 9B`. Every solo seed has the vanilla `20 52 A0` there, so
+  the bit is never set, and: the run clock never stops, no `chaos` or `clock`
+  line is ever appended to `ffr_times.log`, and the tracker's Chaos check
+  (`LOCATION_MAPPING[766]`) never clears from the bridge. Confirmed against
+  three cartridges and two logs holding 27 `start` lines and nothing else.
+  The clock is the visible symptom; the un-clearing Chaos check is the bigger
+  one. A fix has to stop reading that flag — hooking execution of `ChaosDeath`
+  (bank `0x0B` `$A052`) is exact and available, since Mesen can break on an
+  address. Note the routine waits **110 frames** for the victory fanfare before
+  the dissolve begins, so the entry point and the kill screen are 1.8s apart and
+  which one the community times to needs settling before it is wired up.
+
+## What Archipelago can and cannot tell the tracker
+
+Worth writing down, because "bring AP to parity with the bridge" sounds like
+pack work and is not. The AP feed carries checked locations in the multiworld
+pool and items received, and nothing else: `worlds/ff1/__init__.py:123`'s
+`fill_slot_data` returns an empty dict. So chests outside the pool, orbs lit,
+turn-in stages, the current map, the seed's flags, the cartridge's identity and
+the run clock are all unavailable over AP by construction, not by omission here.
+Closing that gap means changing the Archipelago world, not this pack. The
+reconcile core already does the right thing with what exists — takes the union
+of both feeds and lets either run alone.
+
+The traffic is not one-way, though: the Chaos goal flag above is the one thing
+an AP seed has that a solo seed does not.
 
 ## Open questions
 
