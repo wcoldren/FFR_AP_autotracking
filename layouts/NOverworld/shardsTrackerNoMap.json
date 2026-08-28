@@ -34,6 +34,18 @@
                 },
                 {
                     "type": "group",
+                    "header": "Bosses",
+                    "dock": "left",
+                    "margin": "0,0,3,0",
+                    "content": {
+                        "type": "layout",
+                        "h_alignment": "center",
+                        "v_alignment": "center",
+                        "key": "shared_boss_grid"
+                    }
+                },
+                {
+                    "type": "group",
                     "header": "Shards",
                     "dock": "left",
                     "margin": "0,0,3,0",

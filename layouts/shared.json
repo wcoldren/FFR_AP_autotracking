@@ -11,7 +11,7 @@
 				[ "key", "rod", "oxyale", "chime", "cube" ],
 				[ "bridge", "ship", "canal", "canoe", "floater" ],
 				[ "adamant", "tnt", "crown", "crystal", "herb" ],
-				[ "garland", "ruby", "tail", "slab", "bottle" ]
+				[ "ruby", "tail", "slab", "bottle" ]
 			]
 		}
 	},
@@ -27,7 +27,7 @@
 				[ "key", "rod", "oxyale", "chime", "cube" ],
 				[ "mark", "sigil" ],
 				[ "adamant", "tnt", "crown", "crystal", "herb" ],
-				[ "garland", "ruby", "tail", "slab", "bottle" ]
+				[ "ruby", "tail", "slab", "bottle" ]
 			]
 		}
 	},
@@ -44,6 +44,18 @@
 				[ "marsh", "marshLocked", "fairy", "lefein", "coneriaLocked" ],
 				[ "robot", "iceCave", "ordeals", "titansTrove", "cardiaIncentive" ],
 				[ "shopItem", "earth", "volcano", "sea", "sky" ]
+			]
+		}
+	},
+	"shared_boss_grid": {
+		"type" : "container",
+		"content" : {
+			"type": "itemgrid",
+			"h_alignment": "center",
+			"v_alignment": "center",
+			"item_margin": "1,2",
+			"rows": [
+				[ "garland", "vampire", "astos", "bikke", "chaos" ]
 			]
 		}
 	},

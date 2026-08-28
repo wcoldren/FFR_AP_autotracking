@@ -152,6 +152,43 @@ else
   print("ok   every hosted item code in the mapping is defined")
 end
 
+-- 4b. every code an itemgrid names must be something that can render.
+--     A cell whose code matches no item draws an empty square and says nothing
+--     -- PopTracker adds the widget either way -- so a typo, or an item removed
+--     from one grid while another still names it, is invisible until someone
+--     notices a hole. LuaItems are listed by hand because they are created in
+--     Lua at load and cannot be read out of items/*.json.
+local LUA_ITEM_CODES = { resync = true, flagsUnread = true }
+local gridMissing, gridSeen = {}, 0
+local function walkGrids(node, file)
+  if type(node) ~= "table" then return end
+  if node.type == "itemgrid" then
+    for _, row in ipairs(node.rows or {}) do
+      for _, code in ipairs(row) do
+        gridSeen = gridSeen + 1
+        if not items[code] and not LUA_ITEM_CODES[code] then
+          gridMissing[code .. "  (" .. file .. ")"] = true
+        end
+      end
+    end
+  end
+  for _, v in pairs(node) do walkGrids(v, file) end
+end
+for _, file in ipairs({
+  "layouts/shared.json", "layouts/standard/tracker.json",
+  "layouts/shardHunt/tracker.json", "layouts/NOverworld/tracker.json",
+}) do
+  walkGrids(json.load(PACK .. "/" .. file), file)
+end
+local gm = {}
+for code in pairs(gridMissing) do gm[#gm + 1] = code end
+table.sort(gm)
+if #gm > 0 then
+  for _, code in ipairs(gm) do fails("itemgrid names an undefined code: " .. code) end
+else
+  print(string.format("ok   all %d itemgrid cells name a real item", gridSeen))
+end
+
 -- 5. every RAM rule's stage must be a real index into that item's stages[].
 --    PopTracker clamps an out-of-range stage silently, so a typo here would
 --    just land on the last stage and look plausible.
