@@ -89,6 +89,37 @@ check("a character outside the alphabet is refused",
 check("an empty string is refused", decodeFFRFlags("4-9-7", ""), nil)
 
 ------------------------------------------------------------------
+print("-- a second schema, from a real 4-9-2 cartridge")
+------------------------------------------------------------------
+-- Two schemas have to coexist, because a seed names its own version and the
+-- pack sees whatever the player rolled. This is the case that shipped wrong:
+-- FFR_72A52C25 is 4-9-2, the pack only had 4-9-7, the decode was refused, and
+-- the board fell back to init.lua's defaults -- which assert Sky, Sea and Earth
+-- are incentivized when this seed says none of them are, and deny Titan's Trove
+-- when it says otherwise. Refusing was right; the silent fallback was not.
+dofile(PACK .. "/scripts/flags/schema_4-9-2.lua")
+
+local FLAGS_492 = "MoELv7QsOnnoCGNext9M-X.DLA8uPmRIhOYKgmMLa.c3zogofl1b4Dr-P5C7xjCHCNENxi2q-J6nmd"
+    .. "1hZjc3CDN7rgnWiMm-DE1gqFjpvDgolgrnkD64HomL8SJIFEME.i85x4NtiKjbt8oENXFzsTqIRuWd"
+    .. "0W7wyKO7JQyzAEWHH4FmWj"
+
+local f492, err492 = decodeFFRFlags("4-9-2", FLAGS_492)
+check("4-9-2 decodes", f492 ~= nil, true)
+if not f492 then
+  print("     " .. tostring(err492))
+  os.exit(1)
+end
+check("4-9-2 did not clobber 4-9-7", decodeFFRFlags("4-9-7", FLAGS) ~= nil, true)
+check("sky is not incentivized", f492.IncentivizeSkyPalace, false)
+check("sea is not incentivized", f492.IncentivizeSeaShrine, false)
+check("earth is not incentivized", f492.IncentivizeEarth, false)
+check("titan's trove is", f492.IncentivizeTitansTrove, true)
+-- The wrong schema on the right string has to be caught by the build sha
+-- rather than quietly producing shifted flags.
+check("4-9-7's schema refuses a 4-9-2 string",
+      decodeFFRFlags("4-9-7", FLAGS_492), nil)
+
+------------------------------------------------------------------
 print("\n-- applied to the board")
 ------------------------------------------------------------------
 

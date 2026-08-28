@@ -3,4 +3,5 @@
 -- Every FFR version whose flag encoding this pack knows. A seed built
 -- by a version that is not here keeps the manual flag grid.
 
+ScriptHost:LoadScript("scripts/flags/schema_4-9-2.lua")
 ScriptHost:LoadScript("scripts/flags/schema_4-9-7.lua")
