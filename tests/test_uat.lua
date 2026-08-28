@@ -1,12 +1,18 @@
 local PACK = arg[1]
 AUTOTRACKER_ENABLE_DEBUG_LOGGING = false
 
+local PopApi = dofile(PACK .. "/tests/pop_api.lua")
+
 local objects = {}
 -- LuaItems, the way PopTracker hands them out: a bare table the pack fills in
 -- with Name/Icon/callbacks. Kept so the tests can find them by the code they
 -- claim, which is how a layout finds them too (tracker.cpp:663).
 local luaItems = {}
-Tracker = {
+-- Both globals are strict: a name PopTracker does not put on this object raises
+-- rather than reading as nil. Without that, calling a ScriptHost method on
+-- Tracker just looks like an old host to the pack's feature checks and the
+-- feature disables itself in silence -- which is the bug this file missed.
+Tracker = PopApi.strict("Tracker", {
   BulkUpdate = false,
   FindObjectForCode = function(self, c)
     if objects[c] then return objects[c] end
@@ -14,15 +20,18 @@ Tracker = {
       if it.CanProvideCodeFunc and it.CanProvideCodeFunc(it, c) then return it end
     end
   end,
+})
+
+local captured = nil
+ScriptHost = PopApi.strict("ScriptHost", {
+  AddVariableWatch = function(self,n,vars,cb) captured = {n=n,vars=vars,cb=cb} end,
+  -- scripthost.cpp:22 -- CreateLuaItem is ScriptHost's, not Tracker's.
   CreateLuaItem = function(self)
     local it = {}
     luaItems[#luaItems + 1] = it
     return it
   end,
-}
-
-local captured = nil
-ScriptHost = { AddVariableWatch = function(self,n,vars,cb) captured = {n=n,vars=vars,cb=cb} end }
+})
 
 dofile(PACK .. "/scripts/autotracking/location_mapping.lua")
 local counts, hosted = {}, {}
@@ -232,6 +241,45 @@ memo.LoadFunc(memo, saved)
 check("memo restores it", FFR_FLAGS_SOURCE, "4-9-7|abc")
 memo.LoadFunc(memo, { rom = "romZ" })
 check("a save from before this existed is fine", FFR_FLAGS_SOURCE, "4-9-7|abc")
+
+------------------------------------------------------------------
+-- The reported bug, end to end: track a seed, quit, put a different cartridge
+-- in, relaunch, connect.
+--
+-- PopTracker runs init.lua and then restores the autosave -- the memo's LoadFunc
+-- included -- in one synchronous block before the frame loop turns
+-- (poptracker.cpp:1436-1450), so ROM_ID is already back when the first tick
+-- arrives. That ordering is what makes a single comparison enough.
+--
+-- This could not be written before: Tracker:CreateLuaItem is really
+-- ScriptHost:CreateLuaItem, so no memo was ever created, ROM_ID was nil on every
+-- launch, and the swap went unnoticed while the old board stayed on screen.
+------------------------------------------------------------------
+local restart = nil
+for _, it in ipairs(luaItems) do if it.SaveFunc then restart = it end end
+
+FFR_FLAGS_SOURCE = "4-9-7|seedA"
+ROM_ID = "romA"
+local carried = restart.SaveFunc(restart)          -- PopTracker writes autosave
+
+-- A fresh Lua state, then the restore, then the board the player left behind.
+ROM_ID = nil
+FFR_FLAGS_SOURCE = nil
+restart.LoadFunc(restart, carried)
+check("restart restored the memo before the first tick", ROM_ID, "romA")
+
+local stale = playedBoard("romA")
+check("the previous seed's board is on screen", objects[LOCATION_MAPPING[516][2]].Active, true)
+
+-- Now the bridge reports the new cartridge.
+captured.cb(romStore(true, blank(), "romB"))
+check("swap after a restart cleared the hosted item", objects[LOCATION_MAPPING[516][2]].Active, false)
+check("swap after a restart released the chest", objects[sec299].AvailableChestCount, objects[sec299].ChestCount)
+check("swap after a restart emptied UAT_CHECKED", next(UAT_CHECKED), nil)
+check("swap after a restart adopted the new id", ROM_ID, "romB")
+-- Two seeds can share a flag string, and applyFFRFlags short-circuits on an
+-- unchanged one, so the record has to go with the board.
+check("swap after a restart dropped the flag record", FFR_FLAGS_SOURCE, nil)
 
 print(fail==0 and "\nALL PASS" or string.format("\n%d FAILURE(S)",fail))
 os.exit(fail==0 and 0 or 1)

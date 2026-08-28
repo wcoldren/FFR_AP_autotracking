@@ -59,10 +59,23 @@ local ready = blob:find('"ff1/ready","value":true',1,true)~=nil
 
 -- now the pack side, fresh state
 _G.emu=nil
+local PopApi = dofile(PACK.."/tests/pop_api.lua")
 local objects={}
-Tracker={BulkUpdate=false,FindObjectForCode=function(self,c) return objects[c] end}
+local luaItems={}
+-- Strict, and with CreateLuaItem on ScriptHost where PopTracker puts it. Without
+-- the stub this suite loads uat.lua but silently skips both LuaItems, so the
+-- full-stack path never built the ROM memo it depends on.
+Tracker=PopApi.strict("Tracker",{BulkUpdate=false,
+  FindObjectForCode=function(self,c)
+    if objects[c] then return objects[c] end
+    for _,it in ipairs(luaItems) do
+      if it.CanProvideCodeFunc and it.CanProvideCodeFunc(it,c) then return it end
+    end
+  end})
 local captured
-ScriptHost={AddVariableWatch=function(self,n,v,cb) captured={cb=cb} end}
+ScriptHost=PopApi.strict("ScriptHost",{
+  AddVariableWatch=function(self,n,v,cb) captured={cb=cb} end,
+  CreateLuaItem=function(self) local it={} luaItems[#luaItems+1]=it return it end})
 AUTOTRACKER_ENABLE_DEBUG_LOGGING=false
 dofile(PACK.."/scripts/autotracking/location_mapping.lua")
 

@@ -37,31 +37,21 @@ local UNMAPPED_CHEST_WARNED = {}
 -- "different game" so reconcile can throw the old board away.
 ROM_ID = ROM_ID or nil
 
--- It has to survive a PopTracker restart, too: a fresh Lua state has nothing to
--- compare against, and PopTracker restores its saved board after the pack's
--- scripts run, so the stale board would win. A LuaItem is the pack-side way to
--- persist a value -- it is saved under lua_items and its LoadFunc runs during
--- loadState (tracker.cpp:1341). Because the comparison happens on every tick, a
--- restore that lands after the first message is picked up on the next one.
+-- A manual "start this board over", for the states nothing can detect: a save
+-- written before the ROM memo below existed, manual clears you no longer want,
+-- or an older save that still has checks in it and so leaves the hosted codes
+-- behind the Incentive Locations pins lit. It costs nothing to press --
+-- everything the feeds own is re-derived on the next tick, about a second away.
 --
--- A LuaItem's stable id is its creation site -- file and line (tracker.cpp:1199)
--- -- so editing this file above the call drops the memo and PopTracker starts
--- the next session without one. That costs a reset that would have fired on a
--- pack update, nothing more: the id is adopted again on the first tick and the
--- next swap is caught normally.
-local function rememberRomAcrossRestarts()
-
--- A manual "start this board over", for the states nothing can detect: a pack
--- edit dropping the ROM memo above, manual clears you no longer want, or an
--- older save that still has checks in it and so leaves the hosted codes behind
--- the Incentive Locations pins lit. It costs nothing to press -- everything the
--- feeds own is re-derived on the next tick, about a second away.
+-- Created before the memo on purpose; see the note on creation order there.
 local function makeResyncButton()
-  if type(Tracker.CreateLuaItem) ~= "function" then
+  if type(ScriptHost.CreateLuaItem) ~= "function" then
+    print("uat: no ScriptHost:CreateLuaItem -- no Resync button on this host")
     return
   end
-  local ok, item = pcall(function() return Tracker:CreateLuaItem() end)
+  local ok, item = pcall(function() return ScriptHost:CreateLuaItem() end)
   if not ok or not item then
+    print("uat: could not create the Resync button")
     return
   end
   item.Name = "Resync tracker"
@@ -82,11 +72,34 @@ local function makeResyncButton()
   end
 end
 makeResyncButton()
-  if type(Tracker.CreateLuaItem) ~= "function" then
+
+-- It has to survive a PopTracker restart, too: a fresh Lua state has nothing to
+-- compare against, and PopTracker restores its saved board after the pack's
+-- scripts run, so the stale board would win. A LuaItem is the pack-side way to
+-- persist a value -- it is saved under lua_items and its LoadFunc runs during
+-- loadState (tracker.cpp:1341).
+--
+-- The restore always beats the first tick, so one comparison is enough: PopTracker
+-- runs init.lua, saves the reset snapshot and calls loadState in one synchronous
+-- block (poptracker.cpp:1436-1450), while variable watches only fire later from
+-- the frame loop. ROM_ID is therefore already restored when checkRom first runs.
+--
+-- A LuaItem's stable id is "<type>:<name>@<hash of the source *filename*>"
+-- (updateLuaStableIDs, tracker.cpp:982-1000) -- no line number in it. So editing
+-- this file is free; what drops the memo is renaming the item or moving it to
+-- another script. On a host too old for stable ids the fallback is the sequential
+-- item id (tracker.cpp:1434-1438), which is creation-order sensitive -- so keep
+-- the Resync button created first and this one second.
+local function rememberRomAcrossRestarts()
+  if type(ScriptHost.CreateLuaItem) ~= "function" then
+    print("uat: no ScriptHost:CreateLuaItem -- the ROM memo cannot persist, so a "
+      .. "seed swap across a restart will not be noticed; press Resync if the "
+      .. "board looks like the last seed")
     return
   end
-  local ok, item = pcall(function() return Tracker:CreateLuaItem() end)
+  local ok, item = pcall(function() return ScriptHost:CreateLuaItem() end)
   if not ok or not item then
+    print("uat: could not create the ROM memo")
     return
   end
   item.Name = "FFR ROM id"
@@ -120,7 +133,17 @@ local function checkRom(store)
   end
   if ROM_ID ~= nil and rom ~= ROM_ID then
     print("uat: different ROM -- dropping the previous game's board")
+    -- The flag record goes too. applyFFRFlags short-circuits on an unchanged
+    -- string (flag_mapping.lua:201), so two seeds rolled on the same flags would
+    -- otherwise carry the previous one's hand-corrected grid into the new game.
+    FFR_FLAGS_SOURCE = nil
     resetForNewGame()
+  elseif ROM_ID == nil then
+    -- No memo to compare against: a first run, or a save written before the memo
+    -- existed. The board on screen is whatever PopTracker restored, and nothing
+    -- here can tell whether it belongs to this cartridge.
+    print("uat: adopting ROM " .. rom .. " with no previous memo -- press Resync "
+      .. "if this board is from another seed")
   end
   ROM_ID = rom
 end
