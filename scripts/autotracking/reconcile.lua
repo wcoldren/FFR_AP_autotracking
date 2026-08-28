@@ -16,6 +16,11 @@
 AP_CHECKED = {}
 UAT_CHECKED = {}
 
+-- Whether the bridge's first full snapshot of this session has landed. Global
+-- so the tests can rewind a session, and so a reload of this script cannot
+-- quietly re-arm it mid-run.
+UAT_REASSERTED = false
+
 local SECTION_IDS = nil
 local SECTION_PATHS = nil   -- the same keys as an array, for ordered passes
 local UNMAPPED_WARNED = {}
@@ -335,6 +340,21 @@ function setUATChecked(checked)
     return
   end
 
+  -- The bridge's first snapshot of the session, which is the counterpart of the
+  -- one-shot the AP feed arms in scripts/autotracking.lua. Whatever is on the
+  -- board at this point came from PopTracker's restore, not from a feed, and the
+  -- bridge is now reporting ground truth for every chest, event and NPC -- so
+  -- this is the moment to let it win. See reassertBoard.
+  --
+  -- Once only. Holding it every tick would undo a hosted code the player set by
+  -- hand a second after they set it, which is the behaviour applyHostedItem's
+  -- one-way rule exists to protect.
+  if not UAT_REASSERTED then
+    UAT_REASSERTED = true
+    reassertBoard()
+    return
+  end
+
   applyAll()
 end
 
@@ -378,11 +398,27 @@ end
 -- runs and absorbForPath never gets to notice. The restored board then stands
 -- with no feed event able to correct it.
 --
--- applyAll is already the right answer: absorbPlayerEdits sees the whole board
+-- applyAll is nearly the right answer: absorbPlayerEdits sees the whole board
 -- moved in one pass, drops the deviations as a restore rather than as hand
 -- clears, and the recompute puts back what the feeds actually report.
+--
+-- The hosted codes are the exception, for the same reason resetChecked has to
+-- clear them: applyHostedItem is one-way, so a code the restore brought back is
+-- one applyAll cannot take down again. Without this the AP path only looked
+-- fixed -- resetChecked clears them on connect and the restore lands after it --
+-- and the UAT path had nothing at all, so a hosted code left over from an older
+-- board greyed its Incentive Locations pin for the rest of the session. That is
+-- what hid the Dwarf Cave Adamant turn-in on 2026-08-28, with the bridge
+-- connected, the ROM unchanged and no AP session to run onClear.
+--
+-- Nothing a live feed owns is lost: applyAll re-applies the hosted codes for
+-- everything in AP_CHECKED and UAT_CHECKED on the way back up. A code set by
+-- hand does go, which is the deal the manual offsets get in resetChecked.
 function reassertBoard()
   reconcileInit()
+  Tracker.BulkUpdate = true
+  clearHostedItems()
+  Tracker.BulkUpdate = false
   applyAll()
 end
 

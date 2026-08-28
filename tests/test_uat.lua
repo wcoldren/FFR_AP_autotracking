@@ -281,5 +281,40 @@ check("swap after a restart adopted the new id", ROM_ID, "romB")
 -- unchanged one, so the record has to go with the board.
 check("swap after a restart dropped the flag record", FFR_FLAGS_SOURCE, nil)
 
+------------------------------------------------------------------
+-- Same cartridge, same file, checks on the board -- and the restore is holding
+-- a hosted code the bridge does not report.
+--
+-- None of the wipes above can reach this. The ROM has not changed, the feed has
+-- not gone from checks to none, and with no Archipelago session there is no
+-- onClear to run resetChecked. applyHostedItem is one-way, so before the
+-- first-snapshot reassert the stale code stood for the rest of the session and
+-- greyed its Incentive Locations pin -- which is how the Dwarf Cave Adamant
+-- turn-in came up already-collected on 2026-08-28.
+------------------------------------------------------------------
+local smith, bikke = LOCATION_MAPPING[521][2], LOCATION_MAPPING[516][2]
+check("521 is the Smith turn-in", smith, "smith")
+
+UAT_REASSERTED = false                  -- a fresh session
+UAT_CHECKED = {}
+ROM_ID = "romD"                         -- already tracking this cartridge
+objects[smith].Active = true            -- restored from an older board
+objects[bikke].Active = false
+
+local live = blank()
+setflag(live, 0x04, 0x02)               -- the bridge reports Bikke, and only Bikke
+captured.cb(romStore(true, live, "romD"))
+check("first snapshot dropped the stale hosted code", objects[smith].Active, false)
+check("first snapshot kept the code the feed reports", objects[bikke].Active, true)
+check("first snapshot did not reset the feed", UAT_CHECKED[516], true)
+check("first snapshot did not touch the rom id", ROM_ID, "romD")
+
+-- After that one pass the monotonic rule is back: a code set by hand mid-session
+-- is not argued with a second later.
+objects[smith].Active = true
+captured.cb(romStore(true, live, "romD"))
+check("a hand click after the snapshot survives", objects[smith].Active, true)
+check("and the feed's own code is still up", objects[bikke].Active, true)
+
 print(fail==0 and "\nALL PASS" or string.format("\n%d FAILURE(S)",fail))
 os.exit(fail==0 and 0 or 1)

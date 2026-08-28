@@ -269,6 +269,13 @@ end
 check("reassert put every moved section back", restored, #moved)
 check("reassert kept the bridge's Bikke", objects[bikke].Active, true)
 
+-- The hosted codes come back with that restore too, and resetChecked has
+-- already been and gone. applyAll cannot lower them, so the reassert has to.
+objects[astos].Active = true
+reassertBoard()
+check("reassert drops a hosted code the restore put back", objects[astos].Active, false)
+check("reassert still kept the bridge's Bikke", objects[bikke].Active, true)
+
 -- A move small enough to be a person is still a person: it is carried, not
 -- overwritten. MANUAL_BULK_LIMIT is 3.
 objects[moved[1]].AvailableChestCount = 0
