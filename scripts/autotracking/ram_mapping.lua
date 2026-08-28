@@ -82,7 +82,23 @@ RAM_RULES = {
   { code = "adamant", stage = 0, addr = 0x6027 },
   { code = "adamant", stage = 1, addr = 0x6209, mask = 0x02 },  -- Smith
   { code = "ruby",    stage = 0, addr = 0x6029 },
-  { code = "ruby",    stage = 1, addr = 0x6214, mask = 0x02 },  -- Titan
+  -- Titan is the one turn-in with no event bit to read. Talk_Titan takes the
+  -- Ruby and calls HideMapObject and nothing else -- in vanilla
+  -- (bank_0E.asm:1437) and in FFR alike (11_8200_TalkRoutines.asm:415) -- so
+  -- SetGameEventFlag is never reached for OBJID_TITAN ($14). FFR's own in-game
+  -- item tracker says so where it lists what it can follow: "Not ruby --
+  -- Titan's event flag is not updated in talk routines"
+  -- (1B_A100_ItemMenuTracker.asm:693). Every other turn-in here reads a bit
+  -- that something actually sets; mask 0x02 on this one could never match, so
+  -- the spent Ruby fell to stage 0, stopped providing `ruby`, and took Titan's
+  -- Trove and Sarda red on the seed where they had just opened.
+  --
+  -- What Talk_Titan does leave is the visibility bit going out. lut_InitGameFlags
+  -- starts $14 at 0x01 (GMFLG_OBJVISIBLE), HideMapObject ANDs it off, and no
+  -- other bit is ever written to this object -- EVENT is what is missing and
+  -- TCOPEN is a chest bit -- so the byte is 0x01 before and 0x00 after. Same
+  -- shape as canal_vis below, and read the same way.
+  { code = "ruby",    stage = 1, addr = 0x6214, zero = true },  -- Titan fed
   { code = "tail",    stage = 0, addr = 0x602D },
   { code = "tail",    stage = 1, addr = 0x620E, mask = 0x02 },  -- Bahamut
   -- The Bottle is spent by USING it, not by handing it over, so its two events

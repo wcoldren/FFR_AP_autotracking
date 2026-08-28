@@ -37,10 +37,23 @@ dofile(PACK .. "/scripts/logic.lua")
 
 local MEM = {}
 local function byteAt(addr) return MEM[addr] or 0 end
+
+-- Game flags that a freshly initialised save does NOT start at zero, so a test
+-- that says nothing about them describes a real new game rather than an
+-- impossible one. Read out of lut_InitGameFlags ($AF00, BANK_STARTUPINFO, bank
+-- 0 -> file offset 0x2F10): object $14 starts at 0x01, GMFLG_OBJVISIBLE.
+--
+-- It matters because Titan is read as "the object is gone" rather than as an
+-- event bit -- see the ruby rules in ram_mapping.lua. Defaulting him to 0 would
+-- have every case here open with the Ruby already eaten.
+local INIT_FLAGS = { [0x6214] = 0x01 }   -- Titan, visible
+
 local function reset()
   MEM = {}
+  for addr, v in pairs(INIT_FLAGS) do MEM[addr] = v end
   rebuild()
 end
+reset()
 
 local fail = 0
 local function check(name, got, want)
@@ -96,7 +109,7 @@ MEM[0x620A] = 0x02  -- Matoya
 MEM[0x6205] = 0x02  -- Elf Doctor
 MEM[0x6208] = 0x02  -- Nerrick
 MEM[0x6209] = 0x02  -- Smith
-MEM[0x6214] = 0x02  -- Titan
+MEM[0x6214] = 0x00  -- Titan fed: the object goes away, no event bit is set
 MEM[0x6213] = 0x02  -- Fairy
 applyRamRules(byteAt)
 check("Astos  -> crownDone",    provided("crownDone"), true)
@@ -215,7 +228,7 @@ check("ruby held: Titan's Trove in logic", inLogic("Titan's Trove"), true)
 check("ruby held: Sarda's Cave in logic", inLogic("Sarda's Cave"), true)
 
 MEM[0x6029] = 0                                  -- Talk_Titan eats the Ruby
-MEM[0x6214] = 0x02                               -- and sets his event flag
+MEM[0x6214] = 0x00                               -- and hides him; no flag is set
 applyRamRules(byteAt)
 check("spent ruby keeps 'ruby'", provided("ruby"), true)
 check("Titan done provides 'titan'", provided("titan"), true)
@@ -228,7 +241,7 @@ reset()
 byCode["sardasForest"].Active = true
 MEM[0x602B] = 1
 MEM[0x6004] = 1
-MEM[0x6214] = 0x02                               -- only Titan's flag survives
+MEM[0x6214] = 0x00                               -- only his absence survives
 applyRamRules(byteAt)
 check("cold start past Titan provides 'ruby'", provided("ruby"), true)
 check("cold start past Titan: Titan's Trove in logic", inLogic("Titan's Trove"), true)
