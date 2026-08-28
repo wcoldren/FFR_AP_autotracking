@@ -125,6 +125,65 @@ local function rememberRomAcrossRestarts()
 end
 rememberRomAcrossRestarts()
 
+-- Lit when there is a cartridge in the slot whose settings we could not read.
+--
+-- Refusing to decode is right -- the wrong property list does not fail, it
+-- returns flags shifted by one setting -- but refusing is silent, and what the
+-- player is left looking at is init.lua's defaults. Those are a guess, and on
+-- FFR_72A52C25 (a 4-9-2 seed, before that schema existed) the guess claimed Sky,
+-- Sea and Earth were incentivized when the seed said none of them were. A
+-- console line is not enough for something the board is actively asserting.
+--
+-- Deliberately not a fix for the defaults themselves. They are what an
+-- Archipelago-only player starts from -- AP never sends a flag string, only the
+-- bridge does -- so clearing them would trade a wrong board on one seed for an
+-- empty board on every AP session. The honest move is to say the grid is
+-- unread, not to pretend it is empty.
+--
+-- Third of the three LuaItems in this file. Append, never insert: on a host
+-- without stable ids the fallback is the sequential item id, so a new item in
+-- front of these would renumber the Resync button and the ROM memo.
+local flagsUnreadItem = nil
+FLAGS_UNREAD_WHY = FLAGS_UNREAD_WHY or nil
+
+local function makeFlagsUnreadLight()
+  if type(ScriptHost.CreateLuaItem) ~= "function" then
+    return
+  end
+  local ok, item = pcall(function() return ScriptHost:CreateLuaItem() end)
+  if not ok or not item then
+    print("uat: could not create the unread-flags light")
+    return
+  end
+  item.Name = "FFR flags unread"
+  item.Icon = nil
+  item.CanProvideCodeFunc = function(_, code)
+    return code == "flagsUnread"
+  end
+  item.OnLeftClickFunc = function()
+    if FLAGS_UNREAD_WHY then
+      print("flags: " .. FLAGS_UNREAD_WHY .. " -- the grid is showing defaults "
+        .. "and your own clicks, not this seed's settings")
+    else
+      print("flags: this seed's settings were read from the cartridge")
+    end
+  end
+  flagsUnreadItem = item
+end
+makeFlagsUnreadLight()
+
+-- why = nil clears the light. Called from applyFFRFlags on both paths, and on a
+-- cartridge swap, so the light always describes the cartridge in the slot.
+function setFlagsUnread(why)
+  FLAGS_UNREAD_WHY = why
+  if not flagsUnreadItem then
+    return
+  end
+  -- A LuaItem's icon override is not reset by state changes the way a
+  -- JsonItem's is, so nil genuinely blanks the cell and stays blank.
+  flagsUnreadItem.Icon = why and "images/flags/flagsUnread.png" or nil
+end
+
 -- "" means the emulator would not tell us, which is not the same as a change.
 local function checkRom(store)
   local rom = store:ReadVariable("ff1/rom")

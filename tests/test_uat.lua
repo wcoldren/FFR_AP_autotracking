@@ -316,5 +316,32 @@ captured.cb(romStore(true, live, "romD"))
 check("a hand click after the snapshot survives", objects[smith].Active, true)
 check("and the feed's own code is still up", objects[bikke].Active, true)
 
+------------------------------------------------------------------
+-- The unread-flags light, and the creation order it depends on
+------------------------------------------------------------------
+-- Creation order is load-bearing and was only ever a comment: on a host without
+-- stable LuaItem ids the fallback is the sequential item id, so an item added
+-- in front of these renumbers the Resync button and the ROM memo and the memo
+-- comes back attached to the wrong thing. Pin it.
+check("three lua items", #luaItems, 3)
+check("resync is first", luaItems[1].Name, "Resync tracker")
+check("the rom memo is second", luaItems[2].Name, "FFR ROM id")
+check("the unread light is third", luaItems[3].Name, "FFR flags unread")
+
+local light = Tracker:FindObjectForCode("flagsUnread")
+check("the light is reachable by its code", light == luaItems[3], true)
+check("it starts dark", light.Icon, nil)
+
+-- A refused decode has to reach the board, not just the console. The grid goes
+-- on showing init.lua's defaults either way; the light is what tells them apart
+-- from the seed's own settings.
+setFlagsUnread("no schema for FFR 4-9-2")
+check("a refused decode lights it", light.Icon, "images/flags/flagsUnread.png")
+check("and it remembers why", FLAGS_UNREAD_WHY, "no schema for FFR 4-9-2")
+
+setFlagsUnread(nil)
+check("a good decode clears it", light.Icon, nil)
+check("and forgets the reason", FLAGS_UNREAD_WHY, nil)
+
 print(fail==0 and "\nALL PASS" or string.format("\n%d FAILURE(S)",fail))
 os.exit(fail==0 and 0 or 1)

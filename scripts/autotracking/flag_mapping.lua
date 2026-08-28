@@ -205,18 +205,24 @@ function applyFFRFlags(record)
   local version, flagstring = record:match("^([^|]+)|(.+)$")
   if not version then
     print("flags: cannot read " .. string.format("%q", record))
+    if setFlagsUnread then setFlagsUnread("the cartridge's flag record is malformed") end
     return false
   end
 
   local flags, err = decodeFFRFlags(version, flagstring)
   if not flags then
     print("flags: " .. err .. " -- leaving the flag grid alone")
+    -- Say it on the board too. The grid keeps showing defaults, and a player
+    -- who missed this line has no way to tell those from the seed's own
+    -- settings.
+    if setFlagsUnread then setFlagsUnread(err) end
     FFR_FLAGS_SOURCE = record   -- do not retry the same bad string every scan
     return false
   end
 
   FFR_FLAGS = flags
   FFR_FLAGS_SOURCE = record
+  if setFlagsUnread then setFlagsUnread(nil) end
 
   if flags.GameMode ~= 0 then
     print("flags: this seed is not a standard game (GameMode " .. tostring(flags.GameMode)

@@ -118,7 +118,6 @@
     {
         "name": "NPCs are Incentive",
         "type": "toggle",
-        "active": true,
         "img": "images/locations/king.png",
         "codes": "npcsAreIncentive"
     },
