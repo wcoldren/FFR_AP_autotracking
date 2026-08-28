@@ -15,8 +15,12 @@ Last updated 2026-08-28.
   shard count, seed-swap detection, and a Resync button.
 - A run clock drawn on the emulator's screen, counted in frames so it pauses
   when emulation does, kept per cartridge across a power cycle.
-- The flags grid configures itself from the FFR flag string stamped in the ROM,
-  for the FFR versions there is a schema for.
+- The flags grid configures itself from the FFR flag string stamped in the ROM.
+  Schemas ship for FFR 4-9-7 and 4-9-2; a seed on any other version lights the
+  unread-flags warning in the grid rather than letting the defaults pass as the
+  seed's own settings.
+- A Bosses row for the five fights that have a real signal: Garland, the
+  Vampire, Astos, Bikke and Chaos.
 - Map tabs follow the player. 36 of 53 dungeon maps are calibrated and carry
   per-chest markers.
 - Offline tools that read a cartridge directly: the flag decoder, an
@@ -27,19 +31,11 @@ Last updated 2026-08-28.
 
 ## Next
 
-1. **The flags grid can assert something false.** On a seed whose FFR version
-   has no schema, `decodeFFRFlags` correctly refuses, but the board then keeps
-   `scripts/init.lua:73-90`'s hardcoded defaults, which turn nine incentive
-   toggles on. Seed `72A52C25` is FFR 4-9-2 and shows Sky as incentivized when it
-   is not. Two halves: generate the 4-9-2 schema (the ROM is in hand, which is
-   what `gen_schema.py` needs to verify the build SHA), and add a "flags not
-   read" indicator so defaults never pass as decoded truth. A schema alone only
-   fixes today — the next FFR release brings the bug back.
-2. **A boss row.** `chaos` and `vampire` are fully plumbed and render in no
-   layout grid at all. A `shared_boss_grid` of `garland, vampire, astos, bikke,
-   chaos` — the five fights with a real signal — following the
-   `shared_shard_hunt_grid` shape. Three of those already render elsewhere, so
-   this means moving cells rather than duplicating them.
+1. **Door-map click-through.** `tools/doormap.py` gets a focus panel and real
+   `#map-<id>` anchors driven by `hashchange`, so the shuffled dungeon can be
+   walked by clicking instead of scrolled. One file, no pack risk.
+2. **The missing `LOCATION_MAPPING` rows** below, which are a quiet correctness
+   hole rather than a feature.
 
 ## Designed, not started
 
@@ -50,9 +46,6 @@ Last updated 2026-08-28.
   pack learns the permutation by observation and reveal-on-visit cannot spoil.
   Needs `min_poptracker_version` raised to 0.32.0. Staged; the first useful
   increment is the log plus a console print.
-- **Door-map click-through.** Give `tools/doormap.py` a focus panel and real
-  `#map-<id>` anchors driven by `hashchange`, so the shuffled dungeon can be
-  walked by clicking. One file.
 - **Trap tiles on the map tabs.** FFR randomizes them and the tracker does not
   show them. Shares its whole tile-to-pixel path with entrance markers, on a
   much smaller blast radius.
@@ -66,6 +59,12 @@ Last updated 2026-08-28.
   a Locations-grid cell needs a new hosted toggle under a different code.
 - **17 maps have no markers.** 16 are uncalibrated; `ConeriaCastle2F` is a
   calibration alias away from working.
+- **The incentive defaults are still a guess** on a version with no schema.
+  The warning light says so, but the toggles themselves stay on whatever
+  `scripts/init.lua:73-90` set. They cannot simply be cleared: an
+  Archipelago-only player never receives a flag string at all, since only the
+  bridge publishes one, so an empty default board would be wrong for every AP
+  session.
 - **Non-incentivized checks cannot be hidden.** PopTracker does not support
   rule-hiding an `itemgrid` cell — the widget adds every cell unconditionally.
   The map pins already hide correctly. Doing it for the grid means converting
@@ -74,8 +73,6 @@ Last updated 2026-08-28.
   complaint.
 - **`shopItem`** is the one Locations-grid cell with no incentive toggle behind
   it and no FFR flag mapped to it.
-- **`items/flags.json:121` has `"active": true`,** which is not a PopTracker key
-  and is silently ignored. The real one is `initial_active_state`.
 
 ## Open questions
 
