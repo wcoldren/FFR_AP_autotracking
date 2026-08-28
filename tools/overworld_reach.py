@@ -9,31 +9,56 @@ vanilla MapChange list is not an answer.
 
   Constants.inc:89   BANK_OWMAP = $01
   Constants.inc:449  lut_OWPtrTbl = $8000 (BANK_OWMAP)
+  Constants.inc:469  lut_OWTileset = $8000 (BANK_OWINFO = $00), 128 tiles x 2
+  Constants.inc:332  OWTP_DOCKSHIP = %00100000
+  variables.inc:70   vehicle = 1 walking, 2 canoe, 4 ship, 8 airship
+  bank_0F.asm:1139   AND vehicle -- the entire movement test
+  bank_0F.asm:1391   UnboardBoat: AND #$01, so stepping off needs a walkable
+                     tile; @MoveShip at :604 needs OWTP_DOCKSHIP as well
 
-Two tile-classification traps, both of which produce a confident wrong answer:
+Which tile is water and which is wall is not a judgement call: the low nibble of
+each tile's first property byte is one "this vehicle may not enter" bit per
+vehicle, and the game's whole movement check is `tileprop & vehicle`. An earlier
+version of this file guessed at the classes instead, with tile-id sets for
+mountain, ocean, river, dock and coast, and the sets were wrong in both
+directions on a stock cartridge: of the 126 tile ids a real overworld uses, 32
+disagreed with the cartridge. Tile $32 is in the mountain set and is walked on,
+and the other 31 are tiles the party cannot step on that were treated as open
+ground -- which merges landmasses and makes --rivers report a mouth touching a
+continent it does not touch.
+
+The one trap that survives reading the table:
 
   * Docks are the wrong reachability test. The Gaia / Lefein / Castle of Ordeals
     continent has no dock tile on it at all, yet it is reachable without the
     airship, because the canoe can be boarded straight off the ship where a
     river meets the ocean. The right question is "does a river touch both the
     ocean and this landmass?", which is what --rivers answers.
-  * Coast tiles are shoreline, not land and not water. The ship enters them and
-    the party can walk them. Calling them pure land cuts the ship off; calling
-    them pure water severs walking routes along the shore. Either one gives a
-    false negative. --no-coast turns the ship's half of this off, which is what
-    the earlier scratchpad scripts did.
+
+The "coast" class is gone with the guesswork. Shoreline tiles are not a third
+thing: $07, $16, $18 and $27 carry the ship and refuse the party exactly as the
+open sea does, while $06, $08, $26 and $28 are ordinary walkable land the ship
+cannot enter. The old --no-coast switch existed to hedge between those two
+readings and had nothing left to hedge.
 
 Two results this tool does NOT reproduce, recorded here so nobody chases them
 again. An earlier session's note claims that on FFR_03409C3E_GsBKsXSF the ship
 plus canoe reaches Gaia, Lefein and Castle of Ordeals, via one river mouth at
-(134, 33). Running that session's own scripts on that ROM gives Gaia False and
-no river mouth touching Gaia's landmass at all -- (134, 33) is one of twelve
-mouths on the map, none of them adjacent to that continent. With coast handling
-on, Ordeals flips to reachable; Gaia and Lefein do not. The seed's flags say
-why: MapGaiaMountainPass, MapHighwayToOrdeals, MapLefeinRiver and
-MapBridgeLefein are all off and OwMapExchange is None, so this is the stock
-overworld, on which Gaia is airship-only exactly as in vanilla. The canoe
-mechanism itself is real; the seed-specific conclusion was not.
+(134, 33). On that ROM this tool gives Gaia False and no river mouth touching
+Gaia's landmass at all -- (134, 33) is one of twelve mouths on the map, none of
+them adjacent to that continent. Ordeals is reachable; Gaia and Lefein are not.
+The seed's flags say why: MapGaiaMountainPass, MapHighwayToOrdeals,
+MapLefeinRiver and MapBridgeLefein are all off and OwMapExchange is None, so
+this is the stock overworld, on which Gaia is airship-only exactly as in
+vanilla. The canoe mechanism itself is real; the seed-specific conclusion was
+not.
+
+Reading the table rather than guessing changes the landmass numbers a great
+deal, which is worth knowing when comparing against an older run of this file:
+on that same ROM the guessed classes had Coneria and Pravoka sharing one
+3223-tile continent when they are 1077 and 1673 tiles and separate, and had
+Castle of Ordeals on 1090 tiles rather than its actual 87. The set of places the
+ship and canoe reach did not move.
 
 Usage:
     tools/overworld_reach.py ROM                 # ship vs ship+canoe
@@ -48,13 +73,13 @@ from collections import deque
 INES_HEADER = 0x10
 BANK_SIZE = 0x4000
 OW_PTR_TBL = INES_HEADER + BANK_SIZE          # lut_OWPtrTbl, bank 1 at $8000
+OW_TILESET_PROP = INES_HEADER                 # lut_OWTileset, bank 0 at $8000
 OW_DIM = 256
+OW_TILES = 128
 
-MOUNTAIN = {0x10, 0x11, 0x12, 0x20, 0x21, 0x22, 0x30, 0x31, 0x32, 0x33}
-OCEAN = {0x17}
-RIVER = {0x40, 0x41, 0x44, 0x50, 0x51}
-DOCK = {0x0F, 0x1F, 0x77, 0x78, 0x79, 0x7A}
-COAST = {0x06, 0x07, 0x08, 0x16, 0x18, 0x26, 0x27, 0x28}
+# The vehicle bits, which are also the "may not enter" bits in property byte 0.
+FOOT, CANOE, SHIP = 0x01, 0x02, 0x04
+OWTP_DOCKSHIP = 0x20
 
 # Somewhere in open ocean, well clear of land: where the ship starts a walk.
 OPEN_SEA = (240, 60)
@@ -92,23 +117,51 @@ def decompress_ow(rom):
     return rows
 
 
-def kind(t):
-    if t in OCEAN:
-        return "sea"
-    if t in RIVER:
-        return "river"
-    if t in MOUNTAIN:
-        return "wall"
-    if t in COAST:
-        return "coast"
-    return "land"
+class Overworld:
+    """The decompressed map, plus the table that says who may stand on what."""
+
+    def __init__(self, rom):
+        self.rows = decompress_ow(rom)
+        self.prop = rom[OW_TILESET_PROP:OW_TILESET_PROP + OW_TILES * 2]
+
+    def at(self, x, y):
+        """Property byte 0 of the tile at (x, y)."""
+        return self.prop[self.rows[y][x] * 2]
+
+    def allows(self, x, y, vehicle):
+        """bank_0F.asm:1139: a set bit is this vehicle being refused."""
+        return (self.at(x, y) & vehicle) == 0
+
+    def docks(self, x, y):
+        """Where the ship can be left, and therefore where it can be found."""
+        return (self.at(x, y) & OWTP_DOCKSHIP) != 0
+
+    def neighbours(self, x, y):
+        return [((x + dx) % OW_DIM, (y + dy) % OW_DIM)
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
 
 
-def reach(m, start, canoe, coast=True):
+def reach(w, start, canoe):
     """Tiles reachable from `start`, tracking which vehicle you are in.
 
-    The sea -> river step is the load-bearing one: it is the only way onto the
-    northern continent short of the airship.
+    The three move handlers at bank_0F.asm:540-628, transcribed. Each vehicle
+    moves onto any tile its own bit is clear on; where it is not, the game tries
+    to change vehicles instead:
+
+      on foot   board the canoe on a canoe tile, or the ship on the tile it is
+                docked at
+      in ship   board the canoe on a canoe tile -- the sea-to-river step, and
+                the only way onto the northern continent short of the airship
+                -- or step off onto a tile that is both walkable and flagged
+                OWTP_DOCKSHIP, which is what docking is
+      in canoe  step off onto any walkable tile
+
+    Boarding the ship is modelled as "any dock tile you can walk to", which
+    assumes the ship can be sailed to that dock. The one thing it cannot model
+    is the canoe carrying you back out to sea: BoardShip wants the ship at the
+    tile you are standing on, and where the ship actually is is not something a
+    reachability walk tracks. It costs nothing here -- the search starts at sea,
+    so every tile the ship can be on has already been walked.
     """
     seen, q = set(), deque()
 
@@ -120,63 +173,54 @@ def reach(m, start, canoe, coast=True):
     push(start)
     while q:
         x, y, mode = q.popleft()
-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            nx, ny = (x + dx) % OW_DIM, (y + dy) % OW_DIM
-            k = kind(m[ny][nx])
-            if k == "wall":
-                continue
+        for nx, ny in w.neighbours(x, y):
             if mode == "sea":
-                if k == "sea" or (k == "coast" and coast):
+                if w.allows(nx, ny, SHIP):
                     push((nx, ny, "sea"))
-                elif k == "river" and canoe:
+                elif canoe and w.allows(nx, ny, CANOE):
                     push((nx, ny, "river"))
-                elif k in ("land", "coast") and m[ny][nx] in DOCK:
+                elif w.allows(nx, ny, FOOT) and w.docks(nx, ny):
                     push((nx, ny, "land"))
             elif mode == "river":
-                if k == "river":
+                if w.allows(nx, ny, CANOE):
                     push((nx, ny, "river"))
-                elif k in ("land", "coast"):
+                elif w.allows(nx, ny, FOOT):
                     push((nx, ny, "land"))
-                elif k == "sea":
-                    push((nx, ny, "sea"))
             else:
-                if k in ("land", "coast"):
+                if w.allows(nx, ny, FOOT):
                     push((nx, ny, "land"))
-                elif k == "river" and canoe:
+                elif canoe and w.allows(nx, ny, CANOE):
                     push((nx, ny, "river"))
-                elif k == "sea" and m[y][x] in DOCK:
+                elif w.allows(nx, ny, SHIP) and w.docks(x, y):
                     push((nx, ny, "sea"))
     return {(x, y) for x, y, _ in seen}
 
 
-def landmass(m, seed):
+def landmass(w, seed):
     """Tiles walkable on foot from `seed`, ignoring every vehicle."""
-    def foot(t):
-        return t not in MOUNTAIN and t not in OCEAN and t not in RIVER
-
     seen, q = {seed}, deque([seed])
     while q:
         x, y = q.popleft()
-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            nx, ny = (x + dx) % OW_DIM, (y + dy) % OW_DIM
-            if (nx, ny) not in seen and foot(m[ny][nx]):
+        for nx, ny in w.neighbours(x, y):
+            if (nx, ny) not in seen and w.allows(nx, ny, FOOT):
                 seen.add((nx, ny))
                 q.append((nx, ny))
     return seen
 
 
-def print_rivers(m, seed):
-    mass = landmass(m, seed)
+def print_rivers(w, seed):
+    mass = landmass(w, seed)
     print(f"landmass around {seed}: {len(mass)} tiles, "
-          f"{sum(1 for p in mass if m[p[1]][p[0]] in DOCK)} dock tiles on it")
+          f"{sum(1 for p in mass if w.docks(*p))} dock tiles on it")
     mouths = []
     for y in range(OW_DIM):
         for x in range(OW_DIM):
-            if m[y][x] not in RIVER:
+            # A river tile: the canoe goes there and the party cannot walk it.
+            if not w.allows(x, y, CANOE) or w.allows(x, y, FOOT):
                 continue
-            adj = [((x + dx) % OW_DIM, (y + dy) % OW_DIM)
-                   for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
-            if any(m[b][a] in OCEAN for a, b in adj) and any(p in mass for p in adj):
+            adj = w.neighbours(x, y)
+            if (any(w.allows(a, b, SHIP) for a, b in adj)
+                    and any(p in mass for p in adj)):
                 mouths.append((x, y))
     print(f"river mouths that touch both the ocean and this landmass: {mouths or 'NONE'}")
 
@@ -190,21 +234,19 @@ def main():
                     help="landmass seed tile for --rivers (default: Gaia)")
     ap.add_argument("--at", nargs=2, type=int, metavar=("X", "Y"),
                     help="report reachability of one tile")
-    ap.add_argument("--no-coast", action="store_true",
-                    help="do not let the ship enter shoreline tiles")
     args = ap.parse_args()
 
     rom = open(args.rom, "rb").read()
     if rom[:4] != b"NES\x1a":
         sys.exit("not an iNES ROM")
-    m = decompress_ow(rom)
+    w = Overworld(rom)
 
     if args.rivers:
-        print_rivers(m, tuple(args.seed))
+        print_rivers(w, tuple(args.seed))
         return
 
     for canoe in (False, True):
-        r = reach(m, (*OPEN_SEA, "sea"), canoe, coast=not args.no_coast)
+        r = reach(w, (*OPEN_SEA, "sea"), canoe)
         label = "ship + canoe" if canoe else "ship"
         print(f"{label:<13} {len(r):>6} tiles reachable")
         if args.at:
