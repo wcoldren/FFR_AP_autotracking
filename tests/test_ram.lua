@@ -52,6 +52,11 @@ local function reset()
   MEM = {}
   for addr, v in pairs(INIT_FLAGS) do MEM[addr] = v end
   rebuild()
+  -- Each case is a different cartridge, not the next scan of the last one, so
+  -- drop the derived-stage history too. clearRamDerivedItems() does this in
+  -- production; doing it by hand here keeps the item model rebuild above as the
+  -- only thing reset() owns.
+  LAST_RAM_STAGE, VANISH_WARNED = {}, {}
 end
 reset()
 
@@ -256,6 +261,39 @@ MEM[0x6004] = 1
 applyRamRules(byteAt)
 check("no ruby: Titan's Trove out of logic", inLogic("Titan's Trove"), false)
 check("no ruby: Sarda's Cave out of logic", inLogic("Sarda's Cave"), false)
+
+-- $6214 is not Titan's byte alone. The flag array is a shared id space: byte i
+-- carries chest i's opened bit (0x04) as well as event i's (0x02), and index
+-- $14 is both OBJID_TITAN and chest $14. Every case above leaves that chest
+-- shut, which is why a rule reading the whole byte passed here for months and
+-- still blanked the Ruby on a real save the moment the chest was looted.
+--
+-- The two states below are transcribed from saves: 0x04 is fed-with-the-chest-
+-- open, 0x05 is still-standing-with-the-chest-open.
+reset()
+byCode["sardasForest"].Active = true
+MEM[0x602B] = 1
+MEM[0x6004] = 1
+MEM[0x6029] = 0                                  -- Ruby eaten
+MEM[0x6214] = 0x04                               -- Titan gone, chest $14 looted
+applyRamRules(byteAt)
+check("fed Titan with chest $14 open keeps 'ruby'", provided("ruby"), true)
+check("fed Titan with chest $14 open provides 'titan'", provided("titan"), true)
+check("fed + chest open: Titan's Trove in logic", inLogic("Titan's Trove"), true)
+check("fed + chest open: Sarda's Cave in logic", inLogic("Sarda's Cave"), true)
+
+-- The other half of the same trap. Reading 0x04 as the turn-in -- by masking
+-- 0x04, or 0x06 -- would call Titan fed here, while he is still standing and
+-- the Ruby is still in the bag.
+reset()
+byCode["sardasForest"].Active = true
+MEM[0x602B] = 1
+MEM[0x6004] = 1
+MEM[0x6029] = 1                                  -- Ruby still held
+MEM[0x6214] = 0x05                               -- Titan visible, chest $14 looted
+applyRamRules(byteAt)
+check("chest $14 alone does NOT feed Titan", provided("titan"), false)
+check("chest $14 alone leaves 'ruby' held", provided("ruby"), true)
 
 ------------------------------------------------------------------
 -- Bosses

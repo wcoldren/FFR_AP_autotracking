@@ -93,12 +93,30 @@ RAM_RULES = {
   -- the spent Ruby fell to stage 0, stopped providing `ruby`, and took Titan's
   -- Trove and Sarda red on the seed where they had just opened.
   --
-  -- What Talk_Titan does leave is the visibility bit going out. lut_InitGameFlags
-  -- starts $14 at 0x01 (GMFLG_OBJVISIBLE), HideMapObject ANDs it off, and no
-  -- other bit is ever written to this object -- EVENT is what is missing and
-  -- TCOPEN is a chest bit -- so the byte is 0x01 before and 0x00 after. Same
-  -- shape as canal_vis below, and read the same way.
-  { code = "ruby",    stage = 1, addr = 0x6214, zero = true },  -- Titan fed
+  -- What Talk_Titan does leave is the visibility bit going out.
+  -- lut_InitGameFlags starts $14 at 0x01 (GMFLG_OBJVISIBLE) and HideMapObject
+  -- ANDs it off, so *that bit* is the turn-in.
+  --
+  -- Read the bit, not the byte. An earlier version of this rule tested
+  -- `zero = true` on the theory that nothing else ever writes to $6214, and
+  -- that is wrong: the flag array is indexed by a *shared* id space, where
+  -- byte i carries both chest i's opened bit (0x04) and event i's bit (0x02)
+  -- -- see the header of uat.lua, which mirrors worlds/ff1/Client.py. Index
+  -- $14 is OBJID_TITAN and chest $14 at the same time, so opening that chest
+  -- parks 0x04 in this byte for the rest of the run.
+  --
+  -- Measured across five real saves: $6214 is 0x01 with Titan still standing,
+  -- and 0x04 once he is fed and that chest is open. `zero` therefore never
+  -- matched, the spent Ruby fell through to no rule at all, and applyCode()
+  -- blanked the item -- which also un-did every manual click on the next scan.
+  -- Masking 0x04 or 0x06 would be the same bug wearing a hat: it would call
+  -- the Titan fed the moment chest $14 was opened.
+  --
+  -- A bit-clear test does read an all-zero flag page as "fed". That is safe
+  -- only because applyRamRules runs behind ff1/ready, which the bridge holds
+  -- low until a save is actually loaded. Fed-with-the-chest-shut is a real
+  -- 0x00, so this cannot be tightened by demanding a nonzero byte.
+  { code = "ruby",    stage = 1, addr = 0x6214, clear = 0x01 },  -- Titan fed
   { code = "tail",    stage = 0, addr = 0x602D },
   { code = "tail",    stage = 1, addr = 0x620E, mask = 0x02 },  -- Bahamut
   -- The Bottle is spent by USING it, not by handing it over, so its two events
@@ -156,13 +174,35 @@ RAM_SHARDS = { code = "shards", addr = 0x6035, maxStage = 36 }
 
 local UNKNOWN_CODE_WARNED = {}
 
+-- Last stage each code was derived at, and which codes have already reported
+-- losing it. Both feed the present -> absent warning at the end of
+-- applyRamRules; neither changes what the board shows.
+LAST_RAM_STAGE = LAST_RAM_STAGE or {}
+VANISH_WARNED = VANISH_WARNED or {}
+
 -- Every code this file owns, and which of them have stages worth walking.
 -- Built once from the tables above so adding a rule needs no second edit.
+-- Codes carrying more than one stage in RAM_RULES: an inventory sighting and at
+-- least one "it was handed over" rule. Those are the only ones for which "no
+-- rule matched" is ambiguous rather than simply absent, and so the only ones
+-- worth reporting when they go out. Derived rather than listed so a turn-in
+-- added later is covered without anyone remembering to come back here.
+local RAM_TURN_IN = {}
+
 local RAM_CODES, RAM_HAS_STAGES = {}, {}
+local seenStage = {}
 for _, rule in ipairs(RAM_RULES) do
   RAM_CODES[rule.code] = true
   if rule.stage > 0 then
     RAM_HAS_STAGES[rule.code] = true
+  end
+  seenStage[rule.code] = seenStage[rule.code] or {}
+  if not seenStage[rule.code][rule.stage] then
+    seenStage[rule.code][rule.stage] = true
+    seenStage[rule.code].n = (seenStage[rule.code].n or 0) + 1
+    if seenStage[rule.code].n > 1 then
+      RAM_TURN_IN[rule.code] = true
+    end
   end
 end
 RAM_CODES[RAM_SHARDS.code] = true
@@ -253,6 +293,10 @@ end
 -- merely stale, they are about to be replaced wholesale by the new one's RAM.
 -- The AP carve-out still applies -- a code AP granted would not come back.
 function clearRamDerivedItems()
+  -- The previous cartridge's stages are not evidence about this one, so drop
+  -- them here rather than letting the first snapshot of a new seed report every
+  -- item the old one had finished.
+  LAST_RAM_STAGE, VANISH_WARNED = {}, {}
   for code in pairs(RAM_CODES) do
     applyCode(code, nil, not apOwned(code))
   end
@@ -269,6 +313,12 @@ function applyRamRules(byteAt)
       local hit
       if rule.mask then
         hit = (byte & rule.mask) ~= 0
+      elseif rule.clear then
+        -- Bits that mean something by going *out*. Distinct from `zero`: the
+        -- flag-array bytes are shared between a chest bit and an event bit, so
+        -- "this object's visibility went away" is a single bit going low in a
+        -- byte whose other bits are still moving under it. See the Titan rule.
+        hit = (byte & rule.clear) == 0
       elseif rule.zero then
         hit = byte == 0
       else
@@ -291,7 +341,30 @@ function applyRamRules(byteAt)
     return
   end
 
+  -- Say so when an item the cartridge was showing stops being shown at all.
+  --
+  -- For a turn-in item "no rule matched" is ambiguous: it means either "never
+  -- picked it up" or "spent it, and the rule that was supposed to notice is
+  -- wrong". Those look identical in a single snapshot, and the second one has
+  -- now shipped three times -- Titan's Trove and Sarda going red (f09e25b), the
+  -- Fairy going red (the Bottle note above), and the Ruby vanishing on a looted
+  -- chest $14. Each time the item silently blanked and then fought the player's
+  -- clicks, because applyRamRules re-runs every scan.
+  --
+  -- The board still walks back: RAM stays authoritative, which is what makes
+  -- loading an older save drop what that save had not collected. Only the
+  -- present -> absent transition is reported, and only once per code, so a new
+  -- game does not narrate every item nobody has yet.
   for code in pairs(RAM_CODES) do
+    if RAM_TURN_IN[code] and best[code] == nil and LAST_RAM_STAGE[code] ~= nil
+       and not VANISH_WARNED[code] then
+      VANISH_WARNED[code] = true
+      print(string.format(
+        "ram: %s was at stage %d and now matches no rule -- if the cartridge "
+        .. "still has it, a turn-in rule is reading the wrong bit",
+        code, LAST_RAM_STAGE[code]))
+    end
+    LAST_RAM_STAGE[code] = best[code]
     applyCode(code, best[code], not apOwned(code))
   end
 end
