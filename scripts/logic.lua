@@ -93,3 +93,46 @@ function canBreakOrb()
   end
   return 0
 end
+
+-- A slot this seed did not put in the incentive pool.
+--
+-- These are still checks. The NPC still hands you something, the chest is
+-- still there and still holds an item -- so hiding them, which is what the
+-- visibility_rules on the incentive map used to do, took a real check off the
+-- board. Inspect draws them blue instead: visible, and visibly not somewhere a
+-- key item can be.
+--
+-- Used as `^$incentiveSlot|<flag code>`, which needs PopTracker 0.25.6. The
+-- argument is the flag item's own code, so the pairing lives in the location
+-- file next to the section it describes and there is no second copy here to
+-- drift out of step.
+--
+-- Note what this deliberately does not do. PopTracker ANDs the term into each
+-- alternative and stops at the first failure (tracker.cpp:1126-1136), so a
+-- slot that is both unincentivized and out of logic comes out None, not
+-- Inspect: it stays red like any other unreachable check, and only goes blue
+-- once it is actually reachable. That is the right way round -- "you cannot
+-- get there yet" outranks "there is probably nothing good here".
+--
+-- ProviderCountForCode rather than FindObjectForCode().Active: BahamutHoard is
+-- stage 2 of the cardiaIsIncentive progressive, and only the provider walk
+-- knows which codes a stage hands out.
+local INCENTIVE_WARNED = {}
+
+function incentiveSlot(code)
+  if Tracker:ProviderCountForCode(code) > 0 then
+    return AccessibilityLevel.Normal
+  end
+  -- An unknown code counts zero exactly like an unset flag, so a typo would
+  -- quietly paint a whole tab blue. Say it once and behave as the pack did
+  -- before instead.
+  if not Tracker:FindObjectForCode(code) then
+    if not INCENTIVE_WARNED[code] then
+      INCENTIVE_WARNED[code] = true
+      print("logic: no incentive flag named " .. tostring(code)
+            .. " -- treating the slot as incentivized")
+    end
+    return AccessibilityLevel.Normal
+  end
+  return AccessibilityLevel.Inspect
+end

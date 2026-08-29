@@ -9,14 +9,12 @@
 				"sections" : [
 					{
 						"name" : "I: King",
-						"access_rules" : [],
-						"visibility_rules" : [ "npcsAreIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|npcsAreIncentive" ],
 						"hosted_item" : "king"
 					},
 					{
 						"name" : "I: Sara",
-						"access_rules" : [ "garland" ],
-						"visibility_rules" : [ "npcsAreIncentive" ],
+						"access_rules" : [ "garland,^$incentiveSlot|npcsAreIncentive" ],
 						"hosted_item" : "sara"
 					}
 				],
@@ -34,8 +32,7 @@
 				"sections": [
 					{
 						"name" : "I: Coneria Castle Incentive",
-						"access_rules" : [ "key" ],
-						"visibility_rules" : [ "coneriaLockedIsIncentive" ],
+						"access_rules" : [ "key,^$incentiveSlot|coneriaLockedIsIncentive" ],
 						"hosted_item" : "coneriaLocked"
 					}
 				],
@@ -94,8 +91,7 @@
 				"sections" : [
 					{
 						"name" : "I: Smithy McBeardSmith",
-						"access_rules" : [ "adamant" ],
-						"visibility_rules" : [ "fetchQuestsAreIncentive" ],
+						"access_rules" : [ "adamant,^$incentiveSlot|fetchQuestsAreIncentive" ],
 						"hosted_item" : "smith"
 					}
 				],
@@ -113,8 +109,7 @@
 				"sections" : [
 					{
 						"name" : "I: Astos",
-						"access_rules" : [ "crown" ],
-						"visibility_rules" : [ "fetchQuestsAreIncentive" ],
+						"access_rules" : [ "crown,^$incentiveSlot|fetchQuestsAreIncentive" ],
 						"hosted_item" : "astos"
 					}
 				],
@@ -132,8 +127,7 @@
 				"sections" : [
 					{
 						"name" : "I: Matoya",
-						"access_rules" : [ "crystal" ],
-						"visibility_rules" : [ "fetchQuestsAreIncentive" ],
+						"access_rules" : [ "crystal,^$incentiveSlot|fetchQuestsAreIncentive" ],
 						"hosted_item" : "matoya"
 					}
 				],
@@ -151,8 +145,7 @@
 				"sections" : [
 					{
 						"name" : "I: Elf Prince",
-						"access_rules" : [ "herb" ],
-						"visibility_rules" : [ "fetchQuestsAreIncentive" ],
+						"access_rules" : [ "herb,^$incentiveSlot|fetchQuestsAreIncentive" ],
 						"hosted_item" : "elfprince"
 					}
 				],
@@ -170,8 +163,7 @@
 				"sections" : [
 					{
 						"name" : "I: Bikke",
-						"access_rules" : [],
-						"visibility_rules" : [ "npcsAreIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|npcsAreIncentive" ],
 						"hosted_item" : "bikke"
 					}
 				],
@@ -189,8 +181,7 @@
 				"sections" : [
 					{
 						"name" : "I: Marsh Incentive",
-						"access_rules" : [],
-						"visibility_rules" : [ "marshIsIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|marshIsIncentive" ],
 						"hosted_item" : "marsh"
 					}
 				],
@@ -208,8 +199,7 @@
 				"sections" : [
 					{
 						"name" : "I: Marsh Locked Incentive",
-						"access_rules" : [ "key" ],
-						"visibility_rules" : [ "marshLockedIsIncentive" ],
+						"access_rules" : [ "key,^$incentiveSlot|marshLockedIsIncentive" ],
 						"hosted_item" : "marshLocked"
 					}
 				],
@@ -233,8 +223,7 @@
 				"sections" : [
 					{
 						"name" : "I: Sarda",
-						"access_rules" : [],
-						"visibility_rules" : [ "npcsAreIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|npcsAreIncentive" ],
 						"hosted_item" : "sarda"
 					}
 				],
@@ -252,8 +241,7 @@
 				"sections" : [
 					{
 						"name" : "I: Incentive",
-						"access_rules" : [],
-						"visibility_rules" : [ "titansTroveIsIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|titansTroveIsIncentive" ],
 						"hosted_item" : "titansTrove"
 					}
 				],
@@ -276,8 +264,7 @@
 					},
 					{
 						"name" : "I: Earth Incentive",
-						"access_rules" : [],
-						"visibility_rules" : [ "earthIsIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|earthIsIncentive" ],
 						"hosted_item" : "earth"
 					}
 				],
@@ -295,7 +282,7 @@
 				"sections" : [
 					{
 						"name" : "I: Dr Unne",
-						"visibility_rules" : [ "fetchQuestsAreIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|fetchQuestsAreIncentive" ],
 						"hosted_item" : "slabTranslated"
 					}
 				],
@@ -319,8 +306,7 @@
 				"sections" : [
 					{
 						"name" : "I: Sages",
-						"access_rules" : [],
-						"visibility_rules" : [ "npcsAreIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|npcsAreIncentive" ],
 						"hosted_item" : "sages"
 					}
 				],
@@ -338,8 +324,7 @@
 				"sections" : [
 					{
 						"name" : "I: Ice Cave Incentive",
-						"access_rules" : [],
-						"visibility_rules" : [ "iceCaveIsIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|iceCaveIsIncentive" ],
 						"hosted_item" : "iceCave"
 					}
 				],
@@ -362,8 +347,7 @@
 					},
 					{
 						"name" : "I: Volcano Incentive",
-						"access_rules" : [],
-						"visibility_rules" : [ "volcanoIsIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|volcanoIsIncentive" ],
 						"hosted_item" : "volcano"
 					}
 				],
@@ -405,8 +389,7 @@
 				"sections": [
 					{
 						"name" : "I: Cardia Incentive",
-						"visibility_rules" : [ "cardiaIsIncentive" ],
-						"access_rules" : [],
+						"access_rules" : [ "^$incentiveSlot|cardiaIsIncentive" ],
 						"hosted_item" : "cardiaIncentive"
 					}
 				],
@@ -449,8 +432,7 @@
 				"sections" : [
 					{
 						"name" : "I: Incentive",
-						"access_rules" : [],
-						"visibility_rules" : [ "ordealsIsIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|ordealsIsIncentive" ],
 						"hosted_item" : "ordeals"
 					}
 				],
@@ -474,8 +456,7 @@
 				"sections" : [
 					{
 						"name" : "I: Incentive",
-						"access_rules" : [ "slabTranslated", "slabDone" ],
-						"visibility_rules" : [ "fetchQuestsAreIncentive" ],
+						"access_rules" : [ "slabTranslated,^$incentiveSlot|fetchQuestsAreIncentive", "slabDone,^$incentiveSlot|fetchQuestsAreIncentive" ],
 						"hosted_item" : "lefein"
 					}
 				],
@@ -493,8 +474,7 @@
 				"sections" : [
 					{
 						"name" : "I: Fairy",
-						"access_rules" : [ "bottle" ],
-						"visibility_rules" : [ "fetchQuestsAreIncentive" ],
+						"access_rules" : [ "bottle,^$incentiveSlot|fetchQuestsAreIncentive" ],
 						"hosted_item" : "fairy"
 					}
 				],
@@ -517,8 +497,7 @@
 					},
 					{
 						"name" : "I: Sky Incentive",
-						"access_rules" : [],
-						"visibility_rules" : [ "skyIsIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|skyIsIncentive" ],
 						"hosted_item" : "sky"
 					}
 				],
@@ -542,8 +521,7 @@
 				"sections" : [
 					{
 						"name" : "I: Robot",
-						"access_rules" : [],
-						"visibility_rules" : [ "npcsAreIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|npcsAreIncentive" ],
 						"hosted_item" : "robot"
 					}
 				],
@@ -579,8 +557,7 @@
 				"sections" : [
 					{
 						"name" : "I: Sea Incentive",
-						"access_rules" : [],
-						"visibility_rules" : [ "seaIsIncentive" ],
+						"access_rules" : [ "^$incentiveSlot|seaIsIncentive" ],
 						"hosted_item" : "sea"
 					}
 				],

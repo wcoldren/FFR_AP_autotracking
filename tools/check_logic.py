@@ -183,11 +183,24 @@ def with_airship(provided, raise_chain):
     return provided
 
 
+# Terms that colour a pin rather than gate it. `^$incentiveSlot|<flag>` returns
+# Normal or Inspect and never None (scripts/logic.lua), so it cannot make a
+# section unreachable -- but it is not in `provided` either, so left alone it
+# would read as "never satisfied" and report every incentive slot in the pack as
+# stricter than FFR.
+NON_GATING = ("^$incentiveSlot|",)
+
+
+def gating(term):
+    return not term.startswith(NON_GATING)
+
+
 def satisfied(chain, provided):
     for rules in chain:
         if not rules:
             continue
-        if not any(all(term in provided for term in alt.split(","))
+        if not any(all(term in provided
+                       for term in alt.split(",") if gating(term))
                    for alt in rules):
             return False
     return True
@@ -199,7 +212,9 @@ def chain_codes(chain):
     for rules in chain:
         for alt in rules:
             for term in alt.split(","):
-                out.add(term.strip())
+                term = term.strip()
+                if gating(term):
+                    out.add(term)
     return out
 
 
