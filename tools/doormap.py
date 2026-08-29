@@ -327,6 +327,8 @@ p{margin:0; max-width:65ch}
 
 /* section */
 section{display:flex; flex-direction:column; gap:18px}
+/* section's display beats the browser's own [hidden] rule, so say it here */
+[hidden]{display:none!important}
 .head{display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap}
 
 /* route chain */
@@ -638,6 +640,8 @@ const summarise = (id, doorsIn, stairsIn, out) => {
   if (!out.length) bits.push('No staircase leads on from here.');
   else if (walk === out.length) bits.push(`${out.length} staircase${out.length === 1 ? '' : 's'}
     lead${out.length === 1 ? 's' : ''} on, all walkable from where you land.`);
+  else if (out.length === 1) bits.push(`1 staircase sits on the floor, and it is not
+    walkable from where you land.`);
   else bits.push(`${out.length} staircases sit on the floor; ${walk || 'none'} of them
     walkable from where you land.`);
   return bits.join(' ');
