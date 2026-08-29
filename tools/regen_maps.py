@@ -186,10 +186,16 @@ def in_region(r, col, row):
 # ------------------------------------------------------------------- contents
 
 def build_images(rom):
-    """-> {relpath: (w, h, rgb)} for all 61 maps."""
+    """-> {relpath: (w, h, rgb)} for all 61 maps, rooms drawn open.
+
+    Unroofed, because a tracker map is read rather than walked. In the game a
+    room is a white slab until you step through its door; on a map you are
+    consulting to decide where to go, that slab is hiding the very thing you
+    are looking for -- all six of Coneria Castle 1F's chests sit under one.
+    """
     out = {}
     for map_id, name in render_maps.MAP_FILES.items():
-        out[f"images/maps/{name}.png"] = render_maps.render(rom, map_id)
+        out[f"images/maps/{name}.png"] = render_maps.render(rom, map_id, unroof=True)
     return out
 
 

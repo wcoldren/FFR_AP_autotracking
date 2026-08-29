@@ -153,19 +153,80 @@ def tileset_art(rom, tileset, palettes):
     return blocks
 
 
-def render(rom, map_id, inside=False):
-    """(w, h, rgb_bytes) for one standard map."""
+# A roof is not separate tile data. The room interior -- chests and all -- is
+# already in the map, painted over with a sub-palette whose three non-background
+# colours are identical, so the art collapses to a featureless slab. Stepping
+# through the door swaps the map to its "inside" palette and the same tiles
+# resolve into furniture. Every chest in Coneria Castle 1F, Elfland Castle and
+# Ice Cave B1 sits under one of these.
+#
+# Flatness alone is not enough to find a room, because a uniform rock wall is
+# flat for the same reason -- Marsh Cave B1 has 3474 such cells and no room at
+# all. What separates them is shape: a room is a small closed component, the
+# wall is one mass spanning the map. So take the flat cells, split them into
+# connected components, and keep the small ones.
+ROOM_MAX_CELLS = 256
+
+
+def roof_palettes(rom, map_id):
+    """Sub-palette indices that are a flat slab outdoors and detailed inside."""
+    def flat(p):
+        return p[1] == p[2] == p[3]
+    out = map_palettes(rom, map_id, False)
+    ins = map_palettes(rom, map_id, True)
+    return {i for i in range(4) if flat(out[i]) and not flat(ins[i])}
+
+
+def room_cells(rom, map_id, tiles):
+    """The (row, col) cells a roof covers, as a set. Empty when there is none."""
+    roof = roof_palettes(rom, map_id)
+    if not roof:
+        return set()
+    tileset = rom[TILESET_LUT + map_id]
+    attrs = rom[ATTR_BASE + 0x80 * tileset:ATTR_BASE + 0x80 * tileset + TILES_PER_SET]
+    under = {(i // MAP_DIM, i % MAP_DIM) for i, t in enumerate(tiles)
+             if (attrs[t & 0x7F] & 3) in roof}
+    seen, keep = set(), set()
+    for start in under:
+        if start in seen:
+            continue
+        seen.add(start)
+        stack, comp = [start], []
+        while stack:
+            r, c = stack.pop()
+            comp.append((r, c))
+            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                n = (r + dr, c + dc)
+                if n in under and n not in seen:
+                    seen.add(n)
+                    stack.append(n)
+        if len(comp) <= ROOM_MAX_CELLS:
+            keep.update(comp)
+    return keep
+
+
+def render(rom, map_id, inside=False, unroof=False):
+    """(w, h, rgb_bytes) for one standard map.
+
+    `unroof` draws the rooms open: outdoor palette everywhere, room palette on
+    the cells a roof covers, so a single image shows the map as you walk it and
+    the room contents at the same time. It is a no-op on a map with no rooms.
+    """
     base = map_data_base(rom)
     ptr = int.from_bytes(rom[base + map_id * 2:base + map_id * 2 + 2], "little")
     tiles = decompress_map(rom, base + ptr)
     tileset = rom[TILESET_LUT + map_id]
     art = tileset_art(rom, tileset, map_palettes(rom, map_id, inside))
+    open_art = tileset_art(rom, tileset, map_palettes(rom, map_id, True)) \
+        if unroof and not inside else None
+    rooms = room_cells(rom, map_id, tiles) if open_art else set()
 
     side = MAP_DIM * TILE_PX
     out = bytearray(side * side * 3)
     for row in range(MAP_DIM):
         for col in range(MAP_DIM):
-            block = art[tiles[row * MAP_DIM + col] & 0x7F]
+            here = open_art if (row, col) in rooms else art
+            block = here[tiles[row * MAP_DIM + col] & 0x7F]
             for y in range(TILE_PX):
                 dst = ((row * TILE_PX + y) * side + col * TILE_PX) * 3
                 line = block[y]
@@ -245,6 +306,8 @@ def main():
     ap.add_argument("--map", type=int, help="render one standard map id (0-60)")
     ap.add_argument("--inside", action="store_true",
                     help="use the room palette rather than the outdoor one")
+    ap.add_argument("--unroof", action="store_true",
+                    help="draw rooms open, so their chests and furniture show")
     ap.add_argument("--check", metavar="DIR",
                     help="compare against FF1R renderdungeon output in DIR")
     args = ap.parse_args()
@@ -266,7 +329,7 @@ def main():
     ids = [args.map] if args.map is not None else range(MAP_COUNT)
     for map_id in ids:
         name = MAP_FILES[map_id]
-        w, h, rgb = render(rom, map_id, args.inside)
+        w, h, rgb = render(rom, map_id, args.inside, args.unroof)
         path = os.path.join(args.out, name + ".png")
         pngio.write_rgb(path, w, h, rgb)
         print(f"wrote {path}  ({w}x{h}, tile n is pixel {TILE_PX}n)")
