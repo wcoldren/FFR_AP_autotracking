@@ -75,7 +75,6 @@ from extract_chests import (  # noqa: E402
     INES_HEADER, MAP_COUNT, MAP_DIM, TILESET_LUT,
     decompress_map, map_data_base,
 )
-import entrance_graph  # noqa: E402
 import pngio  # noqa: E402
 
 TILE_PX = 16                      # a standard-map tile is 16x16 pixels
@@ -154,45 +153,61 @@ def tileset_art(rom, tileset, palettes):
     return blocks
 
 
-# A roof is not separate tile data. The room interior -- chests and all -- is
-# already in the map, painted over with a sub-palette whose three non-background
-# colours are identical, so the art collapses to a featureless slab. Stepping
-# through the door swaps the map to its "inside" palette and the same tiles
-# resolve into furniture. Every chest in Coneria Castle 1F, Elfland Castle and
-# Ice Cave B1 sits under one of these.
+# A roof is not separate tile data. The room interior -- chests, furniture and
+# floor alike -- is already in the map, painted over with colours that collapse
+# it to a featureless slab. Stepping through the door swaps the map to its
+# "inside" palette and the same tiles resolve. Every chest in Coneria Castle 1F,
+# Elfland Castle and Ice Cave B1 sits under one of these.
 #
-# Flatness alone is not enough to find a room, because a uniform rock wall is
-# flat for the same reason -- Marsh Cave B1 has 3474 such cells and no room at
-# all. What separates them is shape: a room is a small closed component, the
-# wall is one mass spanning the map. So take the flat cells, split them into
-# connected components, and keep the small ones.
+# Ask the *rendered tile* whether it is blank, not the palette. An earlier
+# version asked the palette -- were its three non-background colours equal? --
+# and so found a room's furniture but not the floor between it. Coneria Castle
+# 1F's room floor is tile $04 on sub-palette 1, which is `0F 30 30 10` and
+# therefore not a flat palette, yet every pixel of that tile is $30: outdoors it
+# draws flat white. It came out as a hole with the furniture floating in it, and
+# an NPC standing there looked pasted on.
+#
+# The tile itself has the answer. $04 draws flat white outdoors and flat *black*
+# inside, which is exactly what the shipped hand-drawn maps show -- DarkmoonEX's
+# con_castle.png draws both throne rooms as black floor with orange furniture.
+# So there is nothing to invent and no substitute tile to choose: swap the cell
+# to the inside palette and the cartridge draws the room.
+#
+# Flatness alone is not enough, because a uniform rock wall is flat for the same
+# reason. Two tests, and a cell has to pass both:
+#
+#   * its outdoor art draws ONE colour, and its inside art draws something
+#     different -- a cave floor renders identically under both palettes, so it
+#     is never a hidden cell and Ice Cave B1's 3177 flat walkable cells never
+#     enter the running;
+#   * and its connected component is small. A room is a small closed region;
+#     the wall is one mass spanning the map.
 ROOM_MAX_CELLS = 256
 
-# How far out to look for the floor to fill a room with. The cells immediately
-# bordering a room are its own threshold, which is nearly as blank as the room;
-# map-wide is worse still, since on Coneria Castle the commonest walkable tile
-# is the field outside the castle. Six tiles reaches the corridor.
-FLOOR_RADIUS = 6
+
+def flat_art(block):
+    """True when a tile draws one colour, so it carries no information."""
+    return len({px for row in block for px in row}) == 1
 
 
-def roof_palettes(rom, map_id):
-    """Sub-palette indices that are a flat slab outdoors and detailed inside."""
-    def flat(p):
-        return p[1] == p[2] == p[3]
-    out = map_palettes(rom, map_id, False)
-    ins = map_palettes(rom, map_id, True)
-    return {i for i in range(4) if flat(out[i]) and not flat(ins[i])}
+def _colours(block):
+    return frozenset(px for row in block for px in row)
 
 
-def room_cells(rom, map_id, tiles):
-    """The (row, col) cells a roof covers, as a set. Empty when there is none."""
-    roof = roof_palettes(rom, map_id)
-    if not roof:
-        return set()
+def hidden_cells(rom, map_id, tiles, art=None, open_art=None):
+    """The (row, col) cells a roof covers, as a set. Empty when there is none.
+
+    `art` and `open_art` are the outdoor and inside tilesets; passed in by
+    render() because it has already built them, computed here otherwise.
+    """
     tileset = rom[TILESET_LUT + map_id]
-    attrs = rom[ATTR_BASE + 0x80 * tileset:ATTR_BASE + 0x80 * tileset + TILES_PER_SET]
+    if art is None:
+        art = tileset_art(rom, tileset, map_palettes(rom, map_id, False))
+    if open_art is None:
+        open_art = tileset_art(rom, tileset, map_palettes(rom, map_id, True))
     under = {(i // MAP_DIM, i % MAP_DIM) for i, t in enumerate(tiles)
-             if (attrs[t & 0x7F] & 3) in roof}
+             if flat_art(art[t & 0x7F])
+             and _colours(art[t & 0x7F]) != _colours(open_art[t & 0x7F])}
     seen, keep = set(), set()
     for start in under:
         if start in seen:
@@ -212,90 +227,13 @@ def room_cells(rom, map_id, tiles):
     return keep
 
 
-def flat_art(block):
-    """True when a tile draws one colour, so it carries no information."""
-    return len({px for row in block for px in row}) == 1
-
-
-def room_floors(rom, map_id, tiles, rooms, art, open_art):
-    """(row, col) -> the tile id to draw there, for room floor that draws blank.
-
-    Unroofing resolves a room's *furniture*, because that art is flat outdoors
-    and detailed inside. It cannot do anything for the floor between the
-    furniture, which on Coneria Castle 1F is tile $04: walkable, and one flat
-    white in both palettes because that is what the cartridge draws. In the
-    game you only ever see it from inside the room, where the walls give it a
-    context a map does not have, so on a map it reads as a hole with the
-    furniture floating in it -- and an NPC drawn there looks pasted on.
-
-    So fill it, which is a deliberate substitution rather than something the
-    cartridge says. A cell qualifies when it is walkable and still draws one
-    flat colour after unroofing. Two guards keep that from eating the map:
-
-      * the component has to be small, ROOM_MAX_CELLS as elsewhere -- a cave
-        floor is flat for exactly the same reason a room floor is, and Ice Cave
-        B1 offers 3177 such cells;
-      * and it has to touch a cell the roof covers, so it is part of a room
-        rather than an unlit pocket somewhere.
-
-    What to fill with is decided per room from FLOOR_RADIUS tiles around it:
-    the commonest walkable tile that actually draws something, which is the
-    corridor the room's door opens onto.
-    """
-    blank = set()
-    for i, t in enumerate(tiles):
-        r, c = divmod(i, MAP_DIM)
-        here = open_art if (r, c) in rooms else art
-        if flat_art(here[t & 0x7F]):
-            blank.add((r, c))
-    _, props = entrance_graph.tile_properties(rom, map_id)
-    blank = {(r, c) for r, c in blank
-             if entrance_graph.walkable(props[r * MAP_DIM + c], set())}
-
-    fill, seen = {}, set()
-    for start in blank:
-        if start in seen:
-            continue
-        seen.add(start)
-        stack, comp = [start], []
-        while stack:
-            r, c = stack.pop()
-            comp.append((r, c))
-            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                n = (r + dr, c + dc)
-                if n in blank and n not in seen:
-                    seen.add(n)
-                    stack.append(n)
-        if len(comp) > ROOM_MAX_CELLS:
-            continue
-        if not any((r + dr, c + dc) in rooms for r, c in comp
-                   for dr, dc in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1))):
-            continue
-        rows = [r for r, _ in comp]
-        cols = [c for _, c in comp]
-        near = {}
-        for r in range(min(rows) - FLOOR_RADIUS, max(rows) + FLOOR_RADIUS + 1):
-            for c in range(min(cols) - FLOOR_RADIUS, max(cols) + FLOOR_RADIUS + 1):
-                if not (0 <= r < MAP_DIM and 0 <= c < MAP_DIM) or (r, c) in blank:
-                    continue
-                i = r * MAP_DIM + c
-                t = tiles[i] & 0x7F
-                if entrance_graph.walkable(props[i], set()) and not flat_art(art[t]):
-                    near[t] = near.get(t, 0) + 1
-        if near:
-            pick = max(near, key=lambda t: (near[t], -t))
-            fill.update(dict.fromkeys(comp, pick))
-    return fill
-
-
 def render(rom, map_id, inside=False, unroof=False, graph=None, only=None):
     """(w, h, rgb_bytes) for one standard map.
 
     `unroof` draws the rooms open: outdoor palette everywhere, room palette on
     the cells a roof covers, so a single image shows the map as you walk it and
-    the room contents at the same time. It is a no-op on a map with no rooms.
-    It also fills the room floor, which unroofing alone leaves blank -- see
-    room_floors.
+    the room contents at the same time -- floor included, see hidden_cells. It
+    is a no-op on a map with no rooms.
 
     Pass an entrance_graph.Graph as `graph` to draw the map's NPCs on the tiles
     they stand on, which is how a gate NPC becomes visible as the barrier it is
@@ -310,16 +248,14 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None):
     art = tileset_art(rom, tileset, map_palettes(rom, map_id, inside))
     open_art = tileset_art(rom, tileset, map_palettes(rom, map_id, True)) \
         if unroof and not inside else None
-    rooms = room_cells(rom, map_id, tiles) if open_art else set()
-    floors = room_floors(rom, map_id, tiles, rooms, art, open_art) if open_art else {}
+    rooms = hidden_cells(rom, map_id, tiles, art, open_art) if open_art else set()
 
     side = MAP_DIM * TILE_PX
     out = bytearray(side * side * 3)
     for row in range(MAP_DIM):
         for col in range(MAP_DIM):
             here = open_art if (row, col) in rooms else art
-            block = (art[floors[(row, col)]] if (row, col) in floors
-                     else here[tiles[row * MAP_DIM + col] & 0x7F])
+            block = here[tiles[row * MAP_DIM + col] & 0x7F]
             for y in range(TILE_PX):
                 dst = ((row * TILE_PX + y) * side + col * TILE_PX) * 3
                 line = block[y]

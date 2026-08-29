@@ -557,46 +557,45 @@ which is what makes `--npcs gates` the conservative option: they are the ones
 with no marker of their own.
 
 
-## The room floor was a hole
+## The room floor was a hole, and the cartridge already knew
 
-Found 2026-08-29 by looking at the unroofed maps in PopTracker: the rooms came
-out as white voids with the furniture floating in them, and an NPC drawn there
-looked pasted on rather than standing anywhere.
+Found 2026-08-29 by looking at the unroofed maps in PopTracker: rooms came out
+as white voids with the furniture floating in them, and an NPC drawn there
+looked pasted on.
 
-Unroofing was working. It resolves a room's *furniture*, because that art is
-flat under the outdoor palette and detailed under the inside one. What it
-cannot touch is the floor between the furniture -- on Coneria Castle 1F that is
-tile `$04`, which is walkable and draws **one flat white in both palettes**,
-because that is what the cartridge draws. In the game you only ever see it from
-inside the room, where the walls give it a context a map does not have.
+The first fix substituted the corridor floor into the blank cells, choosing the
+tile by a vote over a six-tile radius. It looked better and it was the wrong
+mechanism -- a guess, where the cartridge had the answer. Replaced the same day.
 
-So `render` now fills it, and that is a deliberate substitution rather than
-anything the cartridge says. A cell qualifies when it is walkable and still
-draws one flat colour after unroofing. The fill tile is chosen per room from
-six tiles around it: the commonest walkable tile that actually draws something,
-which is the corridor its door opens onto. Neither cheaper choice works --
-the cells immediately bordering a room are its own pale threshold, and map-wide
-picks the *field outside the castle*, which turned Coneria Castle's bedrooms
-into lawns.
+**Ask the rendered tile whether it is blank, not the palette.** `roof_palettes`
+tested whether a sub-palette's three non-background colours were equal, which
+finds a room's *furniture* and not the floor between it. Coneria Castle 1F's
+room floor is tile `$04` on sub-palette 1 -- `0F 30 30 10`, not a flat palette --
+yet every pixel of that tile is `$30`, so outdoors it draws flat white. It was
+never a roof cell, so unroofing never touched it.
 
-Two guards, both earned by watching it go wrong:
+The tile itself settles it: `$04` draws **flat white outdoors and flat black
+inside**. That is exactly what the shipped hand-drawn art shows -- DarkmoonEX's
+`con_castle.png` draws both throne rooms as black floor with orange furniture,
+and `marshB1.png` does the same. So there is nothing to invent and no substitute
+to choose. Swap the cell to the inside palette and the cartridge draws the room.
 
-- **The region has to be small** (`ROOM_MAX_CELLS`, as elsewhere). Flatness
-  alone describes a cave floor for exactly the same reason it describes a room
-  floor, and the first version repainted 3177 cells of Ice Cave B1.
-- **And it has to touch a cell the roof covers**, so it is part of a room
-  rather than an unlit pocket. That is what took it from 6240 cells to 3786.
+`hidden_cells()` replaces `roof_palettes` + `room_cells` + `room_floors`. A cell
+is hidden when its outdoor art draws **one colour** and its inside art draws
+something **different**, and its connected component is at most
+`ROOM_MAX_CELLS`. 5280 cells on 48 of the 61 maps, against 1820 + 3786
+substituted before.
 
-3786 cells across 47 of the 61 maps, which sounds like overreach and is not:
-the dungeons have the same white rooms as the castles. Temple of Fiends
-Revisited Earth's two chambers and Volcano B5's rooms both go from blank slabs
-to the floor their own corridors use. A roofed render is untouched, so
-`--check` against FF1R still compares what it always did.
+The guards got cheaper as well as fewer. A cave floor renders identically under
+both palettes, so it is never a hidden cell -- Ice Cave B1's 3177 flat walkable
+cells, which the substitution needed an explicit size guard to survive, now
+never enter the running at all. The size guard remains for uniform rock walls,
+and `test_room_floors.py` checks it still catches 6 of them.
 
-`tools/tests/test_room_floors.py` tests the guards rather than the appearance:
-every filled cell walkable, every fill tile non-blank, no filled region bigger
-than a room or outside one, and -- the one with teeth -- 36 oversized flat
-regions found and deliberately left alone.
+The lesson worth keeping is the same one the map-bank bug taught: the wrong
+mechanism produced a *better-looking* result than the bug, which is exactly why
+it survived a look. What caught it was reading the shipped art as a
+specification instead of as a coordinate surface.
 
 ## Known wrong
 

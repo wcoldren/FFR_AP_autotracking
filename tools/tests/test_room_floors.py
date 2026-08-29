@@ -1,11 +1,16 @@
-"""A room floor gets filled; a cave floor does not.
+"""A room opens; a cave floor does not.
 
-Unroofing resolves a room's furniture and leaves the floor between it blank,
-because that tile is flat in both palettes -- so render_maps fills it with the
-corridor outside. The filling is a deliberate substitution, which is exactly
-why it needs guards: flatness alone also describes a cave floor, and Ice Cave
-B1 has 3177 walkable cells that draw one colour. The guards are what this
-tests, not the appearance.
+Unroofing swaps the cells a roof covers to the map's inside palette, so the
+room draws the way the game draws it when you are standing in it -- furniture
+and floor together. The test is on the rule, not the appearance:
+
+  * a hidden cell has to be blank outdoors and different inside, which is what
+    separates a room floor from a cave floor. Coneria Castle 1F's tile $04
+    draws flat white outdoors and flat black inside; Ice Cave B1's cave floor
+    draws the same under both, and its 3177 walkable flat cells must never
+    enter the running;
+  * and the region has to be small, because a uniform rock wall is flat for the
+    same reason a room is.
 
 Set FF1_ROM to a cartridge; without one this skips.
 """
@@ -13,21 +18,19 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-import entrance_graph as eg                                    # noqa: E402
 import render_maps as rm                                       # noqa: E402
 
 
-def pieces(rom, map_id):
-    """The inputs room_floors works from, and its answer."""
+def art_for(rom, map_id):
+    tileset = rom[rm.TILESET_LUT + map_id]
+    return (rm.tileset_art(rom, tileset, rm.map_palettes(rom, map_id, False)),
+            rm.tileset_art(rom, tileset, rm.map_palettes(rom, map_id, True)))
+
+
+def grid(rom, map_id):
     base = rm.map_data_base(rom)
     ptr = int.from_bytes(rom[base + map_id * 2:base + map_id * 2 + 2], "little")
-    tiles = rm.decompress_map(rom, base + ptr)
-    ts = rom[rm.TILESET_LUT + map_id]
-    art = rm.tileset_art(rom, ts, rm.map_palettes(rom, map_id, False))
-    open_art = rm.tileset_art(rom, ts, rm.map_palettes(rom, map_id, True))
-    rooms = rm.room_cells(rom, map_id, tiles)
-    return tiles, art, open_art, rooms, rm.room_floors(
-        rom, map_id, tiles, rooms, art, open_art)
+    return rm.decompress_map(rom, base + ptr)
 
 
 def components(cells):
@@ -63,54 +66,62 @@ def main():
             fails.append(f"{label}: got {got!r}, want {want!r}")
         print(f"{'ok  ' if got == want else 'FAIL'} {label}")
 
-    filled = big_skipped = 0
-    not_walkable = still_flat = orphan = oversized = []
+    opened = big_skipped = flat_after = same_both = oversized = 0
     for map_id in range(rm.MAP_COUNT):
-        tiles, art, open_art, rooms, fill = pieces(rom, map_id)
-        _, props = eg.tile_properties(rom, map_id)
-        filled += len(fill)
+        tiles = grid(rom, map_id)
+        art, open_art = art_for(rom, map_id)
+        hidden = rm.hidden_cells(rom, map_id, tiles, art, open_art)
+        opened += len(hidden)
 
-        # Everything filled has to be floor you can stand on, and has to draw
-        # something afterwards -- filling blank with blank is not a fill.
-        not_walkable += [(map_id, rc) for rc in fill
-                         if not eg.walkable(props[rc[0] * rm.MAP_DIM + rc[1]], set())]
-        still_flat += [(map_id, rc) for rc, t in fill.items()
-                       if rm.flat_art(art[t])]
+        for r, c in hidden:
+            t = tiles[r * rm.MAP_DIM + c] & 0x7F
+            # It was blank before, and it is not the same afterwards -- opening
+            # a cell that draws identically either way is a no-op that would
+            # mean the test below has no teeth.
+            if not rm.flat_art(art[t]):
+                flat_after += 1
+            if rm._colours(art[t]) == rm._colours(open_art[t]):
+                same_both += 1
 
-        # Every filled component is small and belongs to a room.
-        for comp in components(set(fill)):
+        for comp in components(hidden):
             if len(comp) > rm.ROOM_MAX_CELLS:
-                oversized.append((map_id, len(comp)))
-            if not any((r + dr, c + dc) in rooms for r, c in comp
-                       for dr, dc in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1))):
-                orphan.append((map_id, len(comp)))
+                oversized += 1
 
-        # And the guard has teeth: a flat walkable region too big to be a room
-        # exists and is left alone.
-        blank = set()
-        for i, t in enumerate(tiles):
-            r, c = divmod(i, rm.MAP_DIM)
-            here = open_art if (r, c) in rooms else art
-            if rm.flat_art(here[t & 0x7F]) and eg.walkable(props[i], set()):
-                blank.add((r, c))
-        for comp in components(blank):
+        # The guard has teeth: regions that pass the art test but are too big
+        # to be rooms exist, and are left alone.
+        under = {(i // rm.MAP_DIM, i % rm.MAP_DIM) for i, t in enumerate(tiles)
+                 if rm.flat_art(art[t & 0x7F])
+                 and rm._colours(art[t & 0x7F]) != rm._colours(open_art[t & 0x7F])}
+        for comp in components(under):
             if len(comp) > rm.ROOM_MAX_CELLS:
                 big_skipped += 1
-                if any(rc in fill for rc in comp):
+                if any(cell in hidden for cell in comp):
                     fails.append(f"map {map_id}: a {len(comp)}-cell flat region "
-                                 "was filled; that is a cave floor, not a room")
+                                 "was opened; that is a wall, not a room")
 
-    check("every filled cell is walkable", not_walkable, [])
-    check("every fill tile actually draws something", still_flat, [])
-    check("no filled region is bigger than a room", oversized, [])
-    check("every filled region belongs to a room", orphan, [])
-    print(f"     ({filled} cells filled; {big_skipped} oversized flat regions "
+    check("every opened cell was blank outdoors", flat_after, 0)
+    check("every opened cell draws differently inside", same_both, 0)
+    check("no opened region is bigger than a room", oversized, 0)
+    print(f"     ({opened} cells opened; {big_skipped} oversized flat regions "
           "left alone)")
-    check("something was filled at all", filled > 0, True)
+    check("something was opened at all", opened > 0, True)
     check("and something was deliberately not", big_skipped > 0, True)
 
-    # Without unroof there are no rooms, so there is nothing to fill and the
-    # image must be exactly what it was before any of this existed.
+    # Coneria Castle 1F's room floor is the case the palette-based rule missed:
+    # tile $04, flat white outdoors, flat black inside. If it is not opened the
+    # rooms are holes again.
+    art, open_art = art_for(rom, 8)
+    check("con_castle tile $04 is blank outdoors", rm.flat_art(art[0x04]), True)
+    check("and draws something else inside",
+          rm._colours(art[0x04]) != rm._colours(open_art[0x04]), True)
+    tiles = grid(rom, 8)
+    hidden = rm.hidden_cells(rom, 8, tiles, art, open_art)
+    floor = {(i // rm.MAP_DIM, i % rm.MAP_DIM) for i, t in enumerate(tiles)
+             if (t & 0x7F) == 0x04}
+    check("and every one of its cells is opened", floor - hidden, set())
+
+    # Without unroof there are no rooms, so a roofed render must be exactly what
+    # it always was -- render_maps.py --check compares against FF1R on that path.
     same = all(rm.render(rom, m)[2] == rm.render(rom, m, unroof=False)[2]
                for m in (0, 8, 15))
     check("a roofed render is untouched", same, True)
