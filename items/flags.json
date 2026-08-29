@@ -303,5 +303,25 @@
         "img" : "images/flags/autoTab.png",
         "codes" : "tab_switch",
         "disabled_img" : "images/flags/noAutoTab.png"
+    },
+    {
+        "name" : "Overworld Tab",
+        "type" : "progressive",
+        "allow_disabled" : false,
+        "loop" : true,
+        "stages" : [
+            {
+                "img" : "images/flags/tabAuto.png",
+                "codes" : "tab_mode"
+            },
+            {
+                "img" : "images/flags/tabIncentive.png",
+                "codes" : "tab_mode"
+            },
+            {
+                "img" : "images/flags/tabFull.png",
+                "codes" : "tab_mode"
+            }
+        ]
     }
 ]

@@ -26,20 +26,69 @@
 -- hides nearly everything the player is tracking; there the full Overworld is
 -- the one to land on.
 --
--- Which it is comes from the pool itself rather than from FFR's flag word: AP
--- states the location list outright at connect, and apPoolChestCount() reads
--- it. See the note there for why presence, not a threshold, is the test.
+-- Which it is comes from the pool where there is one: AP states the location
+-- list outright at connect, and apPoolChestCount() reads it. See the note there
+-- for why presence, not a threshold, is the test.
+--
+-- A bridge-only session has no pool to read, and used to fall all the way
+-- through to the incentive map -- which is exactly backwards on the seed most
+-- likely to be played that way. The cartridge can answer the same question, so
+-- it is asked second. The player can also just say; see tabMode() below.
 local OVERWORLD_INCENTIVE = "Incentive Locations"
 local OVERWORLD_FULL = "Overworld"
 local MAP_VALUE_OVERWORLD = "Overworld"   -- what the data table calls it
 
--- nil until a session has been seen. Unknown means the ordinary seed, which is
--- both the common case and the behaviour this pack has always had.
+-- nil until a session has been seen, and it has to stay distinguishable from
+-- false: "no pool was ever stated" is what hands the question to the cartridge,
+-- while "the pool holds no chests" is an answer in itself.
 local chestsInPool = nil
+
+local TAB_AUTO, TAB_INCENTIVE, TAB_FULL = 0, 1, 2
+
+-- The player's own say, from the Overworld Tab item in the flags grid. It is a
+-- progressive with allow_disabled false, so its stage is the stages[] index
+-- rather than one above it, and there is no dead "off" click in the cycle.
+local function tabMode()
+  local obj = Tracker:FindObjectForCode("tab_mode")
+  if not obj then
+    return TAB_AUTO
+  end
+  return obj.CurrentStage or TAB_AUTO
+end
+
+-- Does the cartridge itself say the chests are worth watching?
+--
+-- Only asked when Archipelago never stated a pool. Two flags decide it:
+--
+--   ShardHunt       the shards are in the chests and collecting them is the
+--                   goal, so every chest is a check by definition
+--   ChestsKeyItems  FFR's "key items may be placed in chests" -- with it on,
+--                   an ordinary chest can hold the thing that opens the run
+--
+-- Deliberately narrow. RelocateChests only moves chests about and TCChestCount
+-- only counts the trapped ones; neither makes a chest hold something it would
+-- not otherwise have held.
+--
+-- ffrFlag lives in flag_mapping.lua, which init.lua only loads for the UAT
+-- feed, so this has to cope with it not existing at all. A tri-state rolled at
+-- generation decodes to nil and takes the default, which is the ordinary seed.
+local function cartridgeChestsAreChecks()
+  if type(ffrFlag) ~= "function" then
+    return false
+  end
+  return ffrFlag("ShardHunt", false) == true
+      or ffrFlag("ChestsKeyItems", false) == true
+end
 
 -- Exposed for the tests and for anyone reading a log.
 function overworldTab()
-  if chestsInPool then return OVERWORLD_FULL end
+  local mode = tabMode()
+  if mode == TAB_INCENTIVE then return OVERWORLD_INCENTIVE end
+  if mode == TAB_FULL then return OVERWORLD_FULL end
+  if chestsInPool ~= nil then
+    return chestsInPool and OVERWORLD_FULL or OVERWORLD_INCENTIVE
+  end
+  if cartridgeChestsAreChecks() then return OVERWORLD_FULL end
   return OVERWORLD_INCENTIVE
 end
 

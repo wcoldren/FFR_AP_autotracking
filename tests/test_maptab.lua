@@ -241,5 +241,83 @@ refreshOverworldTab()
 check("a new incentive-only seed moves it back", overworldTab(), "Incentive Locations")
 Archipelago = nil
 
+------------------------------------------------------------------
+-- 8. the player's own say, and the cartridge as a second opinion.
+--
+-- The bridge-only case is the one that started this: no Archipelago at all,
+-- so no pool was ever stated, and the pack used to fall through to the
+-- incentive map -- which on a shard hunt hides nearly every check there is.
+------------------------------------------------------------------
+Archipelago = nil
+objects.tab_mode = { CurrentStage = 0 }
+
+-- Auto with a pool still follows the pool, both ways.
+Archipelago = poolOf(everything, 0)
+refreshOverworldTab()
+check("auto still follows a chest pool", overworldTab(), "Overworld")
+Archipelago = poolOf(INCENTIVE_ONLY_POOL, 0)
+refreshOverworldTab()
+check("auto still follows an incentive pool", overworldTab(), "Incentive Locations")
+
+-- Pinned, the pool does not get a vote.
+objects.tab_mode.CurrentStage = 2
+check("Full wins over an incentive-only pool", overworldTab(), "Overworld")
+check("  and the overworld goes there", activateMapTab(-1), true)
+check("  hint", take(), "ActivateTab:Overworld")
+Archipelago = poolOf(everything, 0)
+refreshOverworldTab()
+objects.tab_mode.CurrentStage = 1
+check("Incentive wins over a chest pool", overworldTab(), "Incentive Locations")
+check("  and a town goes there", activateMapTab(3), true)
+check("  hint", take(), "ActivateTab:Incentive Locations")
+
+-- Now the bridge-only case. No Archipelago at all, so nothing ever set
+-- chestsInPool -- which has to stay distinguishable from "the pool had no
+-- chests", or the cartridge would never be asked.
+-- Reloaded rather than reset: chestsInPool is a file-local, and a fresh load
+-- is the only way back to "no pool has ever been stated".
+Archipelago = nil
+dofile(PACK .. "/scripts/autotracking/maptab.lua")
+objects.tab_mode = { CurrentStage = 0 }
+
+ffrFlag = nil
+check("no pool and no cartridge -> incentive map", overworldTab(), "Incentive Locations")
+
+local FLAGS = {}
+function ffrFlag(name, default)
+  local v = FLAGS[name]
+  if v == nil then return default end
+  return v
+end
+
+FLAGS = {}
+check("an ordinary cartridge -> incentive map", overworldTab(), "Incentive Locations")
+
+FLAGS = { ShardHunt = true }
+check("a shard hunt -> full overworld", overworldTab(), "Overworld")
+check("  and the overworld goes there", activateMapTab(-1), true)
+check("  hint", take(), "ActivateTab:Overworld")
+
+FLAGS = { ChestsKeyItems = true }
+check("key items in chests -> full overworld", overworldTab(), "Overworld")
+
+-- Rolled at generation: the flag string records that it was rolled, not where
+-- it landed, so it decodes to nil and must not move the tab.
+FLAGS = { ShardHunt = nil, ChestsKeyItems = nil }
+check("a rolled tri-state leaves it alone", overworldTab(), "Incentive Locations")
+
+-- Flags that look relevant and are not: neither makes a chest hold anything it
+-- would not otherwise have held.
+FLAGS = { RelocateChests = true, TCChestCount = 40 }
+check("relocated and trapped chests do not count", overworldTab(), "Incentive Locations")
+
+-- And a pool, once one is stated, outranks the cartridge.
+FLAGS = { ShardHunt = true }
+Archipelago = poolOf(INCENTIVE_ONLY_POOL, 0)
+refreshOverworldTab()
+check("a stated pool outranks the cartridge", overworldTab(), "Incentive Locations")
+Archipelago = nil
+ffrFlag = nil
+
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

@@ -368,6 +368,27 @@ check("orb seed on a shard variant is called out",
 
 Tracker.ActiveVariantUID = "5standard"
 
+------------------------------------------------------------------
+-- The two flags the overworld tab falls back on.
+--
+-- scripts/autotracking/maptab.lua asks the cartridge which overworld map to
+-- land on when Archipelago never stated a pool. It asks by name, so a schema
+-- that stopped carrying either name would break that quietly -- the fallback
+-- would just always answer "ordinary seed".
+------------------------------------------------------------------
+dofile(PACK .. "/scripts/flags/schema_4-9-2.lua")
+for _, version in ipairs({ "4-9-7", "4-9-2" }) do
+  local schema = FFR_FLAG_SCHEMAS and FFR_FLAG_SCHEMAS[version]
+  check(version .. " has a schema", schema ~= nil, true)
+  local names = {}
+  for _, entry in ipairs(schema and schema.properties or {}) do
+    names[entry.name] = true
+  end
+  check("  it carries ShardHunt", names.ShardHunt == true, true)
+  check("  it carries ChestsKeyItems", names.ChestsKeyItems == true, true)
+end
+
+
 print("")
 if fail == 0 then
   print("ALL PASS")

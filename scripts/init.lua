@@ -104,6 +104,11 @@ earlyOrdeals.Active = true
 -- rather stay on the floor you are reading.
 local tabSwitch = Tracker:FindObjectForCode("tab_switch")
 tabSwitch.Active = true
+-- And which of the two overworld tabs it follows to. Stage 0 is Auto, which
+-- reads the seed; click it round to pin the incentive map or the full one.
+-- See overworldTab() in scripts/autotracking/maptab.lua.
+local tabMode = Tracker:FindObjectForCode("tab_mode")
+tabMode.CurrentStage = 0
 
 -- AutoTracking for Poptracker
 if PopVersion and PopVersion>="0.18.0" then

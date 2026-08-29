@@ -72,7 +72,7 @@
 				[ "cardiaDock", "lefeinRiver", "earlySarda" ],
 				[ "lefeinBridge", "gaiaMountain", "earlySage" ],
 				[ "hwyOrdeals", "melmondRiver", "earlyOrdeals" ],
-				[ "sardasForest" ]
+				[ "sardasForest", "tab_mode" ]
 			]
 		}
 	},
