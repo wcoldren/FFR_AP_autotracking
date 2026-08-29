@@ -539,11 +539,22 @@ Verified on seed `F258553F` plus two more FFR seeds and a vanilla cartridge:
 chime gate `Robot`, which is what `MetroidVaniaMap.cs:782-829` assigns them,
 with neither side transcribed into the other.
 
-**Not done, and deliberately.** `regen_maps.py` does not draw objects into the
-pack's own map tabs. An NPC is 16x16 on art whose markers are placed to the
-tile, so sprites and pins would share pixels, and which one wins is a design
-question rather than a plumbing one. `render_maps.py --objects` is the whole
-mechanism when that gets decided.
+**In the pack's own tabs too**, behind `regen_maps.py --npcs none|gates|all`
+(default `none`, so nothing changes for anyone who does not ask). A flag rather
+than a branch because the output lives in PopTracker's user-override tree,
+which is not in git: a branch would mean a checkout plus a full regen to
+compare, where the flag is one command and the cache rewrites only the maps
+whose pixels differ. `--npcs` is part of the cache key, so switching modes
+actually redraws.
+
+The trade-off it exists for, counted on seed `F258553F` rather than guessed:
+289 objects are placed across the 61 maps, and **13 of them stand on a tile
+that already carries a marker pin** -- which is not a coincidence, those are
+the tracked NPC locations, whose pin marks the very NPC now drawn under it.
+PopTracker draws pins over the image, so the sprite becomes context behind the
+pin rather than anything lost. The eight gate NPCs collide with nothing at all,
+which is what makes `--npcs gates` the conservative option: they are the ones
+with no marker of their own.
 
 
 ## Known wrong

@@ -214,18 +214,23 @@ def paste(out, side, x, y, block):
             out[d], out[d + 1], out[d + 2] = rgb
 
 
-def draw_objects(rom, graph, map_id, side, out):
-    """Draw every object standing on a map onto a rendered map buffer.
+def draw_objects(rom, graph, map_id, side, out, only=None):
+    """Draw the objects standing on a map onto a rendered map buffer.
 
     Tile (col, row) is pixel (16col, 16row) in render_maps' output, and a map
     object occupies exactly one tile, so the sprite lands on the tile it
     stands on. DrawMapObject nudges it three pixels up on screen for looks; a
-    map drawing wants it on its tile, so that is left out. Returns how many
+    map drawing wants it on its tile, so that is left out.
+
+    `only` restricts to a set of object ids -- the gate NPCs, say, which are
+    the ones with no marker of their own to collide with. Returns how many
     were drawn.
     """
     ids = sprite_ids(rom)
     drawn = 0
     for oid, x, y in graph.objects(map_id):
+        if only is not None and oid not in only:
+            continue
         block = sprite_rgb(rom, ids[oid], map_id)
         if block is None:
             continue

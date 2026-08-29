@@ -205,7 +205,7 @@ def room_cells(rom, map_id, tiles):
     return keep
 
 
-def render(rom, map_id, inside=False, unroof=False, graph=None):
+def render(rom, map_id, inside=False, unroof=False, graph=None, only=None):
     """(w, h, rgb_bytes) for one standard map.
 
     `unroof` draws the rooms open: outdoor palette everywhere, room palette on
@@ -216,7 +216,7 @@ def render(rom, map_id, inside=False, unroof=False, graph=None):
     they stand on, which is how a gate NPC becomes visible as the barrier it is
     rather than a line of --gates output. The caller supplies the graph because
     building one reads and decompresses map data, and a caller rendering all 61
-    maps should pay for that once.
+    maps should pay for that once. `only` narrows that to a set of object ids.
     """
     base = map_data_base(rom)
     ptr = int.from_bytes(rom[base + map_id * 2:base + map_id * 2 + 2], "little")
@@ -246,7 +246,7 @@ def render(rom, map_id, inside=False, unroof=False, graph=None):
         # Imported here, not at module scope: sprites imports this module for
         # the NES palette and the tile decode.
         import sprites                                              # noqa: E402
-        sprites.draw_objects(rom, graph, map_id, side, out)
+        sprites.draw_objects(rom, graph, map_id, side, out, only)
     return side, side, bytes(out)
 
 

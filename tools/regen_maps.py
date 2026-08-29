@@ -53,6 +53,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PACK = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
+import entrance_graph
 import extract_chests
 import make_markers
 import pngio
@@ -67,6 +68,8 @@ CACHE_VERSION = 1
 INPUT_FILES = [
     "tools/regen_maps.py",
     "tools/render_maps.py",
+    "tools/sprites.py",
+    "tools/entrance_graph.py",
     "tools/extract_chests.py",
     "tools/make_markers.py",
     "tools/pngio.py",
@@ -185,17 +188,23 @@ def in_region(r, col, row):
 
 # ------------------------------------------------------------------- contents
 
-def build_images(rom):
+def build_images(rom, graph=None, only=None):
     """-> {relpath: (w, h, rgb)} for all 61 maps, rooms drawn open.
 
     Unroofed, because a tracker map is read rather than walked. In the game a
     room is a white slab until you step through its door; on a map you are
     consulting to decide where to go, that slab is hiding the very thing you
     are looking for -- all six of Coneria Castle 1F's chests sit under one.
+
+    With a graph, the map's NPCs are drawn on the tiles they stand on; `only`
+    narrows that to some of them. A sprite is 16x16 on art whose markers are
+    placed to the tile, so the two share pixels and PopTracker draws its pins
+    on top -- which is the whole trade-off between --npcs gates and --npcs all.
     """
     out = {}
     for map_id, name in render_maps.MAP_FILES.items():
-        out[f"images/maps/{name}.png"] = render_maps.render(rom, map_id, unroof=True)
+        out[f"images/maps/{name}.png"] = render_maps.render(
+            rom, map_id, unroof=True, graph=graph, only=only)
     return out
 
 
@@ -393,6 +402,9 @@ def main():
     ap.add_argument("rom")
     ap.add_argument("-o", "--out", help="override directory "
                                         "(default: ~/PopTracker/user-override/<uid>)")
+    ap.add_argument("--npcs", choices=("none", "gates", "all"), default="none",
+                    help="draw map objects on the art: none (default), just "
+                         "the No-Overworld gate NPCs, or every NPC")
     ap.add_argument("--force", action="store_true",
                     help="regenerate even if nothing changed")
     ap.add_argument("--dry-run", action="store_true",
@@ -424,6 +436,7 @@ def main():
     if (not args.force and cache
             and cache.get("rom") == rom_sha
             and cache.get("inputs") == inputs_sha
+            and cache.get("npcs", "none") == args.npcs
             and outputs_intact(out_dir, cache)):
         print(f"up to date: {len(cache['outputs'])} files in {out_dir}")
         print("nothing to do (--force to regenerate anyway)")
@@ -433,14 +446,34 @@ def main():
         print("cartridge changed since the last run")
     elif cache and cache.get("inputs") != inputs_sha:
         print("the pack or these tools changed since the last run")
+    elif cache and cache.get("npcs", "none") != args.npcs:
+        print(f"--npcs changed from {cache.get('npcs', 'none')} to {args.npcs} "
+              "since the last run")
 
     bank = extract_chests.standard_map_bank(rom)
     print(f"reading standard maps from bank ${bank:02X}")
 
+    graph = only = None
+    if args.npcs != "none":
+        graph = entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
+        if args.npcs == "gates":
+            # gate_objects returns None off No-Overworld, and an empty set
+            # would silently draw nothing -- say so instead.
+            if not graph.gates:
+                print("--npcs gates: this cartridge has no gate layout, so "
+                      "there are no gate NPCs to draw")
+                graph = None
+            else:
+                only = set(graph.gates)
+                print(f"drawing {len(only)} gate NPCs")
+        else:
+            drawn = sum(len(graph.objects(m)) for m in render_maps.MAP_FILES)
+            print(f"drawing all {drawn} map objects")
+
     files = {}
 
     # 1. the art
-    for rel, (w, h, rgb) in build_images(rom).items():
+    for rel, (w, h, rgb) in build_images(rom, graph, only).items():
         files[rel] = encode(w, h, rgb)
 
     # 2. the markers, moved onto it
@@ -525,7 +558,7 @@ def main():
     if not args.dry_run:
         with open(os.path.join(out_dir, CACHE_NAME), "w") as f:
             json.dump({"version": CACHE_VERSION, "rom": rom_sha,
-                       "inputs": inputs_sha,
+                       "inputs": inputs_sha, "npcs": args.npcs,
                        "outputs": {rel: sha(data)
                                    for rel, data in sorted(files.items())}},
                       f, indent=1)
