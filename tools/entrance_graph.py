@@ -43,7 +43,7 @@ Grounded in BenWenger's FinalFantasyDisassembly and FFR's own patches:
       "arrive inside a room" flag. A raw coordinate is therefore not a
       coordinate -- Elfland Castle's entrance reads $9F, which is y=31, not 159.
 
-Two traps, both of which produced a wrong answer before:
+Three traps, all of which produced a wrong answer before:
 
   * The teleport bits are in property byte 0. Byte 1 is a payload whose meaning
     depends on byte 0 -- chest id, teleport id, or battle formation. Testing
@@ -51,6 +51,13 @@ Two traps, both of which produced a wrong answer before:
     $80-$BF look like a staircase. --self-check asserts this can't come back.
   * The standard-map teleport id is the full byte. Masking it to $3F collapses
     distinct destinations onto each other on a floor-shuffled seed.
+  * The maps are not in bank $04. FFR moves all 61 of them to bank $14 on every
+    seed and repoints the engine's constant; banks 4-7 keep their untouched
+    vanilla copies, so reading there yields vanilla topology for a cartridge
+    that plays nothing like it. On a No-Overworld seed that showed up as 11
+    floor links where the cartridge has 146 -- and the 11 were real vanilla
+    stairs, so nothing looked wrong. extract_chests.standard_map_bank asks the
+    image; --self-check asserts the answer is the bank the engine reads.
 
 Usage:
     tools/entrance_graph.py ROM --dump
@@ -70,8 +77,9 @@ import sys
 from collections import deque
 
 from extract_chests import (
-    INES_HEADER, BANK_SIZE, SM_DATA_BASE, SM_PTR_TBL, TILESET_PROP, TILESET_LUT,
-    MAP_COUNT, MAP_DIM, PROP_STRIDE, decompress_map,
+    INES_HEADER, BANK_SIZE, SM_BANK_VANILLA, SM_BANK_CONST_MIRROR,
+    TILESET_PROP, TILESET_LUT, MAP_COUNT, MAP_DIM, PROP_STRIDE,
+    decompress_map, map_data_base, standard_map_bank, _fixed_bank_off,
 )
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -348,6 +356,8 @@ class Graph:
         self.norm_y = rom.at(BANK_EXTTELEPORTINFO, NORM_TELE_Y_EXT, NORM_COUNT_EXT)
         self.norm_map = rom.at(BANK_EXTTELEPORTINFO, NORM_TELE_MAP_EXT, NORM_COUNT_EXT)
         self.tilesets = rom.data[TILESET_LUT:TILESET_LUT + MAP_COUNT]
+        self.sm_bank = standard_map_bank(rom.data)
+        self.sm_base = map_data_base(rom.data)
         self.grids = {}
         self.doors = door_positions(rom)
 
@@ -355,8 +365,8 @@ class Graph:
         """(tiles, prop0, prop1) for a map, as flat 64*64 lists."""
         if map_id not in self.grids:
             ptr = int.from_bytes(
-                self.rom.data[SM_PTR_TBL + map_id * 2:SM_PTR_TBL + map_id * 2 + 2], "little")
-            tiles = decompress_map(self.rom.data, SM_DATA_BASE + ptr)
+                self.rom.data[self.sm_base + map_id * 2:self.sm_base + map_id * 2 + 2], "little")
+            tiles = decompress_map(self.rom.data, self.sm_base + ptr)
             base = TILESET_PROP + self.tilesets[map_id] * PROP_STRIDE
             p0 = [self.rom.data[base + t * 2] for t in tiles]
             p1 = [self.rom.data[base + t * 2 + 1] for t in tiles]
@@ -654,6 +664,72 @@ def print_tables(g):
     print(f"  extended entries out of range (>= {MAP_COUNT}): {len(bad)} of {NORM_COUNT_EXT}")
 
 
+# GameModes, FF1Lib/Enums.cs:396-404.
+GAME_MODE_NOVERWORLD = 2
+
+
+def game_mode(rom):
+    """The seed's GameMode, or None when it cannot be read.
+
+    Used only to decide which extra invariants apply, so an unreadable one
+    skips them rather than failing the run.
+    """
+    sys.path.insert(0, os.path.join(HERE, "ffr_flags"))
+    try:
+        import ffr_flags
+        _, flags = ffr_flags.decode_rom(rom.data)
+        return flags.get("GameMode")
+    except Exception:
+        return None
+
+
+def check_map_bank(g):
+    """The maps this tool read must be the maps the engine reads.
+
+    Two constants name the bank and FFR patches both; if they disagree, the
+    image is not one this tool understands. And an FFR cartridge that still
+    claims bank $04 means the constant was not found -- reading there gets the
+    untouched vanilla maps and invents a plausible graph from them.
+    """
+    off = _fixed_bank_off(*SM_BANK_CONST_MIRROR)
+    if off < len(g.rom.data):
+        mirror = g.rom.data[off]
+        if mirror != g.sm_bank:
+            print(f"self-check FAILED: standard maps read from bank ${g.sm_bank:02X}, "
+                  f"but the mirror constant $1F:D145 says ${mirror:02X}")
+            return False
+    if ffr_info(g.rom) is not None and g.sm_bank == SM_BANK_VANILLA:
+        print("self-check FAILED: this is an FFR cartridge but the maps resolved to "
+              f"the vanilla bank ${SM_BANK_VANILLA:02X} -- every seed relocates them, "
+              "so this is the vanilla copy and the whole graph would be wrong")
+        return False
+    return True
+
+
+def check_noverworld_towns(g, mode):
+    """A No-Overworld town has to have stairs out of it.
+
+    NoOverworld seals every town's outer wall (MetroidVaniaMap.cs:109-434) and
+    connects it by staircase instead. A town with no staircase is therefore not
+    a quirk of the seed -- it means the map data being read is not the map data
+    the seed plays, which is precisely what reading bank $04 looked like.
+    """
+    if mode != GAME_MODE_NOVERWORLD:
+        return True
+    stairless = []
+    for door, m, _ in g.starts():
+        if not any(k == TP_TELE_NORM for _, _, k, _ in g.teleports(m)):
+            stairless.append((door, m))
+    if stairless:
+        print(f"self-check FAILED: {len(stairless)} No-Overworld entry maps have no "
+              "staircase, so nothing could be reached from them")
+        for door, m in stairless[:10]:
+            print(f"  {DOOR_NAMES[door]} -> {MAP_NAMES[m]}")
+        return False
+    print(f"self-check OK: all {len(g.starts())} No-Overworld entry maps have stairs")
+    return True
+
+
 def self_check(g):
     """The byte-0/byte-1 regression test.
 
@@ -662,6 +738,8 @@ def self_check(g):
     ids in $80-$BF read as normal teleports, which is exactly how an earlier
     router sent a route through a chest on Sea Shrine B1.
     """
+    if not check_map_bank(g):
+        return False
     path = os.path.join(HERE, "chest_positions.json")
     try:
         with open(path) as f:
@@ -684,10 +762,10 @@ def self_check(g):
     total = sum(len(g.teleports(m)) for m in range(MAP_COUNT))
     norm = sum(1 for m in range(MAP_COUNT)
                for _, _, k, _ in g.teleports(m) if k == TP_TELE_NORM)
-    print(f"self-check OK: {total} teleport tiles across {MAP_COUNT} maps "
-          f"({norm} of them staircases; the rest are mostly the warp-out filler "
-          "that surrounds every town), none of them a treasure chest")
-    return True
+    print(f"self-check OK: {total} teleport tiles across {MAP_COUNT} maps in bank "
+          f"${g.sm_bank:02X} ({norm} of them staircases; the rest are mostly the "
+          "warp-out filler that surrounds every town), none of them a treasure chest")
+    return check_noverworld_towns(g, game_mode(g.rom))
 
 
 def resolve_map(name):
