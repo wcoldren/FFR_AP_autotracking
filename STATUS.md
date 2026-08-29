@@ -3,7 +3,7 @@
 Working notes on what is built, what is next, and what is known to be wrong.
 `README.md` says how to use the pack; this says what state it is in.
 
-Last updated 2026-08-28.
+Last updated 2026-08-29.
 
 ## Working today
 
@@ -21,6 +21,16 @@ Last updated 2026-08-28.
   seed's own settings.
 - A Bosses row for the five fights that have a real signal: Garland, the
   Vampire, Astos, Bikke and Chaos.
+- Both overworld tabs show every slot there is. A slot the seed did not
+  incentivize reports `AccessibilityLevel.Inspect` and draws blue instead of
+  having its pin dropped, and a slot the seed did incentivize gets a gold
+  `Highlight.Priority` ring on both tabs. Green still means reachable and red
+  still means not: Inspect only sets `inspectOnly`, so a slot that is both
+  skipped and out of logic comes out red.
+- An `Overworld Tab` item that cycles Auto / Incentive / Full. Auto reads the
+  Archipelago pool where there is one and the cartridge otherwise — `ShardHunt`
+  or `ChestsKeyItems` and it lands on the full map. A bridge-only shard hunt
+  used to land on the incentive map, which hid nearly every check it had.
 - The Chaos kill read out of the battle engine — a battle running (`$60FC`),
   Chaos's formation in `btlformation` (`$6A`), `btl_result` (`$6B86`) set to
   `$FF` — rather than off `$62FE` bit 0x02, which FFR only writes on an
@@ -34,7 +44,7 @@ Last updated 2026-08-28.
   entrance/floor shuffle reader and router, an HTML door map, an overworld
   reachability walk, and a logic checker that diffs the pack's access rules
   against FFR's own spoiler.
-- `tests/run.sh` — 12 Lua suites, no emulator or ROM needed.
+- `tests/run.sh` — 13 Lua suites, no emulator or ROM needed.
 
 ## Next
 
@@ -51,8 +61,8 @@ Last updated 2026-08-28.
   the bridge watches party position (`ow_scroll` `$27/$28`, `sm_scroll`
   `$29/$2A`, the party is always 7 tiles in) and publishes an edge log, so the
   pack learns the permutation by observation and reveal-on-visit cannot spoil.
-  Needs `min_poptracker_version` raised to 0.32.0. Staged; the first useful
-  increment is the log plus a console print.
+  The 0.32.0 floor it wanted is in the manifest already. Staged; the first
+  useful increment is the log plus a console print.
 - **Trap tiles on the map tabs.** FFR randomizes them and the tracker does not
   show them. Shares its whole tile-to-pixel path with entrance markers, on a
   much smaller blast radius.
@@ -71,15 +81,18 @@ Last updated 2026-08-28.
   `scripts/init.lua:73-90` set. They cannot simply be cleared: an
   Archipelago-only player never receives a flag string at all, since only the
   bridge publishes one, so an empty default board would be wrong for every AP
-  session.
-- **Non-incentivized checks cannot be hidden.** PopTracker does not support
-  rule-hiding an `itemgrid` cell — the widget adds every cell unconditionally.
-  The map pins already hide correctly. Doing it for the grid means converting
-  the 25 hosted toggles to LuaItems that blank their own icon. Deferred until
-  the incentive flags themselves are right, since that is most of the
-  complaint.
+  session. The guess is more visible than it was: it now decides which pins are
+  gold and which are blue, rather than which ones exist.
+- **`hide unreachable locations` still hides a skipped slot that is out of
+  logic.** PopTracker drops an unreachable pin before anything gets to say it is
+  blue, and red outranks blue by design. Nothing to do in the pack; worth
+  knowing if that setting is on.
 - **`shopItem`** is the one Locations-grid cell with no incentive toggle behind
-  it and no FFR flag mapped to it.
+  it and no FFR flag mapped to it, so it is never blue and never gold.
+- **`locations/NOverworld/incentives.json` has no marker validation.**
+  `tests/test_maps.lua` walks the standard tree and the board, not that one, so
+  a marker off its art there would not be caught. `tests/test_incentives.lua`
+  covers its rules and its slot table, which is the half this change touched.
 
 ## What Archipelago can and cannot tell the tracker
 

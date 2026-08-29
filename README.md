@@ -4,6 +4,10 @@ Setting up a recieved item autotracker for FFR on Archipelago (https://github.co
 
 This is a pack for black-silver's Poptracker (https://github.com/black-sliver/PopTracker/). 
 
+It needs PopTracker 0.32.0 or newer. Older versions refuse to load the pack
+outright rather than loading it with less in it, so if it will not open, that is
+the first thing to check.
+
 Pretty simple to use, not 100% as fully functional as the EmoTracker pack, but works for Archipelago.
 
 Known Issues:
@@ -161,10 +165,40 @@ bring back is a section you cleared by hand.
 It also reports which map you are standing on, so the map tab follows you into
 whichever floor you just walked into. `Auto-Tab` in the flags grid turns that
 off if you would rather stay on the floor you are reading; it is on by default.
-Towns and the overworld both land on the Incentive Locations tab, which is the
-same overworld art carrying the markers worth watching during a run. This needs the emulator
-bridge -- Archipelago on its own does not report your position -- and only the
-two map variants have dungeon tabs to switch between.
+This needs the emulator bridge -- Archipelago on its own does not report your
+position -- and only the two map variants have dungeon tabs to switch between.
+
+Towns and the overworld land on one of the two overworld tabs, which are the
+same art carrying different markers: `Incentive Locations` has the slots a key
+item can be in, `Overworld` has every chest in the game as well. `Overworld Tab`
+in the flags grid decides which. On `Auto`, the default, an Archipelago session
+is asked what is in its pool, and a bridge-only one is asked what the cartridge
+rolled -- a shard hunt, or key items allowed in chests, and it lands on the full
+map, because on those seeds the chests are the run. Click it round to pin either
+tab if you would rather decide yourself.
+
+The pins on both of those tabs are coloured five ways:
+
+    gold ring    this seed put an incentive here -- a key item can be in it
+    green        reachable
+    blue         reachable, but the seed did not incentivize it
+    red          not reachable yet
+    dark grey    done
+
+A blue pin is still a check. The NPC still hands you something and the chest is
+still there; it is just not somewhere a key item can be, so it is worth knowing
+about and not worth a detour. The incentive map used to hide those pins
+outright, which on a shard hunt took nearly every check off the board.
+
+Red beats blue: a slot that is both unincentivized and out of logic reads as
+unreachable, like any other check you cannot get to yet. Worth knowing if you
+run PopTracker with `hide unreachable locations` on, since that will still hide
+it.
+
+The colours themselves are PopTracker's rather than the pack's -- packs choose
+which state a pin reports, not what colour the tracker paints it. If you want
+different ones, they come from `colors.json` in your PopTracker config
+directory.
 
 Resetting needs nothing re-run and nothing re-clicked. A soft reset -- the
 controller combo, or Mesen's Reset -- leaves the script running: tracking pauses
