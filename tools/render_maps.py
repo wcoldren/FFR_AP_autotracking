@@ -194,22 +194,10 @@ def _colours(block):
     return frozenset(px for row in block for px in row)
 
 
-def hidden_cells(rom, map_id, tiles, art=None, open_art=None):
-    """The (row, col) cells a roof covers, as a set. Empty when there is none.
-
-    `art` and `open_art` are the outdoor and inside tilesets; passed in by
-    render() because it has already built them, computed here otherwise.
-    """
-    tileset = rom[TILESET_LUT + map_id]
-    if art is None:
-        art = tileset_art(rom, tileset, map_palettes(rom, map_id, False))
-    if open_art is None:
-        open_art = tileset_art(rom, tileset, map_palettes(rom, map_id, True))
-    under = {(i // MAP_DIM, i % MAP_DIM) for i, t in enumerate(tiles)
-             if flat_art(art[t & 0x7F])
-             and _colours(art[t & 0x7F]) != _colours(open_art[t & 0x7F])}
-    seen, keep = set(), set()
-    for start in under:
+def _components(cells):
+    """The 4-connected components of a cell set, as a list of lists."""
+    seen, out = set(), []
+    for start in cells:
         if start in seen:
             continue
         seen.add(start)
@@ -219,12 +207,75 @@ def hidden_cells(rom, map_id, tiles, art=None, open_art=None):
             comp.append((r, c))
             for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 n = (r + dr, c + dc)
-                if n in under and n not in seen:
+                if n in cells and n not in seen:
                     seen.add(n)
                     stack.append(n)
-        if len(comp) <= ROOM_MAX_CELLS:
-            keep.update(comp)
-    return keep
+        out.append(comp)
+    return out
+
+
+def roof_palettes(rom, map_id):
+    """Sub-palette indices that are a flat slab outdoors and detailed inside."""
+    def flat(p):
+        return p[1] == p[2] == p[3]
+    out = map_palettes(rom, map_id, False)
+    ins = map_palettes(rom, map_id, True)
+    return {i for i in range(4) if flat(out[i]) and not flat(ins[i])}
+
+
+def hidden_cells(rom, map_id, tiles, art=None, open_art=None):
+    """The (row, col) cells a roof covers, as a set. Empty when there is none.
+
+    Two tests, because neither alone is right and their failure modes are
+    opposite. Each is size-guarded on its own components, then unioned: a room
+    is a small closed region, a rock wall is one mass spanning the map.
+
+    **The sub-palette** says a tile's three non-background colours are equal
+    outdoors and not inside. That is the game's own mechanism and it is exact,
+    but it only finds what the roof palette covers.
+
+    **The rendered tile** says the tile draws one colour outdoors and something
+    different inside. That catches what the palette test cannot: Coneria Castle
+    1F's room floor is tile $04 on sub-palette 1 -- `0F 30 30 10`, not a flat
+    palette -- yet every pixel of it is $30, so outdoors it draws flat white and
+    the palette test walks straight past. Left shut, the room reads as a void
+    with its furniture floating in it.
+
+    Neither test may define a region on its own terms. Two ways that goes wrong,
+    both found by asking whether the result was closer to the shipped
+    hand-drawn maps or farther from them:
+
+      * the art test *alone* admits enough extra cells that separate rooms merge
+        into one region, which then fails the size guard and closes rooms the
+        palette test had open -- Temple of Fiends Air went 241 cells -> 1;
+      * and seeding on the palette test then flooding through art-blank cells
+        runs away, because a room can touch a wall that is also art-blank.
+        Mirage Tower 1F's outer wall is 458 such cells; absorbing them redrew
+        the ring bright orange where the shipped art has dark red brick.
+
+    So: guard each test's own components, then union. Measured on F258553F --
+    6360 cells, no map opening less than the palette test alone, and **zero**
+    walkable cells left drawing flat white, which is the check that matters
+    because the shipped maps never show one.
+    """
+    tileset = rom[TILESET_LUT + map_id]
+    if art is None:
+        art = tileset_art(rom, tileset, map_palettes(rom, map_id, False))
+    if open_art is None:
+        open_art = tileset_art(rom, tileset, map_palettes(rom, map_id, True))
+
+    roof = roof_palettes(rom, map_id)
+    attrs = rom[ATTR_BASE + 0x80 * tileset:ATTR_BASE + 0x80 * tileset + TILES_PER_SET]
+    seeded = {(i // MAP_DIM, i % MAP_DIM) for i, t in enumerate(tiles)
+              if (attrs[t & 0x7F] & 3) in roof} if roof else set()
+    blank = {(i // MAP_DIM, i % MAP_DIM) for i, t in enumerate(tiles)
+             if flat_art(art[t & 0x7F])
+             and _colours(art[t & 0x7F]) != _colours(open_art[t & 0x7F])}
+
+    return {cell
+            for cells in (seeded, blank)
+            for comp in _components(cells) if len(comp) <= ROOM_MAX_CELLS
+            for cell in comp}
 
 
 def render(rom, map_id, inside=False, unroof=False, graph=None, only=None):

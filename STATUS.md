@@ -580,17 +580,45 @@ inside**. That is exactly what the shipped hand-drawn art shows -- DarkmoonEX's
 and `marshB1.png` does the same. So there is nothing to invent and no substitute
 to choose. Swap the cell to the inside palette and the cartridge draws the room.
 
-`hidden_cells()` replaces `roof_palettes` + `room_cells` + `room_floors`. A cell
-is hidden when its outdoor art draws **one colour** and its inside art draws
-something **different**, and its connected component is at most
-`ROOM_MAX_CELLS`. 5280 cells on 48 of the 61 maps, against 1820 + 3786
-substituted before.
+`hidden_cells()` replaces `roof_palettes` + `room_cells` + `room_floors`, and
+runs **both** tests, each size-guarded on its own components, then unions them.
+Neither may define a region alone, and the two ways that goes wrong were both
+found by asking that question -- *closer to the original maps, or farther?*
 
-The guards got cheaper as well as fewer. A cave floor renders identically under
-both palettes, so it is never a hidden cell -- Ice Cave B1's 3177 flat walkable
-cells, which the substitution needed an explicit size guard to survive, now
-never enter the running at all. The size guard remains for uniform rock walls,
-and `test_room_floors.py` checks it still catches 6 of them.
+- **Art test alone** admits enough extra cells that separate rooms merge into
+  one region, which then fails the size guard and closes rooms the palette test
+  had open. Temple of Fiends Air went 241 cells -> 1. Five maps regressed.
+- **Palette seed, then flood through art-blank cells** runs away, because a room
+  can touch a wall that is also art-blank.
+
+6360 cells on the union, no map opening less than the palette test alone, and
+**zero walkable cells left drawing flat white** -- which is the measurable form
+of "closer to the shipped art", since DarkmoonEX never draws one.
+`test_room_floors.py` asserts both directions: the white-void count and
+"every room the sub-palette finds stays open".
+
+### Still open: a room bigger than the guard
+
+Mirage Tower 1F's interior is **458 cells** -- rows 3-26, cols 4-27, 338 of them
+walkable, drawing flat orange outdoors and pillars inside. It is a real room and
+the shipped `mirage1F.png` draws it open with its eight chests. `ROOM_MAX_CELLS`
+is 256, so it stays shut. This is not a regression -- it was shut before any of
+this work too -- but it is visible now that everything around it opened.
+
+Raising the cap is not the answer: the same test finds Waterfall's 1820-cell
+floor, Volcano B3's 2102 and B4's 2650, which are open floor and must stay
+closed. Three discriminators were tried and all three failed:
+
+- **walkability** -- the big palette components are 100% walkable too; they are
+  the out-of-bounds backdrop;
+- **door adjacency** (`TP_SPEC_DOOR`/`LOCKED`/`CLOSEROOM` on the boundary) --
+  no blank region touches one, including regions that certainly are rooms;
+- **size**, which is the knob we already have and which cannot separate 458
+  from 389.
+
+The next thing to try is the engine's own answer rather than a fourth proxy:
+FF1 tracks an `inroom` flag at runtime, so `bank_0F.asm` contains the real
+definition of what a room is. Read that before inventing another test.
 
 The lesson worth keeping is the same one the map-bank bug taught: the wrong
 mechanism produced a *better-looking* result than the bug, which is exactly why
