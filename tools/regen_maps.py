@@ -47,6 +47,7 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PACK = os.path.dirname(HERE)
@@ -362,16 +363,21 @@ def write_if_changed(out_dir, rel, data, dry_run):
     return True
 
 
-def encode(w, h, rgb, out_dir, rel, dry_run):
+def encode(w, h, rgb):
     """PNG bytes for a rendered map. pngio writes to a path, so this goes
-    through a temporary one rather than reimplementing the encoder."""
-    tmp = os.path.join(out_dir, rel + ".tmp")
-    os.makedirs(os.path.dirname(tmp), exist_ok=True)
-    pngio.write_rgb(tmp, w, h, rgb)
-    with open(tmp, "rb") as f:
-        data = f.read()
-    os.remove(tmp)
-    return data
+    through a temporary one rather than reimplementing the encoder.
+
+    That temporary lives outside the override tree, so --dry-run creates
+    nothing there and a run killed mid-render leaves no .tmp beside the art.
+    """
+    fd, tmp = tempfile.mkstemp(suffix=".png")
+    os.close(fd)
+    try:
+        pngio.write_rgb(tmp, w, h, rgb)
+        with open(tmp, "rb") as f:
+            return f.read()
+    finally:
+        os.remove(tmp)
 
 
 def main():
@@ -392,12 +398,13 @@ def main():
     out_dir = args.out or default_out()
 
     if args.clean:
-        if os.path.isdir(out_dir):
-            if not args.dry_run:
-                shutil.rmtree(out_dir)
-            print(f"removed {out_dir}")
-        else:
+        if not os.path.isdir(out_dir):
             print(f"nothing to remove at {out_dir}")
+        elif args.dry_run:
+            print(f"would remove {out_dir}")
+        else:
+            shutil.rmtree(out_dir)
+            print(f"removed {out_dir}")
         return 0
 
     with open(args.rom, "rb") as f:
@@ -428,7 +435,7 @@ def main():
 
     # 1. the art
     for rel, (w, h, rgb) in build_images(rom).items():
-        files[rel] = encode(w, h, rgb, out_dir, rel, args.dry_run)
+        files[rel] = encode(w, h, rgb)
 
     # 2. the markers, moved onto it
     old_cal = {k: v for k, v in
