@@ -1,420 +1,457 @@
 {
-  "_comment": [
-    "Tile -> pixel transform per map image. The art is not a plain render of the",
-    "ROM map: DarkmoonEX's maps are drawn by hand and composited, so parts of a",
-    "floor can sit at unrelated offsets and iceB3 carries two floors side by side.",
-    "'rows' and 'cols' bound a region by ROM tile, inclusive; the first matching",
-    "region wins and a region with no bounds matches everything.",
-    "",
-    "x = offset_x + col*tile_px + tile_px/2, and PopTracker centres the marker on",
-    "that point -- so offset_x/offset_y locate the top-left of ROM tile (0,0) in",
-    "the image, NOT the top-left of any drawn sprite. Getting that wrong is what",
-    "put the first cut of this file a sprite-corner up and to the left on every",
-    "marker, and made iceB3 look like it needed two regions when it needs one.",
-    "",
-    "Each offset here was solved from the centroid of the drawn chest sprites",
-    "(the chest body is exactly RGB(200,76,12)) against the ROM tile coordinates,",
-    "then checked on the overlay. See tools/overlay_preview.py."
+ "_comment": [
+  "Tile -> pixel transform per map image. The art is not a plain render of the",
+  "ROM map: DarkmoonEX's maps are drawn by hand and composited, so parts of a",
+  "floor can sit at unrelated offsets and iceB3 carries two floors side by side.",
+  "'rows' and 'cols' bound a region by ROM tile, inclusive; the first matching",
+  "region wins and a region with no bounds matches everything.",
+  "",
+  "x = offset_x + col*tile_px + tile_px/2, and PopTracker centres the marker on",
+  "that point -- so offset_x/offset_y locate the top-left of ROM tile (0,0) in",
+  "the image, NOT the top-left of any drawn sprite. Getting that wrong is what",
+  "put the first cut of this file a sprite-corner up and to the left on every",
+  "marker, and made iceB3 look like it needed two regions when it needs one.",
+  "",
+  "Each offset here was solved from the centroid of the drawn chest sprites",
+  "(the chest body is exactly RGB(200,76,12)) against the ROM tile coordinates,",
+  "then checked on the overlay. See tools/overlay_preview.py."
+ ],
+ "cardia": {
+  "rom_map_id": 16,
+  "tile_px": 16,
+  "regions": [
+   {
+    "rows": [
+     0,
+     30
+    ],
+    "offset_x": -66,
+    "offset_y": 223,
+    "note": "Cardia Grassy"
+   },
+   {
+    "rows": [
+     31,
+     40
+    ],
+    "offset_x": -154,
+    "offset_y": -461,
+    "note": "Cardia Swampy"
+   },
+   {
+    "rows": [
+     41,
+     63
+    ],
+    "offset_x": -204,
+    "offset_y": -269,
+    "note": "Cardia Forest"
+   }
+  ]
+ },
+ "con_castle": {
+  "rom_map_id": 8,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 72,
+    "offset_y": -3
+   }
+  ]
+ },
+ "dwarves": {
+  "rom_map_id": 19,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 20,
+    "offset_y": 30
+   }
+  ]
+ },
+ "earthB1": {
+  "rom_map_id": 13,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -51,
+    "offset_y": -124
+   }
+  ]
+ },
+ "earthB2": {
+  "rom_map_id": 29,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -121,
+    "offset_y": -117
+   }
+  ]
+ },
+ "earthB3": {
+  "rom_map_id": 30,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -121,
+    "offset_y": -81
+   }
+  ]
+ },
+ "earthB4": {
+  "rom_map_id": 31,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -121,
+    "offset_y": -117
+   }
+  ]
+ },
+ "earthB5": {
+  "rom_map_id": 32,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -121,
+    "offset_y": -333
+   }
   ],
-  "cardia": {
-    "rom_map_id": 16,
-    "tile_px": 16,
-    "regions": [
-      {
-        "rows": [
-          0,
-          30
-        ],
-        "offset_x": -66,
-        "offset_y": 223,
-        "note": "Cardia Grassy"
-      },
-      {
-        "rows": [
-          31,
-          40
-        ],
-        "offset_x": -154,
-        "offset_y": -461,
-        "note": "Cardia Swampy"
-      },
-      {
-        "rows": [
-          41,
-          63
-        ],
-        "offset_x": -204,
-        "offset_y": -269,
-        "note": "Cardia Forest"
-      }
-    ]
-  },
-  "con_castle": {
-    "rom_map_id": 8,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 72,
-        "offset_y": -3
-      }
-    ]
-  },
-  "dwarves": {
-    "rom_map_id": 19,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 20,
-        "offset_y": 30
-      }
-    ]
-  },
-  "earthB1": {
-    "rom_map_id": 13,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": -51,
-        "offset_y": -124
-      }
-    ]
-  },
-  "earthB2": {
-    "rom_map_id": 29,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": -121,
-        "offset_y": -117
-      }
-    ]
-  },
-  "earthB3": {
-    "rom_map_id": 30,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": -121,
-        "offset_y": -81
-      }
-    ]
-  },
-  "earthB4": {
-    "rom_map_id": 31,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": -121,
-        "offset_y": -117
-      }
-    ]
-  },
-  "elf_castle": {
-    "rom_map_id": 9,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 51,
-        "offset_y": 24
-      }
-    ]
-  },
-  "iceB1": {
-    "rom_map_id": 15,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 7,
-        "offset_y": 49
-      }
-    ]
-  },
-  "iceB2": {
-    "rom_map_id": 37,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": -103,
-        "offset_y": 153
-      }
-    ]
-  },
-  "iceB3": {
-    "rom_map_id": 38,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": -327,
-        "offset_y": -37
-      }
-    ]
-  },
-  "marshB2": {
-    "rom_map_id": 27,
-    "tile_px": 16,
-    "regions": [
-      {
-        "rows": [
-          0,
-          40
-        ],
-        "offset_x": 16,
-        "offset_y": -20,
-        "note": "Marsh Top (B1)"
-      },
-      {
-        "rows": [
-          41,
-          63
-        ],
-        "offset_x": -102,
-        "offset_y": -68,
-        "note": "Marsh Middle (B1)"
-      }
-    ]
-  },
-  "marshB3": {
-    "rom_map_id": 28,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": -5,
-        "offset_y": -22
-      }
-    ]
-  },
-  "matoya": {
-    "rom_map_id": 20,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 0,
-        "offset_y": 1
-      }
-    ]
-  },
-  "mirage1F": {
-    "rom_map_id": 23,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 17,
-        "offset_y": 43
-      }
-    ]
-  },
-  "mirage2F": {
-    "rom_map_id": 40,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 11,
-        "offset_y": 28
-      }
-    ]
-  },
-  "nw_castle": {
-    "rom_map_id": 10,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 6,
-        "offset_y": 39
-      }
-    ]
-  },
-  "ordeals2F": {
-    "rom_map_id": 25,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 6,
-        "offset_y": 42
-      }
-    ]
-  },
-  "ordeals3F": {
-    "rom_map_id": 26,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 31,
-        "offset_y": 48
-      }
-    ]
-  },
-  "seaB1": {
-    "rom_map_id": 46,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 14,
-        "offset_y": 15
-      }
-    ]
-  },
-  "seaB2": {
-    "rom_map_id": 45,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": -32,
-        "offset_y": 24
-      }
-    ]
-  },
-  "seaB3": {
-    "rom_map_id": 44,
-    "tile_px": 16,
-    "regions": [
-      {
-        "rows": [
-          0,
-          13
-        ],
-        "offset_x": -106,
-        "offset_y": -6,
-        "note": "Sea Greed"
-      },
-      {
-        "rows": [
-          14,
-          63
-        ],
-        "offset_x": -22,
-        "offset_y": -20,
-        "note": "Split Floor"
-      }
-    ]
-  },
-  "seaB4": {
-    "rom_map_id": 43,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": -31,
-        "offset_y": 76
-      }
-    ]
-  },
-  "sky1F": {
-    "rom_map_id": 47,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 0,
-        "offset_y": 0
-      }
-    ]
-  },
-  "sky2F": {
-    "rom_map_id": 48,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 0,
-        "offset_y": 0
-      }
-    ]
-  },
-  "sky3F": {
-    "rom_map_id": 49,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 0,
-        "offset_y": 0
-      }
-    ]
-  },
-  "titans": {
-    "rom_map_id": 60,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 13,
-        "offset_y": 12
-      }
-    ]
-  },
-  "tof": {
-    "rom_map_id": 12,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 77,
-        "offset_y": 1
-      }
-    ]
-  },
-  "tofr3F": {
-    "rom_map_id": 54,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 32,
-        "offset_y": 22
-      }
-    ]
-  },
-  "tofrAir": {
-    "rom_map_id": 58,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 12,
-        "offset_y": 12
-      }
-    ]
-  },
-  "tofrFire": {
-    "rom_map_id": 56,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 10,
-        "offset_y": 9
-      }
-    ]
-  },
-  "volcB2": {
-    "rom_map_id": 33,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 7,
-        "offset_y": 123
-      }
-    ]
-  },
-  "volcB4": {
-    "rom_map_id": 35,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 8,
-        "offset_y": 59
-      }
-    ]
-  },
-  "volcB5": {
-    "rom_map_id": 36,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": -50,
-        "offset_y": -48
-      }
-    ]
-  },
-  "waterfall": {
-    "rom_map_id": 18,
-    "tile_px": 16,
-    "regions": [
-      {
-        "offset_x": 0,
-        "offset_y": 0
-      }
-    ]
-  }
+  "_derived_from": "Lich (map object $1B) at tile 12,42, placed at 79,347 in SunflashRune/FFR_AP_autotracking@upstream/Sun. offset_x agrees exactly with earthB4's, which was solved independently from chest sprites."
+ },
+ "elf_castle": {
+  "rom_map_id": 9,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 51,
+    "offset_y": 24
+   }
+  ]
+ },
+ "iceB1": {
+  "rom_map_id": 15,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 7,
+    "offset_y": 49
+   }
+  ]
+ },
+ "iceB2": {
+  "rom_map_id": 37,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -103,
+    "offset_y": 153
+   }
+  ]
+ },
+ "iceB3": {
+  "rom_map_id": 38,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -327,
+    "offset_y": -37
+   }
+  ]
+ },
+ "marshB2": {
+  "rom_map_id": 27,
+  "tile_px": 16,
+  "regions": [
+   {
+    "rows": [
+     0,
+     40
+    ],
+    "offset_x": 16,
+    "offset_y": -20,
+    "note": "Marsh Top (B1)"
+   },
+   {
+    "rows": [
+     41,
+     63
+    ],
+    "offset_x": -102,
+    "offset_y": -68,
+    "note": "Marsh Middle (B1)"
+   }
+  ]
+ },
+ "marshB3": {
+  "rom_map_id": 28,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -5,
+    "offset_y": -22
+   }
+  ]
+ },
+ "matoya": {
+  "rom_map_id": 20,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 0,
+    "offset_y": 1
+   }
+  ]
+ },
+ "mirage1F": {
+  "rom_map_id": 23,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 17,
+    "offset_y": 43
+   }
+  ]
+ },
+ "mirage2F": {
+  "rom_map_id": 40,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 11,
+    "offset_y": 28
+   }
+  ]
+ },
+ "nw_castle": {
+  "rom_map_id": 10,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 6,
+    "offset_y": 39
+   }
+  ]
+ },
+ "ordeals2F": {
+  "rom_map_id": 25,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 6,
+    "offset_y": 42
+   }
+  ]
+ },
+ "ordeals3F": {
+  "rom_map_id": 26,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 31,
+    "offset_y": 48
+   }
+  ]
+ },
+ "sarda": {
+  "rom_map_id": 21,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 18,
+    "offset_y": 16
+   }
+  ],
+  "_derived_from": "Sarda (map object $0D) at tile 2,2, placed at 58,56 upstream/Sun."
+ },
+ "seaB1": {
+  "rom_map_id": 46,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 14,
+    "offset_y": 15
+   }
+  ]
+ },
+ "seaB2": {
+  "rom_map_id": 45,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -32,
+    "offset_y": 24
+   }
+  ]
+ },
+ "seaB3": {
+  "rom_map_id": 44,
+  "tile_px": 16,
+  "regions": [
+   {
+    "rows": [
+     0,
+     13
+    ],
+    "offset_x": -106,
+    "offset_y": -6,
+    "note": "Sea Greed"
+   },
+   {
+    "rows": [
+     14,
+     63
+    ],
+    "offset_x": -22,
+    "offset_y": -20,
+    "note": "Split Floor"
+   }
+  ]
+ },
+ "seaB4": {
+  "rom_map_id": 43,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -31,
+    "offset_y": 76
+   }
+  ]
+ },
+ "seaB5": {
+  "rom_map_id": 42,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 0,
+    "offset_y": -43
+   }
+  ],
+  "_derived_from": "Kraken (map object $1D) at tile 12,8, placed at 200,93 upstream/Sun."
+ },
+ "sky1F": {
+  "rom_map_id": 47,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 0,
+    "offset_y": 0
+   }
+  ]
+ },
+ "sky2F": {
+  "rom_map_id": 48,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 0,
+    "offset_y": 0
+   }
+  ]
+ },
+ "sky3F": {
+  "rom_map_id": 49,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 0,
+    "offset_y": 0
+   }
+  ]
+ },
+ "titans": {
+  "rom_map_id": 60,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 13,
+    "offset_y": 12
+   }
+  ]
+ },
+ "tof": {
+  "rom_map_id": 12,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 77,
+    "offset_y": 1
+   }
+  ]
+ },
+ "tofr3F": {
+  "rom_map_id": 54,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 32,
+    "offset_y": 22
+   }
+  ]
+ },
+ "tofrAir": {
+  "rom_map_id": 58,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 12,
+    "offset_y": 12
+   }
+  ]
+ },
+ "tofrFire": {
+  "rom_map_id": 56,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 10,
+    "offset_y": 9
+   }
+  ]
+ },
+ "volcB2": {
+  "rom_map_id": 33,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 7,
+    "offset_y": 123
+   }
+  ]
+ },
+ "volcB4": {
+  "rom_map_id": 35,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 8,
+    "offset_y": 59
+   }
+  ]
+ },
+ "volcB5": {
+  "rom_map_id": 36,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": -50,
+    "offset_y": -48
+   }
+  ]
+ },
+ "waterfall": {
+  "rom_map_id": 18,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 0,
+    "offset_y": 0
+   }
+  ]
+ },
+ "_uncalibrated": {
+  "sky5F": "sky5F.png is not 16 px per tile -- map 51's content is 15x56 tiles, which at 16 px would be 896 tall against the image's 414. Tiamat's pixel upstream/Sun cannot be reproduced by a single 16 px region, so no entry is guessed here.",
+  "bahamut": "bahamut.png is one image for two ROM maps, 17 and 39 stacked. Bahamut himself is on 39. A single region cannot describe it; the multi-region form (see cardia) can, but wants a second correspondence on map 17 to pin down."
+ }
 }

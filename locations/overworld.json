@@ -1522,6 +1522,13 @@
                         "map": "overworld",
                         "x": 370,
                         "y": 2150
+                    },
+                    {
+                        "map": "sarda",
+                        "x": 58,
+                        "y": 56,
+                        "size": 16,
+                        "border_thickness": 2
                     }
                 ]
             },

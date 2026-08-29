@@ -58,6 +58,14 @@ WANTED = {
     0x0E: "bahamut",
     0x13: "fairy",
     0x14: "titan",
+    # The four fiends. Not turn-ins, but the orb behind each one is a location
+    # the pack tracks, and their floors hold no chests at all -- which is why
+    # earthB5, volcB5, seaB5 and sky5F went uncalibrated for so long: the
+    # chest-centroid solver had nothing on them to match.
+    0x1B: "lich",
+    0x1C: "marilith",
+    0x1D: "kraken",
+    0x1E: "tiamat",
 }
 
 

@@ -32,6 +32,27 @@
    "tile_row": 30
   }
  ],
+ "kraken": [
+  {
+   "map_id": 42,
+   "tile_col": 12,
+   "tile_row": 8
+  }
+ ],
+ "lich": [
+  {
+   "map_id": 32,
+   "tile_col": 12,
+   "tile_row": 42
+  }
+ ],
+ "marilith": [
+  {
+   "map_id": 36,
+   "tile_col": 7,
+   "tile_row": 55
+  }
+ ],
  "matoya": [
   {
    "map_id": 20,
@@ -58,6 +79,13 @@
    "map_id": 19,
    "tile_col": 7,
    "tile_row": 2
+  }
+ ],
+ "tiamat": [
+  {
+   "map_id": 51,
+   "tile_col": 7,
+   "tile_row": 5
   }
  ],
  "titan": [
