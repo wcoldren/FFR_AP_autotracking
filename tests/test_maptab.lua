@@ -23,10 +23,25 @@ local function check(name, got, want)
 end
 
 -- Every tab title the layout defines, at any nesting depth.
+--
+-- {"type": "layout", "key": k} has to be followed into layouts/shared.json,
+-- because PopTracker expands it before any of this is on screen. The dungeon
+-- tree lives there once and is referenced from all four map layouts, so a
+-- walker that stopped at the reference would report that the standard layout
+-- has no dungeon tabs at all.
 local function tabTitles(file)
+  local shared = json.load(PACK .. "/layouts/shared.json")
   local titles = {}
+  local seen = {}
   local function walk(node)
     if type(node) ~= "table" then return end
+    if node.type == "layout" and node.key then
+      if not seen[node.key] then
+        seen[node.key] = true
+        walk(shared[node.key])
+      end
+      return
+    end
     if node.type == "tabbed" then
       for _, t in ipairs(node.tabs or {}) do
         if t.title then titles[t.title] = true end
@@ -41,17 +56,40 @@ local function tabTitles(file)
   return titles
 end
 
+-- The four layouts that lay out dungeon map tabs. The NOverworld pair joined
+-- them when the dungeon tree moved into layouts/shared.json: they reference the
+-- same three keys, so a tab renamed there has to stay in step with MAP_VALUE
+-- for all four at once.
+local MAP_LAYOUTS = {
+  "layouts/standard/tracker.json",
+  "layouts/shardHunt/tracker.json",
+  "layouts/NOverworld/tracker.json",
+  "layouts/NOverworld/shardsTracker.json",
+}
+
+-- maptab.lua's own MAP_VALUE_OVERWORLD is a local, so this is a second copy on
+-- purpose. It is one string and the check below is the thing that would notice
+-- it drifting: change it there and every town starts failing here.
+local MAP_VALUE_OVERWORLD = "Overworld"
+
 dofile(PACK .. "/scripts/autotracking/mapValues.lua")
 
 -- 1. every path segment in MAP_VALUE names a real tab, in both layouts that
 --    have them
-for _, file in ipairs({ "layouts/standard/tracker.json", "layouts/shardHunt/tracker.json" }) do
+for _, file in ipairs(MAP_LAYOUTS) do
   local titles = tabTitles(file)
   local bad = {}
   for id, path in pairs(MAP_VALUE) do
-    for name in string.gmatch(path, "([^/]+)") do
-      if not titles[name] then
-        bad[#bad + 1] = string.format("map %d wants tab %q", id, name)
+    -- The eight towns come through the table as the bare string "Overworld",
+    -- which activateMapTab never looks up: it redirects them through
+    -- overworldTab() exactly like map id -1. Checking it as a literal title
+    -- would demand an "Overworld" tab from the NOverworld layouts, which have
+    -- no overworld to draw. The tabs it can redirect *to* are 1b's job.
+    if path ~= MAP_VALUE_OVERWORLD then
+      for name in string.gmatch(path, "([^/]+)") do
+        if not titles[name] then
+          bad[#bad + 1] = string.format("map %d wants tab %q", id, name)
+        end
       end
     end
   end
@@ -67,14 +105,23 @@ end
 --     so they need the same existence check or they fail the same silent way.
 --     Both are live now: which one the overworld lands on depends on whether
 --     the seed put the chests in the pool.
+--     The NOverworld layouts are the exception and deliberately so: they have
+--     no "Overworld" tab because the mode has no overworld to draw, and
+--     overworldTab() collapses to the incentive tab there rather than asking
+--     for one that is not laid out.
 local FALLBACKS = { "Incentive Locations", "Overworld" }
-for _, file in ipairs({ "layouts/standard/tracker.json", "layouts/shardHunt/tracker.json" }) do
+for _, file in ipairs(MAP_LAYOUTS) do
   local titles = tabTitles(file)
+  local noverworld = file:find("NOverworld") ~= nil
   for _, fallback in ipairs(FALLBACKS) do
-    if not titles[fallback] then
+    local want = not (noverworld and fallback == "Overworld")
+    if titles[fallback] == nil and want then
       fails(string.format("%s has no %q tab for the overworld fallback", file, fallback))
+    elseif titles[fallback] and not want then
+      fails(string.format("%s has an %q tab, but the mode has no overworld", file, fallback))
     else
-      print(string.format("ok   %q exists in %s", fallback, file:match("layouts/([^/]+)")))
+      print(string.format("ok   %q %s in %s", fallback,
+        want and "exists" or "is absent as intended", file:match("layouts/([^/]+)")))
     end
   end
 end
@@ -136,9 +183,12 @@ check("unknown map id does nothing", activateMapTab(200), false)
 check("  no hint", take(), "")
 check("nil is ignored", activateMapTab(nil), false)
 
--- 5. variants without dungeon tabs never touch the UI
+-- 5. the four NoMap variants have no tabbed widget at all, so they never touch
+--    the UI. The NOverworld pair used to be in this list and no longer is:
+--    they carry the shared dungeon tree now.
 resetMapTab()
-for _, v in ipairs({ "1standardNoMap", "3NOverworldNoMap", "7NOverworld", "8shardHuntNOverworld" }) do
+for _, v in ipairs({ "1standardNoMap", "2shardHuntNoMap", "3NOverworldNoMap",
+                     "4shardHuntNOverworldNoMap" }) do
   Tracker.ActiveVariantUID = v
   local moved = activateMapTab(13)
   if moved or take() ~= "" then
@@ -146,6 +196,18 @@ for _, v in ipairs({ "1standardNoMap", "3NOverworldNoMap", "7NOverworld", "8shar
   end
 end
 print("ok   variants without dungeon tabs are left alone")
+
+-- 5b. ...and the NOverworld map variants do follow the player into a dungeon,
+--     down the same three-deep nest as the standard layout.
+for _, v in ipairs({ "7NOverworld", "8shardHuntNOverworld" }) do
+  Tracker.ActiveVariantUID = v
+  resetMapTab()
+  check(v .. " follows into Earth Cave B1", activateMapTab(13), true)
+  check("  activates the whole nest", take(),
+    "ActivateTab:Fiend Dungeons,ActivateTab:Earth Cave,ActivateTab:Earth Cave B1")
+  -- and the overworld it has no tab for collapses to the incentive map
+  check("  overworld goes to the incentive tab", overworldTab(), "Incentive Locations")
+end
 
 Tracker.ActiveVariantUID = "6shardHunt"
 resetMapTab()

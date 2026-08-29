@@ -1,79 +1,102 @@
 {
-	"tracker_default" : {
-		"type" : "container",
-		"background" : "#5f6393",
-		"content" : {
-			"type" : "dock",
-			"dropshadow" : false,
-			"content" : [
-				{
-					"type" : "dock",
-					"dock" : "bottom",
-					"v_alignment" : "stretch",
-					"content" : [
-						{
-							"type" : "group",
-							"header" : "Items",
-							"dock" : "left",
-							"content" : {
-								"type" : "layout",
-								"key" : "NOverworld_item_grid"
-							}
-						},
-						{
-							"type" : "group",
-							"header" : "Locations",
-							"dock" : "left",
-							"content" : {
-								"type" : "layout",
-								"key" : "shared_locations_grid"
-							}
-						},
-						{
-							"type" : "group",
-							"header" : "Bosses",
-							"dock" : "left",
-							"content" : {
-								"type" : "layout",
-								"key" : "shared_boss_grid"
-							}
-						},
-						{
-							"type" : "group",
-							"header" : "Incentives",
-							"dock" : "left",
-							"content" : {
-								"type" : "layout",
-								"key" : "shared_incentives_grid"
-							}
-						},
-						{
-							"type" : "group",
-							"header" : "Pinned Locations",
-							"content" : {
-								"type" : "recentpins",
-								"style" : "wrap",
-								"h_alignment" : "stretch",
-								"v_alignment" : "stretch",
-								"orientation" : "horizontal",
-								"compact" : true
-							}
-						}
-					]
-				},
-				{
-					"type" : "tabbed",
-					"tabs" : [
-						{
-							"title" : "Incentive Locations",
-							"content" : {
-								"type" : "map",
-								"maps" : [ "incentives" ]
-							}
-						}
-					]
-				}
-			]
-		}
-	}
+    "tracker_default": {
+        "type": "container",
+        "background": "#5f6393",
+        "content": {
+            "type": "dock",
+            "dropshadow": false,
+            "content": [
+                {
+                    "type": "dock",
+                    "dock": "bottom",
+                    "v_alignment": "stretch",
+                    "content": [
+                        {
+                            "type": "group",
+                            "header": "Items",
+                            "dock": "left",
+                            "content": {
+                                "type": "layout",
+                                "key": "NOverworld_item_grid"
+                            }
+                        },
+                        {
+                            "type": "group",
+                            "header": "Locations",
+                            "dock": "left",
+                            "content": {
+                                "type": "layout",
+                                "key": "shared_locations_grid"
+                            }
+                        },
+                        {
+                            "type": "group",
+                            "header": "Bosses",
+                            "dock": "left",
+                            "content": {
+                                "type": "layout",
+                                "key": "shared_boss_grid"
+                            }
+                        },
+                        {
+                            "type": "group",
+                            "header": "Incentives",
+                            "dock": "left",
+                            "content": {
+                                "type": "layout",
+                                "key": "shared_incentives_grid"
+                            }
+                        },
+                        {
+                            "type": "group",
+                            "header": "Pinned Locations",
+                            "content": {
+                                "type": "recentpins",
+                                "style": "wrap",
+                                "h_alignment": "stretch",
+                                "v_alignment": "stretch",
+                                "orientation": "horizontal",
+                                "compact": true
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "tabbed",
+                    "tabs": [
+                        {
+                            "title": "Incentive Locations",
+                            "content": {
+                                "type": "map",
+                                "maps": [
+                                    "incentives"
+                                ]
+                            }
+                        },
+                        {
+                            "title": "Fiend Dungeons",
+                            "content": {
+                                "type": "layout",
+                                "key": "shared_fiend_dungeon_tabs"
+                            }
+                        },
+                        {
+                            "title": "Caves & Dungeons",
+                            "content": {
+                                "type": "layout",
+                                "key": "shared_cave_dungeon_tabs"
+                            }
+                        },
+                        {
+                            "title": "Other",
+                            "content": {
+                                "type": "layout",
+                                "key": "shared_other_tabs"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
 }

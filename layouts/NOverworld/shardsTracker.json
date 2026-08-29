@@ -47,7 +47,7 @@
                                 "key": "shared_incentives_grid"
                             }
                         },
-						{
+                        {
                             "type": "group",
                             "header": "Shards",
                             "dock": "left",
@@ -77,7 +77,30 @@
                             "title": "Incentive Locations",
                             "content": {
                                 "type": "map",
-                                "maps": [ "incentives" ]
+                                "maps": [
+                                    "incentives"
+                                ]
+                            }
+                        },
+                        {
+                            "title": "Fiend Dungeons",
+                            "content": {
+                                "type": "layout",
+                                "key": "shared_fiend_dungeon_tabs"
+                            }
+                        },
+                        {
+                            "title": "Caves & Dungeons",
+                            "content": {
+                                "type": "layout",
+                                "key": "shared_cave_dungeon_tabs"
+                            }
+                        },
+                        {
+                            "title": "Other",
+                            "content": {
+                                "type": "layout",
+                                "key": "shared_other_tabs"
                             }
                         }
                     ]

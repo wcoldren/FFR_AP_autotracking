@@ -80,8 +80,21 @@ local function cartridgeChestsAreChecks()
       or ffrFlag("ChestsKeyItems", false) == true
 end
 
+-- Whether this variant lays out the full overworld map at all.
+--
+-- The NOverworld layouts do not, and cannot usefully: the mode replaces the
+-- overworld with an ocean stub carrying nine one-tile town pads, so vanilla
+-- overworld art would be a picture of somewhere the seed never goes. Every
+-- answer below therefore has to collapse to the incentive tab there, whatever
+-- the pool says -- asking for a tab the layout has not got activates nothing,
+-- silently, which is the same failure the tab titles are checked for.
+local function hasFullOverworldTab()
+  return Tracker.ActiveVariantUID:find("NOverworld") == nil
+end
+
 -- Exposed for the tests and for anyone reading a log.
 function overworldTab()
+  if not hasFullOverworldTab() then return OVERWORLD_INCENTIVE end
   local mode = tabMode()
   if mode == TAB_INCENTIVE then return OVERWORLD_INCENTIVE end
   if mode == TAB_FULL then return OVERWORLD_FULL end
@@ -107,12 +120,19 @@ function refreshOverworldTab()
   end
 end
 
--- Only two variants lay out dungeon map tabs. The four NoMap variants have no
--- tabbed widget at all and both NOverworld ones have a single tab, so there is
--- nothing to activate and no reason to look.
+-- Which variants lay out dungeon map tabs. The four NoMap variants have no
+-- tabbed widget at all, so there is nothing to activate and no reason to look.
+--
+-- The NOverworld pair used to be excluded for the same reason -- they had a
+-- single tab, the incentive poster. They now carry the same dungeon tree as
+-- the standard layouts, from the same three shared_*_tabs keys, so the player
+-- is followed into a dungeon there too. They still have no full overworld tab,
+-- which hasFullOverworldTab above is what handles.
 local TABBED_VARIANTS = {
   ["5standard"] = true,
   ["6shardHunt"] = true,
+  ["7NOverworld"] = true,
+  ["8shardHuntNOverworld"] = true,
 }
 
 local lastMapId = nil
