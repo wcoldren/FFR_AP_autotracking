@@ -193,6 +193,58 @@ Open questions before any of it: does the logic need a No-Overworld branch (the
 75-link table is fixed, so it *can* be modelled), and should the variant be
 auto-selected from `GameMode` rather than picked by hand.
 
+## Ideas from playing on the rendered maps, not yet scoped
+
+Raised 2026-08-29 after the first session on cartridge-drawn art. Recorded with
+whatever is already known about each, so scoping does not start from scratch.
+Nothing here is designed yet and the order below is not a plan.
+
+- **Show the towns when you walk into one.** The first step, and the one the
+  rest lean on. No-Overworld gives every town staircases, so a town is a room
+  you route through -- but `MAP_VALUE` still calls maps 0-7 "Overworld" and
+  `maptab.lua` sends you to the overworld tab. The tabs themselves exist, but
+  only in `regen_maps.py`'s override, because the pack has no town art to put
+  in them. So `MAP_VALUE` cannot simply name them: the base pack would then
+  point at tabs it does not have, and `test_maptab.lua` would fail for the right
+  reason. Whatever the answer is -- mode-aware `MAP_VALUE`, an override that
+  ships its own `mapValues.lua`, town art committed after all -- it has to keep
+  the standard variants pointing at the overworld.
+
+- **Frame the map on where you are.** The tab shows a whole 64x64 map at one
+  zoom and never moves. Two separate things:
+
+  *Crop.* A mean 46% of each render is filler -- `coneria_town` is 19% content,
+  `ordeals1F` 15%, `nw_castle` 21%. The hand-drawn art is cropped, which is why
+  `con_castle.png` is 1074x605 and `matoya.png` 273x258. Cropping to the content
+  bounding box is a per-map offset in the calibration `regen_maps.py` already
+  generates, so nothing downstream changes.
+
+  *Follow.* PopTracker takes `Tracker:UiHint("Zoom <map>", "2.5")` and
+  `Tracker:UiHint("Pan <map>", "x,y")` per map (trackerview.cpp:940-956), and
+  the pack already drives `UiHint("ActivateTab", ...)` from `maptab.lua`. The
+  bridge reads the party's position for the entrance-marker work below
+  (`sm_scroll` `$29/$2A`, party always 7 tiles in). So following the party into
+  the room it entered needs no new art and no new data -- it is the same hint
+  channel that already switches the tab.
+
+- **Insets, the way the hand art does them.** Three shipped maps are composites
+  of disjoint pieces at unrelated offsets: `cardia` in 3 regions, `marshB2` and
+  `seaB3` in 2. The calibration format already carries that, and `make_markers`
+  already reads it, so a renderer that split a map into connected components and
+  laid them out would reproduce the effect and also fix any map whose used area
+  is two far-apart rooms with dead space between.
+
+- **Routes drawn on the map.** Wanted in two flavours -- shortest to the exit,
+  and one that collects the loot on the way -- and eventually per-map custom
+  routes for towns, where the useful stops are shops and NPCs rather than
+  chests. `entrance_graph.py` has the graph between maps; a route *within* a
+  map is a different problem and would want walkability per tile, which
+  `lut_OWTileset` gives for the overworld and the tileset property tables give
+  for standard maps. Worth settling first whether the drawing surface is the
+  PopTracker tab (a static image, so the route has to be baked into the art at
+  render time) or `tools/doormap.py` (free to draw anything, but not in front of
+  you while you play).
+
 ## Designed, not started
 
 - **Entrance markers.** The data half is done: `tools/entrance_graph.py` reads
