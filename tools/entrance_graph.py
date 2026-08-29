@@ -990,6 +990,21 @@ def print_gates(g):
                 print(f"      ${oid:02X} {GATE_OBJ_NAMES[oid]:22s} not placed on any map")
 
 
+# The seven floors of the Temple of Fiends Revisited gauntlet, Chaos's own room
+# excluded. No-Overworld strips the 4-orbs special off TempleOfFiends (20,17) --
+# vanilla has both the special and a teleport there, which is the time warp --
+# and repoints the plain teleport straight at TempleOfFiendsRevisitedChaos. So
+# the mode skips the gauntlet, nothing on the cartridge teleports into these
+# seven, and MetroidVaniaMap.cs gives them a backdrop and a tileset but no entry
+# in its teleporter table. Verified on seed F258553F.
+TOFR_INTERIOR = (
+    "TempleOfFiendsRevisited1F", "TempleOfFiendsRevisited2F",
+    "TempleOfFiendsRevisited3F", "TempleOfFiendsRevisitedEarth",
+    "TempleOfFiendsRevisitedFire", "TempleOfFiendsRevisitedWater",
+    "TempleOfFiendsRevisitedAir",
+)
+
+
 def check_all_reachable(g, mode, why=None):
     """With every item in hand, every map must be reachable from the doors.
 
@@ -1000,11 +1015,17 @@ def check_all_reachable(g, mode, why=None):
     it to pass -- and it fails loudly on every one of those going wrong.
 
     No-Overworld only, and not because the other modes are trusted. It is a
-    theorem there and nowhere else: MetroidVaniaMap.cs connects all 61 maps with
-    a hand-authored table and drops none of them, so any map the walk cannot
-    find is this tool's fault. A standard cartridge routes through an overworld
-    the walk does not model, and a stock 16-bank image has no extended teleport
-    table at all -- both would fail this for reasons that are not bugs.
+    theorem there and nowhere else: MetroidVaniaMap.cs connects the maps with a
+    hand-authored table, so a map the walk cannot find is this tool's fault. A
+    standard cartridge routes through an overworld the walk does not model, and a
+    stock 16-bank image has no extended teleport table at all -- both would fail
+    this for reasons that are not bugs.
+
+    The ToFR gauntlet is the one documented exception, and it is checked rather
+    than waved through: the mode reaches Chaos by a shortcut, so Chaos's room
+    still has to be reachable, and the seven floors it skips still have to be
+    unreachable for that reason and not some other. A seed that wires them up
+    passes too -- an excepted map being reachable was never the failure.
     """
     if mode is None:
         print("self-check SKIPPED: the all-items reachability oracle needs the "
@@ -1012,7 +1033,14 @@ def check_all_reachable(g, mode, why=None):
         return True
     if mode != GAME_MODE_NOVERWORLD:
         return True
-    missed = sorted(set(range(MAP_COUNT)) - g.reachable_maps(set(ITEM_NAMES)))
+    reach = g.reachable_maps(set(ITEM_NAMES))
+    skipped = {MAP_NAMES.index(n) for n in TOFR_INTERIOR}
+    chaos = MAP_NAMES.index("TempleOfFiendsRevisitedChaos")
+    if chaos not in reach:
+        print("self-check FAILED: TempleOfFiendsRevisitedChaos is unreachable, so "
+              "the Temple of Fiends shortcut this mode relies on is not there")
+        return False
+    missed = sorted(set(range(MAP_COUNT)) - reach - skipped)
     if missed:
         print(f"self-check FAILED: {len(missed)} of {MAP_COUNT} maps cannot be "
               "reached from the doors even holding every item")
@@ -1021,8 +1049,11 @@ def check_all_reachable(g, mode, why=None):
         if len(missed) > 10:
             print(f"    ... and {len(missed) - 10} more")
         return False
-    print(f"self-check OK: all {MAP_COUNT} maps reachable from the doors with "
-          "every item in hand")
+    also = sorted(skipped & reach)
+    print(f"self-check OK: {len(reach - skipped)} of {MAP_COUNT} maps reachable "
+          f"from the doors with every item in hand; the {len(skipped)} ToFR "
+          "gauntlet floors the mode skips are not, as expected"
+          + (f" (though {len(also)} of them are wired up on this seed)" if also else ""))
     return True
 
 

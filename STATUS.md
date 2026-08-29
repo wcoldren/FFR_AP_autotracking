@@ -61,7 +61,9 @@ Last updated 2026-08-29.
   drops none, so a map the walk cannot find is the tool's own fault. It is the
   cheapest test of the whole routing stack -- map decompression, tile
   properties, both teleport tables, the doors and the gates all have to be right
-  at once. Written down after the bank bug below and never run until now.
+  at once. Written down after the bank bug below and never run until now -- and
+  it earned itself immediately, by failing on its own stated invariant. See
+  "The gauntlet the mode skips" below.
 - `tests/run.sh` — 13 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
   — the cartridge-reading tools' own tests, Python and nothing else; the ones
   that need a cartridge skip unless `FF1_ROM` points at one.
@@ -124,14 +126,16 @@ cartridges including the No-Overworld one, all clean.
 
 ## Next
 
-1. **A No-Overworld seed on disk.** Everything below is now blocked on the same
-   thing: the gate blocking, the reachability oracle and the door map's
-   empty-handed count are all verified synthetically because there is no FFR
-   cartridge here to run them against.
-2. **The NOverworld overhaul.** Its own section below; this is the focus. The
-   gate half of the logic branch is done -- the router stops at the gate NPCs
-   now. What is left is deriving `locations/NOverworld/overworld.json` from the
-   cartridge rather than hand-authoring it, and that wants a real seed first.
+1. **The NOverworld overhaul.** Its own section below; this is the focus. The
+   gate half of the logic branch is done and verified on a real cartridge -- the
+   router stops at the gate NPCs now. What is left is deriving
+   `locations/NOverworld/overworld.json` from the cartridge rather than
+   hand-authoring it.
+
+   Seeds live in `~/Downloads/FFR_duck_10*/`; `F258553F` is the one every
+   measurement in this document was taken against. `FF1_ROM` points the tool
+   tests at a cartridge, and they are strictly stronger with a real seed than
+   with the vanilla image.
 
 ## The NOverworld variants
 
@@ -148,7 +152,10 @@ All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
   towns plus Coneria Castle. Confirmed off the cartridge: of 32 entrance rows,
   only those nine have a tile on the map.
 - Everything else is connected by a **hand-authored table of 75 teleporters**,
-  ids `0x41-0x8B`, at `:458-776`. All 61 maps are used; none is dropped.
+  ids `0x41-0x8B`, at `:458-776`. 54 of the 61 maps are wired into it. The other
+  seven are the Temple of Fiends Revisited gauntlet, and they are genuinely
+  dropped -- see below. This document said "all 61, none dropped" until
+  2026-08-29, when the reachability oracle was run for the first time.
 - **Deterministic apart from three things**: the three Cardia/Bahamut one-way
   gateways are permuted across Waterfall / Ice Cave B1 / Gaia (`:726`), the
   Waterfall stair positions, and which ToFR chest ids the two bonus chests
@@ -171,6 +178,37 @@ All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
   a new tracker code: the pack already tracks every one of these gates.
 - The full shuffle runs only with `Entrances` or `Towns` set; the stock preset
   ships both off, so a default seed uses the fixed table.
+
+### The gauntlet the mode skips
+
+Found 2026-08-29, the first time the all-items reachability oracle was run
+against a cartridge. It failed, and it was right to: seven maps cannot be
+reached from the doors holding every item -- the Temple of Fiends Revisited
+floors 1F, 2F, 3F, Earth, Fire, Water and Air.
+
+Not a bug in the walk. The cartridge really does orphan them:
+
+- On a **vanilla** cartridge `TempleOfFiends (20,17)` carries both a
+  `TP_SPEC_4ORBS` special and a normal teleport. That pair is the time warp:
+  the special gates the step on the four Orbs, the teleport moves you.
+- On a **No-Overworld** seed the special is **stripped** and the teleport points
+  straight at `TempleOfFiendsRevisitedChaos`. The mode skips the gauntlet and
+  drops you at the Chaos fight.
+- Nothing else on the cartridge teleports into those seven, of any teleport
+  kind, and `MetroidVaniaMap.cs` gives them a backdrop (`:942-948`) and a
+  tileset (`:1108-1114`) but no entry in its teleporter table. The chain runs
+  1F -> Earth -> Fire -> Water -> Air -> Chaos and 1F -> 2F -> 3F, all of it
+  flowing toward Chaos, with no way in.
+
+So the oracle's invariant was wrong as first written, not the cartridge. It now
+excepts those seven by name and checks the reason instead of waving it through:
+Chaos's own room still has to be reachable, since the shortcut is what makes the
+seven unreachable. A seed that wires the gauntlet up passes too -- an excepted
+map being reachable was never the failure.
+
+Worth keeping: the oracle's first real run corrected a claim this document had
+been making for weeks. Cheap tests of stated invariants find the invariants that
+were never true.
 
 ### Version drift, and why it is not the thing to worry about
 
@@ -285,13 +323,18 @@ version-proofing, and it is worth more than any amount of tracking upstream.
   `--have` learned the four items, and takes `sigil` for the Floater, since that
   is the name on the item screen.
 
-  **Unverified against a real No-Overworld cartridge.** No FFR seed is on disk,
-  and the vanilla image cannot stand in: a stock 16-bank ROM has no extended
-  teleport table, so the routing half of the tool reaches 26 of 61 maps there
-  whatever the gates do. What is checked is `tools/tests/test_gate_objects.py`,
-  which rewrites a vanilla talk table into a gate layout and asserts all eight
-  objects block empty-handed, open on the item, and block nothing on a stock
-  cartridge. A real seed is the next thing this needs.
+  **Verified on seed `F258553F`** (2026-08-29). The talk table reads at
+  `$11:$8000`, all four routines sort, and the eight objects stand where
+  `MetroidVaniaMap.cs`'s `SetNpc` calls put them -- `LefeinMan6` on Ice Cave B1,
+  `LefeinMan10` on Castle Ordeals 1F, not the Lefein of a stock cartridge.
+
+  What it changed on that seed: maps open empty-handed 47 -> **45**, and floor
+  links called walkable 135 -> **117**. Eighteen staircases were being reported
+  as walkable that a SIGIL, Canoe or Chime barrier actually blocks. The
+  all-items reachable count is **54 before and after**, which is the check worth
+  keeping: gates must not move that answer, because holding every item opens
+  every gate. `test_gate_objects.py` asserts it, and tests a real seed as it is
+  rather than synthesising a layout when FF1_ROM names one.
 
   One thing found on the way and deliberately left alone: `Talk_Nerrick` is the
   *vanilla* routine -- `MetroidVaniaMap.cs:833-834` leaves the `NoOW_Nerrick`

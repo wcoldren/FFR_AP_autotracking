@@ -1,9 +1,9 @@
 """The No-Overworld gate NPCs have to block a step, and only on that mode.
 
-Needs a cartridge to read object positions and a talk table off. Any Final
-Fantasy image will do -- the gate layout is synthesised here by rewriting the
-talk table, because a real No-Overworld seed is not something this repo ships.
-Set FF1_ROM to one; without it the test skips rather than passing quietly.
+Set FF1_ROM to a cartridge. A real No-Overworld seed is tested as it is; any
+other image gets a gate layout synthesised into its talk table, so the test is
+useful on the vanilla cartridge this repo can assume and stronger on a seed.
+Without FF1_ROM it skips rather than passing quietly.
 """
 import os
 import sys
@@ -31,7 +31,13 @@ def main():
         print("SKIP  set FF1_ROM to a Final Fantasy cartridge to run this")
         return 0
 
-    stock, noow = graph(path, False), graph(path, True)
+    native = graph(path, False)
+    real = native.gates is not None
+    # A real seed needs no help; anything else gets the layout written in, and
+    # then also has to prove it blocked nothing before that.
+    noow = native if real else graph(path, True)
+    stock = None if real else native
+    print(f"({'a real No-Overworld seed' if real else 'gate layout synthesised'})")
     fails = []
 
     def check(label, got, want):
@@ -39,9 +45,10 @@ def main():
             fails.append(f"{label}: got {got!r}, want {want!r}")
         print(f"{'ok  ' if got == want else 'FAIL'} {label}")
 
-    check("a stock cartridge reports no gate layout", stock.gates, None)
-    check("stock blocks the Rod and the Lute and nothing else",
-          stock.gated_objects, dict(eg.GATED_OBJECTS))
+    if stock is not None:
+        check("a stock cartridge reports no gate layout", stock.gates, None)
+        check("stock blocks the Rod and the Lute and nothing else",
+              stock.gated_objects, dict(eg.GATED_OBJECTS))
     check("the gate layout is read back off the talk table",
           noow.gates, dict(eg.NOVERWORLD_GATES))
     check("the Rod and the Lute survive alongside the gates",
@@ -62,8 +69,17 @@ def main():
               (x, y) in noow.blocking_objects(m, set()), True)
         check(f"{name} steps aside once you hold the {item}",
               (x, y) in noow.blocking_objects(m, {item}), False)
-        check(f"{name} blocks nothing on a stock cartridge",
-              (x, y) in stock.blocking_objects(m, set()), False)
+        if stock is not None:
+            check(f"{name} blocks nothing on a stock cartridge",
+                  (x, y) in stock.blocking_objects(m, set()), False)
+
+    # Holding everything must leave the reachable set exactly where it was:
+    # a gate that changes that answer is over-blocking, not gating.
+    if real:
+        with_gates = noow.reachable_maps(set(eg.ITEM_NAMES))
+        noow.gated_objects, noow.grids = dict(eg.GATED_OBJECTS), {}
+        check("gates change nothing once you hold every item",
+              noow.reachable_maps(set(eg.ITEM_NAMES)), with_gates)
 
     for f in fails:
         print("     " + f)
