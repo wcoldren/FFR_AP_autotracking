@@ -49,6 +49,12 @@ Last updated 2026-08-29.
   against FFR's own spoiler. The map-reading half of that was wrong until
   2026-08-29 — see "Read the maps from the bank FFR actually puts them in"
   below.
+- The door map is walkable by clicking. Every floor name on the page is a
+  `#map-<id>` link, and a focus panel driven by `hashchange` lists that floor's
+  ways in and staircases on, so you follow the shuffle a room at a time instead
+  of scrolling two tables; Back retraces. Works the same on a No-Overworld
+  cartridge, which is the point — the mode shuffles through the same teleport
+  tables the page already reads.
 - `tests/run.sh` — 13 Lua suites, no emulator or ROM needed.
 
 ## Read the maps from the bank FFR actually puts them in
@@ -103,16 +109,13 @@ any browser that opened it as a local file — which is how it is meant to be re
 
 Checked by re-deriving the whole page from the cartridge and diffing it against
 what the page claims: live doors against `starts()`, the staircase set tile by
-tile against `teleports()`, and every destination and landing against the
-teleport tables. Four cartridges including the No-Overworld one, all clean.
+tile against `teleports()`, every destination and landing against the teleport
+tables, and every `#map-<id>` the page can emit against the map table. Four
+cartridges including the No-Overworld one, all clean.
 
 ## Next
 
 1. **The NOverworld overhaul.** Its own section below; this is the focus.
-2. **Door-map click-through.** `tools/doormap.py` gets a focus panel and real
-   `#map-<id>` anchors driven by `hashchange`, so the shuffled dungeon can be
-   walked by clicking instead of scrolled. One file, no pack risk. Worth more
-   now that it reads real topology.
 
 ## The NOverworld variants
 

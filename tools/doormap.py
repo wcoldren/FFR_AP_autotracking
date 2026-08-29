@@ -97,11 +97,11 @@ def build(g, npcs):
             "live": i in live,
         })
 
-    # Two passes, because a floor's dead ends have to be distinguishable from
-    # the parts of it you cannot walk to. The walk finds the staircases you can
-    # actually take; the sweep after it adds the ones that are on a floor you
-    # stood on but behind a locked door or a plate, which carry steps=None.
-    # Without those, a floor whose far half is locked reads as having no way on.
+    # Two passes, because the panel has to be able to say why a floor is a dead
+    # end. The walk finds the staircases you can actually take; the sweep after
+    # it adds the ones that are on a floor you stood on but behind a locked
+    # door or a plate, which carry steps=None. Without those, a floor whose far
+    # half is locked reads as having no way on at all.
     have = set()
     seen, q, links = set(), deque(), {}
     for _, m, a in g.starts():
@@ -190,7 +190,8 @@ def build(g, npcs):
             "unchanged": VANILLA_DOOR_MAP.get(door) == g.entr_map[door],
         })
 
-    return {"doors": doors, "routes": routes,
+    return {"doors": doors, "routes": routes, "maps": MAP_NAMES,
+            "mapCount": MAP_COUNT,
             "floors": sorted(links.values(),
                              key=lambda f: (f["fromId"], f["y"], f["x"])),
             "reachable": reachable}
@@ -352,6 +353,34 @@ tr.mark td{background:var(--gold-soft)}
 tr.mark:hover td{background:var(--gold-soft)}
 .none{padding:20px 14px; color:var(--muted); font-size:14px}
 
+/* click-through */
+a.maplink{color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-soft)}
+a.maplink:hover{border-bottom-color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+tr.focus td, tr.focus:hover td{background:var(--accent-soft)}
+tr.focus td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+
+/* focus panel */
+.focus{background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--accent); box-shadow:var(--shadow); padding:22px 24px}
+.focus-h{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap}
+.focus-sum{font-size:14px; color:var(--muted); margin-top:8px; max-width:70ch}
+.legs{display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:24px; margin-top:22px}
+.leg h4{
+  font-family:Chivo,sans-serif; font-size:11px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 12px;
+  padding-bottom:7px; border-bottom:1px solid var(--line-soft);
+}
+.leg ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:11px}
+.leg li{font-size:14px; line-height:1.45}
+.leg li.gated{opacity:.72}
+.leg .sub{display:block; font-size:12.5px; color:var(--muted)}
+.leg .empty{font-size:13.5px; color:var(--muted)}
+.close{
+  font-family:Chivo,sans-serif; font-size:12px; letter-spacing:.04em; color:var(--muted);
+  text-decoration:none; border-bottom:1px solid var(--line); white-space:nowrap;
+}
+.close:hover{color:var(--ink); border-bottom-color:var(--ink)}
+
 footer{border-top:1px solid var(--line); padding-top:24px; color:var(--muted); font-size:14px; display:flex; flex-direction:column; gap:12px}
 code{font-family:'JetBrains Mono',monospace; font-size:.9em; background:var(--sunk); padding:1px 5px; border:1px solid var(--line-soft)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
@@ -362,10 +391,14 @@ code{font-family:'JetBrains Mono',monospace; font-size:.9em; background:var(--su
 <header class="mast">
   <p class="eyebrow">Final Fantasy Randomizer &middot; entrance and floor shuffle</p>
   <h1>Where every door goes</h1>
-  <p class="lede">The overworld entrances of seed <span class="mono">__SEED__</span>, read straight out of the cartridge. <span id="doorlede"></span></p>
+  <p class="lede">The overworld entrances of seed <span class="mono">__SEED__</span>, read straight out of the cartridge. <span id="doorlede"></span> Click any floor name to open it, and keep clicking to walk the dungeon; Back retraces your steps.</p>
   <div class="chips" id="chips"></div>
   <div class="stats" id="stats"></div>
 </header>
+
+<section id="focus-sec" hidden>
+  <article class="focus" id="focus"></article>
+</section>
 
 <section>
   <div class="head">
@@ -421,6 +454,15 @@ const pretty = s => s
   .replace(/\bOf\b/g, 'of');
 const xy = a => a ? `${a[0]}, ${a[1]}` : '—';
 const el = id => document.getElementById(id);
+const hex = n => '$' + n.toString(16).toUpperCase().padStart(2, '0');
+
+const mapName = id => pretty(DATA.maps[id]);
+/* Every floor name on the page goes through here, so there is one definition
+   of what a clickable floor is: a real entry in the cartridge's map table. A
+   door whose row points past the end of it is not a place you can go. */
+const mapLink = id => DATA.maps[id] === undefined
+  ? '—' : `<a class="maplink" href="#map-${id}">${mapName(id)}</a>`;
+const reachable = new Set(DATA.reachable);
 
 /* masthead */
 el('chips').innerHTML = [
@@ -442,7 +484,7 @@ el('stats').innerHTML = [
   [live, live === 1 ? 'door that leads somewhere' : 'doors that lead somewhere'],
   [unchanged, unchanged === 1 ? 'door that did not move' : 'doors that did not move'],
   [DATA.floors.filter(f => f.steps !== null).length, 'staircases you can walk to'],
-  [DATA.reachable.length + ' of 61', 'maps open empty-handed'],
+  [DATA.reachable.length + ' of ' + DATA.mapCount, 'maps open empty-handed'],
 ].map(([n, l]) => `<div class="stat"><span class="stat-n mono">${n}</span><span class="stat-l">${l}</span></div>`).join('');
 
 el('doors-h').textContent = `All ${DATA.doors.length} doors`;
@@ -472,7 +514,7 @@ el('routes').innerHTML = DATA.routes.map(r => {
           : `<div class="hit">&rarr; ${s.npc.label} at ${xy(s.npc.at)}, ${s.npc.walk} steps further</div>`)
       : '';
     return `<li class="step${i === 0 ? ' first' : ''}">
-      <div class="step-map">${pretty(s.map)}</div>
+      <div class="step-map">${mapLink(s.mapId)}</div>
       <div class="step-d">${bits.join(' &middot; ')}</div>${npc}</li>`;
   }).join('');
   return `<article class="route">
@@ -507,11 +549,12 @@ for (const r of DATA.routes) for (const s of (r.steps || [])) {
 const doorRows = DATA.doors.map(d => ({
   text: `${d.id} ${d.name} ${d.map || ''}`.toLowerCase(),
   mark: routeDoors.has(d.id),
+  to: d.live ? d.mapId : undefined,
   html: () => `<td class="num mono">${d.id}</td>
     <td>${pretty(d.name)}${d.unused ? '<span class="tag dim">unused</span>'
       : (d.live ? '' : '<span class="tag dim">not on the map</span>')}</td>
     <td class="mono">${xy(d.ow)}${d.tiles > 1 ? ` <span class="arrive">+${d.tiles - 1}</span>` : ''}</td>
-    <td><span class="dest">${d.map ? pretty(d.map) : '—'}</span>${d.unchanged && d.live ? '<span class="tag">unchanged</span>' : ''}</td>
+    <td><span class="dest">${d.unused ? '—' : mapLink(d.mapId)}</span>${d.unchanged && d.live ? '<span class="tag">unchanged</span>' : ''}</td>
     <td class="mono arrive">${d.unused ? '—' : xy(d.arrive)}</td>`
 }));
 
@@ -519,11 +562,13 @@ const floorRows = DATA.floors.map(f => ({
   text: `${f.from} ${f.to}`.toLowerCase(),
   mark: routeLinks.has(`${f.fromId}:${f.x}:${f.y}`),
   from: f.from,
+  at: f.fromId,
+  to: f.toId,
   html: prev => {
     const grouped = prev && prev.from === f.from;
-    return `<td class="${grouped ? 'grp' : ''}">${grouped ? '↳' : pretty(f.from)}</td>
+    return `<td class="${grouped ? 'grp' : ''}">${grouped ? '↳' : mapLink(f.fromId)}</td>
       <td class="mono">${f.x}, ${f.y}</td>
-      <td><span class="dest">${pretty(f.to)}</span></td>
+      <td><span class="dest">${mapLink(f.toId)}</span></td>
       <td class="mono arrive">${xy(f.arrive)}</td>
       <td class="mono arrive">${f.steps === null
         ? '<span class="tag dim">gated</span>' : f.steps}</td>`;
@@ -538,7 +583,8 @@ const draw = () => {
     const body = keep.map(r => {
       const cells = r.html(prev);
       prev = r;
-      return `<tr class="${r.mark ? 'mark' : ''}">${cells}</tr>`;
+      const on = focused !== null && (r.at === focused || r.to === focused);
+      return `<tr class="${r.mark ? 'mark ' : ''}${on ? 'focus' : ''}">${cells}</tr>`;
     }).join('');
     el(id).innerHTML = keep.length
       ? body
@@ -548,8 +594,78 @@ const draw = () => {
   const d = paint('doors', doorRows), f = paint('floors', floorRows);
   el('count').textContent = q ? `${d} doors, ${f} staircases` : '';
 };
+
+/* focus panel, addressed by #map-<id> so Back walks the route backwards */
+let focused = null;
+
+const list = (items, empty) => items.length
+  ? `<ul>${items.map(i => `<li class="${i[0] ? 'gated' : ''}">${i[1]}</li>`).join('')}</ul>`
+  : `<p class="empty">${empty}</p>`;
+
+const summarise = (id, doorsIn, stairsIn, out) => {
+  const walk = out.filter(f => f.steps !== null).length;
+  const bits = [];
+  if (reachable.has(id)) bits.push('You can stand here with nothing in hand.');
+  else if (stairsIn.length) bits.push(`Every staircase into ${mapName(id)} is gated, so
+    nothing on this page reaches it empty-handed.`);
+  else bits.push('No door and no staircase on this page reaches this floor.');
+  if (!out.length) bits.push('No staircase leads on from here.');
+  else if (walk === out.length) bits.push(`${out.length} staircase${out.length === 1 ? '' : 's'}
+    lead${out.length === 1 ? 's' : ''} on, all walkable from where you land.`);
+  else bits.push(`${out.length} staircases sit on the floor; ${walk || 'none'} of them
+    walkable from where you land.`);
+  return bits.join(' ');
+};
+
+const renderFocus = () => {
+  const hit = /^#map-(\d+)$/.exec(location.hash);
+  focused = hit && DATA.maps[+hit[1]] !== undefined ? +hit[1] : null;
+  el('focus-sec').hidden = focused === null;
+  if (focused === null) { el('focus').innerHTML = ''; return; }
+  const id = focused;
+  const doorsIn = DATA.doors.filter(d => d.live && d.mapId === id);
+  const stairsIn = DATA.floors.filter(f => f.toId === id);
+  const out = DATA.floors.filter(f => f.fromId === id);
+
+  const ways = doorsIn.map(d => [false, `Through the <strong>${pretty(d.name)}</strong> door
+      ${d.unchanged ? '<span class="tag">unchanged</span>' : ''}
+      <span class="sub">overworld <span class="mono">${xy(d.ow)}</span> &middot;
+      you land at <span class="mono">${xy(d.arrive)}</span></span>`])
+    .concat(stairsIn.map(f => [f.steps === null, `From ${mapLink(f.fromId)}
+      <span class="sub">its stairs at <span class="mono">${f.x}, ${f.y}</span> &middot;
+      you land at <span class="mono">${xy(f.arrive)}</span>${f.steps === null
+        ? ' &middot; gated on that side' : ''}</span>`]));
+
+  const onward = out.map(f => [f.steps === null, `To ${mapLink(f.toId)}
+    <span class="sub">stairs at <span class="mono">${f.x}, ${f.y}</span> &middot;
+    ${f.steps === null ? 'nothing you can walk to empty-handed'
+      : f.steps === 0 ? 'the staircase you land on'
+      : `<span class="mono">${f.steps}</span> steps from where you land`}
+    &middot; landing at <span class="mono">${xy(f.arrive)}</span></span>`]);
+
+  el('focus').innerHTML = `<p class="eyebrow">Focused floor</p>
+    <div class="focus-h"><h2>${mapName(id)}</h2><a class="close" href="#">clear</a></div>
+    <p class="focus-sum"><span class="mono">map ${id} &middot; ${hex(id)}</span> &mdash;
+      ${summarise(id, doorsIn, stairsIn, out)}</p>
+    <div class="legs">
+      <div class="leg"><h4>Ways in</h4>${list(ways,
+        'Nothing on this page opens into this floor.')}</div>
+      <div class="leg"><h4>Onward</h4>${list(onward,
+        'A dead end: no staircase leads out of it.')}</div>
+    </div>`;
+};
+
+const show = (smooth) => {
+  renderFocus();
+  draw();
+  if (focused === null) return;
+  el('focus-sec').scrollIntoView({block: 'start', behavior:
+    smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto'});
+};
+
 el('q').addEventListener('input', draw);
-draw();
+addEventListener('hashchange', () => show(true));
+show(false);
 </script>
 '''
 
