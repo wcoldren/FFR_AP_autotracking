@@ -495,6 +495,39 @@ def door_positions(rom):
 
 # ------------------------------------------------------------------- the graph
 
+def walkable(b0, have):
+    """CanPlayerMoveSM, bank_0F.asm:2449.
+
+    TP_NOMOVE is not an unconditional wall. The game blocks only when the
+    special bits are *all clear* and NOMOVE is set -- a plain wall. If the tile
+    carries a special, the jump table decides and NOMOVE is thrown away. Room
+    doors are exactly this case: Marsh Cave B1's door at (35,54) is
+    TP_SPEC_DOOR | TP_NOMOVE, and reading NOMOVE on its own seals every room in
+    the game shut. That is what hid the Marsh Cave -> Sea Shrine B3 -> Bahamut
+    -> Dwarf Cave chain.
+
+    Module-level so a caller that only wants the rule -- render_maps, deciding
+    which blank cells are floor -- need not build a whole Graph for it.
+    """
+    if (b0 & (TP_SPEC_MASK | TP_NOMOVE)) == TP_NOMOVE:
+        return False
+    spec = b0 & TP_SPEC_MASK
+    if spec == TP_SPEC_TREASURE:
+        return False
+    need = GATED_SPECIALS.get(spec)
+    return need is None or need in have
+
+
+def tile_properties(rom, map_id):
+    """The first property byte of every cell on a map, as a flat 64*64 list."""
+    tilesets = rom[TILESET_LUT:TILESET_LUT + MAP_COUNT]
+    base = map_data_base(rom)
+    ptr = int.from_bytes(rom[base + map_id * 2:base + map_id * 2 + 2], "little")
+    tiles = decompress_map(rom, base + ptr)
+    prop = TILESET_PROP + tilesets[map_id] * PROP_STRIDE
+    return tiles, [rom[prop + t * 2] for t in tiles]
+
+
 class Graph:
     def __init__(self, rom):
         self.rom = rom
@@ -530,23 +563,8 @@ class Graph:
         return self.grids[map_id]
 
     def walkable(self, b0, have):
-        """CanPlayerMoveSM, bank_0F.asm:2449.
-
-        TP_NOMOVE is not an unconditional wall. The game blocks only when the
-        special bits are *all clear* and NOMOVE is set -- a plain wall. If the
-        tile carries a special, the jump table decides and NOMOVE is thrown
-        away. Room doors are exactly this case: Marsh Cave B1's door at (35,54)
-        is TP_SPEC_DOOR | TP_NOMOVE, and reading NOMOVE on its own seals every
-        room in the game shut. That is what hid the Marsh Cave -> Sea Shrine B3
-        -> Bahamut -> Dwarf Cave chain.
-        """
-        if (b0 & (TP_SPEC_MASK | TP_NOMOVE)) == TP_NOMOVE:
-            return False
-        spec = b0 & TP_SPEC_MASK
-        if spec == TP_SPEC_TREASURE:
-            return False
-        need = GATED_SPECIALS.get(spec)
-        return need is None or need in have
+        """See the module-level walkable(); kept as a method for its callers."""
+        return walkable(b0, have)
 
     def objects(self, map_id):
         """[(object id, x, y)] for one map, from lut_MapObjects."""
