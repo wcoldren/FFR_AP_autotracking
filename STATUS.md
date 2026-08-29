@@ -115,7 +115,10 @@ cartridges including the No-Overworld one, all clean.
 
 ## Next
 
-1. **The NOverworld overhaul.** Its own section below; this is the focus.
+1. **The NOverworld overhaul.** Its own section below; this is the focus. The
+   near edge of it is the logic branch: teach `Graph.blocking_objects` the gate
+   NPCs, then derive `locations/NOverworld/overworld.json` from the cartridge
+   rather than hand-authoring it.
 
 ## The NOverworld variants
 
@@ -155,6 +158,37 @@ All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
   a new tracker code: the pack already tracks every one of these gates.
 - The full shuffle runs only with `Entrances` or `Towns` set; the stock preset
   ships both off, so a default seed uses the fixed table.
+
+### Version drift, and why it is not the thing to worry about
+
+Measured 2026-08-29 rather than guessed, because all of this is being built
+against 4.9.2 (the practice seed) while the tournament runs 4.9.7.
+
+Diffing the vendored FFR from the commit that first stamped 4.9.2 (`371e38ed`,
+Nov 2025) to 4.9.8 (May 2026) — six releases — the whole No-Overworld surface
+moved by **one line**:
+
+    FF1Lib/MetroidVaniaMap.cs | 3 ++-
+    FF1Lib/Sanity/SCMap.cs        unchanged
+    FF1Lib/Teleporters.cs         unchanged
+    FF1Lib/StandardMaps.cs        unchanged
+    FF1Lib/Enums.cs               unchanged
+
+and the line is `ApplyMapMods(..., LefeinSuperStore && ShopKillMode == None)` —
+a shop flag, not topology. The 75-link table, the gate NPCs and the map indices
+did not move at all.
+
+So the volatile surface is the **flag string**, not the maps, and that already
+has its mechanism: `tools/ffr_flags/gen_schema.py` regenerates a version's
+schema from an FF1Lib checkout plus a real ROM, writing both
+`schemas/<v>.json` and `scripts/flags/schema_<v>.lua`, and proves itself — the
+decode has to end exactly on the build SHA with nothing left over. Schemas ship
+for 4-9-2 and 4-9-7; anything else lights the unread-flags warning rather than
+passing defaults off as the seed's settings. A 4.9.9 seed is one command.
+
+The conclusion for the work below: **derive from the cartridge, transcribe
+nothing from C#.** A derived rule set re-derives on a new version. That is the
+version-proofing, and it is worth more than any amount of tracking upstream.
 
 ### Where the pack stands against that
 
@@ -206,7 +240,26 @@ All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
   `shardHunt` and nothing else, and access rules come from the shared
   `locations/overworld.json`, so a No-Overworld seed is gated on vanilla
   ship/canoe/canal/floater reachability — for a mode with no overworld, whose
-  canoe and floater are not vehicles at all.
+  canoe and floater are not vehicles at all. Counted: of the distinct rules in
+  that file, roughly thirty are overworld geography — `ship`, `canoe`, `canal`,
+  `airship`, `bridge`, `northernDocks`, `lefeinBridge`, `hwyOrdeals`,
+  `gaiaMountain`, `melmondRiver`, `luffyDock`, `cardiaDock` — and mean nothing
+  in a mode where ship and bridge are free.
+
+  **The gates are readable off the cartridge now**, which is the half of a
+  No-Overworld branch that had to come first. `entrance_graph.py --gates` reads
+  the talk routine each object runs and reports which of the eight gate NPCs
+  wants which item; `noverworld_gate_items()` is the same thing as a library
+  call. It refuses to answer unless the eight sort into four routines wanting
+  four items, so a standard cartridge says "no gate layout" rather than
+  inventing one. Every gate is an item the pack already tracks — the mode needs
+  new topology, not new codes.
+
+  What is *not* done: `Graph.blocking_objects` still only blocks the Rod and
+  Lute objects, so the router walks straight through a SIGIL barrier. Teaching
+  it the gate NPCs is the next step, and it changes what every existing routing
+  answer means, so it wants its own verification pass rather than being folded
+  into something else.
 - **Mode detection already works and drives nothing.** `flag_mapping.lua:246`
   reads `GameMode` and prints a warning.
 
