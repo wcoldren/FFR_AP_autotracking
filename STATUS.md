@@ -138,9 +138,21 @@ All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
   Waterfall stair positions, and which ToFR chest ids the two bonus chests
   reuse. None of it reaches the spoiler log, so the cartridge is the only
   source. On the duck seed, Bahamut is behind Gaia.
-- **FLOATER is renamed SIGIL and CANOE is renamed MARK**, and both become
-  stair-blocking NPCs rather than vehicles. Ship and bridge are free. The other
-  gates are CROWN, CHIME (Gaia to Mirage), TNT (Nerrick's tunnel) and KEY.
+- **The gates are NPCs standing in corridors**, and FFR's own logic model says
+  which item each wants — `Sanity/SCMap.cs:218-226`, the authority worth using
+  over the dialogue, which is deliberately misleading. `NoOW_Floater` (three
+  barrier NPCs, on Coneria Castle 1F, Castle Ordeals 1F and Ice Cave B1) wants
+  **Floater**; `NoOW_Canoe` (Crescent Lake, Elfland Castle, Castle Ordeals 1F)
+  wants **Canoe**; `NoOW_Chime` (the Gaia robot, Gaia to Mirage) wants
+  **Chime**; `Talk_Nerrick` wants **TNT**. CROWN and KEY gate tiles as usual.
+  Ship and bridge are free.
+
+  The renames are cosmetic and only two items get one: `ItemsText[Floater] =
+  "SIGIL"` and `ItemsText[EarthOrb] = "MARK"` (`:844`). So SIGIL is the Floater,
+  but **MARK is the Earth Orb, not the Canoe** — this document said otherwise
+  until 2026-08-29. The Canoe NPCs' dialogue talks about "Lukahn's mark" and
+  that is flavour; the item their routine checks is the Canoe. Nothing here is
+  a new tracker code: the pack already tracks every one of these gates.
 - The full shuffle runs only with `Entrances` or `Towns` set; the stock preset
   ships both off, so a default seed uses the fixed table.
 
