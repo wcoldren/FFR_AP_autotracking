@@ -75,6 +75,7 @@ from extract_chests import (  # noqa: E402
     INES_HEADER, MAP_COUNT, MAP_DIM, TILESET_LUT,
     decompress_map, map_data_base,
 )
+import entrance_graph  # noqa: E402
 import pngio  # noqa: E402
 
 TILE_PX = 16                      # a standard-map tile is 16x16 pixels
@@ -223,6 +224,63 @@ def roof_palettes(rom, map_id):
     return {i for i in range(4) if flat(out[i]) and not flat(ins[i])}
 
 
+# What the engine itself calls a room. `inroom` ($0D) is a single global byte:
+# stepping on a door tile sets it (SMMove_Door, bank_0F.asm:3486), stepping on a
+# close-room tile clears it (:3430), and while it is set the whole background
+# palette comes from inroom_pal (:5879-5883). So the engine has no per-cell
+# notion of a room and never shows one open while the outside is closed --
+# unroofing is our invention. But the transition is tile-driven, so the region
+# is derivable: what you can walk to from a door without crossing a close-room
+# tile.
+#
+# This is the only test that can work, because no property of a tile can decide
+# it. Waterfall's room floor is tile $46 -- flat cyan outdoors, flat black
+# inside -- and $46 is also the open water outside the room, 1820 cells of it.
+# The same two ROM bytes are room floor in one place and outdoors in another.
+DOOR_SPECS = (entrance_graph.TP_SPEC_DOOR, entrance_graph.TP_SPEC_LOCKED)
+
+
+def door_rooms(rom, map_id):
+    """The cells the engine would have you in a room for, as a set."""
+    _, props = entrance_graph.tile_properties(rom, map_id)
+    spec = [p & entrance_graph.TP_SPEC_MASK for p in props]
+    seen = set()
+    for start in (i for i, sp in enumerate(spec) if sp in DOOR_SPECS):
+        stack = [start]
+        while stack:
+            i = stack.pop()
+            if i in seen:
+                continue
+            seen.add(i)
+            r, c = divmod(i, MAP_DIM)
+            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nr, nc = r + dr, c + dc
+                if not (0 <= nr < MAP_DIM and 0 <= nc < MAP_DIM):
+                    continue
+                j = nr * MAP_DIM + nc
+                if j in seen or spec[j] == entrance_graph.TP_SPEC_CLOSEROOM:
+                    continue
+                if entrance_graph.walkable(props[j], set()) or spec[j] in DOOR_SPECS:
+                    stack.append(j)
+    return {(i // MAP_DIM, i % MAP_DIM) for i in seen}
+
+
+def room_and_walls(rom, map_id, tiles, art, open_art):
+    """A door-flood room plus the wall it is enclosed by."""
+    _, props = entrance_graph.tile_properties(rom, map_id)
+    wall = {(i // MAP_DIM, i % MAP_DIM) for i, t in enumerate(tiles)
+            if not entrance_graph.walkable(props[i], set())
+            and _colours(art[t & 0x7F]) != _colours(open_art[t & 0x7F])}
+    room = door_rooms(rom, map_id)
+    while True:
+        grown = room | ({(r + dr, c + dc) for r, c in room
+                         for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1))} & wall)
+        if grown == room:
+            break
+        room = grown
+    return room
+
+
 def hidden_cells(rom, map_id, tiles, art=None, open_art=None):
     """The (row, col) cells a roof covers, as a set. Empty when there is none.
 
@@ -272,10 +330,35 @@ def hidden_cells(rom, map_id, tiles, art=None, open_art=None):
              if flat_art(art[t & 0x7F])
              and _colours(art[t & 0x7F]) != _colours(open_art[t & 0x7F])}
 
-    return {cell
+    keep = {cell
             for cells in (seeded, blank)
             for comp in _components(cells) if len(comp) <= ROOM_MAX_CELLS
             for cell in comp}
+
+    # The door flood needs no size guard: it is bounded by the room itself, so
+    # it opens Mirage Tower's 458-cell interior without opening Waterfall's
+    # 1820-cell water. Unioned rather than substituted -- it finds rooms the
+    # other two miss, and misses some they find.
+    #
+    # Then grown into the wall around it, because `inroom` is global: standing
+    # in a room the engine draws the *whole screen* from inroom_pal, walls
+    # included, and the shipped art follows it. Without this Mirage Tower's
+    # ring keeps a scatter of bright orange blocks where mirage1F.png has
+    # uniform dark red brick -- tiles $01-$08, which are textured outdoors and
+    # so are not "blank" at all; they are simply wall.
+    #
+    # Growth crosses only cells that are *not walkable* and that draw
+    # differently under the two palettes. Not-walkable stops it running out of
+    # the room across the floor, which Waterfall's water would otherwise carry
+    # the width of the map; drawing-differently stops it at the out-of-bounds
+    # void, which is black either way.
+    #
+    # It opens 3695 of Dwarf Cave's 4096 cells, and that is correct rather than
+    # a runaway: the cave is entirely indoors, so nearly all of it *is* one
+    # room in the engine's terms. A large fraction opened is not evidence of a
+    # leak, which is a mistake worth not repeating -- it was called one here on
+    # the cell count alone, before anybody looked at the picture.
+    return keep | room_and_walls(rom, map_id, tiles, art, open_art)
 
 
 def render(rom, map_id, inside=False, unroof=False, graph=None, only=None):

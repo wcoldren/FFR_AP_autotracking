@@ -657,7 +657,24 @@ them is a visual no-op. Of the 2545 cells the union opens and the flood does
 not, 869 are invisible in exactly this way; the 1676 that are visible are led by
 Waterfall's water.
 
-**Not yet swapped in, because it does not subsume what ships.** On 49 maps the
+**Swapped in 2026-08-29**, unioned with the two tests above rather than
+replacing them, and grown into the wall the room is enclosed by -- `inroom` is
+global, so standing in a room the engine draws the whole screen from
+`inroom_pal`, walls included, and the shipped art follows it. Growth crosses
+only cells that are not walkable and that draw differently under the two
+palettes: not-walkable stops it running out across the floor, and
+drawing-differently stops it at the out-of-bounds void. 35363 cells, zero white
+voids, every suite green on three seeds and the vanilla cartridge.
+
+**A large fraction opened is not evidence of a leak.** Growth opens 3695 of
+Dwarf Cave's 4096 cells, and this document called that a runaway on the cell
+count alone. A look at the render said otherwise, and it was correct: the cave is entirely
+indoors, so nearly all of it *is* one room in the engine's terms, and what was
+still wrong there was the opposite -- its interior walls drawing as roof. Twice
+in one session a proxy metric condemned output that the reference art vindicated.
+See [[closer-or-farther-from-the-reference]] in memory.
+
+**Still not subsumed:** On 49 maps the
 current union opens cells the flood does not -- Temple of Fiends Air 241,
 Waterfall 370 -- and ToFR Air has exactly one door tile, so its 241 cells are
 something other than a door-room. Understand what before replacing the rule.

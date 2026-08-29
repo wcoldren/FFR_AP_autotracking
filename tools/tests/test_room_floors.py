@@ -84,6 +84,7 @@ def main():
         # roof sub-palette, or blank outdoors and different inside. Nothing is
         # opened for any other reason.
         roof = rm.roof_palettes(rom, map_id)
+        doors = rm.room_and_walls(rom, map_id, tiles, art, open_art)
         tileset = rom[rm.TILESET_LUT + map_id]
         attrs = rom[rm.ATTR_BASE + 0x80 * tileset:
                     rm.ATTR_BASE + 0x80 * tileset + rm.TILES_PER_SET]
@@ -92,10 +93,12 @@ def main():
             by_palette = (attrs[t] & 3) in roof
             by_art = (rm.flat_art(art[t])
                       and rm._colours(art[t]) != rm._colours(open_art[t]))
-            if not (by_palette or by_art):
+            if not (by_palette or by_art or (r, c) in doors):
                 flat_after += 1
-            # And opening a cell that draws identically either way is a no-op.
-            if rm._colours(art[t]) == rm._colours(open_art[t]) and not by_palette:
+            # And opening a cell that draws identically either way is a no-op
+            # -- except where the engine itself puts you in a room.
+            if (rm._colours(art[t]) == rm._colours(open_art[t])
+                    and not by_palette and (r, c) not in doors):
                 same_both += 1
 
         # The size guard binds each test's own components. Their union may be
@@ -112,8 +115,12 @@ def main():
         for tag, source in (("pal", seeded), ("art", blank)):
             small[tag] = {cell for comp in components(source)
                           if len(comp) <= rm.ROOM_MAX_CELLS for cell in comp}
+        # door_rooms is exempt: it is bounded by the room's own walls, not by
+        # a cell count, which is how it opens Mirage Tower's 458-cell interior
+        # while leaving Waterfall's 1820-cell water shut.
         for cell in hidden:
-            if cell not in small["pal"] and cell not in small["art"]:
+            if (cell not in small["pal"] and cell not in small["art"]
+                    and cell not in doors):
                 oversized += 1
 
         # The guard has teeth: regions that pass the art test but are too big
@@ -129,7 +136,8 @@ def main():
                 # it bright orange where the shipped art has dark red brick --
                 # so this checks the wall is not opened *as a wall*, allowing
                 # only cells the sub-palette independently calls a room.
-                stray = [c for c in comp if c in hidden and c not in small["pal"]]
+                stray = [c for c in comp if c in hidden
+                         and c not in small["pal"] and c not in doors]
                 if stray:
                     fails.append(f"map {map_id}: {len(stray)} cells of a "
                                  f"{len(comp)}-cell wall were opened")
@@ -174,6 +182,21 @@ def main():
         if missing:
             closed.append((map_id, len(missing)))
     check("every room the sub-palette finds stays open", closed, [])
+
+    # And the engine's own answer is in there: a door tile puts you in a room,
+    # so every cell it leads to has to be open. This is what opens Mirage
+    # Tower 1F's interior, which every size- and flatness-based rule shut.
+    unopened = []
+    for map_id in range(rm.MAP_COUNT):
+        tiles = grid(rom, map_id)
+        art, open_art = art_for(rom, map_id)
+        missing = rm.room_and_walls(rom, map_id, tiles, art, open_art) - \
+            rm.hidden_cells(rom, map_id, tiles, art, open_art)
+        if missing:
+            unopened.append((map_id, len(missing)))
+    check("every cell the engine calls a room is open", unopened, [])
+    mirage = len(rm.door_rooms(rom, 23))  # the floor alone, not its wall
+    check("and Mirage Tower 1F's interior is among them", mirage > 300, True)
 
     check("every opened cell is justified by one of the two tests", flat_after, 0)
     check("every opened cell draws differently inside", same_both, 0)
