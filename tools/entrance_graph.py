@@ -58,6 +58,9 @@ Usage:
     tools/entrance_graph.py ROM --to-npc smith
     tools/entrance_graph.py ROM --tables
     tools/entrance_graph.py ROM --self-check
+
+Exit status: 0 all good, 1 --self-check failed, 2 the NPC asked for is not
+reachable on this seed.
 """
 
 import argparse
@@ -197,6 +200,23 @@ DOOR_NAMES = [
 ]
 assert len(DOOR_NAMES) == ENTR_COUNT
 
+# Vanilla door -> map, matched by the enum names in FF1Lib/Enums.cs
+# (OverworldTeleportIndex against MapIndex). Only ever used to flag which doors
+# did not move; the shuffle itself is always read from the ROM.
+#
+# Written out rather than guessed from the names. A name test gets it wrong in
+# both directions: the five vanilla doors at the end (TitansTunnelEast/West,
+# Cardia4/5/6) do not contain the name of the map they open, and 29 pairs that a
+# shuffle really did move do -- TempleOfFiends1 into any TempleOfFiendsRevisited
+# floor, EarthCave1 into EarthCaveB2, and so on.
+VANILLA_DOOR_MAP = {
+    0: 16, 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10,
+    12: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16, 18: 17, 19: 18, 20: 19,
+    21: 20, 22: 21, 23: 22, 24: 23, 25: 60, 26: 60, 27: 16, 28: 16, 29: 16,
+}
+# FFR's spare pair. They carry an ordinary map byte and no overworld tile.
+UNUSED_DOORS = (30, 31)
+
 
 def tab_labels():
     """map id -> the pack's PopTracker tab label, for cross-reference only."""
@@ -219,16 +239,45 @@ def tab_labels():
 
 # ------------------------------------------------------------------ ROM reader
 
+# Everything this tool routes with lives in bank $0F, so the file has to hold
+# all of it. A shorter iNES image is not a smaller version of the same answer.
+MIN_ROM_SIZE = bank_off(BANK_EXTTELEPORTINFO, 0xC000)
+
+
 class Rom:
     def __init__(self, path):
-        self.data = open(path, "rb").read()
+        with open(path, "rb") as f:
+            self.data = f.read()
         if self.data[:4] != b"NES\x1a":
             sys.exit("not an iNES ROM")
+        if len(self.data) < MIN_ROM_SIZE:
+            sys.exit(f"{path}: {len(self.data)} bytes, but the extended teleport "
+                     f"tables live at {MIN_ROM_SIZE} -- this is not a full FFR image")
         self.path = path
 
     def at(self, bank, addr, n):
         o = bank_off(bank, addr)
-        return self.data[o:o + n]
+        chunk = self.data[o:o + n]
+        if len(chunk) != n:
+            sys.exit(f"{self.path}: {len(self.data)} bytes, too short to hold "
+                     f"bank ${bank:02X}:${addr:04X}+{n}")
+        return chunk
+
+
+def ffr_info(rom):
+    """The cartridge's FFRInfo record, or None when it has not got one.
+
+    Worth asking before routing anything. The tables this tool reads are FFR's
+    own: GlobalHacks.ExpandNormalTeleporters writes them into bank $0F, and on a
+    stock Final Fantasy cartridge that region is unrelated bank-15 bytes. Reading
+    it there does not fail -- it produces a complete, confident, invented graph.
+    """
+    sys.path.insert(0, os.path.join(HERE, "ffr_flags"))
+    try:
+        import ffr_flags
+        return ffr_flags.read_info(rom.data)
+    except Exception:
+        return None
 
 
 # ------------------------------------------------------------- overworld doors
@@ -532,7 +581,7 @@ def print_doors(g, tabs):
         where, _ = door_where(g, i)
         if m < MAP_COUNT:
             dest = fmt_map(m, tabs)
-            same = "  (unchanged)" if DOOR_NAMES[i].rstrip("123") in MAP_NAMES[m] else ""
+            same = "  (unchanged)" if VANILLA_DOOR_MAP.get(i) == m else ""
         else:
             # The unused pair is not the only way this happens -- --tables
             # counts out-of-range entries in these tables on real seeds.
@@ -655,21 +704,58 @@ def resolve_map(name):
 
 
 def resolve_npc(g, name):
-    """Where an NPC stands, read from the routed ROM's own object table.
+    """Every place an NPC stands, read from the routed ROM's own object table.
 
     tools/npc_positions.json is derived from a vanilla cartridge and covers only
     the ten NPCs the tracker needs -- not the Elf Doctor. Reading lut_MapObjects
     out of the ROM in hand costs nothing and stays right if a seed moves anyone.
+
+    A list, not one spot: an object id can sit on more than one map. $13, the
+    Fairy, is in both Gaia and Ice Cave B1 on a stock cartridge, and answering
+    with whichever came first reports "no way in" for an NPC standing somewhere
+    wide open.
     """
     key = name.lower().replace(" ", "").replace("'", "")
     if key not in NPC_IDS:
         sys.exit(f"no NPC {name!r}; known: {', '.join(sorted(NPC_IDS))}")
     oid = NPC_IDS[key]
-    for m in range(MAP_COUNT):
-        for got, x, y in g.objects(m):
-            if got == oid:
-                return {"map_id": m, "tile_col": x, "tile_row": y}
-    sys.exit(f"{name} (object ${oid:02X}) does not appear on any map in this ROM")
+    spots = [{"map_id": m, "tile_col": x, "tile_row": y}
+             for m in range(MAP_COUNT)
+             for got, x, y in g.objects(m) if got == oid]
+    if not spots:
+        sys.exit(f"{name} (object ${oid:02X}) does not appear on any map in this ROM")
+    return spots
+
+
+def route_to_npc(g, spots, have):
+    """(spot, route, reached) for the best of the places an NPC stands.
+
+    Landing on his floor is not the same as being able to walk to him: two
+    staircase chains into one map commonly arrive on two sides of a locked door,
+    and the shorter chain is not always the useful one. So each spot is asked
+    twice -- once for a landing he can be reached from, once for any landing at
+    all -- and a full answer anywhere beats a partial one everywhere. That keeps
+    "the map is reachable but he is not" reading differently from "there is no
+    way in at all", which are not the same answer.
+    """
+    best_full, best_any = None, None
+    for spot in spots:
+        def lands_by_npc(map_id, arrive, spot=spot):
+            return g.can_reach_npc(map_id, arrive, spot, have) is not None
+
+        r = g.route(spot["map_id"], have, lands_by_npc)
+        if r is not None:
+            if best_full is None or len(r[1]) < len(best_full[1][1]):
+                best_full = (spot, r)
+            continue
+        r = g.route(spot["map_id"], have)
+        if r is not None and (best_any is None or len(r[1]) < len(best_any[1][1])):
+            best_any = (spot, r)
+    if best_full is not None:
+        return best_full[0], best_full[1], True
+    if best_any is not None:
+        return best_any[0], best_any[1], False
+    return spots[0], None, False
 
 
 def main():
@@ -685,14 +771,27 @@ def main():
     ap.add_argument("-o", "--out", help="write the graph as JSON")
     args = ap.parse_args()
 
-    g = Graph(Rom(args.rom))
-    tabs = tab_labels()
+    rom = Rom(args.rom)
     have = {s.strip() for s in args.have.split(",") if s.strip()}
     unknown = have - set(ITEM_NAMES)
     if unknown:
         sys.exit(f"unknown item(s): {', '.join(sorted(unknown))}")
 
-    ok = True
+    # Anything that follows a staircase reads FFR's extended teleport tables, so
+    # ask whether this cartridge has any before believing what is at that offset.
+    # The rest is exempt because none of it consults them: --self-check and the
+    # bare door table read vanilla structures, and --tables is the thing you run
+    # to see what is at that offset on an image that has no such tables.
+    info = ffr_info(rom)
+    if info is None and any((args.dump, args.to, args.to_npc, args.out)):
+        sys.exit(f"{args.rom}: no FFRInfo record -- this is not a Final Fantasy "
+                 "Randomizer cartridge, and the tables this tool routes with only "
+                 "exist on one. Try --tables to see what is at that offset.")
+
+    g = Graph(rom)
+    tabs = tab_labels()
+
+    ok, npc_reached = True, True
     if args.self_check:
         ok = self_check(g)
     if args.tables:
@@ -704,33 +803,28 @@ def main():
         print()
         print_route(g, tabs, resolve_map(args.to), have)
     if args.to_npc:
-        spot = resolve_npc(g, args.to_npc)
+        spots = resolve_npc(g, args.to_npc)
+        spot, r, reached = route_to_npc(g, spots, have)
         print()
-        print(f"{args.to_npc} stands in {MAP_NAMES[spot['map_id']]} at "
-              f"({spot['tile_col']},{spot['tile_row']})")
-
-        def lands_by_npc(map_id, arrive):
-            return g.can_reach_npc(map_id, arrive, spot, have) is not None
-
-        # Ask for a landing spot he can be walked to from, not merely for the
-        # right map. Falling back to the plain route keeps "the map is
-        # reachable but he is not" reading differently from "there is no way
-        # in at all", which are not the same answer.
-        r = g.route(spot["map_id"], have, lands_by_npc)
-        reached = r is not None
-        arrive = show_route(g, tabs, spot["map_id"], have,
-                            r if reached else g.route(spot["map_id"], have))
+        where = ", ".join(f"{MAP_NAMES[p['map_id']]} ({p['tile_col']},{p['tile_row']})"
+                          for p in spots)
+        print(f"{args.to_npc} stands in {where}"
+              + (f" -- routing to the {MAP_NAMES[spot['map_id']]} one" if len(spots) > 1
+                 else ""))
+        arrive = show_route(g, tabs, spot["map_id"], have, r)
         if arrive is not None and reached:
             steps = g.can_reach_npc(spot["map_id"], arrive, spot, have)
             print(f"    walk {steps} more steps to {args.to_npc} at "
                   f"({spot['tile_col']},{spot['tile_row']})")
         elif arrive is not None:
-            ok = False
+            npc_reached = False
             print(f"    ...but you cannot walk to {args.to_npc} from anywhere this"
                   " map can be entered"
                   + (f" carrying only {', '.join(sorted(have))}" if have
                      else " with nothing in hand")
                   + " -- try --have key")
+        else:
+            npc_reached = False
     if not any((args.self_check, args.tables, args.dump, args.to, args.to_npc, args.out)):
         print_doors(g, tabs)
 
@@ -763,7 +857,12 @@ def main():
             json.dump(payload, f, indent=1)
         print(f"wrote {args.out}")
 
-    return 0 if ok else 1
+    # Three outcomes, not two. "this seed does not let you reach him" is an
+    # answer; "the reader is misreading the cartridge" is a failure, and a
+    # caller that cannot tell them apart will eventually treat one as the other.
+    if not ok:
+        return 1
+    return 0 if npc_reached else 2
 
 
 if __name__ == "__main__":

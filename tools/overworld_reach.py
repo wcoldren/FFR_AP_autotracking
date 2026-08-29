@@ -63,7 +63,10 @@ ship and canoe reach did not move.
 Usage:
     tools/overworld_reach.py ROM                 # ship vs ship+canoe
     tools/overworld_reach.py ROM --rivers        # river mouths onto a landmass
-    tools/overworld_reach.py ROM --at 221 28     # is this tile reachable?
+    tools/overworld_reach.py ROM --at 221 28     # can the party get to this tile?
+
+--at and --seed both mean a tile the party stands on, not a tile the ship
+crosses. Ocean and river coordinates are rejected or answered False on purpose.
 """
 
 import argparse
@@ -137,12 +140,19 @@ class Overworld:
         return (self.at(x, y) & OWTP_DOCKSHIP) != 0
 
     def neighbours(self, x, y):
+        # Modulo, because the game's own coordinates are 8-bit and wrap. On the
+        # stock overworld every edge is open sea, so it never comes up; it would
+        # on an OwMapExchange map with land against an edge, and there the wrap
+        # is what the party would actually do.
         return [((x + dx) % OW_DIM, (y + dy) % OW_DIM)
                 for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
 
 
 def reach(w, start, canoe):
-    """Tiles reachable from `start`, tracking which vehicle you are in.
+    """Tiles the party can end up standing on, starting from `start`.
+
+    The walk tracks which vehicle you are in; only the land it puts you on comes
+    back. See the note at the return.
 
     The three move handlers at bank_0F.asm:540-628, transcribed. Each vehicle
     moves onto any tile its own bit is clear on; where it is not, the game tries
@@ -193,11 +203,27 @@ def reach(w, start, canoe):
                     push((nx, ny, "river"))
                 elif w.allows(nx, ny, SHIP) and w.docks(x, y):
                     push((nx, ny, "sea"))
-    return {(x, y) for x, y, _ in seen}
+    # Only the tiles the party ends up standing on. The walk visits every ocean
+    # tile the ship crosses and every river tile the canoe follows, and
+    # collapsing all three modes to bare coordinates made --at answer True for
+    # open sea -- a tile nothing can ever stand on, reported as reachable.
+    return {(x, y) for x, y, mode in seen if mode == "land"}
 
 
 def landmass(w, seed):
-    """Tiles walkable on foot from `seed`, ignoring every vehicle."""
+    """Tiles walkable on foot from `seed`, ignoring every vehicle.
+
+    The seed has to be land. Starting on water gives a one-tile "landmass" with
+    no dock on it and no river mouth touching it, which is not an error message
+    -- it is the same shape as the real answer this tool is usually asked for,
+    and NONE is the conclusion the notes above draw about Gaia.
+    """
+    x, y = seed
+    if not (0 <= x < OW_DIM and 0 <= y < OW_DIM):
+        sys.exit(f"--seed {x} {y} is off a {OW_DIM}x{OW_DIM} overworld")
+    if not w.allows(x, y, FOOT):
+        sys.exit(f"--seed {x} {y} is tile ${w.rows[y][x]:02X}, which the party "
+                 "cannot stand on -- a landmass has to start on land")
     seen, q = {seed}, deque([seed])
     while q:
         x, y = q.popleft()
@@ -236,10 +262,14 @@ def main():
                     help="report reachability of one tile")
     args = ap.parse_args()
 
-    rom = open(args.rom, "rb").read()
+    with open(args.rom, "rb") as f:
+        rom = f.read()
     if rom[:4] != b"NES\x1a":
         sys.exit("not an iNES ROM")
     w = Overworld(rom)
+
+    if args.at and not all(0 <= v < OW_DIM for v in args.at):
+        sys.exit(f"--at {args.at[0]} {args.at[1]} is off a {OW_DIM}x{OW_DIM} overworld")
 
     if args.rivers:
         print_rivers(w, tuple(args.seed))
@@ -248,9 +278,11 @@ def main():
     for canoe in (False, True):
         r = reach(w, (*OPEN_SEA, "sea"), canoe)
         label = "ship + canoe" if canoe else "ship"
-        print(f"{label:<13} {len(r):>6} tiles reachable")
+        print(f"{label:<13} {len(r):>6} tiles the party can stand on")
         if args.at:
-            print(f"              {tuple(args.at)}: {tuple(args.at) in r}")
+            at = tuple(args.at)
+            why = "" if w.allows(*at, FOOT) else "  (nothing can stand on this tile)"
+            print(f"              {at}: {at in r}{why}")
         else:
             hits = sorted(n for n, p in PLACES.items() if p in r)
             print(f"              places: {hits}")

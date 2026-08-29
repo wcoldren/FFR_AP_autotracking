@@ -22,20 +22,10 @@ from collections import deque
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from entrance_graph import (  # noqa: E402
     Graph, Rom, MAP_NAMES, MAP_COUNT, DOOR_NAMES, TP_TELE_NORM,
-    coord, resolve_npc,
+    VANILLA_DOOR_MAP, UNUSED_DOORS, coord, ffr_info, resolve_npc, route_to_npc,
 )
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-
-# Vanilla door -> map, matched by the enum names in FF1Lib/Enums.cs
-# (OverworldTeleportIndex against MapIndex). Only used to flag which doors did
-# not move; the shuffle itself is always read from the ROM.
-VANILLA_DOOR_MAP = {
-    0: 16, 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10,
-    12: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16, 18: 17, 19: 18, 20: 19,
-    21: 20, 22: 21, 23: 22, 24: 23, 25: 60, 26: 60, 27: 16, 28: 16, 29: 16,
-}
-UNUSED_DOORS = (30, 31)
 
 # What each fetch NPC takes off your hands, and what to call them on the page.
 # Vanilla structure: NPCFetchItems randomizes the reward, not who wants what,
@@ -74,7 +64,8 @@ def read_flags(rom_path):
     sys.path.insert(0, os.path.join(HERE, "ffr_flags"))
     try:
         import ffr_flags
-        info, flags = ffr_flags.decode_rom(open(rom_path, "rb").read())
+        with open(rom_path, "rb") as f:
+            info, flags = ffr_flags.decode_rom(f.read())
     except Exception as e:
         print(f"cannot read the flag record: {e}", file=sys.stderr)
         print("  the page will have no seed, no version and no flag chips",
@@ -126,18 +117,12 @@ def build(g, npcs):
 
     routes = []
     for name in npcs:
-        spot = resolve_npc(g, name)
-
-        # Landing on his floor is not the same as being able to walk to him:
-        # two staircase chains into one map commonly arrive on two sides of a
-        # locked door, and the shorter chain is not always the useful one. Fall
-        # back to the plain route so the page can still say "the map is
-        # reachable, he is not" rather than drawing nothing.
-        def lands_by_npc(map_id, arrive, spot=spot):
-            return g.can_reach_npc(map_id, arrive, spot, have) is not None
-
-        found = (g.route(spot["map_id"], have, lands_by_npc)
-                 or g.route(spot["map_id"], have))
+        # Every place he stands, not the first one found -- $13, the Fairy, is
+        # in two maps on a stock cartridge. route_to_npc also handles the case
+        # where the map is reachable and he is not: two staircase chains into
+        # one floor commonly arrive on two sides of a locked door, and the
+        # shorter chain is not always the useful one.
+        spot, found, _ = route_to_npc(g, resolve_npc(g, name), have)
         label, item = NPC_LABEL.get(name, (name, None))
         if found is None:
             routes.append({"npc": name, "label": label, "item": item, "steps": None})
@@ -160,15 +145,16 @@ def build(g, npcs):
             "unchanged": VANILLA_DOOR_MAP.get(door) == g.entr_map[door],
         })
 
-    # A door counts towards "maps open empty-handed" only if it is a door you
-    # can stand on: the same test Graph.starts() routes by. FFR's unused pair
-    # carries an ordinary map byte and no overworld tile, and a byte past the
-    # end of MAP_NAMES is not a map at all.
+    # A door counts towards "maps open empty-handed" only if it is a door the
+    # router would actually take -- so ask the router, rather than restating its
+    # rule here. Restating it got this wrong: Graph.starts() admits every door
+    # when the overworld's tile properties named no entrance at all, and a
+    # copied "has an overworld tile" test drops all 32 in that case, so the
+    # page's headline undercounted against the floor links printed below it.
     return {"doors": doors, "routes": routes,
             "floors": sorted(floors, key=lambda f: (f["fromId"], f["y"], f["x"])),
             "reachable": sorted({f["toId"] for f in floors}
-                                | {d["mapId"] for d in doors
-                                   if d["ow"] and d["map"] is not None})}
+                                | {m for _, m, _ in g.starts()})}
 
 
 def main():
@@ -179,7 +165,13 @@ def main():
                     help="comma-separated NPCs to draw routes to")
     args = ap.parse_args()
 
-    g = Graph(Rom(args.rom))
+    rom = Rom(args.rom)
+    # The whole page is the extended teleport tables drawn out. On a cartridge
+    # that has none, every door, link and route on it would be invented.
+    if ffr_info(rom) is None:
+        sys.exit(f"{args.rom}: no FFRInfo record -- this is not a Final Fantasy "
+                 "Randomizer cartridge, and there is no shuffle on it to draw")
+    g = Graph(rom)
     npcs = [n.strip() for n in args.npc.split(",") if n.strip()]
     data = build(g, npcs)
     seed, version, chips = read_flags(args.rom)
