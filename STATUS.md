@@ -5,6 +5,9 @@ Working notes on what is built, what is next, and what is known to be wrong.
 
 Last updated 2026-08-29.
 
+> The NOverworld variants are the current focus and are further behind than the
+> rest of this document implies. They have their own section below.
+
 ## Working today
 
 - Two autotracking feeds, reconciled rather than merged: Archipelago over the
@@ -43,16 +46,109 @@ Last updated 2026-08-29.
 - Offline tools that read a cartridge directly: the flag decoder, an
   entrance/floor shuffle reader and router, an HTML door map, an overworld
   reachability walk, and a logic checker that diffs the pack's access rules
-  against FFR's own spoiler.
+  against FFR's own spoiler. The map-reading half of that was wrong until
+  2026-08-29 — see "Read the maps from the bank FFR actually puts them in"
+  below.
 - `tests/run.sh` — 13 Lua suites, no emulator or ROM needed.
+
+## Read the maps from the bank FFR actually puts them in
+
+Fixed 2026-08-29, commit `3697da4`. Recorded here because the tools it touches
+were listed as working for weeks while returning invented answers.
+
+`tools/extract_chests.py` decompressed standard maps from bank `$04`. Every FFR
+seed moves all 61 of them to bank `$14` and repoints the engine's two
+`#BANK_STANDARDMAPS` constants — `StandardMaps.Write()`, called unconditionally
+from `Randomize.cs:466` whatever the flags say. Banks 4-7 keep their untouched
+vanilla copies, so reading there did not fail: it returned a complete,
+confident, vanilla topology for a cartridge that plays nothing like it. On a
+No-Overworld seed that came out as 11 floor links where the cartridge has 146,
+and the 11 were genuine vanilla stairs, so nothing looked wrong.
+
+`standard_map_bank()` now reads the constant at `$1F:D127` and falls back to
+`$04` only for a stock 16-bank image. `--self-check` gained the two invariants
+that would have caught it: the bank read must match the mirror constant at
+`$1F:D145` and must not be the vanilla bank on an FFR cartridge, and a
+No-Overworld entry map must have a staircase. Both fail on a reintroduced bug.
+
+The lesson worth keeping: the cheap oracle — *with all key items, every map
+must be reachable from the doors* — was already written down and simply never
+run. Run it before believing any routing output.
 
 ## Next
 
-1. **Door-map click-through.** `tools/doormap.py` gets a focus panel and real
+1. **The NOverworld overhaul.** Its own section below; this is the focus.
+2. **Door-map click-through.** `tools/doormap.py` gets a focus panel and real
    `#map-<id>` anchors driven by `hashchange`, so the shuffled dungeon can be
-   walked by clicking instead of scrolled. One file, no pack risk.
-2. **The missing `LOCATION_MAPPING` rows** below, which are a quiet correctness
-   hole rather than a feature.
+   walked by clicking instead of scrolled. One file, no pack risk. Worth more
+   now that it reads real topology.
+
+## The NOverworld variants
+
+Triaged 2026-08-29 against FFR's own source and a live No-Overworld cartridge
+(`GameMode 2`, FFR 4-9-2, seed `F258553F`). What the mode *is* is now settled;
+what the pack should become is the open question.
+
+### What FFR's No-Overworld actually does
+
+All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
+
+- The overworld is **not removed** — it is swapped for `nooverworld.ffm`, an
+  ocean stub with nine one-tile pads around `x 96-110, y 154-162`: the eight
+  towns plus Coneria Castle. Confirmed off the cartridge: of 32 entrance rows,
+  only those nine have a tile on the map.
+- Everything else is connected by a **hand-authored table of 75 teleporters**,
+  ids `0x41-0x8B`, at `:458-776`. All 61 maps are used; none is dropped.
+- **Deterministic apart from three things**: the three Cardia/Bahamut one-way
+  gateways are permuted across Waterfall / Ice Cave B1 / Gaia (`:726`), the
+  Waterfall stair positions, and which ToFR chest ids the two bonus chests
+  reuse. None of it reaches the spoiler log, so the cartridge is the only
+  source. On the duck seed, Bahamut is behind Gaia.
+- **FLOATER is renamed SIGIL and CANOE is renamed MARK**, and both become
+  stair-blocking NPCs rather than vehicles. Ship and bridge are free. The other
+  gates are CROWN, CHIME (Gaia to Mirage), TNT (Nerrick's tunnel) and KEY.
+- The full shuffle runs only with `Entrances` or `Towns` set; the stock preset
+  ships both off, so a default seed uses the fixed table.
+
+### Where the pack stands against that
+
+- **Both map variants define exactly one tab.** `layouts/NOverworld/tracker.json`
+  and `shardsTracker.json` each declare one `tabbed` entry pointing at
+  `incentives`. The standard layout declares about sixty.
+- **282 markers are loaded and cannot be reached.** Since `e4d46df`,
+  `locations/overworld.json` loads in both variants — 508 sections and 282
+  `map_locations` across 36 dungeon maps. None of those maps has a tab here, so
+  28 incentive pins draw and the rest are invisible.
+- **The one image cannot carry markers.** `images/maps/nooverworldmap.jpg` is
+  upstream art (Photoshop, 2021, mikesrpgcenter watermarks) added in the "Add
+  files via upload" commits. It is 3096x2816, but Coneria Castle occupies about
+  300x330 of it against 1074x605 for the pack's own `con_castle.png` — roughly
+  28% the linear size, JPEG-ringed, on nearest-neighbour-upscaled source. With
+  `location_size: 80` a single pin covers about 27% of that castle's width.
+  Re-encoding cannot help; the source pixels are not there.
+- **The logic is the standard-overworld logic.** `scripts/logic.lua` branches on
+  `shardHunt` and nothing else, and access rules come from the shared
+  `locations/overworld.json`, so a No-Overworld seed is gated on vanilla
+  ship/canoe/canal/floater reachability — for a mode with no overworld, whose
+  canoe and floater are not vehicles at all.
+- **Mode detection already works and drives nothing.** `flag_mapping.lua:246`
+  reads `GameMode` and prints a warning.
+
+### The shape of the fix, not yet a plan
+
+The poster tries to be a connection diagram and a marker surface at once and is
+poor at both. Splitting those is the move, and only the first half is settled:
+
+- **Marker surface** — the 53 dungeon maps the pack already ships, at 4-8x the
+  resolution, with the 282 markers already placed. A layout change, not new art.
+- **Connection diagram** — a separate view. Whether it is hand-drawn once or
+  generated per seed from `tools/entrance_graph.py` is undecided, and so is
+  whether the "many screens with transitions" idea means real map tabs, a node
+  graph, or a pseudo-overworld collage. That decision is the next thing to make.
+
+Open questions before any of it: does the logic need a No-Overworld branch (the
+75-link table is fixed, so it *can* be modelled), and should the variant be
+auto-selected from `GameMode` rather than picked by hand.
 
 ## Designed, not started
 
@@ -69,11 +165,9 @@ Last updated 2026-08-29.
 
 ## Known wrong
 
-- **Missing `LOCATION_MAPPING` rows.** Garland (514), Dr Unne (523) and Bahamut
-  (526) have sections but no mapping, so the Archipelago feed can never clear
-  them. They light from RAM only.
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so
-  a Locations-grid cell needs a new hosted toggle under a different code.
+  a Locations-grid cell needs a new hosted toggle under a different code. It
+  would be a bridge-only cell: Titan is not an AP location either (see below).
 - **17 maps have no markers.** 16 are uncalibrated; `ConeriaCastle2F` is a
   calibration alias away from working.
 - **The incentive defaults are still a guess** on a version with no schema.
@@ -109,6 +203,22 @@ of both feeds and lets either run alone.
 The traffic used to run the other way in exactly one place — the Chaos goal
 flag, which only an AP seed carries. It no longer does: the bridge reads the
 kill out of the battle engine, so a solo seed reports the goal too.
+
+**Eight NPCs are not AP locations at all.** This used to be filed under "known
+wrong" as missing `LOCATION_MAPPING` rows for Garland (514), Dr Unne (523) and
+Bahamut (526). Adding rows for them would map to ids the server never sends. An
+AP location id is `512 + ObjectId` (`FF1Lib/Items.cs`), and
+`worlds/ff1/data/locations.json` — identical in all three vendored Archipelago
+clones — holds exactly fourteen ids above 510:
+
+    513 King        516 Bikke     518 Elf Prince   519 Astos
+    520 Nerrick     521 Smith     522 Matoya       525 Sarda
+    527 Lefein      529 CubeBot   530 Princess     531 Fairy
+    533 Canoe Sage  767 Shop Item
+
+The gaps are the NPCs that hold no shuffled item: Garland (514), Princess1
+(515), ElfDoc (517), Unne (523), Vampire (524), Bahamut (526), SubEngineer
+(528) and Titan (532). Lighting them from RAM only is correct, not a hole.
 
 ## Open questions
 
