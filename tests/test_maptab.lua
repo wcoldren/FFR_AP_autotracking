@@ -67,6 +67,12 @@ local MAP_LAYOUTS = {
   "layouts/NOverworld/shardsTracker.json",
 }
 
+-- Two of the four live in the same directory, so the directory alone names them
+-- both: an "ok" line and a missing one would look identical at a glance.
+local function layoutLabel(file)
+  return (file:gsub("^layouts/", ""):gsub("%.json$", ""))
+end
+
 -- maptab.lua's own MAP_VALUE_OVERWORLD is a local, so this is a second copy on
 -- purpose. It is one string and the check below is the thing that would notice
 -- it drifting: change it there and every town starts failing here.
@@ -97,7 +103,7 @@ for _, file in ipairs(MAP_LAYOUTS) do
   if #bad > 0 then
     for _, b in ipairs(bad) do fails(file .. ": " .. b) end
   else
-    print(string.format("ok   every MAP_VALUE tab exists in %s", file:match("layouts/([^/]+)")))
+    print(string.format("ok   every MAP_VALUE tab exists in %s", layoutLabel(file)))
   end
 end
 
@@ -121,7 +127,7 @@ for _, file in ipairs(MAP_LAYOUTS) do
       fails(string.format("%s has an %q tab, but the mode has no overworld", file, fallback))
     else
       print(string.format("ok   %q %s in %s", fallback,
-        want and "exists" or "is absent as intended", file:match("layouts/([^/]+)")))
+        want and "exists" or "is absent as intended", layoutLabel(file)))
     end
   end
 end
