@@ -78,6 +78,12 @@ def read_flags(rom_path):
 
 
 def build(g, npcs):
+    # Which rows are doors you can walk into is Graph.starts()'s question, not a
+    # rule to restate here: No-Overworld swaps the overworld for an ocean stub
+    # with nine pads on it, so 23 of the 32 rows keep an ordinary map byte and
+    # have no tile anywhere. Counting those as doors puts the player in front of
+    # an entrance that is not on the cartridge.
+    live = {i for i, _, _ in g.starts()}
     doors = []
     for i in range(32):
         m = g.entr_map[i]
@@ -88,10 +94,16 @@ def build(g, npcs):
             "map": MAP_NAMES[m] if m < MAP_COUNT else None,
             "arrive": [coord(g.entr_x[i]), coord(g.entr_y[i])],
             "unchanged": VANILLA_DOOR_MAP.get(i) == m, "unused": i in UNUSED_DOORS,
+            "live": i in live,
         })
 
+    # Two passes, because a floor's dead ends have to be distinguishable from
+    # the parts of it you cannot walk to. The walk finds the staircases you can
+    # actually take; the sweep after it adds the ones that are on a floor you
+    # stood on but behind a locked door or a plate, which carry steps=None.
+    # Without those, a floor whose far half is locked reads as having no way on.
     have = set()
-    seen, q, floors, keys = set(), deque(), [], set()
+    seen, q, links = set(), deque(), {}
     for _, m, a in g.starts():
         if (m, a) not in seen:
             seen.add((m, a))
@@ -105,15 +117,48 @@ def build(g, npcs):
             if dm >= MAP_COUNT:
                 continue
             arrive = (coord(g.norm_x[pay]), coord(g.norm_y[pay]))
-            key = (m, x, y, dm)
-            if key not in keys:
-                keys.add(key)
-                floors.append({"from": MAP_NAMES[m], "fromId": m, "x": x, "y": y,
-                               "to": MAP_NAMES[dm], "toId": dm,
-                               "arrive": list(arrive), "steps": steps})
+            was = links.get((m, x, y))
+            # One floor is commonly entered at several landing spots, and the
+            # walk from each is a different length. Report the shortest, so the
+            # number does not depend on the order the queue happened to run in.
+            if was is None or was["steps"] is None or steps < was["steps"]:
+                links[(m, x, y)] = {"from": MAP_NAMES[m], "fromId": m, "x": x, "y": y,
+                                    "to": MAP_NAMES[dm], "toId": dm,
+                                    "arrive": list(arrive), "steps": steps}
             if (dm, arrive) not in seen:
                 seen.add((dm, arrive))
                 q.append((dm, arrive))
+
+    # A door counts towards "maps open empty-handed" only if it is a door the
+    # router would actually take -- so ask the router, rather than restating its
+    # rule here. Restating it got this wrong: Graph.starts() admits every door
+    # when the overworld's tile properties named no entrance at all, and a
+    # copied "has an overworld tile" test drops all 32 in that case, so the
+    # page's headline undercounted against the floor links printed below it.
+    reachable = sorted({l["toId"] for l in links.values()}
+                       | {m for _, m, _ in g.starts()})
+
+    # The staircase directly under your feet is the one exception to "the walk
+    # did not find it, so you cannot walk to it". reachable_teleports drops the
+    # tile it starts on, because stepping onto a teleport is what takes you off
+    # the floor and you are already standing there -- but you can step off and
+    # back on. Two links are this every time: Coneria Castle 2F's way down, and
+    # Ice Cave B1's hole to B3. Calling them gated would be a plain lie about a
+    # staircase the player uses on the way out of the room.
+    arrivals = {}
+    for m, a in seen:
+        arrivals.setdefault(m, set()).add(a)
+    for m in arrivals:
+        for x, y, kind, pay in g.teleports(m):
+            if kind != TP_TELE_NORM or (m, x, y) in links:
+                continue
+            dm = g.norm_map[pay]
+            if dm >= MAP_COUNT:
+                continue
+            links[(m, x, y)] = {"from": MAP_NAMES[m], "fromId": m, "x": x, "y": y,
+                                "to": MAP_NAMES[dm], "toId": dm,
+                                "arrive": [coord(g.norm_x[pay]), coord(g.norm_y[pay])],
+                                "steps": 0 if (x, y) in arrivals[m] else None}
 
     routes = []
     for name in npcs:
@@ -145,16 +190,10 @@ def build(g, npcs):
             "unchanged": VANILLA_DOOR_MAP.get(door) == g.entr_map[door],
         })
 
-    # A door counts towards "maps open empty-handed" only if it is a door the
-    # router would actually take -- so ask the router, rather than restating its
-    # rule here. Restating it got this wrong: Graph.starts() admits every door
-    # when the overworld's tile properties named no entrance at all, and a
-    # copied "has an overworld tile" test drops all 32 in that case, so the
-    # page's headline undercounted against the floor links printed below it.
     return {"doors": doors, "routes": routes,
-            "floors": sorted(floors, key=lambda f: (f["fromId"], f["y"], f["x"])),
-            "reachable": sorted({f["toId"] for f in floors}
-                                | {m for _, m, _ in g.starts()})}
+            "floors": sorted(links.values(),
+                             key=lambda f: (f["fromId"], f["y"], f["x"])),
+            "reachable": reachable}
 
 
 def main():
@@ -185,13 +224,16 @@ def main():
             .replace("__META__", json.dumps(
                 {"rom": stem, "seed": seed, "version": version, "chips": chips},
                 separators=(",", ":"))))
-    with open(args.out, "w") as f:
+    with open(args.out, "w", encoding="utf-8") as f:
         f.write(page)
+    gated = sum(1 for f in data["floors"] if f["steps"] is None)
     print(f"wrote {args.out} ({len(page)} bytes): {len(data['doors'])} doors, "
-          f"{len(data['floors'])} floor links, {len(data['routes'])} routes")
+          f"{len(data['floors'])} floor links ({gated} of them gated), "
+          f"{len(data['routes'])} routes")
 
 
-TEMPLATE = r'''<title>__SEEDNAME__ Door Map</title>
+TEMPLATE = r'''<meta charset="utf-8">
+<title>__SEEDNAME__ Door Map</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;800&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -320,7 +362,7 @@ code{font-family:'JetBrains Mono',monospace; font-size:.9em; background:var(--su
 <header class="mast">
   <p class="eyebrow">Final Fantasy Randomizer &middot; entrance and floor shuffle</p>
   <h1>Where every door goes</h1>
-  <p class="lede">All 32 overworld entrances in seed <span class="mono">__SEED__</span>, read straight out of the cartridge. The doors are still in their vanilla places on the map &mdash; only what is behind them moved.</p>
+  <p class="lede">The overworld entrances of seed <span class="mono">__SEED__</span>, read straight out of the cartridge. <span id="doorlede"></span></p>
   <div class="chips" id="chips"></div>
   <div class="stats" id="stats"></div>
 </header>
@@ -353,7 +395,7 @@ code{font-family:'JetBrains Mono',monospace; font-size:.9em; background:var(--su
   <div class="head">
     <h2>Staircases inside</h2>
   </div>
-  <p>Every floor link reachable on foot from the doors above, with nothing in hand. Several maps &mdash; Dwarf Cave among them &mdash; have no overworld door at all and sit only behind one of these.</p>
+  <p>Every staircase on every floor you can reach from the doors above. The ones you cannot walk to with nothing in hand are marked <em>gated</em> &mdash; a locked door, a plate, or a stretch of floor no arrival lands on. Several maps &mdash; Dwarf Cave among them &mdash; have no overworld door at all and sit only behind one of these.</p>
   <div class="scroll">
     <table>
       <thead><tr><th>On this floor</th><th>Stairs at</th><th>Take you to</th><th>Landing at</th><th>Walk</th></tr></thead>
@@ -387,12 +429,19 @@ el('chips').innerHTML = [
 ].concat(META.chips.map(([label, on]) =>
   `<span class="chip${on ? ' on' : ''}">${label}</span>`)).join('');
 
-const live = DATA.doors.filter(d => !d.unused).length;
-const unchanged = DATA.doors.filter(d => d.unchanged && !d.unused).length;
+/* "Leads somewhere" means the router would take it: a row with a map byte and
+   no tile on the overworld is not an entrance, whatever the byte says. */
+const live = DATA.doors.filter(d => d.live).length;
+const spare = DATA.doors.filter(d => !d.unused).length;
+const unchanged = DATA.doors.filter(d => d.unchanged && d.live).length;
+el('doorlede').textContent = live === spare
+  ? `All ${live} of them have a tile on the overworld; only what is behind them moved.`
+  : `Only ${live} of its ${DATA.doors.length} rows have a tile on the overworld \u2014 the rest
+     are not doors you can walk into on this cartridge, whatever map byte they carry.`;
 el('stats').innerHTML = [
-  [live, 'doors that lead somewhere'],
+  [live, live === 1 ? 'door that leads somewhere' : 'doors that lead somewhere'],
   [unchanged, unchanged === 1 ? 'door that did not move' : 'doors that did not move'],
-  [DATA.floors.length, 'staircases you can walk to'],
+  [DATA.floors.filter(f => f.steps !== null).length, 'staircases you can walk to'],
   [DATA.reachable.length + ' of 61', 'maps open empty-handed'],
 ].map(([n, l]) => `<div class="stat"><span class="stat-n mono">${n}</span><span class="stat-l">${l}</span></div>`).join('');
 
@@ -459,9 +508,10 @@ const doorRows = DATA.doors.map(d => ({
   text: `${d.id} ${d.name} ${d.map || ''}`.toLowerCase(),
   mark: routeDoors.has(d.id),
   html: () => `<td class="num mono">${d.id}</td>
-    <td>${pretty(d.name)}${d.unused ? '<span class="tag dim">unused</span>' : ''}</td>
+    <td>${pretty(d.name)}${d.unused ? '<span class="tag dim">unused</span>'
+      : (d.live ? '' : '<span class="tag dim">not on the map</span>')}</td>
     <td class="mono">${xy(d.ow)}${d.tiles > 1 ? ` <span class="arrive">+${d.tiles - 1}</span>` : ''}</td>
-    <td><span class="dest">${d.map ? pretty(d.map) : '—'}</span>${d.unchanged && !d.unused ? '<span class="tag">unchanged</span>' : ''}</td>
+    <td><span class="dest">${d.map ? pretty(d.map) : '—'}</span>${d.unchanged && d.live ? '<span class="tag">unchanged</span>' : ''}</td>
     <td class="mono arrive">${d.unused ? '—' : xy(d.arrive)}</td>`
 }));
 
@@ -475,7 +525,8 @@ const floorRows = DATA.floors.map(f => ({
       <td class="mono">${f.x}, ${f.y}</td>
       <td><span class="dest">${pretty(f.to)}</span></td>
       <td class="mono arrive">${xy(f.arrive)}</td>
-      <td class="mono arrive">${f.steps}</td>`;
+      <td class="mono arrive">${f.steps === null
+        ? '<span class="tag dim">gated</span>' : f.steps}</td>`;
   }
 }));
 

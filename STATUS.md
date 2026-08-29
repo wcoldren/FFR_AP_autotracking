@@ -75,6 +75,37 @@ The lesson worth keeping: the cheap oracle — *with all key items, every map
 must be reachable from the doors* — was already written down and simply never
 run. Run it before believing any routing output.
 
+## Three things the door map was wrong about
+
+Found 2026-08-29 while working out what a per-floor view of the shuffle would
+have to say. All three were survivable only while the same facts stayed spread
+across two tables and nothing had to state a single floor's ways in and ways on
+out loud.
+
+- **It counted 30 doors on a cartridge with 9.** The live/unchanged counts
+  filtered on FFR's spare pair (30, 31) rather than asking `Graph.starts()`
+  which rows are entrances. No-Overworld swaps the overworld for an ocean stub
+  with nine pads, so 23 rows keep an ordinary map byte and no tile anywhere; the
+  page counted them as doors. It now asks `starts()` — the same rule the router
+  uses — and tags the other 23 *not on the map*.
+- **A gated staircase was invisible.** The walk only ever listed links it could
+  take, so every floor behind the Rod plate or a locked door looked like a dead
+  end rather than a floor with a locked half. All the staircases on every floor
+  you can stand on are listed now, the unwalkable ones marked `gated`.
+- **Two staircases were the tile under your feet.** `reachable_teleports` drops
+  the tile it starts on — correct, since stepping onto a teleport is what takes
+  you off the floor — so Coneria Castle 2F's way down and Ice Cave B1's hole to
+  B3 came out gated on every seed. You can step off and back on; they report
+  0 steps.
+
+The page also had no `<meta charset>`, so its em dashes and arrows mojibaked in
+any browser that opened it as a local file — which is how it is meant to be read.
+
+Checked by re-deriving the whole page from the cartridge and diffing it against
+what the page claims: live doors against `starts()`, the staircase set tile by
+tile against `teleports()`, and every destination and landing against the
+teleport tables. Four cartridges including the No-Overworld one, all clean.
+
 ## Next
 
 1. **The NOverworld overhaul.** Its own section below; this is the focus.
