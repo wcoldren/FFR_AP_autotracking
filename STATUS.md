@@ -112,13 +112,13 @@ All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
 
 ### Where the pack stands against that
 
-- **Both map variants define exactly one tab.** `layouts/NOverworld/tracker.json`
-  and `shardsTracker.json` each declare one `tabbed` entry pointing at
-  `incentives`. The standard layout declares about sixty.
-- **282 markers are loaded and cannot be reached.** Since `e4d46df`,
-  `locations/overworld.json` loads in both variants — 508 sections and 282
-  `map_locations` across 36 dungeon maps. None of those maps has a tab here, so
-  28 incentive pins draw and the rest are invisible.
+- ~~**Both map variants define exactly one tab.**~~ Fixed, commit `17c423d`.
+  The dungeon tree moved to `layouts/shared.json` as three `shared_*_tabs` keys
+  and all four map layouts reference it, so the NOverworld pair gained 51 maps
+  and standard/shardHunt stopped carrying a byte-identical copy each. Expanding
+  the references reproduces their previous trees exactly. The 282 markers in
+  `locations/overworld.json` now have somewhere to draw, and `maptab.lua`
+  follows the player into a dungeon on these variants too.
 - **The one image cannot carry markers.** `images/maps/nooverworldmap.jpg` is
   upstream art (Photoshop, 2021, mikesrpgcenter watermarks) added in the "Add
   files via upload" commits. It is 3096x2816, but Coneria Castle occupies about
@@ -139,12 +139,25 @@ All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
 The poster tries to be a connection diagram and a marker surface at once and is
 poor at both. Splitting those is the move, and only the first half is settled:
 
-- **Marker surface** — the 53 dungeon maps the pack already ships, at 4-8x the
-  resolution, with the 282 markers already placed. A layout change, not new art.
-- **Connection diagram** — a separate view. Whether it is hand-drawn once or
-  generated per seed from `tools/entrance_graph.py` is undecided, and so is
-  whether the "many screens with transitions" idea means real map tabs, a node
-  graph, or a pseudo-overworld collage. That decision is the next thing to make.
+- **Marker surface** — done, above: the dungeon maps the pack already ships,
+  carrying the markers that were already placed.
+- **Connection diagram** — a hand-drawn pseudo-overworld: one map arranging the
+  areas geographically with the fixed links as roads, in the pack's own art
+  style rather than the poster's screenshots. Not started.
+
+  A static map is the right shape because the topology is fixed, and that is
+  now checked rather than assumed. Three No-Overworld seeds generated at
+  different seeds carry 157 links each, and the only differences between them
+  are the Gaia gateway's destination and where the two Waterfall staircases
+  sit — the two things `MetroidVaniaMap.cs` rolls. The other ~154 links are
+  identical across every seed, so they can be drawn once. The three
+  Cardia/Bahamut gateways want a `?` rather than a destination.
+
+  PopTracker map tabs are a static image plus pin coordinates — there is no
+  drawing surface — so anything generated per seed belongs in `tools/doormap.py`,
+  not the pack. Deriving the pin coordinates from the same layout that renders
+  the art is the thing worth insisting on: hand-placed pins are what let the
+  poster's markers drift off its art in the first place.
 
 Open questions before any of it: does the logic need a No-Overworld branch (the
 75-link table is fixed, so it *can* be modelled), and should the variant be
