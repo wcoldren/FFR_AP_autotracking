@@ -195,10 +195,29 @@ end
 -- Re-applied only when the string changes, so a deliberate click is not undone
 -- ten times a second. A new cartridge changes it; a reset does not.
 function applyFFRFlags(record)
-  if type(record) ~= "string" or record == "" then
+  -- No such variable at all: an Archipelago-only session, where nothing is
+  -- publishing ff1/flags and there is no cartridge to have failed to read. The
+  -- grid is showing init.lua's defaults, which is what an AP player is meant to
+  -- start from, so the light stays off.
+  if type(record) ~= "string" then
     return false
   end
   if record == FFR_FLAGS_SOURCE then
+    return false
+  end
+  -- "" is different: the bridge is attached and told us it got nothing out of
+  -- the cartridge -- not an FFR ROM, a PRG it could not read, or a build with no
+  -- FFRInfo record (bridge/ffr_uat_bridge.lua:606). That is the commonest way
+  -- the grid ends up asserting settings this seed never had, so it is exactly
+  -- what the light is for. Recorded as the source so it is said once, not on
+  -- every scan.
+  if record == "" then
+    FFR_FLAGS_SOURCE = record
+    print("flags: this cartridge carries no flag record -- the grid is showing "
+          .. "defaults and your own clicks")
+    if setFlagsUnread then
+      setFlagsUnread("this cartridge carries no flag record")
+    end
     return false
   end
 

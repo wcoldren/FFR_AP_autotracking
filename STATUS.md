@@ -21,6 +21,13 @@ Last updated 2026-08-28.
   seed's own settings.
 - A Bosses row for the five fights that have a real signal: Garland, the
   Vampire, Astos, Bikke and Chaos.
+- The Chaos kill read out of the battle engine — a battle running (`$60FC`),
+  Chaos's formation in `btlformation` (`$6A`), `btl_result` (`$6B86`) set to
+  `$FF` — rather than off `$62FE` bit 0x02, which FFR only writes on an
+  Archipelago seed. It is the same instant the Archipelago patch sets its bit,
+  so no seed's split moved. Feeds the run clock, the `chaos`/`clock` lines in
+  `ffr_times.log`, and `ff1/goal`, which the pack now reads for
+  `LOCATION_MAPPING[766]`.
 - Map tabs follow the player. 36 of 53 dungeon maps are calibrated and carry
   per-chest markers.
 - Offline tools that read a cartridge directly: the flag decoder, an
@@ -73,20 +80,6 @@ Last updated 2026-08-28.
   complaint.
 - **`shopItem`** is the one Locations-grid cell with no incentive toggle behind
   it and no FFR flag mapped to it.
-- **The Chaos goal flag only exists on Archipelago seeds, and three things
-  depend on it.** `$62FE` bit 0x02 is written by a patch FFR applies only in
-  `FF1Lib/archipelago/Archipelago.cs:225-226`, which rewrites bank `0x0B`
-  `$9ADF` to `20 40 9B`. Every solo seed has the vanilla `20 52 A0` there, so
-  the bit is never set, and: the run clock never stops, no `chaos` or `clock`
-  line is ever appended to `ffr_times.log`, and the tracker's Chaos check
-  (`LOCATION_MAPPING[766]`) never clears from the bridge. Confirmed against
-  three cartridges and two logs holding 27 `start` lines and nothing else.
-  The clock is the visible symptom; the un-clearing Chaos check is the bigger
-  one. A fix has to stop reading that flag — hooking execution of `ChaosDeath`
-  (bank `0x0B` `$A052`) is exact and available, since Mesen can break on an
-  address. Note the routine waits **110 frames** for the victory fanfare before
-  the dissolve begins, so the entry point and the kill screen are 1.8s apart and
-  which one the community times to needs settling before it is wired up.
 
 ## What Archipelago can and cannot tell the tracker
 
@@ -100,8 +93,9 @@ Closing that gap means changing the Archipelago world, not this pack. The
 reconcile core already does the right thing with what exists — takes the union
 of both feeds and lets either run alone.
 
-The traffic is not one-way, though: the Chaos goal flag above is the one thing
-an AP seed has that a solo seed does not.
+The traffic used to run the other way in exactly one place — the Chaos goal
+flag, which only an AP seed carries. It no longer does: the bridge reads the
+kill out of the battle engine, so a solo seed reports the goal too.
 
 ## Open questions
 

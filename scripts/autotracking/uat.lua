@@ -27,6 +27,10 @@ local CHEST_FLAG = 0x04
 local EVENT_FLAG = 0x02
 local CHEST_BASE = 0x100
 local EVENT_BASE = 0x200
+-- @ToFR/Chaos, the same id LOCATION_MAPPING[766] carries. Named because it is
+-- the one event that does not always arrive in the flag page; see the ff1/goal
+-- read in onFF1Flags.
+local GOAL_LOCATION_ID = EVENT_BASE + 0xFE
 
 local UNMAPPED_CHEST_WARNED = {}
 
@@ -106,8 +110,10 @@ local function rememberRomAcrossRestarts()
   item.SaveFunc = function()
     -- The flag record rides along rather than getting a LuaItem of its own:
     -- both answer "which cartridge is this", and a second item would be a
-    -- second id to keep stable.
-    return { rom = ROM_ID, flags = FFR_FLAGS_SOURCE }
+    -- second id to keep stable. So does why the record could not be read: it is
+    -- the same fact seen from the other side, and it has to survive whatever
+    -- FFR_FLAGS_SOURCE survives or the two come back disagreeing.
+    return { rom = ROM_ID, flags = FFR_FLAGS_SOURCE, unread = FLAGS_UNREAD_WHY }
   end
   item.LoadFunc = function(_, data)
     if type(data) == "table" and type(data.rom) == "string" and data.rom ~= "" then
@@ -119,6 +125,13 @@ local function rememberRomAcrossRestarts()
     -- answer and the player had to set themselves.
     if type(data) == "table" and type(data.flags) == "string" and data.flags ~= "" then
       FFR_FLAGS_SOURCE = data.flags
+      -- And with it the verdict on that record. Restoring the source without
+      -- the verdict is the bad case: applyFFRFlags short-circuits on the
+      -- unchanged string and never gets as far as lighting the light again, so
+      -- a refused decode would come back looking like a read one.
+      if type(data.unread) == "string" and data.unread ~= "" then
+        setFlagsUnread(data.unread)
+      end
     end
     return true
   end
@@ -181,7 +194,17 @@ function setFlagsUnread(why)
   end
   -- A LuaItem's icon override is not reset by state changes the way a
   -- JsonItem's is, so nil genuinely blanks the cell and stays blank.
-  flagsUnreadItem.Icon = why and "images/flags/flagsUnread.png" or nil
+  --
+  -- pcall'd like every other host call here. This one runs inside a variable
+  -- watch, so a host that refuses the write -- a nil Icon on an older 0.23.x,
+  -- say -- would otherwise take the whole autotracking update down with it, and
+  -- lose the board to a warning light.
+  local ok, err = pcall(function()
+    flagsUnreadItem.Icon = why and "images/flags/flagsUnread.png" or nil
+  end)
+  if not ok then
+    print("uat: cannot set the unread-flags light -- " .. tostring(err))
+  end
 end
 
 -- "" means the emulator would not tell us, which is not the same as a change.
@@ -196,6 +219,12 @@ local function checkRom(store)
     -- string (flag_mapping.lua:201), so two seeds rolled on the same flags would
     -- otherwise carry the previous one's hand-corrected grid into the new game.
     FFR_FLAGS_SOURCE = nil
+    -- With it the verdict on that record. ff1/rom and ff1/flags normally arrive
+    -- in the same message, so applyFFRFlags is about to re-decide this a few
+    -- lines below -- but "normally" is not "always", and the light left over
+    -- from the last cartridge describes a cartridge that is no longer in the
+    -- slot.
+    setFlagsUnread(nil)
     resetForNewGame()
   elseif ROM_ID == nil then
     -- No memo to compare against: a first run, or a save written before the memo
@@ -260,6 +289,16 @@ function onFF1Flags(store)
     end
   end
 
+  -- The Chaos kill is the one check that is not always in the flag page. FFR
+  -- only patches the goal bit into byte 0xFE on an Archipelago seed
+  -- (FF1Lib/archipelago/Archipelago.cs:225-226); a solo seed leaves that byte
+  -- alone forever, so the bridge reads the kill off the battle engine instead
+  -- and reports it here. On an Archipelago seed both routes agree and this is
+  -- the redundant one.
+  if store:ReadVariable("ff1/goal") == true then
+    checked[GOAL_LOCATION_ID] = true
+  end
+
   setUATChecked(checked)
 
   -- Bosses, orbs, turn-ins and vehicles are not Archipelago locations at all,
@@ -278,4 +317,5 @@ end
 -- ff1/rom rides on the same watch rather than getting its own. Watch firing
 -- order is not defined, and reading both out of one store removes any chance of
 -- decoding the new cartridge's flags against the old cartridge's identity.
-ScriptHost:AddVariableWatch("ff1mem", {"ff1/mem", "ff1/ready", "ff1/rom", "ff1/flags"}, onFF1Flags)
+ScriptHost:AddVariableWatch("ff1mem",
+  {"ff1/mem", "ff1/ready", "ff1/rom", "ff1/flags", "ff1/goal"}, onFF1Flags)

@@ -152,13 +152,38 @@ else
   print("ok   every hosted item code in the mapping is defined")
 end
 
--- 4b. every code an itemgrid names must be something that can render.
---     A cell whose code matches no item draws an empty square and says nothing
---     -- PopTracker adds the widget either way -- so a typo, or an item removed
---     from one grid while another still names it, is invisible until someone
---     notices a hole. LuaItems are listed by hand because they are created in
---     Lua at load and cannot be read out of items/*.json.
+-- 4b. the layouts, read as a whole.
+--
+--     Three failures, none of which shows up as an error at runtime. A grid
+--     cell whose code matches no item draws an empty square and says nothing,
+--     because PopTracker adds the widget either way. A "layout" reference to a
+--     key nobody defines draws nothing at all. And a grid that no layout
+--     references is simply invisible -- which is how the boss row shipped
+--     missing from all seven broadcast views: garland was moved out of the item
+--     grids into a boss grid the trackers referenced and the broadcasts did not.
+--
+--     The file list comes from scripts/init.lua rather than being repeated
+--     here, so it is the set the pack actually loads and a new layout is
+--     covered without a second edit. LuaItems are listed by hand because they
+--     are created in Lua at load and cannot be read out of items/*.json.
 local LUA_ITEM_CODES = { resync = true, flagsUnread = true }
+local layoutFiles, layoutSeen = {}, {}
+do
+  local f = assert(io.open(PACK .. "/scripts/init.lua"))
+  local src = f:read("a")
+  f:close()
+  for file in src:gmatch('AddLayouts%("([^"]+)"%)') do
+    if not layoutSeen[file] then
+      layoutSeen[file] = true
+      layoutFiles[#layoutFiles + 1] = file
+    end
+  end
+end
+if #layoutFiles < 2 then
+  fails("found " .. #layoutFiles .. " AddLayouts calls in scripts/init.lua")
+end
+
+local docs, definedIn, referenced = {}, {}, {}
 local gridMissing, gridSeen = {}, 0
 local function walkGrids(node, file)
   if type(node) ~= "table" then return end
@@ -172,21 +197,123 @@ local function walkGrids(node, file)
       end
     end
   end
+  if node.type == "layout" and type(node.key) == "string" then
+    referenced[node.key] = true
+  end
   for _, v in pairs(node) do walkGrids(v, file) end
 end
-for _, file in ipairs({
-  "layouts/shared.json", "layouts/standard/tracker.json",
-  "layouts/shardHunt/tracker.json", "layouts/NOverworld/tracker.json",
-}) do
-  walkGrids(json.load(PACK .. "/" .. file), file)
+for _, file in ipairs(layoutFiles) do
+  local doc = json.load(PACK .. "/" .. file)
+  for key, node in pairs(doc) do
+    docs[key] = node
+    definedIn[key] = file
+  end
+  walkGrids(doc, file)
 end
+
 local gm = {}
 for code in pairs(gridMissing) do gm[#gm + 1] = code end
 table.sort(gm)
 if #gm > 0 then
   for _, code in ipairs(gm) do fails("itemgrid names an undefined code: " .. code) end
 else
-  print(string.format("ok   all %d itemgrid cells name a real item", gridSeen))
+  print(string.format("ok   all %d itemgrid cells across %d layout files name a real item",
+                      gridSeen, #layoutFiles))
+end
+
+local dangling, orphan = {}, {}
+for key in pairs(referenced) do
+  if not definedIn[key] then dangling[#dangling + 1] = key end
+end
+-- tracker_default and tracker_broadcast are PopTracker's own entry points, so
+-- nothing in the pack references them.
+for key, file in pairs(definedIn) do
+  if not referenced[key] and not key:match("^tracker_") then
+    orphan[#orphan + 1] = key .. "  (" .. file .. ")"
+  end
+end
+table.sort(dangling)
+table.sort(orphan)
+for _, key in ipairs(dangling) do fails("layout reference to an undefined key: " .. key) end
+for _, key in ipairs(orphan) do fails("layout is defined but nothing references it: " .. key) end
+if #dangling == 0 and #orphan == 0 then
+  print("ok   every layout reference resolves, and every layout is referenced")
+end
+
+-- 4c. the broadcast view has to carry the same board as the tracker view.
+--
+--     Flags and Incentives are deliberately dropped from some of these -- there
+--     is no room on a stream overlay -- but an item or a location the tracker
+--     shows and the broadcast does not is a hole, not a decision. That is the
+--     shape of the garland regression, and only a per-variant comparison sees
+--     it: both grids involved were referenced by *something*.
+local boardCodes = {}
+for _, file in ipairs({ "items/items.json", "items/hosted_items.json" }) do
+  for _, it in ipairs(json.load(PACK .. "/" .. file)) do
+    for code in tostring(it.codes or ""):gmatch("[^,]+") do
+      boardCodes[code:match("^%s*(.-)%s*$")] = true
+    end
+  end
+end
+
+local function codesUnder(node, out, seenKeys)
+  if type(node) ~= "table" then return end
+  if node.type == "itemgrid" then
+    for _, row in ipairs(node.rows or {}) do
+      for _, code in ipairs(row) do out[code] = true end
+    end
+  end
+  if node.type == "layout" and type(node.key) == "string" and not seenKeys[node.key] then
+    seenKeys[node.key] = true
+    codesUnder(docs[node.key], out, seenKeys)
+  end
+  for _, v in pairs(node) do codesUnder(v, out, seenKeys) end
+end
+
+-- Mirrors the variant dispatch in scripts/init.lua. Checked against it below,
+-- so the two cannot drift apart quietly.
+local VARIANTS = {
+  { "1standardNoMap", "layouts/standardNoMap/tracker.json", "layouts/standardNoMap/broadcastNoMap.json" },
+  { "2shardHuntNoMap", "layouts/shardHuntNoMap/tracker.json", "layouts/shardHuntNoMap/broadcastNoMap.json" },
+  { "3NOverworldNoMap", "layouts/NOverworld/trackerNoMap.json", "layouts/NOverworld/broadcastNoMap.json" },
+  { "4shardHuntNOverworldNoMap", "layouts/NOverworld/shardsTrackerNoMap.json", "layouts/NOverworld/broadcastShardsNoMap.json" },
+  { "5standard", "layouts/standard/tracker.json", "layouts/standard/standard_broadcast.json" },
+  { "6shardHunt", "layouts/shardHunt/tracker.json", "layouts/shardHunt/broadcast.json" },
+  { "7NOverworld", "layouts/NOverworld/tracker.json", "layouts/NOverworld/broadcast.json" },
+  { "8shardHuntNOverworld", "layouts/NOverworld/shardsTracker.json", "layouts/NOverworld/broadcastShards.json" },
+}
+local named = {}
+for _, v in ipairs(VARIANTS) do named[v[2]], named[v[3]] = true, true end
+for _, file in ipairs(layoutFiles) do
+  if file ~= "layouts/shared.json" and not named[file] then
+    fails("scripts/init.lua loads " .. file .. ", which no variant here names")
+  end
+end
+for uid in pairs(json.load(PACK .. "/manifest.json").variants) do
+  local known = false
+  for _, v in ipairs(VARIANTS) do known = known or v[1] == uid end
+  if not known then fails("manifest variant with no layout pair here: " .. uid) end
+end
+
+local holes = 0
+for _, v in ipairs(VARIANTS) do
+  local uid, trackerFile, castFile = v[1], v[2], v[3]
+  local onTracker, onCast = {}, {}
+  codesUnder(json.load(PACK .. "/" .. trackerFile).tracker_default, onTracker, {})
+  codesUnder(json.load(PACK .. "/" .. castFile).tracker_broadcast, onCast, {})
+  local gone = {}
+  for code in pairs(onTracker) do
+    if boardCodes[code] and not onCast[code] then gone[#gone + 1] = code end
+  end
+  table.sort(gone)
+  if #gone > 0 then
+    holes = holes + 1
+    fails(uid .. ": the broadcast view is missing " .. table.concat(gone, ", "))
+  end
+end
+if holes == 0 then
+  print(string.format("ok   all %d broadcast views carry every item the tracker view does",
+                      #VARIANTS))
 end
 
 -- 5. every RAM rule's stage must be a real index into that item's stages[].

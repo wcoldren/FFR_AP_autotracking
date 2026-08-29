@@ -34,6 +34,15 @@
                             },
                             {
                                 "type": "group",
+                                "header": "Bosses",
+                                "dock": "top",
+                                "content": {
+                                    "type": "layout",
+                                    "key": "shared_boss_grid"
+                                }
+                            },
+                            {
+                                "type": "group",
                                 "header": "Incentives",
                                 "dock": "top",
                                 "content": {

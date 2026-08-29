@@ -127,6 +127,32 @@ captured.cb(store(true, f5))
 local n2=0 for _ in pairs(UAT_CHECKED) do n2=n2+1 end
 check("untracked event bytes ignored", n2, 0)
 
+-- ff1/goal, which is how a solo seed's Chaos kill arrives at all. FFR only
+-- patches the goal bit into byte 0xFE for Archipelago
+-- (FF1Lib/archipelago/Archipelago.cs:225-226), so on every other seed that byte
+-- stays at its lut_InitGameFlags value forever and the bridge reads the kill
+-- out of the battle engine instead. The flag page below says nothing.
+local function goalStore(ready, mem, goal)
+  return { ReadVariable = function(self,name)
+    if name=="ff1/ready" then return ready end
+    if name=="ff1/mem" then return mem end
+    if name=="ff1/goal" then return goal end
+  end }
+end
+local f6 = blank()
+setflag(f6, 0xFE, 0x01)                      -- visible object, no event bit
+captured.cb(goalStore(true, f6, false))
+check("no goal, no flag bit, no Chaos", UAT_CHECKED[766], nil)
+captured.cb(goalStore(true, f6, true))
+check("ff1/goal checks id 766 with the flag page silent", UAT_CHECKED[766], true)
+check("ff1/goal sets the chaos item", objects["chaos"].Active, true)
+local n3=0 for _ in pairs(UAT_CHECKED) do n3=n3+1 end
+check("a goal-only frame checks just the goal", n3, 1)
+-- ...and it is the feed's to take back, the same as every other check: the
+-- board follows the game rather than accumulating.
+captured.cb(goalStore(true, f6, false))
+check("ff1/goal going false releases it", UAT_CHECKED[766], nil)
+
 ------------------------------------------------------------------
 -- ff1/rom: the signal that says "different cartridge". Without it the pack's
 -- raise-only halves carried a finished seed into the next one.
@@ -342,6 +368,53 @@ check("and it remembers why", FLAGS_UNREAD_WHY, "no schema for FFR 4-9-2")
 setFlagsUnread(nil)
 check("a good decode clears it", light.Icon, nil)
 check("and forgets the reason", FLAGS_UNREAD_WHY, nil)
+
+-- A swap has to blow the light out with the rest of the board. ff1/rom and
+-- ff1/flags normally arrive together, so applyFFRFlags would usually re-decide
+-- this a moment later -- but if it does not, the light left burning is about a
+-- cartridge that is no longer in the slot.
+setFlagsUnread("no schema for FFR 4-9-2")
+captured.cb(romStore(true, blank(), "romSwapped"))
+check("a cartridge swap clears the light", light.Icon, nil)
+check("and the reason with it", FLAGS_UNREAD_WHY, nil)
+
+-- Across a PopTracker restart the verdict has to come back with the record it
+-- is about. FFR_FLAGS_SOURCE is remembered even for a record that could not be
+-- decoded -- that is what stops the pack retrying the same bad string every
+-- scan -- so without the verdict beside it applyFFRFlags short-circuits on the
+-- unchanged string and the light never re-lights.
+local memo = luaItems[2]
+FFR_FLAGS_SOURCE = "4-9-2|somebadstring"
+setFlagsUnread("no schema for FFR 4-9-2")
+local saved = memo.SaveFunc()
+check("the memo saves the reason", saved.unread, "no schema for FFR 4-9-2")
+check("beside the record it is about", saved.flags, "4-9-2|somebadstring")
+
+setFlagsUnread(nil)
+FFR_FLAGS_SOURCE = nil
+memo.LoadFunc(memo, saved)
+check("a restart brings the record back", FFR_FLAGS_SOURCE, "4-9-2|somebadstring")
+check("and re-lights the light", light.Icon, "images/flags/flagsUnread.png")
+check("with the reason it had", FLAGS_UNREAD_WHY, "no schema for FFR 4-9-2")
+
+-- A cartridge that was read fine saves no verdict, and must not acquire one.
+setFlagsUnread(nil)
+FFR_FLAGS_SOURCE = "4-9-7|goodstring"
+local clean = memo.SaveFunc()
+check("a read cartridge saves no reason", clean.unread, nil)
+memo.LoadFunc(memo, clean)
+check("and comes back dark", light.Icon, nil)
+
+-- A host that refuses the icon write must not take the autotracking update down
+-- with it. setFlagsUnread runs inside a variable watch, so an error escaping it
+-- costs the whole board to save a warning light.
+setFlagsUnread(nil)                          -- clears the key, so __newindex fires
+setmetatable(light, { __newindex = function() error("this host says no") end })
+local wrote = pcall(setFlagsUnread, "a host that refuses the write")
+setmetatable(light, nil)
+check("a refused icon write does not escape setFlagsUnread", wrote, true)
+check("and the reason is still recorded", FLAGS_UNREAD_WHY, "a host that refuses the write")
+setFlagsUnread(nil)
 
 print(fail==0 and "\nALL PASS" or string.format("\n%d FAILURE(S)",fail))
 os.exit(fail==0 and 0 or 1)

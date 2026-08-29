@@ -11,7 +11,7 @@
 				[ "key", "rod", "oxyale", "chime", "cube" ],
 				[ "bridge", "ship", "canal", "canoe", "floater" ],
 				[ "adamant", "tnt", "crown", "crystal", "herb" ],
-				[ "ruby", "tail", "slab", "bottle" ]
+				[ "ruby", "tail", "slab", "bottle", "flagsUnread" ]
 			]
 		}
 	},
@@ -27,7 +27,7 @@
 				[ "key", "rod", "oxyale", "chime", "cube" ],
 				[ "mark", "sigil" ],
 				[ "adamant", "tnt", "crown", "crystal", "herb" ],
-				[ "ruby", "tail", "slab", "bottle" ]
+				[ "ruby", "tail", "slab", "bottle", "flagsUnread" ]
 			]
 		}
 	},
@@ -72,7 +72,7 @@
 				[ "cardiaDock", "lefeinRiver", "earlySarda" ],
 				[ "lefeinBridge", "gaiaMountain", "earlySage" ],
 				[ "hwyOrdeals", "melmondRiver", "earlyOrdeals" ],
-				[ "sardasForest", "flagsUnread" ]
+				[ "sardasForest" ]
 			]
 		}
 	},

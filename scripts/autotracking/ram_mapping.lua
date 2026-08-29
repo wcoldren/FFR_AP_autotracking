@@ -355,13 +355,20 @@ function applyRamRules(byteAt)
   -- loading an older save drop what that save had not collected. Only the
   -- present -> absent transition is reported, and only once per code, so a new
   -- game does not narrate every item nobody has yet.
+  --
+  -- And a snapshot cannot tell the two apart. Loading a save from before the
+  -- Ruby was picked up is the same transition as a turn-in rule reading the
+  -- wrong bit, so the line names both rather than accusing the rule -- a
+  -- diagnostic that cries wrong-bit at an ordinary save load is one nobody will
+  -- believe the third time.
   for code in pairs(RAM_CODES) do
     if RAM_TURN_IN[code] and best[code] == nil and LAST_RAM_STAGE[code] ~= nil
        and not VANISH_WARNED[code] then
       VANISH_WARNED[code] = true
       print(string.format(
-        "ram: %s was at stage %d and now matches no rule -- if the cartridge "
-        .. "still has it, a turn-in rule is reading the wrong bit",
+        "ram: %s was at stage %d and now matches no rule -- expected if you "
+        .. "just loaded an older save; if the cartridge still has it, a turn-in "
+        .. "rule is reading the wrong bit",
         code, LAST_RAM_STAGE[code]))
     end
     LAST_RAM_STAGE[code] = best[code]

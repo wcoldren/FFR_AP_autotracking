@@ -61,7 +61,7 @@ directory as the ROM:
     2026-08-21 20:11:02  chaos  FFR_6BF0DEA9_XsBTKFAK.nes  2:40:54 this sitting
 
 `start` is written the first time the bridge trusts a loaded save, once per
-sitting; `chaos` is written when the goal flag appears, once per cartridge. A
+sitting; `chaos` is written when Chaos goes down, once per cartridge. A
 seed played over several evenings leaves one `start` per evening and a single
 `chaos`, so the total is the last stamp minus the first. It only runs while
 PopTracker is connected, and it needs the same `Allow access to I/O and OS
@@ -70,7 +70,7 @@ functions` restriction the script already requires.
 Separately from that log there is a run clock, drawn in the top right of the
 emulator's own screen. It starts itself when you start a new game -- a flag page
 back at its new-game defaults, with nothing opened and nobody talked to -- and
-stops itself on the frame the Chaos flag appears. It counts emulated frames
+stops itself on the frame Chaos dies. It counts emulated frames
 rather than seconds, which is what makes it pause when the emulation does: tab
 away with Mesen's `Preferences -> General -> Pause when in background` ticked and
 the clock holds, and it picks up again when you come back. A manual pause, the
@@ -111,9 +111,17 @@ final time is appended to `ffr_times.log` as a third kind of line:
 Two things worth knowing. Mesen has its own `Show game timer` HUD, which times
 the session rather than the run; leave it off unless you want both, since they
 share a corner. And the community rule is that timing ends when the battle text
-on Chaos clears, whereas what the cartridge gives us is the goal flag FFR sets
-when the fight is won -- close to that moment but not verified identical, so
-check it against a recording before submitting a time.
+on Chaos clears, whereas the split here is the frame the game itself decides the
+fight is won -- the instruction before it starts the dissolve, and 110 frames
+before the dissolve is on screen. Close to the community moment but not verified
+identical, so check it against a recording before submitting a time.
+
+The kill is read out of the battle engine rather than off a flag, which is what
+makes it work on an ordinary seed. FFR only writes a "Chaos defeated" flag on
+Archipelago seeds; on every other seed there is nothing in the save that says
+the fight happened, so the bridge watches for the frame the game sets Chaos's
+battle result instead. Both routes land on the same frame, so an Archipelago
+seed's time is unchanged.
 
 It also fills in the flags grid. FFR stamps the flag string it rolled with into
 the cartridge, so the settings that used to need clicking -- Early King, the

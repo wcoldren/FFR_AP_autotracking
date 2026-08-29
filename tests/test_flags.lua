@@ -161,6 +161,44 @@ check("an empty record does nothing", applyFFRFlags(""), false)
 check("a malformed record does nothing", applyFFRFlags("nonsense"), false)
 
 ------------------------------------------------------------------
+print("\n-- a cartridge with no flag record still says so")
+--
+-- The bridge publishes "" for a cartridge it could not get a record out of --
+-- not an FFR ROM, a PRG it could not read, a build with no FFRInfo. That is the
+-- commonest way the grid ends up showing init.lua's defaults while the board
+-- asserts them as this seed's settings, so it is exactly what the light is for.
+-- Nothing publishing the variable at all is a different thing: an Archipelago
+-- session, where the defaults are what the player is meant to start from.
+------------------------------------------------------------------
+
+local litWith, lit = nil, 0
+function setFlagsUnread(why) litWith, lit = why, lit + 1 end
+
+FFR_FLAGS_SOURCE = nil
+check("an empty record is still not applied", applyFFRFlags(""), false)
+check("but it lights the unread light", type(litWith), "string")
+check("once", lit, 1)
+check("and it does not light again on the next scan", applyFFRFlags(""), false)
+check("really once", lit, 1)
+
+litWith, lit = nil, 0
+FFR_FLAGS_SOURCE = nil
+check("no variable at all does nothing", applyFFRFlags(nil), false)
+check("and lights nothing", lit, 0)
+
+litWith, lit = nil, 0
+FFR_FLAGS_SOURCE = nil
+check("a malformed record is not applied", applyFFRFlags("nonsense"), false)
+check("and it lights the light too", type(litWith), "string")
+
+litWith, lit = nil, 0
+FFR_FLAGS_SOURCE = nil
+check("a good record applies", applyFFRFlags(RECORD), true)
+check("and clears the light", litWith, nil)
+check("having said so", lit, 1)
+setFlagsUnread = nil
+
+------------------------------------------------------------------
 print("\n-- a flag left random is not a flag turned off")
 --
 -- FFR's tri-states can be left for the generator to roll, and the flag string

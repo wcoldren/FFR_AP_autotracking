@@ -38,11 +38,35 @@ local MEM_LEN = 0x300
 local FLAGS_OFF = 0x200     -- object/chest flag array, 256 bytes, within MEM
 local FLAGS_LEN = 0x100
 local GOAL_BYTE = 0xFE      -- bit 0x02 = Chaos defeated, the same flag
-                            -- worlds/ff1/Client.py treats as the goal. The pack
-                            -- does not read ff1/goal: byte 0xFE arrives inside
-                            -- ff1/mem anyway, and Chaos is mapped there as an
-                            -- ordinary event location (see location_mapping).
-                            -- It is still published for any other UAT client.
+                            -- worlds/ff1/Client.py treats as the goal.
+
+-- ...but only on an Archipelago seed. FFR patches bank 0x0B $9ADF to `20 40 9B`
+-- in FF1Lib/archipelago/Archipelago.cs:225-226, and the stub it lands on sets
+-- $62FE bit 0x02 on its way to ChaosDeath. A solo seed keeps the vanilla
+-- `JSR ChaosDeath` there and so never sets the bit at all, which left the clock
+-- running forever and the tracker's Chaos check with nothing to clear it.
+--
+-- The battle engine says the same thing out loud, though, and it says it in
+-- vanilla. BattleOver_ProcessResult (bank_0B.asm:571-574) is:
+--
+--     LDA a:btlformation / CMP #$7B / BNE :+
+--       LDA #$FF / STA btl_result / JSR ChaosDeath
+--
+-- so on the winning frame the formation is Chaos's, btl_result is $FF, and a
+-- battle is still running. btl_result keeps that value through the 110 frames
+-- ChaosDeath spends waiting out the fanfare and well past, so a per-frame poll
+-- cannot miss it. It is also the same instant the Archipelago stub sets its bit
+-- -- before the JMP, not after the dissolve -- so reading it here does not move
+-- an Archipelago seed's split by a frame.
+--
+-- ff1/goal is what carries the result to the tracker, and it is the only reason
+-- that variable is worth publishing: byte 0xFE arrives inside ff1/mem anyway,
+-- so on an Archipelago seed the pack could have read it there. It cannot on a
+-- solo seed, so scripts/autotracking/uat.lua reads ff1/goal instead.
+local BTL_FORMATION_ADDR = 0x006A   -- zero page; variables.inc btlformation
+local BTL_RESULT_ADDR = 0x6B86      -- FF1Lib Assembly/Symbols.cs:2509
+local CHAOS_FORMATION = 0x7B        -- FFR restyles it but never moves it
+local CHAOS_RESULT = 0xFF           -- "pause after fadeout", set nowhere else
 
 -- Where the player is standing. These two live in work RAM rather than the
 -- save window, so they are read on their own rather than out of MEM. Both come
@@ -71,8 +95,13 @@ local FLAGS_MARKER = "FFRInfo"
 -- In-game guard, matching worlds/ff1/Client.py and the EmoTracker pack's
 -- isInGame(). All three bytes live inside MEM.
 local GUARD_A_OFF = 0x102   -- first character's name; 0 = title / char creation
-local GUARD_B_OFF = 0x0FC   -- 0x0B / 0x0C mean a battle is running
+local GUARD_B_OFF = 0x0FC   -- see BATTLE_RUNNING
 local GUARD_C_OFF = 0x0A3
+-- What GUARD_B holds while a fight is on. Read two ways: as a reason to
+-- distrust the save window, and as the corroboration the Chaos poll needs that
+-- the formation and result bytes below it are a live battle's rather than
+-- whatever was last left in cart RAM.
+local BATTLE_RUNNING = { [0x0B] = true, [0x0C] = true }
 
 -- Wall-clock markers for a run, appended to a file next to the ROM. Nothing
 -- else on the machine can answer "how long did that seed take": FF1 keeps no
@@ -666,7 +695,7 @@ local function inGame(mem)
   if a == 0 then
     return false                      -- title screen or character creation
   end
-  if b == 0x0B or b == 0x0C then
+  if BATTLE_RUNNING[b] then
     return false                      -- battle in progress
   end
   if a == 0xF2 and b == 0xF2 and c == 0xF2 then
@@ -814,6 +843,17 @@ local runFinished = false
 local runSinceSave = 0
 local startScans = 0
 local clockScan = 0
+-- Latched, per cartridge. The kill is a moment rather than a state: nothing in
+-- a solo seed's save records it afterwards, so the one frame it is visible on
+-- has to be remembered.
+local chaosSeen = false
+-- ...but only on the cartridges that need it. FFR patches the goal bit into
+-- byte $FE for Archipelago and nowhere else, so a cartridge that has ever shown
+-- that bit keeps its own record of the kill in the save file -- and there the
+-- save has to win, or loading one from before the fight would leave the check
+-- lit for a Chaos who is standing up again. Set once, per cartridge, and
+-- persisted with the latch it disarms.
+local goalBitSeen = false
 -- One flag per failure class. Sharing one silences the other two diagnostics
 -- the first time any of them trips.
 local timerWarned = false     -- the state file
@@ -867,9 +907,14 @@ local function saveTimer()
   -- and it has to be distinct from "running" or a resume would set a clock
   -- ticking for a run nobody started.
   local state = runFinished and "done" or (runRunning and "running" or "waiting")
+  -- The kill is its own field rather than a reading of `state`, because the
+  -- clock and the kill are not the same fact. A seed picked up from a mid-run
+  -- save never arms the clock, so its state stays "waiting" for a run that
+  -- reaches Chaos all the same -- and on a solo seed this file is the only
+  -- witness to the kill that outlives the emulator.
   local called, ok = pcall(EMU.writeFile, path,
-    string.format("%s\t%d\t%s\t%d\n", runRom, runFrames, state,
-      nowSeconds() or 0))
+    string.format("%s\t%d\t%s\t%d\t%d\t%d\n", runRom, runFrames, state,
+      nowSeconds() or 0, chaosSeen and 1 or 0, goalBitSeen and 1 or 0))
   if called and ok then
     return
   end
@@ -892,13 +937,22 @@ local function loadTimer(rom)
   if not called or type(text) ~= "string" then
     return
   end
-  local savedRom, frames, state, stamp = text:match("^([^\t]*)\t(%d+)\t(%a+)\t?(%d*)")
+  local savedRom, frames, state, stamp, chaos, apGoal =
+      text:match("^([^\t]*)\t(%d+)\t(%a+)\t?(%d*)\t?(%d*)\t?(%d*)")
   if not savedRom or savedRom ~= rom then
     return
   end
   runFrames = tonumber(frames) or 0
   runFinished = (state == "done")
   runRunning = (state == "running")
+  -- Ahead of the early return below: a cartridge whose clock never started can
+  -- still have had its Chaos killed. "done" stands in for the field on files
+  -- written before it existed, where a finished clock is the only record.
+  chaosSeen = (chaos == "1") or runFinished
+  -- Absent on files written before this field existed, which reads as false --
+  -- the pre-existing behaviour, and the safe way round: the latch keeps
+  -- speaking until the flag bit is seen for itself.
+  goalBitSeen = (apGoal == "1")
   if not runRunning and not runFinished then
     return          -- a cartridge we had seen but never started timing
   end
@@ -923,6 +977,7 @@ local function ensureTimerFor(rom)
     return
   end
   runRom, runFrames, runRunning, runFinished = rom, 0, false, false
+  chaosSeen, goalBitSeen = false, false
   loadTimer(rom)
 end
 
@@ -974,8 +1029,66 @@ local function pollForStart()
   -- Not zero: the scans above spanned four tenths of a second of a real run,
   -- and the clock is advertised as exact at the split.
   runFrames, runRunning, runFinished = START_DEBOUNCE_FRAMES, true, false
+  chaosSeen, goalBitSeen = false, false
+                      -- a new game on a finished seed is a fresh run, not a
+                      -- clock that stops on its first frame
   EMU.log("new game -- run clock started")
   saveTimer()
+end
+
+-- Watch for the Chaos kill in the battle engine, and latch it. Runs every
+-- frame and ahead of the clock's own gate, because the tracker's Chaos check
+-- needs this whether or not the run was ever timed -- a seed picked up from a
+-- mid-run save never arms the clock at all.
+--
+-- Cheap by construction: three byte reads, and none of them once the latch is
+-- set. The battle guard is tested first because it is false almost always.
+local function pollChaosKill()
+  if chaosSeen or not EMU.readByte then
+    return
+  end
+  if not BATTLE_RUNNING[EMU.readByte(MEM_ADDR + GUARD_B_OFF)] then
+    return
+  end
+  if EMU.readByte(BTL_FORMATION_ADDR) ~= CHAOS_FORMATION then
+    return
+  end
+  if EMU.readByte(BTL_RESULT_ADDR) ~= CHAOS_RESULT then
+    return
+  end
+  chaosSeen = true
+  EMU.log("Chaos is down")
+  -- Written down here rather than left to the clock's checkpoint, which only
+  -- runs while the clock is running. Once per cartridge, so the cost is not
+  -- worth weighing against losing the kill to a power cycle.
+  saveTimer()
+end
+
+-- Both ways the cartridge can say the goal is reached: the flag bit, which only
+-- an Archipelago seed ever sets, and the battle read above, which is all a solo
+-- seed has. On an Archipelago seed they land on the same frame.
+--
+-- They are not simply OR'd, because they walk back differently. The flag bit is
+-- part of the save, so on a seed that carries it, loading a save from before
+-- the fight is the cartridge saying Chaos is alive -- and the latch must not
+-- argue. The latch is for the seeds where nothing in the save remembers: it
+-- speaks only until the bit has been seen set once on this cartridge, which is
+-- the moment we learn this is a seed that keeps its own record.
+local function goalReached(flagByte)
+  if type(flagByte) == "number" and (flagByte & 0x02) ~= 0 then
+    if not goalBitSeen then
+      -- Written down the moment we learn it, and only then: without this a
+      -- power cycle would come back with the latch in charge again on a seed
+      -- whose save is the better witness.
+      goalBitSeen = true
+      saveTimer()
+    end
+    return true
+  end
+  if goalBitSeen then
+    return false
+  end
+  return chaosSeen
 end
 
 -- Every frame, and deliberately not behind the socket gate: the clock is worth
@@ -1005,15 +1118,20 @@ local function tickRunClock()
     end
   end
 
+  -- Before the gate below: the latch has to be kept for the tracker even on a
+  -- cartridge whose clock never started.
+  pollChaosKill()
+
   if not runRunning then
     return
   end
   runFrames = runFrames + 1
 
   -- The split is sampled here rather than on the 10Hz scan so it lands on the
-  -- frame the flag actually flips. One byte, not the whole 0x300 window.
+  -- frame the goal actually arrives. Four bytes at worst, not the whole 0x300
+  -- window.
   local byte = EMU.readByte and EMU.readByte(MEM_ADDR + FLAGS_OFF + GOAL_BYTE)
-  if type(byte) == "number" and (byte & 0x02) ~= 0 then
+  if goalReached(byte) then
     runRunning, runFinished = false, true
     local stamp = (type(os) == "table" and os.date) and os.date("%Y-%m-%d %H:%M:%S") or "?"
     local _, romName = timesPath()
@@ -1070,7 +1188,7 @@ local function scan()
   end
 
   lastMem = mem
-  lastGoal = (at(mem, FLAGS_OFF + GOAL_BYTE) & 0x02) ~= 0
+  lastGoal = goalReached(at(mem, FLAGS_OFF + GOAL_BYTE))
   lastMap = readMap()
   noteRunProgress(lastRom, lastGoal)
   sendState(lastMem, true, lastGoal, lastMap, lastRom, lastFlags)

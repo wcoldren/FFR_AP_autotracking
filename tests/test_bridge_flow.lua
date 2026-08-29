@@ -272,6 +272,25 @@ check("ready returns after reload", j5:find('"ff1/ready","value":true', 1, true)
 check("a reset does not restart the clock", timesMatching("  start  "), 1)
 check("a reset does not re-record chaos", timesMatching("  chaos  "), 1)
 
+-- 9b. ...and the Chaos check itself walks back with the save.
+--
+-- This seed writes byte $FE, which only an Archipelago seed does, so the save
+-- is the record and the save is what the board has to follow. The solo latch
+-- further down is for the seeds where nothing in the save remembers; letting it
+-- speak here would mean a cartridge that has ever killed Chaos could never
+-- un-check @ToFR/Chaos again, however far back you loaded.
+check("byte 0xFE is clear on the reloaded save", MEMORY[0x6200 + 0xFE], 0)
+check("a save from before the kill un-checks the goal",
+  table.concat(textFrames(j5)):find('"ff1/goal","value":false', 1, true) ~= nil, true)
+MEMORY[0x6200 + 0xFE] = 0x02
+frames(12)
+check("and setting it again re-checks it",
+  table.concat(textFrames(allSent())):find('"ff1/goal","value":true', 1, true) ~= nil, true)
+MEMORY[0x6200 + 0xFE] = 0
+frames(12)
+check("as many times as the save says",
+  table.concat(textFrames(allSent())):find('"ff1/goal","value":false', 1, true) ~= nil, true)
+
 -- 10. all-FF frame (power cycle garbage) is rejected
 for a = 0x6200, 0x62FF do MEMORY[a] = 0xFF end
 frames(12)
@@ -768,6 +787,124 @@ scriptEndedCb()
 local wrote = 0
 for k, v in pairs(FILES) do if before[k] ~= v then wrote = wrote + 1 end end
 check("a teardown with no cartridge writes nothing", wrote, 0)
+
+------------------------------------------------------------------
+-- The Chaos kill on a solo seed.
+--
+-- $62FE bit 0x02 is patched in by FFR only for Archipelago
+-- (FF1Lib/archipelago/Archipelago.cs:225-226). Every other seed keeps the
+-- vanilla `JSR ChaosDeath` and never writes that byte, so the kill has to be
+-- read off the battle engine: a battle running ($60FC), Chaos's formation in
+-- btlformation ($6A), and btl_result ($6B86) set to $FF on the way into
+-- ChaosDeath. Nothing here touches byte 0xFE.
+------------------------------------------------------------------
+
+-- A fresh cartridge, a new game, and a clock ticking on it.
+ROM_INFO = { name = "seedR.nes", path = "/roms/seedR.nes", fileSha1Hash = "sha-R" }
+MEMORY[0x002D], MEMORY[0x0048] = 0, 0
+MEMORY[0x60FC], MEMORY[0x60A3] = 0, 0
+MEMORY[0x006A], MEMORY[0x6B86] = 0, 0
+for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
+MEMORY[0x6102] = 0x41
+assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+DRAWN = {}
+frames(60)
+check("the solo seed's clock is running", advance(60), 60)
+
+-- Some progress on the page, so it no longer reads as a brand new game. A
+-- party standing in front of Chaos has hundreds of these set, and without one
+-- the new-game poll would re-arm the clock the moment it stopped.
+MEMORY[0x6200 + 0x2B] = 0x05
+
+-- Two of the three, in a fight that is not Chaos, and stale battle RAM out of
+-- battle. Neither is the kill.
+MEMORY[0x60FC], MEMORY[0x006A], MEMORY[0x6B86] = 0x0B, 0x7C, 0xFF
+check("another boss does not stop the clock", advance(60), 60)
+MEMORY[0x60FC], MEMORY[0x006A] = 0, 0x7B
+check("stale battle RAM out of battle does not either", advance(60), 60)
+
+-- All three. The clock stops on that frame and not a frame later.
+MEMORY[0x60FC], MEMORY[0x006A], MEMORY[0x6B86] = 0x0B, 0x7B, 0xFF
+check("the kill frame is the last one counted", advance(1), 1)
+local soloStop = shown()
+check("the solo clock stays stopped", advance(120), 0)
+check("the kill is announced", logsMatching(allLogs(), "Chaos is down"), 1)
+check("the solo time is recorded", timesMatching("  clock  seedR.nes  " .. soloStop), 1)
+
+-- ...and it reaches the tracker, which is the half the clock does not cover.
+-- The fight ends, the save guard recovers, and ff1/goal goes out even though
+-- byte 0xFE is still 0x01 the way lut_InitGameFlags left it.
+check("byte 0xFE was never written", MEMORY[0x6200 + 0xFE], 0x01)
+MEMORY[0x60FC], MEMORY[0x006A], MEMORY[0x6B86] = 0, 0, 0
+pendingClient = fakeClient
+frames(1)
+inbox = "GET / HTTP/1.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+     .. "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n"
+frames(60)
+local goalBlob = allSent()
+check("ff1/goal reports the solo kill",
+  table.concat(textFrames(goalBlob:sub((goalBlob:find("\r\n\r\n", 1, true)) + 4)))
+    :find('"ff1/goal","value":true', 1, true) ~= nil, true)
+check("the solo kill is logged to the times file", timesMatching("  chaos  seedR.nes"), 1)
+
+-- Closing Mesen after the kill and loading the save again must not take the
+-- Chaos check back off the board. Nothing in a solo seed's save records the
+-- kill, so the state file's "done" is the only witness left.
+assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+pendingClient = fakeClient
+frames(1)
+inbox = "GET / HTTP/1.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+     .. "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n"
+frames(60)
+local againBlob = allSent()
+check("a restart still reports the kill",
+  table.concat(textFrames(againBlob:sub((againBlob:find("\r\n\r\n", 1, true)) + 4)))
+    :find('"ff1/goal","value":true', 1, true) ~= nil, true)
+
+-- The clock and the kill are separate facts, and the state file has to carry
+-- both. A seed picked up from a mid-run save never arms the clock -- its file
+-- says "waiting" forever -- but it still reaches Chaos, and a power cycle after
+-- that must not take the check off the board. Nothing else remembers: the save
+-- itself has no bit for it on a solo seed.
+ROM_INFO = { name = "seedS.nes", path = "/roms/seedS.nes", fileSha1Hash = "sha-S" }
+for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
+MEMORY[0x6200 + 0x2B] = 0x05                 -- already underway, so no new game
+MEMORY[0x60FC], MEMORY[0x006A], MEMORY[0x6B86] = 0, 0, 0
+assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+allLogs()
+frames(60)
+check("a mid-run save does not arm the clock", logsMatching(allLogs(), "run clock started"), 0)
+MEMORY[0x60FC], MEMORY[0x006A], MEMORY[0x6B86] = 0x0B, 0x7B, 0xFF
+frames(2)
+check("the kill is still seen with no clock running",
+  logsMatching(allLogs(), "Chaos is down"), 1)
+check("and it is checkpointed under a waiting clock",
+  (FILES[timerFile("sha-S")] or ""):find("\twaiting\t", 1, true) ~= nil, true)
+
+MEMORY[0x60FC], MEMORY[0x006A], MEMORY[0x6B86] = 0, 0, 0
+assert(loadfile(PACK .. "/bridge/ffr_uat_bridge.lua"))()
+pendingClient = fakeClient
+frames(1)
+inbox = "GET / HTTP/1.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+     .. "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n"
+frames(60)
+local waitBlob = allSent()
+check("an untimed kill survives a power cycle",
+  table.concat(textFrames(waitBlob:sub((waitBlob:find("\r\n\r\n", 1, true)) + 4)))
+    :find('"ff1/goal","value":true', 1, true) ~= nil, true)
+
+-- Back to seedR for the replay case.
+ROM_INFO = { name = "seedR.nes", path = "/roms/seedR.nes", fileSha1Hash = "sha-R" }
+MEMORY[0x6200 + 0x2B] = 0x05
+frames(12)
+
+-- But a new game on that same cartridge is a fresh run with Chaos alive again.
+for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
+allLogs()
+DRAWN = {}
+frames(60)
+check("a new game re-arms the solo clock", logsMatching(allLogs(), "run clock started"), 1)
+check("and the latch was released with it", advance(60), 60)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)
