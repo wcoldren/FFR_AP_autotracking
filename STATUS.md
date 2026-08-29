@@ -241,6 +241,41 @@ The conclusion for the work below: **derive from the cartridge, transcribe
 nothing from C#.** A derived rule set re-derives on a new version. That is the
 version-proofing, and it is worth more than any amount of tracking upstream.
 
+### The drift measurement, run rather than reasoned
+
+Checked 2026-08-29 by generating a 4.9.8 No-Overworld seed and reading it with
+the same tools. The vendored FF1Randomizer is 4.9.8, `FF1R/Commands/Generate.cs`
+is a working CLI, and `FF1Blazorizer/wwwroot/presets/NOverworld.json` carries
+`GameMode: 2` with Entrances, Towns and Floors all off -- the same settings the
+4.9.2 practice seed was rolled with. So the two are directly comparable:
+
+    4.9.2  F258553F   stairs=157  gates=8  empty-handed=45/61  links=124  walkable=117  all-items=54/61
+    4.9.8  F2585540   stairs=157  gates=8  empty-handed=45/61  links=124  walkable=117  all-items=54/61
+
+Identical, across six releases *and* a different seed. The ToFR finding holds on
+both. That is the "derive from the cartridge, transcribe nothing" bet paying
+out: nothing in the topology, the gate NPCs or the routing moved.
+
+The flag string did move, which is the other half of the same story -- 4.9.8
+adds `Tracker`, `ShowGoMode`, `ShowReminders`, `NoTristateSpoilers` and
+`OrbGraphicsInResourcePack`, and drops `AfterHits` and `StartOfHits`: 568
+properties to 571. A 4.9.8 seed genuinely cannot be read with the 4-9-7 schema.
+`gen_schema.py` regenerated it in one command and self-verified, so the "a new
+version is one command" claim holds too.
+
+**No 4-9-8 schema is committed, deliberately.** upstream/master is 4.9.7;
+4.9.8 is upstream/dev and unreleased. A schema records the build SHA it was
+proved against and `ffr_flags.py:102` refuses on mismatch, so one keyed to a
+local fork build would never match a real 4.9.8 seed -- it would be dead weight
+that reads as support. Regenerate from the release checkout when 4.9.8 ships.
+
+Two things worth knowing for anyone repeating this. A locally built FFR stamps
+`beta-SHA`, not a version, because `FFRVersion.cs` has `Sha` and `Branch` as
+placeholders that only FFR's own deploy substitutes; set `Branch = "master"` and
+`Sha` to the checkout's HEAD to get a cartridge that stamps `4-9-8`. And the
+fork the clone sits on (`ap-item-text`) does not touch `FF1Lib/Flags.cs`, so the
+flag layout it produces is upstream's.
+
 ### Where the pack stands against that
 
 - ~~**Both map variants define exactly one tab.**~~ Fixed, commit `17c423d`.
