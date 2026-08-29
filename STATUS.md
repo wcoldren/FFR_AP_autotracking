@@ -220,10 +220,8 @@ Nothing here is designed yet and the order below is not a plan.
   generates, so nothing downstream changes.
 
   *Follow.* PopTracker takes `Tracker:UiHint("Zoom <map>", "2.5")` and
-  `Tracker:UiHint("Pan <map>", "x,y")` per map (trackerview.cpp:940-956) -- but
-  only since **0.34.0**, which added map zoom and pan at all, and the manifest
-  still declares a 0.32.0 floor. Smooth panning at high zoom came in 0.35.0. So
-  this one costs a `min_poptracker_version` bump, not just code. And
+  `Tracker:UiHint("Pan <map>", "x,y")` per map (trackerview.cpp:940-956) -- only
+  since 0.34.0, which is part of why the manifest floor moved to 0.35.1. And
   the pack already drives `UiHint("ActivateTab", ...)` from `maptab.lua`. The
   bridge reads the party's position for the entrance-marker work below
   (`sm_scroll` `$29/$2A`, party always 7 tiles in). So following the party into
