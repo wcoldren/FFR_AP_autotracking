@@ -133,6 +133,22 @@ All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
   ROM-derived art out of the repo and is also the more correct option, since
   Waterfall's two staircases are rolled per seed.
 
+- **And the swap is one command.** `tools/regen_maps.py FFR_seed.nes` renders
+  the 61 maps, moves all 253 dungeon markers onto them, and writes maps.json
+  entries and tabs for the ten maps the pack has no art for -- into PopTracker's
+  `user-override/ff1_rando_ap/`, not the checkout, so the repo keeps shipping
+  the screenshots and `--clean` puts it back. Every moved marker is checked
+  against the cartridge's own chest tiles and `npc_positions.json` before
+  anything is written. It caches: a second run on the same cartridge does
+  nothing, and a new seed rewrites only the maps whose pixels differ -- 26 of 66
+  files between two No-Overworld seeds.
+
+  What this does *not* give you is the shuffle. Of the 56 maps carrying a
+  staircase on seed `F258553F`, 21 draw differently from vanilla -- the sealed
+  town walls and the new rooms. The rest are teleporters stamped on tiles that
+  already looked like that, which no amount of redrawing will reveal. Those want
+  the entrance markers below.
+
 - **The one image cannot carry markers.** `images/maps/nooverworldmap.jpg` is
   upstream art (Photoshop, 2021, mikesrpgcenter watermarks) added in the "Add
   files via upload" commits. It is 3096x2816, but Coneria Castle occupies about
