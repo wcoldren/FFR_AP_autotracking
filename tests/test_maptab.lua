@@ -22,6 +22,84 @@ local function check(name, got, want)
   end
 end
 
+-- 0. every layout the pack registers has to be a JSON *object*.
+--
+--    Tracker::AddLayouts (tracker.cpp:505-515) skips any top-level value that
+--    is not an object -- it prints "Bad layout" to stderr and carries on -- so
+--    a layout wrapped in an array is never registered, and every
+--    {"type": "layout"} reference to it expands to nothing. The tab that holds
+--    it still draws, empty. That is how all three dungeon trees came to be
+--    array-wrapped and every map tab in every map variant came up blank while
+--    this suite stayed green: the walker below follows a reference into a Lua
+--    table without caring whether it decoded from [ ] or { }, and PopTracker
+--    cares very much.
+local LAYOUT_FILES = {
+  "layouts/shared.json",
+  "layouts/standard/tracker.json",
+  "layouts/standard/standard_broadcast.json",
+  "layouts/standardNoMap/tracker.json",
+  "layouts/standardNoMap/broadcastNoMap.json",
+  "layouts/shardHunt/tracker.json",
+  "layouts/shardHunt/broadcast.json",
+  "layouts/shardHuntNoMap/tracker.json",
+  "layouts/shardHuntNoMap/broadcastNoMap.json",
+  "layouts/NOverworld/tracker.json",
+  "layouts/NOverworld/broadcast.json",
+  "layouts/NOverworld/trackerNoMap.json",
+  "layouts/NOverworld/broadcastNoMap.json",
+  "layouts/NOverworld/shardsTracker.json",
+  "layouts/NOverworld/broadcastShards.json",
+  "layouts/NOverworld/shardsTrackerNoMap.json",
+  "layouts/NOverworld/broadcastShardsNoMap.json",
+}
+
+local registered = {}
+local badLayouts = 0
+for _, file in ipairs(LAYOUT_FILES) do
+  local doc = json.load(PACK .. "/" .. file)
+  if type(doc) ~= "table" then
+    fails(file .. ": not a JSON object")
+    badLayouts = badLayouts + 1
+  else
+    for key, value in pairs(doc) do
+      -- json.lua decodes both [ ] and { } to a table, so an array is one with
+      -- a [1]. Every layout here has named keys and no positional ones.
+      if type(value) ~= "table" or value[1] ~= nil then
+        fails(string.format("%s: layout %q is not an object, so PopTracker "
+          .. "drops it and anything referencing it draws blank", file, key))
+        badLayouts = badLayouts + 1
+      else
+        registered[key] = true
+      end
+    end
+  end
+end
+if badLayouts == 0 then
+  print(string.format("ok   all %d layout files register objects, not arrays",
+    #LAYOUT_FILES))
+end
+
+-- 0b. and every reference names one of them.
+local unresolved = {}
+local function walkRefs(node)
+  if type(node) ~= "table" then return end
+  if node.type == "layout" and node.key and not registered[node.key] then
+    unresolved[node.key] = true
+  end
+  for _, v in pairs(node) do walkRefs(v) end
+end
+for _, file in ipairs(LAYOUT_FILES) do walkRefs(json.load(PACK .. "/" .. file)) end
+local missingRefs = {}
+for key in pairs(unresolved) do missingRefs[#missingRefs + 1] = key end
+table.sort(missingRefs)
+if #missingRefs > 0 then
+  for _, key in ipairs(missingRefs) do
+    fails(string.format("layout %q is referenced but never registered", key))
+  end
+else
+  print("ok   every layout reference resolves to a registered layout")
+end
+
 -- Every tab title the layout defines, at any nesting depth.
 --
 -- {"type": "layout", "key": k} has to be followed into layouts/shared.json,

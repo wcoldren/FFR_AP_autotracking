@@ -244,590 +244,584 @@
             ]
         ]
     },
-    "shared_fiend_dungeon_tabs": [
-        {
-            "type": "tabbed",
-            "tabs": [
-                {
-                    "title": "Earth Cave",
-                    "content": [
-                        {
-                            "type": "tabbed",
-                            "tabs": [
-                                {
-                                    "title": "Earth Cave B1",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "earthB1"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Earth Cave B2",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "earthB2"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Earth Cave B3",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "earthB3"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Earth Cave B4",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "earthB4"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Earth Cave B5",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "earthB5"
-                                        ]
-                                    }
+    "shared_fiend_dungeon_tabs": {
+        "type": "tabbed",
+        "tabs": [
+            {
+                "title": "Earth Cave",
+                "content": [
+                    {
+                        "type": "tabbed",
+                        "tabs": [
+                            {
+                                "title": "Earth Cave B1",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "earthB1"
+                                    ]
                                 }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Gurgu Volcano",
-                    "content": [
-                        {
-                            "type": "tabbed",
-                            "tabs": [
-                                {
-                                    "title": "Gurgu Volcano B1",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "volcB1"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Gurgu Volcano B2",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "volcB2"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Gurgu Volcano B3",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "volcB3"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Gurgu Volcano B4",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "volcB4"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Gurgu Volcano B5",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "volcB5"
-                                        ]
-                                    }
+                            },
+                            {
+                                "title": "Earth Cave B2",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "earthB2"
+                                    ]
                                 }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Sea Shrine",
-                    "content": [
-                        {
-                            "type": "tabbed",
-                            "tabs": [
-                                {
-                                    "title": "Sea Shrine B5",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "seaB5"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Sea Shrine B4",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "seaB4"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Sea Shrine B3",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "seaB3"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Sea Shrine B2",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "seaB2"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Sea Shrine B1",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "seaB1"
-                                        ]
-                                    }
+                            },
+                            {
+                                "title": "Earth Cave B3",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "earthB3"
+                                    ]
                                 }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Sky Palace",
-                    "content": [
-                        {
-                            "type": "tabbed",
-                            "tabs": [
-                                {
-                                    "title": "Mirage Tower 1F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "mirage1F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Mirage Tower 2F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "mirage2F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Mirage Tower 3F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "mirage3F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Sky Palace 1F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "sky1F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Sky Palace 2F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "sky2F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Sky Palace 3F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "sky3F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Sky Palace 4F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "sky4F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Sky Palace 5F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "sky5F"
-                                        ]
-                                    }
+                            },
+                            {
+                                "title": "Earth Cave B4",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "earthB4"
+                                    ]
                                 }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Temple of Fiends",
-                    "content": [
-                        {
-                            "type": "tabbed",
-                            "tabs": [
-                                {
-                                    "title": "Temple of Fiends",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "tof"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "ToFR 1F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "tofr1F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "ToFR 2F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "tofr2F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "ToFR 3F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "tofr3F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "ToFR Earth",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "tofrEarth"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "ToFR Fire",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "tofrFire"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "ToFR Water",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "tofrWater"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "ToFR Air",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "tofrAir"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "ToFR Chaos",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "tofrChaos"
-                                        ]
-                                    }
+                            },
+                            {
+                                "title": "Earth Cave B5",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "earthB5"
+                                    ]
                                 }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-    ],
-    "shared_cave_dungeon_tabs": [
-        {
-            "type": "tabbed",
-            "tabs": [
-                {
-                    "title": "Marsh Cave",
-                    "content": [
-                        {
-                            "type": "tabbed",
-                            "tabs": [
-                                {
-                                    "title": "Marsh Split",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "marshB1"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Marsh B1",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "marshB2"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Marsh B2",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "marshB3"
-                                        ]
-                                    }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Gurgu Volcano",
+                "content": [
+                    {
+                        "type": "tabbed",
+                        "tabs": [
+                            {
+                                "title": "Gurgu Volcano B1",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "volcB1"
+                                    ]
                                 }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Ice Cave",
-                    "content": [
-                        {
-                            "type": "tabbed",
-                            "tabs": [
-                                {
-                                    "title": "Ice Cave - Exit Floor",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "iceB1"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Ice Cave - Incentive Room",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "iceB2"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Ice Cave - Bottom Floor",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "iceB3"
-                                        ]
-                                    }
+                            },
+                            {
+                                "title": "Gurgu Volcano B2",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "volcB2"
+                                    ]
                                 }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Castle of Ordeals",
-                    "content": [
-                        {
-                            "type": "tabbed",
-                            "tabs": [
-                                {
-                                    "title": "Castle of Ordeals 1F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "ordeals1F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Castle of Ordeals 2F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "ordeals2F"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Castle of Ordeals 3F",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "ordeals3F"
-                                        ]
-                                    }
+                            },
+                            {
+                                "title": "Gurgu Volcano B3",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "volcB3"
+                                    ]
                                 }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Cardia Islands",
-                    "content": [
-                        {
-                            "type": "tabbed",
-                            "tabs": [
-                                {
-                                    "title": "Cardias",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "cardia"
-                                        ]
-                                    }
-                                },
-                                {
-                                    "title": "Bahamut's Lair",
-                                    "content": {
-                                        "type": "map",
-                                        "maps": [
-                                            "bahamut"
-                                        ]
-                                    }
+                            },
+                            {
+                                "title": "Gurgu Volcano B4",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "volcB4"
+                                    ]
                                 }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-    ],
-    "shared_other_tabs": [
-        {
-            "type": "tabbed",
-            "tabs": [
-                {
-                    "title": "Coneria Castle",
-                    "content": [
-                        {
-                            "type": "map",
-                            "maps": [
-                                "con_castle"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Matoya's Cave",
-                    "content": [
-                        {
-                            "type": "map",
-                            "maps": [
-                                "matoya"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Elf Castle",
-                    "content": [
-                        {
-                            "type": "map",
-                            "maps": [
-                                "elf_castle"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Northwest Castle",
-                    "content": [
-                        {
-                            "type": "map",
-                            "maps": [
-                                "nw_castle"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Dwarf Cave",
-                    "content": [
-                        {
-                            "type": "map",
-                            "maps": [
-                                "dwarves"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Sarda's Cave",
-                    "content": [
-                        {
-                            "type": "map",
-                            "maps": [
-                                "sarda"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Waterfall",
-                    "content": [
-                        {
-                            "type": "map",
-                            "maps": [
-                                "waterfall"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Titan's Tunnel",
-                    "content": [
-                        {
-                            "type": "map",
-                            "maps": [
-                                "titans"
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
+                            },
+                            {
+                                "title": "Gurgu Volcano B5",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "volcB5"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Sea Shrine",
+                "content": [
+                    {
+                        "type": "tabbed",
+                        "tabs": [
+                            {
+                                "title": "Sea Shrine B5",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "seaB5"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Sea Shrine B4",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "seaB4"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Sea Shrine B3",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "seaB3"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Sea Shrine B2",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "seaB2"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Sea Shrine B1",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "seaB1"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Sky Palace",
+                "content": [
+                    {
+                        "type": "tabbed",
+                        "tabs": [
+                            {
+                                "title": "Mirage Tower 1F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "mirage1F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Mirage Tower 2F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "mirage2F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Mirage Tower 3F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "mirage3F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Sky Palace 1F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "sky1F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Sky Palace 2F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "sky2F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Sky Palace 3F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "sky3F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Sky Palace 4F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "sky4F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Sky Palace 5F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "sky5F"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Temple of Fiends",
+                "content": [
+                    {
+                        "type": "tabbed",
+                        "tabs": [
+                            {
+                                "title": "Temple of Fiends",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "tof"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "ToFR 1F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "tofr1F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "ToFR 2F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "tofr2F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "ToFR 3F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "tofr3F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "ToFR Earth",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "tofrEarth"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "ToFR Fire",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "tofrFire"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "ToFR Water",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "tofrWater"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "ToFR Air",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "tofrAir"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "ToFR Chaos",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "tofrChaos"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "shared_cave_dungeon_tabs": {
+        "type": "tabbed",
+        "tabs": [
+            {
+                "title": "Marsh Cave",
+                "content": [
+                    {
+                        "type": "tabbed",
+                        "tabs": [
+                            {
+                                "title": "Marsh Split",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "marshB1"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Marsh B1",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "marshB2"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Marsh B2",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "marshB3"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Ice Cave",
+                "content": [
+                    {
+                        "type": "tabbed",
+                        "tabs": [
+                            {
+                                "title": "Ice Cave - Exit Floor",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "iceB1"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Ice Cave - Incentive Room",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "iceB2"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Ice Cave - Bottom Floor",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "iceB3"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Castle of Ordeals",
+                "content": [
+                    {
+                        "type": "tabbed",
+                        "tabs": [
+                            {
+                                "title": "Castle of Ordeals 1F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "ordeals1F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Castle of Ordeals 2F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "ordeals2F"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Castle of Ordeals 3F",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "ordeals3F"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Cardia Islands",
+                "content": [
+                    {
+                        "type": "tabbed",
+                        "tabs": [
+                            {
+                                "title": "Cardias",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "cardia"
+                                    ]
+                                }
+                            },
+                            {
+                                "title": "Bahamut's Lair",
+                                "content": {
+                                    "type": "map",
+                                    "maps": [
+                                        "bahamut"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "shared_other_tabs": {
+        "type": "tabbed",
+        "tabs": [
+            {
+                "title": "Coneria Castle",
+                "content": [
+                    {
+                        "type": "map",
+                        "maps": [
+                            "con_castle"
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Matoya's Cave",
+                "content": [
+                    {
+                        "type": "map",
+                        "maps": [
+                            "matoya"
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Elf Castle",
+                "content": [
+                    {
+                        "type": "map",
+                        "maps": [
+                            "elf_castle"
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Northwest Castle",
+                "content": [
+                    {
+                        "type": "map",
+                        "maps": [
+                            "nw_castle"
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Dwarf Cave",
+                "content": [
+                    {
+                        "type": "map",
+                        "maps": [
+                            "dwarves"
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Sarda's Cave",
+                "content": [
+                    {
+                        "type": "map",
+                        "maps": [
+                            "sarda"
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Waterfall",
+                "content": [
+                    {
+                        "type": "map",
+                        "maps": [
+                            "waterfall"
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Titan's Tunnel",
+                "content": [
+                    {
+                        "type": "map",
+                        "maps": [
+                            "titans"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
 }
