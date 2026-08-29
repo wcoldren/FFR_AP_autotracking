@@ -70,12 +70,18 @@ INPUT_FILES = [
     "tools/make_markers.py",
     "tools/pngio.py",
     "tools/map_calibration.json",
+    "tools/npc_positions.json",
     "maps/maps.json",
     "layouts/shared.json",
     "locations/overworld.json",
     "locations/incentives.json",
     "locations/NOverworld/incentives.json",
 ]
+
+# Every map this redraws. A marker on one of these needs a calibration entry
+# to be moved; a marker on anything else -- the overworld, the incentive sheet --
+# sits on art this does not touch.
+REDRAWN = set(render_maps.MAP_FILES.values())
 
 # The two maps the pack draws as one composite each. Rendered separately they
 # are two images, so the tab that held one now holds both side by side --
@@ -146,23 +152,34 @@ def rendered_calibration():
 def tile_of(entry, x, y):
     """Invert make_markers.build: pixel back to the ROM tile that produced it.
 
-    The forward direction takes the first region whose bounds contain the tile,
-    so the inverse takes the first region that both divides evenly and lands in
-    bounds. A marker that no region explains is one this cannot move, which is
-    reported rather than guessed at.
+    A candidate region has to divide evenly and land in bounds, and it also has
+    to be the region make_markers.region_for would have picked for that tile --
+    the first whose bounds hold it. Two regions cropped from the same 16 px
+    source grid divide identically, and without the second test the earlier one
+    would answer for a tile that belongs to the later. A marker no region
+    explains is one this cannot move, which is reported rather than guessed at.
     """
     tp = entry["tile_px"]
     half = tp // 2
-    for r in entry["regions"]:
+    for i, r in enumerate(entry["regions"]):
         dx, dy = x - r["offset_x"] - half, y - r["offset_y"] - half
         if dx < 0 or dy < 0 or dx % tp or dy % tp:
             continue
         col, row = dx // tp, dy // tp
-        rlo, rhi = r.get("rows", (0, 63))
-        clo, chi = r.get("cols", (0, 63))
-        if rlo <= row <= rhi and clo <= col <= chi:
-            return col, row
+        if not in_region(r, col, row):
+            continue
+        if next(j for j, o in enumerate(entry["regions"])
+                if in_region(o, col, row)) != i:
+            continue
+        return col, row
     return None
+
+
+def in_region(r, col, row):
+    """make_markers.region_for's bounds test, which this has to agree with."""
+    rlo, rhi = r.get("rows", (0, 63))
+    clo, chi = r.get("cols", (0, 63))
+    return rlo <= row <= rhi and clo <= col <= chi
 
 
 # ------------------------------------------------------------------- contents
@@ -196,15 +213,21 @@ def build_maps_json():
 
 
 def remap_locations(old_cal, path):
-    """-> (new document, moved, unmoved, unexplained).
+    """-> (new document, moved, unmoved, unexplained, uncalibrated).
 
     Every marker on a map this redraws is moved from its old pixel to the one
     the rendered art puts that tile at. Markers on the overworld and incentive
     maps are left alone: their art does not change.
+
+    A marker on a map that is redrawn but has no calibration entry can be
+    neither moved nor left: the art under it changes and its pixel does not, so
+    it would end up pointing at whatever the new art happens to have there. Only
+    a map this does not redraw is safely unmoved, so the rest are reported.
     """
     doc = lenient(os.path.join(PACK, path))
     moved = unmoved = 0
     unexplained = []
+    uncalibrated = []
 
     def walk(nodes):
         nonlocal moved, unmoved
@@ -214,7 +237,11 @@ def remap_locations(old_cal, path):
             for ml in n.get("map_locations") or []:
                 entry = old_cal.get(ml.get("map"))
                 if entry is None:
-                    unmoved += 1
+                    if ml.get("map") in REDRAWN:
+                        uncalibrated.append((n.get("name"), ml.get("map"),
+                                             ml["x"], ml["y"]))
+                    else:
+                        unmoved += 1
                     continue
                 tile = tile_of(entry, ml["x"], ml["y"])
                 if tile is None:
@@ -228,7 +255,7 @@ def remap_locations(old_cal, path):
             walk(n.get("children") or [])
 
     walk(doc)
-    return doc, moved, unmoved, unexplained
+    return doc, moved, unmoved, unexplained, uncalibrated
 
 
 def map_block(content):
@@ -409,13 +436,15 @@ def main():
                if not k.startswith("_")}
     moved = unmoved = 0
     problems = []
+    uncalibrated = []
     for rel in ("locations/overworld.json", "locations/incentives.json",
                 "locations/NOverworld/incentives.json"):
-        doc, m, u, bad = remap_locations(old_cal, rel)
+        doc, m, u, bad, uncal = remap_locations(old_cal, rel)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
         moved += m
         unmoved += u
         problems += bad
+        uncalibrated += uncal
 
     # A marker that moved has to land on the tile its chest -- or its NPC -- is
     # actually on. The ROM's own answer for both is on disk, so this compares
@@ -437,6 +466,7 @@ def main():
         placed |= {(m["map"], m["x"], m["y"])
                    for marks in group.values() for m in marks}
     stray = []
+    unmovable = {(m, x, y) for _, m, x, y in problems}
     for rel in ("locations/overworld.json",):
         doc = json.loads(files[rel])
 
@@ -446,6 +476,7 @@ def main():
                     continue
                 for ml in n.get("map_locations") or []:
                     if ml.get("map") in old_cal \
+                            and (ml["map"], ml["x"], ml["y"]) not in unmovable \
                             and (ml["map"], ml["x"], ml["y"]) not in placed:
                         stray.append((n.get("name"), ml["map"], ml["x"], ml["y"]))
                 walk(n.get("children") or [])
@@ -455,16 +486,24 @@ def main():
     files["maps/maps.json"] = (json.dumps(build_maps_json(), indent=4) + "\n").encode()
     files["layouts/shared.json"] = (json.dumps(build_layouts(), indent=4) + "\n").encode()
 
+    def report(what, rows):
+        print(f"\nFAILED: {len(rows)} {what}:")
+        for name, m, x, y in rows[:10]:
+            print(f"  {name} on {m} at {x},{y}")
+        if len(rows) > 10:
+            print(f"  ... and {len(rows) - 10} more")
+
     if problems:
-        print(f"\n{len(problems)} markers sit on no calibrated tile and were left "
-              "where they are:")
-        for name, m, x, y in problems[:10]:
-            print(f"  {name} on {m} at {x},{y}")
+        report("markers sit on no calibrated tile, so there is no tile to put "
+               "them back on in the rendered art", problems)
+    if uncalibrated:
+        report("markers are on maps this redraws, but tools/map_calibration.json "
+               "has no entry to move them by", uncalibrated)
     if stray:
-        print(f"\nFAILED: {len(stray)} moved markers land on neither a chest "
-              "tile nor an NPC tile:")
-        for name, m, x, y in stray[:10]:
-            print(f"  {name} on {m} at {x},{y}")
+        report("moved markers land on neither a chest tile nor an NPC tile",
+               stray)
+    if problems or uncalibrated or stray:
+        print("\nnothing was written.")
         return 1
 
     changed = [rel for rel in sorted(files)
@@ -482,7 +521,8 @@ def main():
     print(f"\n{verb} {len(changed)} of {len(files)} files to {out_dir}")
     print(f"  {moved} markers moved onto the rendered art, every one on the "
           "chest or NPC tile the ROM puts it on")
-    print(f"  {unmoved} left alone (overworld and incentive maps keep the pack's art)")
+    print(f"  {unmoved} left alone (the overworld and incentive maps are not "
+          "redrawn, so their markers keep the pack's pixels)")
     if changed and len(changed) < len(files):
         print("  changed: " + ", ".join(changed[:8])
               + (" ..." if len(changed) > 8 else ""))
