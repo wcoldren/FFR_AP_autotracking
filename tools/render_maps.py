@@ -8,9 +8,16 @@ maps and seals every town's outer wall -- so a screenshot of the vanilla castle
 shows the right rooms and the wrong exits. Drawing from the cartridge instead
 gets the seed's own map, whatever mode it is in.
 
-It also makes calibration disappear. Every image is 64 tiles at 16 pixels, so
-tile (col, row) is pixel (col * 16, row * 16) exactly, with no offset to eyeball
-and no map left uncalibrated.
+It also makes calibration disappear -- but only for a pack that has been moved
+over wholesale. Every image here is 64 tiles at 16 pixels, so tile (col, row) is
+pixel (col * 16, row * 16) exactly, with no offset to eyeball and no map left
+uncalibrated. The 51 images the pack ships today are hand-drawn composites at 51
+different sizes, each with a hand-solved offset in tools/map_calibration.json
+that make_markers.py bakes into the pixel coordinates in locations/*.json.
+Dropping these renders on top of those without rewriting map_calibration.json
+(every offset zero, one region per map) and re-running make_markers.py moves the
+art out from under every dungeon marker. Render somewhere else until that swap
+is done as one piece.
 
 The rendering is FF1Lib/Sprites/MapSprites.cs's, in Python:
 
@@ -51,7 +58,7 @@ is 102,102,102 where FFR's is 123,123,123), so the comparison is on palette
 indices, not raw RGB.
 
 Usage:
-    tools/render_maps.py ROM -o images/maps            # all 61, pack names
+    tools/render_maps.py ROM -o /tmp/maps              # all 61, pack names
     tools/render_maps.py ROM --map 8                   # just Coneria Castle 1F
     tools/render_maps.py ROM --check DIR               # diff against FF1R's
 """
@@ -171,9 +178,14 @@ def render(rom, map_id, inside=False):
     return side, side, bytes(out)
 
 
-# The pack's own name for each standard map, so the output drops straight into
-# images/maps/ and maps.json keeps working. None means the pack has no tab for
-# it yet -- the eight towns, which No-Overworld turns into real rooms.
+# The pack's own name for each standard map, taken from
+# scripts/autotracking/mapValues.lua's MAP_VALUE, which is what the tracker
+# itself keys off. Nine of these -- the eight towns and Coneria Castle 2F --
+# name images the pack does not ship yet: it screenshotted only what vanilla
+# gives a tab to, and No-Overworld turns the towns into real rooms. Rendering
+# them is the point; wiring the tabs is a separate step. Bahamut's Lair and
+# Coneria Castle are two maps apiece (17/39 and 8/24), which the pack draws as
+# one composite image each, so those keep the floor suffix here.
 MAP_FILES = {
     0: "coneria_town", 1: "pravoka", 2: "elfland", 3: "melmond",
     4: "crescent_lake", 5: "gaia", 6: "onrac", 7: "lefein",
@@ -185,13 +197,15 @@ MAP_FILES = {
     27: "marshB2", 28: "marshB3", 29: "earthB2", 30: "earthB3",
     31: "earthB4", 32: "earthB5", 33: "volcB2", 34: "volcB3",
     35: "volcB4", 36: "volcB5", 37: "iceB2", 38: "iceB3",
-    39: "mirage2F", 40: "mirage3F", 41: "sky1F", 42: "sky2F",
-    43: "sky3F", 44: "seaB3", 45: "seaB2", 46: "seaB1",
-    47: "seaB4", 48: "seaB5", 49: "sky4F", 50: "sky5F",
-    51: "tofr1F", 52: "tofr2F", 53: "tofr3F", 54: "tofrEarth",
-    55: "tofrFire", 56: "tofrWater", 57: "tofrAir", 58: "tofrChaos",
-    59: "tofrRevisited", 60: "titans",
+    39: "bahamutB2", 40: "mirage2F", 41: "mirage3F", 42: "seaB5",
+    43: "seaB4", 44: "seaB3", 45: "seaB2", 46: "seaB1",
+    47: "sky1F", 48: "sky2F", 49: "sky3F", 50: "sky4F",
+    51: "sky5F", 52: "tofr1F", 53: "tofr2F", 54: "tofr3F",
+    55: "tofrEarth", 56: "tofrFire", 57: "tofrWater", 58: "tofrAir",
+    59: "tofrChaos", 60: "titans",
 }
+
+assert len(MAP_FILES) == MAP_COUNT and len(set(MAP_FILES.values())) == MAP_COUNT
 
 
 def check(rom, ref_dir):
@@ -212,7 +226,7 @@ def check(rom, ref_dir):
         w, h, mine = render(rom, map_id)
         if (rw, rh) != (w, h) or rgb != mine:
             diff = sum(1 for a, b in zip(rgb, mine) if a != b) if (rw, rh) == (w, h) else -1
-            print(f"  DIFFER map {map_id} ({MAP_FILES.get(map_id)}): {diff} bytes")
+            print(f"  DIFFER map {map_id} ({MAP_FILES[map_id]}): {diff} bytes")
             bad += 1
     checked = MAP_COUNT - missing
     if missing:
@@ -247,11 +261,11 @@ def main():
         sys.exit("nothing to do: pass -o DIR to write images, or --check DIR")
     os.makedirs(args.out, exist_ok=True)
 
+    if args.map is not None and args.map not in MAP_FILES:
+        sys.exit(f"no such standard map: {args.map} (0-{MAP_COUNT - 1})")
     ids = [args.map] if args.map is not None else range(MAP_COUNT)
     for map_id in ids:
-        name = MAP_FILES.get(map_id)
-        if name is None:
-            continue
+        name = MAP_FILES[map_id]
         w, h, rgb = render(rom, map_id, args.inside)
         path = os.path.join(args.out, name + ".png")
         pngio.write_rgb(path, w, h, rgb)
