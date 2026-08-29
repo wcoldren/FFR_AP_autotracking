@@ -195,6 +195,7 @@ do
   local PLACED = {
     ["Dwarf Cave Smith"]   = { npc = "smith",   map = "dwarves" },
     ["Dwarf Cave Nerrick"] = { npc = "nerrick", map = "dwarves" },
+    ["Sarda's Cave"]       = { npc = "sarda",   map = "sarda" },
   }
 
   local nodes = {}
@@ -227,18 +228,71 @@ do
         local half = entry.tile_px // 2
         local x = r.offset_x + pos.tile_col * entry.tile_px + half
         local y = r.offset_y + pos.tile_row * entry.tile_px + half
-        local ml = (node.map_locations or {})[1]
+        -- A node can carry more than one pin -- Sarda's Cave has its overworld
+        -- pin first and its dungeon pin second -- so this picks the one on the
+        -- map being checked rather than whichever was written first.
+        local ml
+        for _, cand in ipairs(node.map_locations or {}) do
+          if cand.map == want.map then ml = cand end
+        end
         if not ml then
-          fails(string.format("%s has no map_location", name))
-        elseif ml.map ~= want.map or ml.x ~= x or ml.y ~= y then
+          fails(string.format("%s has no map_location on %s", name, want.map))
+        elseif ml.x ~= x or ml.y ~= y then
           fails(string.format("%s is at %s(%d,%d) but %s belongs at %s(%d,%d)",
-            name, tostring(ml.map), ml.x or -1, ml.y or -1, want.npc, want.map, x, y))
+            name, ml.map, ml.x or -1, ml.y or -1, want.npc, want.map, x, y))
         else
           print(string.format("ok   %-22s marker matches %s at %s(%d,%d)",
             name, want.npc, want.map, x, y))
         end
       end
     end
+  end
+end
+
+-- 4d. the calibration entries derived from an upstream pixel instead of solved
+--     from chest sprites. Their maps hold no chest, so 4b can never reach them
+--     and solve_calibration.py reports "ok 0/0" for each. What is still
+--     checkable is the correspondence they were built on: the NPC's tile comes
+--     off the cartridge (npc_positions.json) and the pixel comes from
+--     upstream's art, and the offset is the only thing that joins the two. If
+--     either end is edited, the offset stops being the answer and this says so.
+do
+  local npcs = json.load(PACK .. "/tools/npc_positions.json")
+  local cal = json.load(PACK .. "/tools/map_calibration.json")
+
+  local checked = 0
+  for map, entry in pairs(cal) do
+    local d = type(entry) == "table" and type(entry._derived_from) == "table"
+      and entry._derived_from or nil
+    if d then
+      local pos
+      for _, p in ipairs(npcs[d.npc] or {}) do
+        if p.map_id == entry.rom_map_id then pos = p end
+      end
+      if not pos then
+        fails(string.format("%s is derived from %s, which npc_positions.json "
+          .. "does not place on ROM map %d", map, tostring(d.npc), entry.rom_map_id))
+      elseif #entry.regions ~= 1 then
+        fails(string.format("%s has %d regions; a derived entry describes one",
+          map, #entry.regions))
+      else
+        -- make_markers.py: offset + tile * tile_px + half
+        local r = entry.regions[1]
+        local half = entry.tile_px // 2
+        local x = r.offset_x + pos.tile_col * entry.tile_px + half
+        local y = r.offset_y + pos.tile_row * entry.tile_px + half
+        if x ~= d.pixel[1] or y ~= d.pixel[2] then
+          fails(string.format("%s puts %s at (%d,%d); it was derived from (%d,%d)",
+            map, d.npc, x, y, d.pixel[1], d.pixel[2]))
+        else
+          checked = checked + 1
+          print(string.format("ok   %-8s reproduces %s at (%d,%d)", map, d.npc, x, y))
+        end
+      end
+    end
+  end
+  if checked == 0 then
+    fails("no calibration entry carries a machine-readable _derived_from")
   end
 end
 

@@ -118,7 +118,11 @@
     "offset_y": -333
    }
   ],
-  "_derived_from": "Lich (map object $1B) at tile 12,42, placed at 79,347 in SunflashRune/FFR_AP_autotracking@upstream/Sun. offset_x agrees exactly with earthB4's, which was solved independently from chest sprites."
+  "_derived_from": {
+   "npc": "lich",
+   "pixel": [79, 347],
+   "note": "Lich (map object $1B), placed at 79,347 in SunflashRune/FFR_AP_autotracking@upstream/Sun. offset_x agrees exactly with earthB4's, which was solved independently from chest sprites."
+  }
  },
  "elf_castle": {
   "rom_map_id": 9,
@@ -263,7 +267,11 @@
     "offset_y": 16
    }
   ],
-  "_derived_from": "Sarda (map object $0D) at tile 2,2, placed at 58,56 upstream/Sun."
+  "_derived_from": {
+   "npc": "sarda",
+   "pixel": [58, 56],
+   "note": "Sarda (map object $0D), placed at 58,56 upstream/Sun."
+  }
  },
  "seaB1": {
   "rom_map_id": 46,
@@ -328,7 +336,11 @@
     "offset_y": -43
    }
   ],
-  "_derived_from": "Kraken (map object $1D) at tile 12,8, placed at 200,93 upstream/Sun."
+  "_derived_from": {
+   "npc": "kraken",
+   "pixel": [200, 93],
+   "note": "Kraken (map object $1D), placed at 200,93 upstream/Sun."
+  }
  },
  "sky1F": {
   "rom_map_id": 47,
