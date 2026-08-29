@@ -45,8 +45,9 @@ Last updated 2026-08-29.
   per-chest markers.
 - Offline tools that read a cartridge directly: the flag decoder, an
   entrance/floor shuffle reader and router, an HTML door map, an overworld
-  reachability walk, and a logic checker that diffs the pack's access rules
-  against FFR's own spoiler. The map-reading half of that was wrong until
+  reachability walk, a map renderer that can draw the NPCs standing on a map,
+  and a logic checker that diffs the pack's access rules against FFR's own
+  spoiler. The map-reading half of that was wrong until
   2026-08-29 — see "Read the maps from the bank FFR actually puts them in"
   below.
 - The door map is walkable by clicking. Every floor name on the page is a
@@ -474,46 +475,76 @@ Nothing here is designed yet and the order below is not a plan.
   show them. Shares its whole tile-to-pixel path with entrance markers, on a
   much smaller blast radius.
 
-## Sprites on the map: what is settled and what is not
+## Sprites on the map
 
-Started 2026-08-29 and left mid-hunt, so this records the state rather than a
-result. The goal is gate NPCs drawn where they stand -- seeing the SIGIL barrier
-in the corridor instead of reading it out of `--gates`.
+Finished 2026-08-29. The gate NPCs draw where they stand:
+`tools/render_maps.py ROM --map 11 --objects` puts the SIGIL barrier in the
+corridor on Castle Ordeals 1F instead of leaving it a line of `--gates` output.
+`tools/sprites.py` is the library and the CLI; `tools/tests/test_sprites.py`
+runs in `tools/tests/run.sh`.
 
-**Settled, and cross-checked.** Which sprite an object wears is a 208-byte table
-at `MapObjGfxOffset = 0x02E00` (a ROM-data offset; add `INES_HEADER`, the same
-convention `MapObjectsOffset = 0x03400` follows). Read against seed `F258553F`
-it gives `$22`, `$C1`, `$C5` the `Orb` sprite and `$B0` the `Robot` -- exactly
-what `MetroidVaniaMap.cs:782-829` assigns them, so the cartridge and the source
-agree without either being copied into the other. 29 distinct sprites across the
-208 objects. Positions already come from `Graph.objects()`.
+The half that was open -- the sheet origin -- came from the engine's own path,
+`LoadMapObjCHR` at `bank_0F.asm:$E99E`, not from sliding offsets. The graphic
+id is added to the **high** byte of a pointer, so it is a page index: art for
+graphic *g* is the $100 bytes (16 tiles) at `lut_MapObjCHR + g * $100`, and
+`Constants.inc` puts `lut_MapObjCHR` at **$A200 in bank $02** -- not the
+$9010 this document named, which is the player mapman art one band lower.
 
-`FF1Lib/NPCs.cs:13` has the 30-entry name list, in order:
+What makes that a derivation rather than another guess is that bank $02 turns
+out to have no gap for a base to slide into. Three engine constants that know
+nothing about each other meet exactly:
 
-    Princess Woman OldWoman Dancer Orb Witch Prince Soldier Scholar Mohawk
-    Boy OldMan Dwarf Mermaid Lefein King Broom Bat Garland Pirate Fairy
-    Robot Dragon Bahamut ElfWoman ElfMan ElfPrince Plate Titan Vampire
+    $8000  LoadOWBGCHR          16 pages, the overworld's background tiles
+    $9000  LoadPlayerMapmanCHR  12 pages, $9x00 where x is the lead's class
+    $9C00  LoadOWObjectCHR       6 pages, ship / canoe / airship / bridge/canal
+    $A200  lut_MapObjCHR        30 pages, one per ObjectSprites entry, ending
+                                at $C000 -- where render_maps.py already reads
+                                the background tileset CHR
 
-**Settled.** The art is around **`0x9010`**, just below the background tileset
-CHR at `0xC010`, and decodes into unmistakable walking figures in animation
-pairs. Tile layout is **row-major 2x2** -- top-left, top-right, bottom-left,
-bottom-right; the column-major reading renders scrambled, which is how it was
-told apart. `tools/chrscan.py` is what found it and will find it again.
+12 + 6 pages from $9000 lands on $A200; 30 pages from $A200 lands on $C000.
+Move the base a page either way and one of them breaks, which is the guard the
+eyeballed origin never had. It is asserted at import and restated by
+`--self-check`.
 
-**Not settled: the sheet origin.** Sprite 4 has to draw as an `Orb` and does
-not, so the base is off by some number of slots. It was located by eye, which is
-the right way to find a band and the wrong way to align one -- do not resume by
-sliding offsets until something looks round.
+**The `0xF4` clue explained itself on the way.** Because the add lands on the
+high byte and the carry out is dropped, a graphic id above the 30-entry enum
+wraps the pointer into the rest of the bank -- deliberately. `$A2 + $F4 = $196`
+truncates to `$96`, so `MIAB.cs:451` is drawing Chaos as the **Knight's
+mapman**; `Party.cs:581`'s `0xEE-0xF9` are the twelve class mapmen at
+`$9000-$9B00`, in class order. So the byte is neither a slot index nor a tile
+number: it is a page, and the ids outside the enum are a door FFR walks
+through. `sprites.py` names and draws those too.
 
-The next move is the engine's own path, the routine that turns the `Sprite` byte
-into a CHR address. One clue is already in hand and unexplained: `MIAB.cs:451`
-sets `Sprite = (ObjectSprites)0xF4`, far outside a 30-entry enum. That has to be
-understood first, because it decides whether the byte is a slot index or a tile
-number, and the two give different bases.
+**Tiles and palettes, both read the same way.** `DrawMapObject`'s four
+construction tables (`bank_0F.asm:$E7AB`) spend a sprite's 16 tiles as four 2x2
+poses -- down, up, left, left-walking -- each row-major, which is the reading
+the earlier note had right. Facing right is facing left with every tile
+flipped, so there is no right-facing art to look for. The tables' attribute
+bytes are `$02` on the top row and `$03` on the bottom: **sprite palettes 2 and
+3**, which live at **+$10** in the map's $30-byte palette block, between the
+four outdoor BG palettes and the four "inside" ones `render_maps.py` reads at
++$20.
 
-Also unresolved, and cheaper: sprite palettes. Map objects use sprite palettes
-rather than the background attribute table `render_maps.py` reads, so that is a
-separate lookup.
+That offset is checked rather than assumed, by a coincidence that cannot
+survive being wrong. `LoadMapPalettes` (`$D8AB`) copies all $30 bytes and then
+overwrites `cur_pal+$12` and `+$16` with the lead character's mapman colours --
+sprite palettes 0 and 1, the player's. Those two bytes are the only ones in the
+whole block that are byte-identical on all 61 maps, because the engine always
+replaces them. Palettes 2 and 3 vary map by map, and are blank on exactly the
+maps that place no objects -- two unrelated tables agreeing. `--self-check`
+tests all of that, and the test rejects the region read at +$00, +$08 and +$20.
+
+Verified on seed `F258553F` plus two more FFR seeds and a vanilla cartridge:
+0 problems, 182 placed objects. The three floater gates come back `Orb` and the
+chime gate `Robot`, which is what `MetroidVaniaMap.cs:782-829` assigns them,
+with neither side transcribed into the other.
+
+**Not done, and deliberately.** `regen_maps.py` does not draw objects into the
+pack's own map tabs. An NPC is 16x16 on art whose markers are placed to the
+tile, so sprites and pins would share pixels, and which one wins is a design
+question rather than a plumbing one. `render_maps.py --objects` is the whole
+mechanism when that gets decided.
+
 
 ## Known wrong
 

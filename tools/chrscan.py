@@ -8,7 +8,13 @@ code is static, art is ordered. So sweep the ROM at low resolution, find the
 ordered bands by eye, then zoom.
 
     tools/chrscan.py ROM 0x10 0x80010 sweep.png --per-row 256 --scale 1
-    tools/chrscan.py ROM 0x9010 0xA010 npcs.png --per-row 16 --scale 4
+    tools/chrscan.py ROM 0xA210 0xC010 npcs.png --per-row 4 --scale 3 --group 4
+
+The second is the map object art, which this found and sprites.py then pinned
+off the engine's own constants -- see "Sprites on the map" in STATUS.md. Worth
+knowing the difference: a band located this way is a band, not an origin. The
+neighbouring band at 0x9010 is the twelve class mapmen and looks just as much
+like the answer.
 
 --group 4 draws every four consecutive tiles as one 16x16 cell instead, which
 is the shape a map object sprite is actually in (row-major: top-left,

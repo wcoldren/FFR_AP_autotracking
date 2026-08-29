@@ -396,7 +396,17 @@ MIN_ROM_SIZE = bank_off(BANK_EXTTELEPORTINFO, 0xC000)
 class Rom:
     def __init__(self, path):
         with open(path, "rb") as f:
-            self.data = f.read()
+            self._load(f.read(), path)
+
+    @classmethod
+    def of(cls, data, path="<memory>"):
+        """The same cartridge, for a caller that already read the bytes."""
+        rom = cls.__new__(cls)
+        rom._load(data, path)
+        return rom
+
+    def _load(self, data, path):
+        self.data = data
         if self.data[:4] != b"NES\x1a":
             sys.exit("not an iNES ROM")
         if len(self.data) < MIN_ROM_SIZE:

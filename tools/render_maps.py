@@ -205,12 +205,18 @@ def room_cells(rom, map_id, tiles):
     return keep
 
 
-def render(rom, map_id, inside=False, unroof=False):
+def render(rom, map_id, inside=False, unroof=False, graph=None):
     """(w, h, rgb_bytes) for one standard map.
 
     `unroof` draws the rooms open: outdoor palette everywhere, room palette on
     the cells a roof covers, so a single image shows the map as you walk it and
     the room contents at the same time. It is a no-op on a map with no rooms.
+
+    Pass an entrance_graph.Graph as `graph` to draw the map's NPCs on the tiles
+    they stand on, which is how a gate NPC becomes visible as the barrier it is
+    rather than a line of --gates output. The caller supplies the graph because
+    building one reads and decompresses map data, and a caller rendering all 61
+    maps should pay for that once.
     """
     base = map_data_base(rom)
     ptr = int.from_bytes(rom[base + map_id * 2:base + map_id * 2 + 2], "little")
@@ -236,6 +242,11 @@ def render(rom, map_id, inside=False, unroof=False):
                     out[dst + 1] = g
                     out[dst + 2] = b
                     dst += 3
+    if graph is not None:
+        # Imported here, not at module scope: sprites imports this module for
+        # the NES palette and the tile decode.
+        import sprites                                              # noqa: E402
+        sprites.draw_objects(rom, graph, map_id, side, out)
     return side, side, bytes(out)
 
 
@@ -308,6 +319,8 @@ def main():
                     help="use the room palette rather than the outdoor one")
     ap.add_argument("--unroof", action="store_true",
                     help="draw rooms open, so their chests and furniture show")
+    ap.add_argument("--objects", action="store_true",
+                    help="draw the map's NPCs on the tiles they stand on")
     ap.add_argument("--check", metavar="DIR",
                     help="compare against FF1R renderdungeon output in DIR")
     args = ap.parse_args()
@@ -326,10 +339,15 @@ def main():
 
     if args.map is not None and args.map not in MAP_FILES:
         sys.exit(f"no such standard map: {args.map} (0-{MAP_COUNT - 1})")
+    graph = None
+    if args.objects:
+        import entrance_graph                                       # noqa: E402
+        graph = entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
+
     ids = [args.map] if args.map is not None else range(MAP_COUNT)
     for map_id in ids:
         name = MAP_FILES[map_id]
-        w, h, rgb = render(rom, map_id, args.inside, args.unroof)
+        w, h, rgb = render(rom, map_id, args.inside, args.unroof, graph)
         path = os.path.join(args.out, name + ".png")
         pngio.write_rgb(path, w, h, rgb)
         print(f"wrote {path}  ({w}x{h}, tile n is pixel {TILE_PX}n)")
