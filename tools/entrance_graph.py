@@ -151,7 +151,15 @@ GATED_SPECIALS = {
 ITEM_NAMES = {
     "key": "Mystic Key", "crown": "Crown", "cube": "Warp Cube",
     "orbs": "all four Orbs", "rod": "Rod", "lute": "Lute",
+    # What the No-Overworld gate NPCs want. They gate nothing on a standard
+    # cartridge, where --have simply ignores them. "floater" is the item's own
+    # name; No-Overworld renames it SIGIL on screen and nowhere else.
+    "tnt": "TNT", "floater": "Floater", "canoe": "Canoe", "chime": "Chime",
 }
+# What a No-Overworld player sees on the item screen. MetroidVaniaMap.cs:844
+# renames exactly two items, and only the Floater is a gate -- MARK is the Earth
+# Orb, which gates nothing, so it gets no alias here.
+ITEM_ALIASES = {"sigil": "floater"}
 
 # Objects that block a step and are never shoved out of the way. Stride and
 # record layout are extract_npcs.py's, and its docstring explains why 48.
@@ -332,6 +340,33 @@ VANILLA_DOOR_MAP = {
 UNUSED_DOORS = (30, 31)
 
 
+def gate_objects(rom):
+    """object id -> the item you need to step past it, or None off this mode.
+
+    FFR's own logic model says a gate NPC is a tile that costs an item, which is
+    the same shape as the Rod and Lute objects: Sanity/SCMap.cs:218-226 stamps
+    SCBitFlags.Floater, .Chime or .Canoe onto the tile the NPC stands on, and
+    :214 stamps .Tnt onto Nerrick's. So blocking that one tile until the item is
+    in hand is not an approximation of the mode -- it is the model FFR routes
+    its own seeds with.
+
+    Read from the cartridge, not from the eight ids below. noverworld_gate_items
+    settles which four routines are the gates and what each one wants; this then
+    asks the talk table which objects run them, so an object FFR hands a gate
+    routine is blocked whether or not it is one of the eight we knew about.
+
+    Nerrick is the odd one. MetroidVaniaMap.cs:833-834 leaves its NoOW_Nerrick
+    assignment commented out, so he keeps the vanilla Talk_Nerrick -- already a
+    TNT gate, which is why the four routines still sort.
+    """
+    gates = noverworld_gate_items(rom)
+    if gates is None:
+        return None
+    want = {addr: item for item, addr in gates.items()}
+    return {oid: want[addr] for oid, addr in talk_routines(rom).items()
+            if addr in want}
+
+
 def tab_labels():
     """map id -> the pack's PopTracker tab label, for cross-reference only."""
     path = os.path.join(HERE, os.pardir, "scripts", "autotracking", "mapValues.lua")
@@ -466,6 +501,11 @@ class Graph:
         self.sm_base = map_data_base(rom.data)
         self.grids = {}
         self.doors = door_positions(rom)
+        # Rod and Lute always; the No-Overworld gate NPCs when the cartridge has
+        # them. gate_objects returns None on every other seed, so a standard
+        # cartridge blocks exactly what it blocked before.
+        self.gates = gate_objects(rom)
+        self.gated_objects = {**GATED_OBJECTS, **(self.gates or {})}
 
     def grid(self, map_id):
         """(tiles, prop0, prop1) for a map, as flat 64*64 lists."""
@@ -512,7 +552,7 @@ class Graph:
 
     def blocking_objects(self, map_id, have):
         return {(x, y) for oid, x, y in self.objects(map_id)
-                if GATED_OBJECTS.get(oid) not in (None, *have)}
+                if self.gated_objects.get(oid) not in (None, *have)}
 
     def teleports(self, map_id):
         """[(x, y, kind, payload)] for every teleport tile on a map."""
@@ -594,6 +634,41 @@ class Graph:
                 seen.add((nx, ny))
                 q.append((nx, ny, d + 1))
         return found
+
+    def reachable_maps(self, have):
+        """Every map you can stand on with `have` in hand, walking from the doors.
+
+        The staircase under your feet counts. reachable_teleports drops the tile
+        it starts on -- stepping onto a teleport is what takes you off the floor
+        and you are already standing there -- but you can step off and back on,
+        and on a No-Overworld cartridge that is the only way into some floors.
+        """
+        seen, q, maps = set(), deque(), set()
+        for _, m, a in self.starts():
+            maps.add(m)
+            if (m, a) not in seen:
+                seen.add((m, a))
+                q.append((m, a))
+        while q:
+            m, a = q.popleft()
+            steps = {(x, y): (k, p) for (x, y), (k, p, _)
+                     in self.reachable_teleports(m, a, have).items()}
+            under = dict(steps)
+            for x, y, kind, pay in self.teleports(m):
+                if (x, y) == (a[0] % MAP_DIM, a[1] % MAP_DIM):
+                    under[(x, y)] = (kind, pay)
+            for kind, pay in under.values():
+                if kind != TP_TELE_NORM:
+                    continue
+                dm = self.norm_map[pay]
+                if dm >= MAP_COUNT:
+                    continue
+                maps.add(dm)
+                arrive = (coord(self.norm_x[pay]), coord(self.norm_y[pay]))
+                if (dm, arrive) not in seen:
+                    seen.add((dm, arrive))
+                    q.append((dm, arrive))
+        return maps
 
     def starts(self):
         """[(door_id, map_id, (x, y))] for every overworld entrance you can take.
@@ -881,7 +956,11 @@ def self_check(g):
           "warp-out filler that surrounds every town), none of them a treasure chest")
     if not check_talk_bank(g):
         return False
-    return check_noverworld_towns(g, *game_mode(g.rom))
+    mode, why = game_mode(g.rom)
+    if not check_noverworld_towns(g, mode, why):
+        return False
+    # Last, because it is the one that exercises everything above it at once.
+    return check_all_reachable(g, mode, why)
 
 
 def print_gates(g):
@@ -909,6 +988,42 @@ def print_gates(g):
                       f"{MAP_NAMES[m]} ({x},{y})")
             if oid not in placed:
                 print(f"      ${oid:02X} {GATE_OBJ_NAMES[oid]:22s} not placed on any map")
+
+
+def check_all_reachable(g, mode, why=None):
+    """With every item in hand, every map must be reachable from the doors.
+
+    The oracle this repo wrote down after reading standard maps out of the wrong
+    bank for weeks, and then never ran. It is the cheapest possible test of the
+    whole routing stack -- map decompression, tile properties, both teleport
+    tables, the door list and the gate objects all have to be right at once for
+    it to pass -- and it fails loudly on every one of those going wrong.
+
+    No-Overworld only, and not because the other modes are trusted. It is a
+    theorem there and nowhere else: MetroidVaniaMap.cs connects all 61 maps with
+    a hand-authored table and drops none of them, so any map the walk cannot
+    find is this tool's fault. A standard cartridge routes through an overworld
+    the walk does not model, and a stock 16-bank image has no extended teleport
+    table at all -- both would fail this for reasons that are not bugs.
+    """
+    if mode is None:
+        print("self-check SKIPPED: the all-items reachability oracle needs the "
+              f"GameMode, which could not be read ({why})")
+        return True
+    if mode != GAME_MODE_NOVERWORLD:
+        return True
+    missed = sorted(set(range(MAP_COUNT)) - g.reachable_maps(set(ITEM_NAMES)))
+    if missed:
+        print(f"self-check FAILED: {len(missed)} of {MAP_COUNT} maps cannot be "
+              "reached from the doors even holding every item")
+        for m in missed[:10]:
+            print(f"    {MAP_NAMES[m]}")
+        if len(missed) > 10:
+            print(f"    ... and {len(missed) - 10} more")
+        return False
+    print(f"self-check OK: all {MAP_COUNT} maps reachable from the doors with "
+          "every item in hand")
+    return True
 
 
 def check_talk_bank(g):
@@ -1024,7 +1139,9 @@ def main():
     ap.add_argument("--to", help="destination map name, e.g. DwarfCave")
     ap.add_argument("--to-npc", help="destination NPC name, e.g. smith")
     ap.add_argument("--have", default="",
-                    help="comma-separated items in hand: " + ",".join(sorted(ITEM_NAMES)))
+                    help="comma-separated items in hand: "
+                         + ",".join(sorted(ITEM_NAMES))
+                         + " (sigil is accepted for floater)")
     ap.add_argument("--dump", action="store_true", help="all doors and floor links")
     ap.add_argument("--tables", action="store_true", help="vanilla vs extended teleport tables")
     ap.add_argument("--gates", action="store_true",
@@ -1034,7 +1151,8 @@ def main():
     args = ap.parse_args()
 
     rom = Rom(args.rom)
-    have = {s.strip() for s in args.have.split(",") if s.strip()}
+    have = {ITEM_ALIASES.get(s.strip(), s.strip())
+            for s in args.have.split(",") if s.strip()}
     unknown = have - set(ITEM_NAMES)
     if unknown:
         sys.exit(f"unknown item(s): {', '.join(sorted(unknown))}")

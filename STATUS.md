@@ -55,6 +55,13 @@ Last updated 2026-08-29.
   of scrolling two tables; Back retraces. Works the same on a No-Overworld
   cartridge, which is the point — the mode shuffles through the same teleport
   tables the page already reads.
+- An all-items reachability oracle in `entrance_graph.py --self-check`: holding
+  every item, all 61 maps must be reachable from the doors. A theorem on
+  No-Overworld and only there, since `MetroidVaniaMap.cs` connects all 61 and
+  drops none, so a map the walk cannot find is the tool's own fault. It is the
+  cheapest test of the whole routing stack -- map decompression, tile
+  properties, both teleport tables, the doors and the gates all have to be right
+  at once. Written down after the bank bug below and never run until now.
 - `tests/run.sh` — 13 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
   — the cartridge-reading tools' own tests, Python and nothing else; the ones
   that need a cartridge skip unless `FF1_ROM` points at one.
@@ -117,10 +124,14 @@ cartridges including the No-Overworld one, all clean.
 
 ## Next
 
-1. **The NOverworld overhaul.** Its own section below; this is the focus. The
-   near edge of it is the logic branch: teach `Graph.blocking_objects` the gate
-   NPCs, then derive `locations/NOverworld/overworld.json` from the cartridge
-   rather than hand-authoring it.
+1. **A No-Overworld seed on disk.** Everything below is now blocked on the same
+   thing: the gate blocking, the reachability oracle and the door map's
+   empty-handed count are all verified synthetically because there is no FFR
+   cartridge here to run them against.
+2. **The NOverworld overhaul.** Its own section below; this is the focus. The
+   gate half of the logic branch is done -- the router stops at the gate NPCs
+   now. What is left is deriving `locations/NOverworld/overworld.json` from the
+   cartridge rather than hand-authoring it, and that wants a real seed first.
 
 ## The NOverworld variants
 
@@ -257,11 +268,36 @@ version-proofing, and it is worth more than any amount of tracking upstream.
   inventing one. Every gate is an item the pack already tracks — the mode needs
   new topology, not new codes.
 
-  What is *not* done: `Graph.blocking_objects` still only blocks the Rod and
-  Lute objects, so the router walks straight through a SIGIL barrier. Teaching
-  it the gate NPCs is the next step, and it changes what every existing routing
-  answer means, so it wants its own verification pass rather than being folded
-  into something else.
+  **And the router now stops at them.** `Graph.blocking_objects` blocked the Rod
+  and Lute objects and nothing else, so it walked straight through a SIGIL
+  barrier; it now also blocks whatever the cartridge's own talk table says is a
+  gate. This is not an approximation of the mode. FFR routes its own seeds the
+  same way: `Sanity/SCMap.cs:218-226` stamps `SCBitFlags.Floater`, `.Chime` or
+  `.Canoe` onto the tile the NPC stands on, and :214 stamps `.Tnt` onto
+  Nerrick's, which is the same shape as a Rod tile.
+
+  The object-to-item map is read, not transcribed. `noverworld_gate_items()`
+  settles which four routines are gates and what each wants; `gate_objects()`
+  then asks the talk table which objects run them, so an object FFR hands a gate
+  routine gets blocked whether or not it is one of the eight named here. On any
+  other cartridge it returns None and the blocking set is what it always was.
+
+  `--have` learned the four items, and takes `sigil` for the Floater, since that
+  is the name on the item screen.
+
+  **Unverified against a real No-Overworld cartridge.** No FFR seed is on disk,
+  and the vanilla image cannot stand in: a stock 16-bank ROM has no extended
+  teleport table, so the routing half of the tool reaches 26 of 61 maps there
+  whatever the gates do. What is checked is `tools/tests/test_gate_objects.py`,
+  which rewrites a vanilla talk table into a gate layout and asserts all eight
+  objects block empty-handed, open on the item, and block nothing on a stock
+  cartridge. A real seed is the next thing this needs.
+
+  One thing found on the way and deliberately left alone: `Talk_Nerrick` is the
+  *vanilla* routine -- `MetroidVaniaMap.cs:833-834` leaves the `NoOW_Nerrick`
+  assignment commented out -- and `SCMap.cs:214` gates it on TNT for every mode.
+  So a standard cartridge's router walks through Nerrick too. Changing that
+  moves standard-mode answers and belongs in its own pass.
 - **Mode detection already works and drives nothing.** `flag_mapping.lua:246`
   reads `GameMode` and prints a warning.
 
