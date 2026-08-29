@@ -231,9 +231,26 @@ def remap_locations(old_cal, path):
     return doc, moved, unmoved, unexplained
 
 
+def map_block(content):
+    """A tab's {"type": "map"} block, or None.
+
+    shared.json writes some tabs' content bare and some wrapped in a list --
+    every top-level tab uses the list form, and the nested ones a bare dict --
+    so anything reaching for a tab's maps has to take both.
+    """
+    if isinstance(content, dict):
+        return content if content.get("type") == "map" else None
+    if isinstance(content, list):
+        for v in content:
+            if isinstance(v, dict) and v.get("type") == "map":
+                return v
+    return None
+
+
 def build_layouts():
     """shared.json with the ten maps the pack has no tab for."""
     doc = lenient(os.path.join(PACK, "layouts", "shared.json"))
+    docked = set()
 
     def retitle(node):
         """Give the two composite tabs their second floor."""
@@ -245,14 +262,20 @@ def build_layouts():
             return
         for tab in node.get("tabs") or []:
             maps = COMPANION_TABS.get(tab.get("title"))
-            if maps and isinstance(tab.get("content"), dict) \
-                    and tab["content"].get("type") == "map":
-                tab["content"]["maps"] = list(maps)
+            block = map_block(tab.get("content")) if maps else None
+            if block is not None:
+                block["maps"] = list(maps)
+                docked.add(tab["title"])
             retitle(tab.get("content"))
         for v in node.values():
             retitle(v)
 
     retitle(doc)
+    missing = sorted(set(COMPANION_TABS) - docked)
+    if missing:
+        # Failing quietly here is what left con_castle2F rendered, registered in
+        # maps.json and reachable from no tab at all, so this is fatal.
+        sys.exit("no map tab in layouts/shared.json for: " + ", ".join(missing))
     towns = {
         "title": "Towns",
         "content": {
