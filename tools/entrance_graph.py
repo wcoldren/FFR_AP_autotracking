@@ -901,7 +901,6 @@ def print_gates(g):
     for m in range(MAP_COUNT):
         for oid, x, y in g.objects(m):
             placed.setdefault(oid, []).append((m, x, y))
-    routines = talk_routines(g.rom)
     for item in sorted(gates):
         print(f"  {item} (routine ${gates[item]:04X})")
         for oid in sorted(o for o, i in NOVERWORLD_GATES.items() if i == item):
@@ -926,22 +925,28 @@ def check_talk_bank(g):
         return False
     bank, addr = where
     expanded = len(g.rom.data) > INES_HEADER + 16 * BANK_SIZE
-    if expanded and (bank, addr) == (VANILLA_TALK_BANK, TALK_JUMP_TBL):
-        print("self-check FAILED: talk routines read from the vanilla bank "
-              f"${VANILLA_TALK_BANK:02X} on an expanded image")
-        return False
+    # One test, not two: talk_routine_bank only ever returns TALK_JUMP_TBL
+    # alongside the vanilla bank, so an address check and a (bank, address)
+    # check say exactly the same thing.
     if expanded and addr == TALK_JUMP_TBL:
-        print(f"self-check FAILED: talk table read at ${addr:04X}, which is the "
-              "stale copy FFR leaves behind, not lut_MapObjTalkJumpTbl_new")
+        print(f"self-check FAILED: talk table read from bank ${bank:02X} at "
+              f"${addr:04X}, which is the stale copy FFR leaves behind, not "
+              "lut_MapObjTalkJumpTbl_new")
         return False
     gates = noverworld_gate_items(g.rom)
-    mode, _ = game_mode(g.rom)
+    mode, why = game_mode(g.rom)
     if mode == GAME_MODE_NOVERWORLD and gates is None:
         print("self-check FAILED: GameMode 2 but the eight gate NPCs do not sort "
               "into four routines -- the talk table is being misread")
         return False
     print(f"self-check OK: talk routines in bank ${bank:02X} at ${addr:04X}"
           + (f", gates {', '.join(sorted(gates))}" if gates else ", no gate layout"))
+    # The address is checked on every image; the gate layout above it only means
+    # anything once the GameMode is readable. Say so, rather than letting a
+    # skipped half hide behind the OK line.
+    if mode is None:
+        print("self-check SKIPPED: the gate-layout half of this test needs the "
+              f"GameMode, which could not be read ({why})")
     return True
 
 
