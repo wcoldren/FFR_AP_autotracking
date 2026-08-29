@@ -669,18 +669,22 @@ GAME_MODE_NOVERWORLD = 2
 
 
 def game_mode(rom):
-    """The seed's GameMode, or None when it cannot be read.
+    """-> (GameMode, None), or (None, why it could not be read).
 
-    Used only to decide which extra invariants apply, so an unreadable one
-    skips them rather than failing the run.
+    Used only to decide which extra invariants apply, so an unreadable mode
+    skips them rather than failing the run -- but the reason comes back with it
+    so the skip can say so. A skip that prints nothing is indistinguishable
+    from a pass, and the invariant this gates exists precisely to catch a
+    silent wrong answer. A vanilla cartridge has no flag block at all, which is
+    the ordinary case here and not a defect.
     """
     sys.path.insert(0, os.path.join(HERE, "ffr_flags"))
     try:
         import ffr_flags
         _, flags = ffr_flags.decode_rom(rom.data)
-        return flags.get("GameMode")
-    except Exception:
-        return None
+    except Exception as e:
+        return None, f"{type(e).__name__}: {e}"
+    return flags.get("GameMode"), None
 
 
 def check_map_bank(g):
@@ -706,7 +710,7 @@ def check_map_bank(g):
     return True
 
 
-def check_noverworld_towns(g, mode):
+def check_noverworld_towns(g, mode, why=None):
     """A No-Overworld town has to have stairs out of it.
 
     NoOverworld seals every town's outer wall (MetroidVaniaMap.cs:109-434) and
@@ -714,6 +718,10 @@ def check_noverworld_towns(g, mode):
     a quirk of the seed -- it means the map data being read is not the map data
     the seed plays, which is precisely what reading bank $04 looked like.
     """
+    if mode is None:
+        print("self-check SKIPPED: the No-Overworld stairless-town test needs the "
+              f"GameMode, which could not be read ({why})")
+        return True
     if mode != GAME_MODE_NOVERWORLD:
         return True
     stairless = []
@@ -765,7 +773,7 @@ def self_check(g):
     print(f"self-check OK: {total} teleport tiles across {MAP_COUNT} maps in bank "
           f"${g.sm_bank:02X} ({norm} of them staircases; the rest are mostly the "
           "warp-out filler that surrounds every town), none of them a treasure chest")
-    return check_noverworld_towns(g, game_mode(g.rom))
+    return check_noverworld_towns(g, *game_mode(g.rom))
 
 
 def resolve_map(name):
