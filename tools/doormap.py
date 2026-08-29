@@ -97,37 +97,83 @@ def build(g, npcs):
             "live": i in live,
         })
 
-    # Two passes, because the panel has to be able to say why a floor is a dead
-    # end. The walk finds the staircases you can actually take; the sweep after
-    # it adds the ones that are on a floor you stood on but behind a locked
-    # door or a plate, which carry steps=None. Without those, a floor whose far
-    # half is locked reads as having no way on at all.
+    # Two interleaved passes, because the panel has to be able to say why a
+    # floor is a dead end. The walk finds the staircases you can actually take;
+    # the sweep adds the ones that are on a floor you stood on but behind a
+    # locked door or a plate, which carry steps=None. Without those, a floor
+    # whose far half is locked reads as having no way on at all. They alternate
+    # rather than run once each: see the sweep's own comment below.
     have = set()
     seen, q, links = set(), deque(), {}
     for _, m, a in g.starts():
         if (m, a) not in seen:
             seen.add((m, a))
             q.append((m, a))
-    while q:
-        m, a = q.popleft()
-        for (x, y), (kind, pay, steps) in g.reachable_teleports(m, a, have).items():
-            if kind != TP_TELE_NORM:
-                continue
-            dm = g.norm_map[pay]
-            if dm >= MAP_COUNT:
-                continue
-            arrive = (coord(g.norm_x[pay]), coord(g.norm_y[pay]))
-            was = links.get((m, x, y))
-            # One floor is commonly entered at several landing spots, and the
-            # walk from each is a different length. Report the shortest, so the
-            # number does not depend on the order the queue happened to run in.
-            if was is None or was["steps"] is None or steps < was["steps"]:
+    swept = set()
+    while True:
+        while q:
+            m, a = q.popleft()
+            for (x, y), (kind, pay, steps) in g.reachable_teleports(m, a, have).items():
+                if kind != TP_TELE_NORM:
+                    continue
+                dm = g.norm_map[pay]
+                if dm >= MAP_COUNT:
+                    continue
+                arrive = (coord(g.norm_x[pay]), coord(g.norm_y[pay]))
+                was = links.get((m, x, y))
+                # One floor is commonly entered at several landing spots, and
+                # the walk from each is a different length. Report the shortest,
+                # so the number does not depend on the order the queue ran in.
+                if was is None or was["steps"] is None or steps < was["steps"]:
+                    links[(m, x, y)] = {"from": MAP_NAMES[m], "fromId": m, "x": x, "y": y,
+                                        "to": MAP_NAMES[dm], "toId": dm,
+                                        "arrive": list(arrive), "steps": steps}
+                    swept.discard((m, x, y))
+                if (dm, arrive) not in seen:
+                    seen.add((dm, arrive))
+                    q.append((dm, arrive))
+
+        # The staircase directly under your feet is the one exception to "the
+        # walk did not find it, so you cannot walk to it". reachable_teleports
+        # drops the tile it starts on, because stepping onto a teleport is what
+        # takes you off the floor and you are already standing there -- but you
+        # can step off and back on. Two links are this every time: Coneria
+        # Castle 2F's way down, and Ice Cave B1's hole to B3. Calling them gated
+        # would be a plain lie about a staircase the player uses on the way out.
+        #
+        # A staircase the sweep finds under your feet is walkable, so it is a
+        # way on and the floor it lands on has to be walked like any other --
+        # otherwise that floor's own staircases never get listed and the
+        # empty-handed headline undercounts. Hence the outer loop: sweep, feed
+        # what it opened back to the walk, and repeat until nothing new opens.
+        arrivals = {}
+        for m, a in seen:
+            arrivals.setdefault(m, set()).add(a)
+        opened = False
+        for m in arrivals:
+            for x, y, kind, pay in g.teleports(m):
+                if kind != TP_TELE_NORM:
+                    continue
+                # Leave the walk's own answer alone; a sweep entry can be
+                # revisited, because a later pass may reach the tile it sits on
+                # and turn a None into a 0.
+                if (m, x, y) in links and (m, x, y) not in swept:
+                    continue
+                dm = g.norm_map[pay]
+                if dm >= MAP_COUNT:
+                    continue
+                arrive = (coord(g.norm_x[pay]), coord(g.norm_y[pay]))
+                steps = 0 if (x, y) in arrivals[m] else None
+                swept.add((m, x, y))
                 links[(m, x, y)] = {"from": MAP_NAMES[m], "fromId": m, "x": x, "y": y,
                                     "to": MAP_NAMES[dm], "toId": dm,
                                     "arrive": list(arrive), "steps": steps}
-            if (dm, arrive) not in seen:
-                seen.add((dm, arrive))
-                q.append((dm, arrive))
+                if steps == 0 and (dm, arrive) not in seen:
+                    seen.add((dm, arrive))
+                    q.append((dm, arrive))
+                    opened = True
+        if not opened:
+            break
 
     # A door counts towards "maps open empty-handed" only if it is a door the
     # router would actually take -- so ask the router, rather than restating its
@@ -135,30 +181,10 @@ def build(g, npcs):
     # when the overworld's tile properties named no entrance at all, and a
     # copied "has an overworld tile" test drops all 32 in that case, so the
     # page's headline undercounted against the floor links printed below it.
-    reachable = sorted({l["toId"] for l in links.values()}
+    # A gated staircase is in links too and proves nothing about where it goes,
+    # so only the ones with a step count vouch for their destination.
+    reachable = sorted({l["toId"] for l in links.values() if l["steps"] is not None}
                        | {m for _, m, _ in g.starts()})
-
-    # The staircase directly under your feet is the one exception to "the walk
-    # did not find it, so you cannot walk to it". reachable_teleports drops the
-    # tile it starts on, because stepping onto a teleport is what takes you off
-    # the floor and you are already standing there -- but you can step off and
-    # back on. Two links are this every time: Coneria Castle 2F's way down, and
-    # Ice Cave B1's hole to B3. Calling them gated would be a plain lie about a
-    # staircase the player uses on the way out of the room.
-    arrivals = {}
-    for m, a in seen:
-        arrivals.setdefault(m, set()).add(a)
-    for m in arrivals:
-        for x, y, kind, pay in g.teleports(m):
-            if kind != TP_TELE_NORM or (m, x, y) in links:
-                continue
-            dm = g.norm_map[pay]
-            if dm >= MAP_COUNT:
-                continue
-            links[(m, x, y)] = {"from": MAP_NAMES[m], "fromId": m, "x": x, "y": y,
-                                "to": MAP_NAMES[dm], "toId": dm,
-                                "arrive": [coord(g.norm_x[pay]), coord(g.norm_y[pay])],
-                                "steps": 0 if (x, y) in arrivals[m] else None}
 
     routes = []
     for name in npcs:
