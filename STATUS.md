@@ -55,7 +55,9 @@ Last updated 2026-08-29.
   of scrolling two tables; Back retraces. Works the same on a No-Overworld
   cartridge, which is the point — the mode shuffles through the same teleport
   tables the page already reads.
-- `tests/run.sh` — 13 Lua suites, no emulator or ROM needed.
+- `tests/run.sh` — 13 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
+  — the cartridge-reading tools' own tests, Python and nothing else; the ones
+  that need a cartridge skip unless `FF1_ROM` points at one.
 
 ## Read the maps from the bank FFR actually puts them in
 
