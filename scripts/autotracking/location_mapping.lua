@@ -281,11 +281,12 @@ LOCATION_MAPPING = {
 -- no need to read FFR's flag word to guess at what AP already states outright.
 --
 -- Returns nil when the host cannot say. Archipelago.MissingLocations and
--- .CheckedLocations landed in PopTracker 0.25.2 and this pack's manifest still
--- admits 0.23.0, so an older host gets the previous behaviour rather than an
--- error. Both are populated before onClear fires (aptracker.h:130-134), which
--- is the only place worth asking: the pool cannot change while a slot is
--- connected.
+-- .CheckedLocations landed in PopTracker 0.25.2, which the manifest's 0.32.0
+-- floor now covers -- but the guard stays for the hosts that honour no floor
+-- at all: a UAT-only session where Archipelago is a stub, and the non-PopTracker
+-- trackers that read this pack. Both are populated before onClear fires
+-- (aptracker.h:130-134), which is the only place worth asking: the pool cannot
+-- change while a slot is connected.
 function apPoolChestCount()
   if type(Archipelago) ~= "table" and type(Archipelago) ~= "userdata" then
     return nil
