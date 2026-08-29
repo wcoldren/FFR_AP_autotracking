@@ -77,12 +77,27 @@ def standard_map_bank(rom):
     moves the maps again is followed rather than silently misread. A stock
     cartridge is 16 banks and has no $1F:D127 at all, which is the fallback:
     vanilla keeps them in bank $04.
+
+    The byte only counts as a bank number if FFR's second write agrees with it
+    (it patches $1F:D127 and $1F:D145 together) and the whole bank is really in
+    the file. On any other expanded image those two bytes are whatever the ROM
+    happens to hold there, and a value that passes on its own -- $00 reads as a
+    confident decode of bank 0, a high one indexes off the end of the file --
+    turns into garbage maps or a bare IndexError further down.
     """
     off = _fixed_bank_off(*SM_BANK_CONST)
-    if off >= len(rom):
+    mirror_off = _fixed_bank_off(*SM_BANK_CONST_MIRROR)
+    if off >= len(rom) or mirror_off >= len(rom):
         return SM_BANK_VANILLA
     bank = rom[off]
-    if INES_HEADER + bank * BANK_SIZE >= len(rom):
+    if rom[mirror_off] != bank:
+        return SM_BANK_VANILLA
+    if INES_HEADER + (bank + 1) * BANK_SIZE > len(rom):
+        return SM_BANK_VANILLA
+    if bank == 0:
+        # Bank 0 is the one place the maps cannot be: it holds the tileset LUTs
+        # this module reads at fixed offsets. Two padding zeroes agree with each
+        # other, so the mirror does not catch this one.
         return SM_BANK_VANILLA
     return bank
 
