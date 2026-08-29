@@ -616,9 +616,30 @@ closed. Three discriminators were tried and all three failed:
 - **size**, which is the knob we already have and which cannot separate 458
   from 389.
 
-The next thing to try is the engine's own answer rather than a fourth proxy:
-FF1 tracks an `inroom` flag at runtime, so `bank_0F.asm` contains the real
-definition of what a room is. Read that before inventing another test.
+**The engine's own answer, read rather than guessed at** (2026-08-29). `inroom`
+is a *single global byte* at `$0D`. Stepping on a door tile sets it
+(`SMMove_Door`, `bank_0F.asm:3486`); stepping on a close-room tile clears it
+(`:3430`); and while it is set the **entire** background palette comes from
+`inroom_pal` (`:5879-5883`). The engine has no per-cell notion of a room at all
+-- it never shows a room open and the outside closed at the same time. Unroofing
+is our invention, so there is no per-cell logic to borrow.
+
+But the *transition* is tile-driven, and that is derivable: a room is what you
+can walk to from a door tile without crossing a close-room tile. Flooding that
+way separates room from open floor where every proxy failed:
+
+    map           doors  close   flood      the size guard said
+    mirage1F        2      2      353 cells   458, rejected -- its interior
+    waterfall       1      1       13         1820, rejected -- correctly
+    volcB4          6      6       87         2650, rejected -- correctly
+    con_castle      6      6       50         44 opened
+
+**Not yet swapped in, because it does not subsume what ships.** On 49 maps the
+current union opens cells the flood does not -- Temple of Fiends Air 241,
+Waterfall 370 -- and ToFR Air has exactly one door tile, so its 241 cells are
+something other than a door-room. Understand what before replacing the rule.
+Doors and close-room tiles pair 1:1 on every map checked, which is a good sign
+the reading is right.
 
 The lesson worth keeping is the same one the map-bank bug taught: the wrong
 mechanism produced a *better-looking* result than the bug, which is exactly why
