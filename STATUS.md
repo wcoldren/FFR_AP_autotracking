@@ -634,6 +634,29 @@ way separates room from open floor where every proxy failed:
     volcB4          6      6       87         2650, rejected -- correctly
     con_castle      6      6       50         44 opened
 
+**Why no property of a tile can settle this.** Waterfall's room floor is tile
+`$46` on sub-palette 1: flat cyan outdoors, flat black inside -- structurally
+identical to Coneria Castle's `$04`. And `$46` is *also the open water outside
+the room*, 1820 cells of it across the map. The same tile, the same two bytes,
+is room floor in one place and outdoors in another. So flatness, walkability and
+size are all being asked a question the tile cannot answer; only the room
+boundary can, which is what the door flood reads.
+
+A caution about the comparison itself, learned by getting it wrong here. I read
+the shipped `waterfall.png` as showing that room's floor black where ours draws
+it cyan, and called it a defect. The judgement came back that waterfall
+renders correctly, and that is right: the black there is largely DarkmoonEX's **annotation
+panel** -- the `1 2 3 4 5 6` chest numbering, the trap-tile key and an NPC drawn
+into the room's dead space -- not the map's floor. The reference art is a
+specification *and* a drawing, and the two have to be told apart before a
+difference counts as evidence.
+
+The guess that ToFR Air's 241 cells were teleporters is out: 240 of them are
+tile `$3F`, pure black under *both* palettes -- out-of-bounds void, so opening
+them is a visual no-op. Of the 2545 cells the union opens and the flood does
+not, 869 are invisible in exactly this way; the 1676 that are visible are led by
+Waterfall's water.
+
 **Not yet swapped in, because it does not subsume what ships.** On 49 maps the
 current union opens cells the flood does not -- Temple of Fiends Air 241,
 Waterfall 370 -- and ToFR Air has exactly one door tile, so its 241 cells are
