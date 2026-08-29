@@ -40,16 +40,35 @@ end
 
 local highlightWarned = false
 
+-- Guards against running inside itself. This is not hypothetical tidiness: the
+-- watches below fire from PopTracker's own change dispatch, and a refresh that
+-- ran again from inside one would recurse until the stack gave out.
+local refreshing = false
+
 -- Walk the table and set every ring. Cheap enough to do wholesale: it is
 -- ~54 lookups, and it only runs when a flag actually moves.
+--
+-- Deliberately does NOT wrap the writes in Tracker.BulkUpdate, which is what
+-- the first version of this did and what crashed PopTracker on open. Two
+-- reasons, either of them enough:
+--
+--   * `Tracker.BulkUpdate = false` does not just clear a flag, it flushes the
+--     queued changes and emits them (tracker.cpp:750-765). Those emits are what
+--     run the watches below -- so this function would call itself, from inside
+--     its own last line, with the queue not yet cleared. That is an unbounded
+--     recursion and a segfault, not a slow path.
+--   * the batch is not ours to close. reconcile.lua opens one around its own
+--     writes; if an incentive flag moves inside it, ending the batch here would
+--     flush someone else's half-finished board.
+--
+-- What the batch would have saved is 54 onLocationSectionChanged emits, which
+-- are display-level. A Highlight write does not touch the provider cache or
+-- mark accessibility stale, so there is no re-resolve to avoid.
 function refreshIncentiveHighlights()
-  if not INCENTIVE_SLOTS then
+  if not INCENTIVE_SLOTS or refreshing then
     return 0
   end
-  -- Every Highlight write raises the same onChange a chest clear does, which
-  -- drops the provider cache and marks accessibility stale (tracker.cpp:463).
-  -- Without the batch that is a full re-resolve of the board per slot.
-  Tracker.BulkUpdate = true
+  refreshing = true
   local marked = 0
   local ok, err = pcall(function()
     for _, slot in ipairs(INCENTIVE_SLOTS) do
@@ -67,9 +86,9 @@ function refreshIncentiveHighlights()
       end
     end
   end)
-  -- Restored on the failure path too: PopTracker leaves the board frozen if
-  -- this is left true.
-  Tracker.BulkUpdate = false
+  -- Cleared on the failure path too, or one error would stop every later
+  -- refresh silently.
+  refreshing = false
   if not ok then
     if not highlightWarned then
       highlightWarned = true

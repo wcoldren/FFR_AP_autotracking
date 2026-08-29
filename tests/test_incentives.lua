@@ -247,20 +247,66 @@ for path in pairs(byPath) do
   sectionsByPath[path] = { Highlight = Highlight.Unspecified }
 end
 
-Tracker = {
+-- The stub dispatches watches the way PopTracker does, because that is the
+-- whole bug this section exists for: writing Tracker.BulkUpdate = false flushes
+-- the queued changes and emits them (tracker.cpp:750-765), which runs the very
+-- watches the refresh registers. A stub that only stored the field would have
+-- passed while the real thing segfaulted on open, which is exactly what
+-- happened.
+local watches = {}
+local dispatching = false
+local depth, maxDepth = 0, 0
+local function dispatch()
+  if dispatching then
+    -- PopTracker does not re-enter its own flush; the recursion it does allow
+    -- is the pack calling back into the write that triggered it.
+    return
+  end
+  dispatching = true
+  for _, cb in ipairs(watches) do cb() end
+  dispatching = false
+end
+
+Tracker = setmetatable({
   ActiveVariantUID = "5standard",
-  BulkUpdate = false,
   ProviderCountForCode = function(_, code) return provided[code] or 0 end,
   FindObjectForCode = function(_, code)
     if code:sub(1, 1) == "@" then return sectionsByPath[code] end
     return byCode[code]
   end,
-}
-ScriptHost = { AddWatchForCode = function() end }
+}, {
+  __index = function(_, k)
+    if k == "BulkUpdate" then return false end
+    return nil
+  end,
+  __newindex = function(_, k, v)
+    if k == "BulkUpdate" and v == false then
+      -- The flush. This is the line that used to recurse.
+      dispatch()
+    end
+  end,
+})
+ScriptHost = { AddWatchForCode = function(_, _, _, cb)
+  watches[#watches + 1] = cb
+end }
 AUTOTRACKER_ENABLE_DEBUG_LOGGING = false
 
 provided = {}
 dofile(PACK .. "/scripts/incentives.lua")
+
+-- Wrap it so the depth is visible, then let a watch fire while it runs.
+local realRefresh = refreshIncentiveHighlights
+function refreshIncentiveHighlights()
+  depth = depth + 1
+  if depth > maxDepth then maxDepth = depth end
+  local n = realRefresh()
+  depth = depth - 1
+  return n
+end
+for i, cb in ipairs(watches) do
+  if cb == realRefresh then watches[i] = refreshIncentiveHighlights end
+end
+
 check("nothing ringed when no flag is set", refreshIncentiveHighlights(), 0)
 check("a skipped slot has no ring",
   sectionsByPath["@I: Coneria Castle/I: King"].Highlight, Highlight.None)
@@ -275,14 +321,25 @@ check("and so is the one on the real board",
 check("a slot on another flag is left alone",
   sectionsByPath["@I: Sea Shrine/I: Sea Incentive"].Highlight, Highlight.None)
 
--- The batch has to close on both paths, or PopTracker leaves the board frozen.
-check("the batch is closed afterwards", Tracker.BulkUpdate, false)
+-- The one that matters. A refresh that opened a bulk update would flush it on
+-- the way out, the flush would run these watches, and the watches would refresh
+-- again -- for ever. PopTracker died on the stack overflow rather than saying
+-- anything.
+maxDepth = 0
+provided = { npcsAreIncentive = 1, seaIsIncentive = 1 }
+refreshIncentiveHighlights()
+check("a refresh never runs inside itself", maxDepth, 1)
+
+-- And a watch firing mid-refresh is absorbed rather than recursing.
+maxDepth = 0
+dispatch()
+check("a watch during a refresh does not recurse", maxDepth <= 1, true)
 
 -- A host with no Highlight at all must not take the board down with it.
 Highlight = nil
 check("no Highlight support means no rings, not an error",
   refreshIncentiveHighlights(), 0)
-check("and the batch still closed", Tracker.BulkUpdate, false)
+check("and it still does not recurse", maxDepth <= 1, true)
 
 
 print()
