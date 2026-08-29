@@ -474,6 +474,47 @@ Nothing here is designed yet and the order below is not a plan.
   show them. Shares its whole tile-to-pixel path with entrance markers, on a
   much smaller blast radius.
 
+## Sprites on the map: what is settled and what is not
+
+Started 2026-08-29 and left mid-hunt, so this records the state rather than a
+result. The goal is gate NPCs drawn where they stand -- seeing the SIGIL barrier
+in the corridor instead of reading it out of `--gates`.
+
+**Settled, and cross-checked.** Which sprite an object wears is a 208-byte table
+at `MapObjGfxOffset = 0x02E00` (a ROM-data offset; add `INES_HEADER`, the same
+convention `MapObjectsOffset = 0x03400` follows). Read against seed `F258553F`
+it gives `$22`, `$C1`, `$C5` the `Orb` sprite and `$B0` the `Robot` -- exactly
+what `MetroidVaniaMap.cs:782-829` assigns them, so the cartridge and the source
+agree without either being copied into the other. 29 distinct sprites across the
+208 objects. Positions already come from `Graph.objects()`.
+
+`FF1Lib/NPCs.cs:13` has the 30-entry name list, in order:
+
+    Princess Woman OldWoman Dancer Orb Witch Prince Soldier Scholar Mohawk
+    Boy OldMan Dwarf Mermaid Lefein King Broom Bat Garland Pirate Fairy
+    Robot Dragon Bahamut ElfWoman ElfMan ElfPrince Plate Titan Vampire
+
+**Settled.** The art is around **`0x9010`**, just below the background tileset
+CHR at `0xC010`, and decodes into unmistakable walking figures in animation
+pairs. Tile layout is **row-major 2x2** -- top-left, top-right, bottom-left,
+bottom-right; the column-major reading renders scrambled, which is how it was
+told apart. `tools/chrscan.py` is what found it and will find it again.
+
+**Not settled: the sheet origin.** Sprite 4 has to draw as an `Orb` and does
+not, so the base is off by some number of slots. It was located by eye, which is
+the right way to find a band and the wrong way to align one -- do not resume by
+sliding offsets until something looks round.
+
+The next move is the engine's own path, the routine that turns the `Sprite` byte
+into a CHR address. One clue is already in hand and unexplained: `MIAB.cs:451`
+sets `Sprite = (ObjectSprites)0xF4`, far outside a 30-entry enum. That has to be
+understood first, because it decides whether the byte is a slot index or a tile
+number, and the two give different bases.
+
+Also unresolved, and cheaper: sprite palettes. Map objects use sprite palettes
+rather than the background attribute table `render_maps.py` reads, so that is a
+separate lookup.
+
 ## Known wrong
 
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so
