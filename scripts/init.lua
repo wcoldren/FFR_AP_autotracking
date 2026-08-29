@@ -32,6 +32,10 @@ else
     Tracker:AddLocations("locations/incentives.json")
 end
 
+-- After the locations, because it addresses their sections by path.
+ScriptHost:LoadScript("scripts/incentive_slots.lua")
+ScriptHost:LoadScript("scripts/incentives.lua")
+
 Tracker:AddLayouts("layouts/shared.json")
 if Tracker.ActiveVariantUID == "6shardHunt" then
   Tracker:AddLayouts("layouts/shardHunt/tracker.json")

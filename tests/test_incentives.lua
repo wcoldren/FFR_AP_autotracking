@@ -176,6 +176,115 @@ check("cardia stage 2 still incentivizes cardia", incentiveSlot("cardiaIsIncenti
 provided = {}
 check("an unknown flag is treated as incentivized", incentiveSlot("noSuchFlag"), 6)
 
+------------------------------------------------------------------
+-- 5. The generated slot table, and the ring it drives.
+--
+-- The table is written by tools/incentive_slots.py out of the location files.
+-- A path that resolves in neither tree is the failure that matters: the pass
+-- skips a nil section by design, so a renamed node would silently stop being
+-- ringed and nothing would say so.
+------------------------------------------------------------------
+dofile(PACK .. "/scripts/incentive_slots.lua")
+
+-- Resolve a path the way PopTracker does: "@node/section" matches any location
+-- whose full path ends in that node (tracker.cpp:849-871).
+local byPath = {}
+for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json",
+                        "locations/NOverworld/incentives.json" }) do
+  eachSection(json.load(PACK .. "/" .. file), function(node, section)
+    byPath["@" .. node.name .. "/" .. section.name] = section
+  end)
+end
+
+local unresolved, flagsInTable = {}, {}
+for _, slot in ipairs(INCENTIVE_SLOTS) do
+  flagsInTable[slot.flag] = true
+  if not byPath[slot.path] then
+    unresolved[#unresolved + 1] = slot.path
+  end
+end
+check("every slot path names a real section", #unresolved, 0)
+for _, path in ipairs(unresolved) do
+  fails("no section at " .. path)
+end
+
+-- 26 on the incentive tab (the 25 demoted plus the hoard, which still hides),
+-- 2 more the NOverworld tree renames, and 26 on the real board.
+check("slots in the generated table", #INCENTIVE_SLOTS, 54)
+
+for flag in pairs(flagsInTable) do
+  if not byCode[flag] then
+    fails("the slot table names an undefined flag: " .. flag)
+  end
+end
+
+-- Every gated section on the incentive tab is in the table. This is the one
+-- that catches a slot quietly losing its ring.
+for _, file in ipairs(INCENTIVE_FILES) do
+  eachSection(json.load(PACK .. "/" .. file), function(node, section)
+    local wanted = section.access_rules
+        and table.concat(section.access_rules, ","):find(TERM)
+    if wanted or section.visibility_rules then
+      local path = "@" .. node.name .. "/" .. section.name
+      local found = false
+      for _, slot in ipairs(INCENTIVE_SLOTS) do
+        if slot.path == path then found = true end
+      end
+      if not found then
+        fails("gated but not in the slot table: " .. path)
+      end
+    end
+  end)
+end
+
+------------------------------------------------------------------
+-- 6. refreshIncentiveHighlights.
+------------------------------------------------------------------
+Highlight = { Avoid = -1, None = 0, NoPriority = 1, Unspecified = 2, Priority = 3 }
+
+local sectionsByPath = {}
+for path in pairs(byPath) do
+  sectionsByPath[path] = { Highlight = Highlight.Unspecified }
+end
+
+Tracker = {
+  ActiveVariantUID = "5standard",
+  BulkUpdate = false,
+  ProviderCountForCode = function(_, code) return provided[code] or 0 end,
+  FindObjectForCode = function(_, code)
+    if code:sub(1, 1) == "@" then return sectionsByPath[code] end
+    return byCode[code]
+  end,
+}
+ScriptHost = { AddWatchForCode = function() end }
+AUTOTRACKER_ENABLE_DEBUG_LOGGING = false
+
+provided = {}
+dofile(PACK .. "/scripts/incentives.lua")
+check("nothing ringed when no flag is set", refreshIncentiveHighlights(), 0)
+check("a skipped slot has no ring",
+  sectionsByPath["@I: Coneria Castle/I: King"].Highlight, Highlight.None)
+
+provided = { npcsAreIncentive = 1 }
+local ringed = refreshIncentiveHighlights()
+check("the NPC slots ring together", ringed > 0, true)
+check("the incentive tab's King is ringed",
+  sectionsByPath["@I: Coneria Castle/I: King"].Highlight, Highlight.Priority)
+check("and so is the one on the real board",
+  sectionsByPath["@Coneria Castle/King"].Highlight, Highlight.Priority)
+check("a slot on another flag is left alone",
+  sectionsByPath["@I: Sea Shrine/I: Sea Incentive"].Highlight, Highlight.None)
+
+-- The batch has to close on both paths, or PopTracker leaves the board frozen.
+check("the batch is closed afterwards", Tracker.BulkUpdate, false)
+
+-- A host with no Highlight at all must not take the board down with it.
+Highlight = nil
+check("no Highlight support means no rings, not an error",
+  refreshIncentiveHighlights(), 0)
+check("and the batch still closed", Tracker.BulkUpdate, false)
+
+
 print()
 if fail == 0 then
   print("ALL PASS")
