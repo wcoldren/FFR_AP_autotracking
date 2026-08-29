@@ -119,6 +119,20 @@ All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
   the references reproduces their previous trees exactly. The 282 markers in
   `locations/overworld.json` now have somewhere to draw, and `maptab.lua`
   follows the player into a dungeon on these variants too.
+- **Maps can be drawn from the cartridge.** `tools/render_maps.py`, added
+  2026-08-29, renders all 61 standard maps out of a ROM using the game's own
+  tile art — CHR, tilesets and per-map palettes, in pure Python, no .NET and no
+  extra dependency. It draws the *seed's* map, so the sealed walls, the 75 new
+  staircases and both of the rooms No-Overworld builds inside Coneria Castle all
+  appear, and it renders the eight towns the pack has never had art for. Every
+  image is 64 tiles at 16 pixels, so tile *n* is pixel *16n* exactly and
+  calibration stops being a thing that gets eyeballed. All 61 come to 2.3 MB,
+  against 3.0 MB for the 53 screenshots shipping now.
+
+  Nothing is committed from it: run it against your own cartridge. That keeps
+  ROM-derived art out of the repo and is also the more correct option, since
+  Waterfall's two staircases are rolled per seed.
+
 - **The one image cannot carry markers.** `images/maps/nooverworldmap.jpg` is
   upstream art (Photoshop, 2021, mikesrpgcenter watermarks) added in the "Add
   files via upload" commits. It is 3096x2816, but Coneria Castle occupies about
