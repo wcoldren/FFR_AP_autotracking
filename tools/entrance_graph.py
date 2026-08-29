@@ -159,6 +159,112 @@ MAP_OBJECTS = INES_HEADER + (0xB400 - 0x8000)
 OBJS_PER_MAP, OBJ_RECORD, OBJ_STRIDE = 15, 3, 48
 GATED_OBJECTS = {0x16: "rod", 0x17: "lute"}
 
+# ------------------------------------------------------- No-Overworld gate NPCs
+#
+# No-Overworld's gates are not tiles. They are NPCs standing in corridors, and
+# which item each one wants is a property of the talk routine FFR assigns it,
+# not of the dialogue -- the dialogue is deliberately misleading, and says
+# "Lukahn's mark" at NPCs whose routine checks the Canoe.
+#
+# FF1Lib/Sanity/SCMap.cs:218-226 is FFR's own logic model and states it outright:
+# NoOW_Floater wants Floater, NoOW_Canoe the Canoe, NoOW_Chime the Chime, and
+# Talk_Nerrick the TNT. The object ids are FF1Lib/Items.cs's ObjectId enum, which
+# is the game's own numbering.
+#
+# Nothing is taken on faith: which routine an object actually runs is read off
+# the cartridge, and the eight below have to fall into four groups matching four
+# items before any of it is believed. On a standard cartridge they do not -- they
+# are ordinary townspeople sharing generic routines -- and that is the signal
+# that this is not a No-Overworld layout rather than an error.
+NOVERWORLD_GATES = {
+    0x08: "tnt",                                            # Nerrick
+    0x22: "floater", 0xC1: "floater", 0xC5: "floater",      # the three SIGIL barriers
+    0x46: "canoe", 0x83: "canoe", 0x84: "canoe",            # the three "Lukahn's mark" NPCs
+    0xB0: "chime",                                          # the Gaia robot
+}
+GATE_OBJ_NAMES = {
+    0x08: "Nerrick", 0x22: "ConeriaCastle1FWoman1", 0xC1: "LefeinMan6",
+    0xC5: "LefeinMan10", 0x46: "ElflandCastleElf2", 0x83: "CrescentWoman",
+    0x84: "CastleOrdealsOldMan", 0xB0: "GaiaScholar2",
+}
+
+# The talk jump table: $D0 entries of two bytes, one per object id, giving the
+# routine that runs when you talk to it.
+#
+# Vanilla keeps it at lut_MapObjTalkJumpTbl, $0E:90D3 (bank_0E.asm:902). FFR
+# rebuilds it somewhere else entirely -- lut_MapObjTalkJumpTbl_new, $8000 of the
+# bank it assembles its own routines into (FF1Lib/NPCs.cs:106,129).
+#
+# $90D3 in the new bank is NOT that table. Dialogues.cs:137 bulk-copies $8EA
+# bytes of the vanilla region into the new bank, so the old address still holds
+# a complete, well-formed, vanilla jump table -- on a No-Overworld cartridge it
+# says every gate NPC is an ordinary townsperson. Same shape as the standard
+# maps left behind in bank $04: reading the old address does not fail, it lies.
+TALK_JUMP_TBL = 0x90D3          # vanilla
+TALK_JUMP_TBL_NEW = 0x8000      # FFR
+TALK_OBJ_COUNT = 0xD0
+
+# FFR patches the engine's `LDA #<bank>` to name the bank it moved them to
+# (FF1Lib/Dialogues.cs:54,178 -- $0E out, $11 in, written at rom[0x7C9F2], which
+# is a header-less index, so +16 in the file).
+TALK_BANK_CONST = bank_off(0x1F, 0x89F2)
+VANILLA_TALK_BANK = 0x0E
+
+
+def talk_routine_bank(data):
+    """(bank, address) of the live talk jump table, or None if it is not there.
+
+    Read from the engine's own constant, not assumed. A stock cartridge is 16
+    banks and has no $1F:89F2 at all, which is the fallback.
+    """
+    def fits(bank, addr):
+        return bank_off(bank, addr) + TALK_OBJ_COUNT * 2 <= len(data)
+
+    if TALK_BANK_CONST < len(data):
+        bank = data[TALK_BANK_CONST]
+        if bank != VANILLA_TALK_BANK and fits(bank, TALK_JUMP_TBL_NEW):
+            return bank, TALK_JUMP_TBL_NEW
+    if fits(VANILLA_TALK_BANK, TALK_JUMP_TBL):
+        return VANILLA_TALK_BANK, TALK_JUMP_TBL
+    return None
+
+
+def talk_routines(rom):
+    """object id -> the address of the routine it runs, or None if unreadable."""
+    where = talk_routine_bank(rom.data)
+    if where is None:
+        return None
+    base = bank_off(*where)
+    return {oid: int.from_bytes(rom.data[base + oid * 2:base + oid * 2 + 2], "little")
+            for oid in range(TALK_OBJ_COUNT)}
+
+
+def noverworld_gate_items(rom):
+    """item -> the routine address that wants it, or None on a non-NoOW layout.
+
+    The eight gate objects have to sort into groups by routine that each want a
+    single item. A standard cartridge mixes them -- CrescentWoman and the Gaia
+    scholar share one generic routine there -- and mixing is the answer "these
+    are not gates", not a failure to read.
+    """
+    routines = talk_routines(rom)
+    if routines is None:
+        return None
+    by_routine = {}
+    for oid, item in NOVERWORLD_GATES.items():
+        by_routine.setdefault(routines[oid], set()).add(item)
+    # Four routines, four items, one item each, and every item accounted for.
+    # Anything less and the eight objects are not the gate set -- which is the
+    # answer on a standard cartridge, where they share generic routines.
+    if len(by_routine) != len(set(NOVERWORLD_GATES.values())):
+        return None
+    if any(len(items) != 1 for items in by_routine.values()):
+        return None
+    out = {items.copy().pop(): addr for addr, items in by_routine.items()}
+    if set(out) != set(NOVERWORLD_GATES.values()):
+        return None
+    return out
+
 # The map-object ids worth routing to by name. OBJID_* in Constants.inc:247,
 # except $05, which the disassembly leaves unnamed -- the pack's
 # scripts/autotracking/ram_mapping.lua pins it as the Elf Doctor, the NPC the
@@ -773,7 +879,70 @@ def self_check(g):
     print(f"self-check OK: {total} teleport tiles across {MAP_COUNT} maps in bank "
           f"${g.sm_bank:02X} ({norm} of them staircases; the rest are mostly the "
           "warp-out filler that surrounds every town), none of them a treasure chest")
+    if not check_talk_bank(g):
+        return False
     return check_noverworld_towns(g, *game_mode(g.rom))
+
+
+def print_gates(g):
+    """Where the No-Overworld gate NPCs stand, and what each one wants."""
+    where = talk_routine_bank(g.rom.data)
+    if where is None:
+        print("no talk jump table in this image")
+        return
+    print(f"Talk jump table at ${where[0]:02X}:${where[1]:04X}")
+    gates = noverworld_gate_items(g.rom)
+    if gates is None:
+        print("  not a No-Overworld gate layout -- these eight objects share the")
+        print("  generic routines they have on a standard cartridge, so none of")
+        print("  them is blocking anything.")
+        return
+    placed = {}
+    for m in range(MAP_COUNT):
+        for oid, x, y in g.objects(m):
+            placed.setdefault(oid, []).append((m, x, y))
+    routines = talk_routines(g.rom)
+    for item in sorted(gates):
+        print(f"  {item} (routine ${gates[item]:04X})")
+        for oid in sorted(o for o, i in NOVERWORLD_GATES.items() if i == item):
+            for m, x, y in placed.get(oid, []):
+                print(f"      ${oid:02X} {GATE_OBJ_NAMES[oid]:22s} "
+                      f"{MAP_NAMES[m]} ({x},{y})")
+            if oid not in placed:
+                print(f"      ${oid:02X} {GATE_OBJ_NAMES[oid]:22s} not placed on any map")
+
+
+def check_talk_bank(g):
+    """The talk table must not be read from the bank FFR abandoned.
+
+    FFR leaves a byte-perfect vanilla jump table at $90D3 of the bank it moved
+    the routines *to*, so the wrong address returns a confident answer in which
+    no gate NPC is a gate. This is the same failure the standard maps had in
+    bank $04, and it cost an afternoon here too.
+    """
+    where = talk_routine_bank(g.rom.data)
+    if where is None:
+        print("self-check FAILED: no talk jump table found at all")
+        return False
+    bank, addr = where
+    expanded = len(g.rom.data) > INES_HEADER + 16 * BANK_SIZE
+    if expanded and (bank, addr) == (VANILLA_TALK_BANK, TALK_JUMP_TBL):
+        print("self-check FAILED: talk routines read from the vanilla bank "
+              f"${VANILLA_TALK_BANK:02X} on an expanded image")
+        return False
+    if expanded and addr == TALK_JUMP_TBL:
+        print(f"self-check FAILED: talk table read at ${addr:04X}, which is the "
+              "stale copy FFR leaves behind, not lut_MapObjTalkJumpTbl_new")
+        return False
+    gates = noverworld_gate_items(g.rom)
+    mode, _ = game_mode(g.rom)
+    if mode == GAME_MODE_NOVERWORLD and gates is None:
+        print("self-check FAILED: GameMode 2 but the eight gate NPCs do not sort "
+              "into four routines -- the talk table is being misread")
+        return False
+    print(f"self-check OK: talk routines in bank ${bank:02X} at ${addr:04X}"
+          + (f", gates {', '.join(sorted(gates))}" if gates else ", no gate layout"))
+    return True
 
 
 def resolve_map(name):
@@ -853,6 +1022,8 @@ def main():
                     help="comma-separated items in hand: " + ",".join(sorted(ITEM_NAMES)))
     ap.add_argument("--dump", action="store_true", help="all doors and floor links")
     ap.add_argument("--tables", action="store_true", help="vanilla vs extended teleport tables")
+    ap.add_argument("--gates", action="store_true",
+                    help="No-Overworld gate NPCs and the item each one wants")
     ap.add_argument("--self-check", action="store_true", help="staircases must not be chests")
     ap.add_argument("-o", "--out", help="write the graph as JSON")
     args = ap.parse_args()
@@ -880,6 +1051,8 @@ def main():
     ok, npc_reached = True, True
     if args.self_check:
         ok = self_check(g)
+    if args.gates:
+        print_gates(g)
     if args.tables:
         print_tables(g)
     if args.dump:
@@ -911,7 +1084,8 @@ def main():
                   + " -- try --have key")
         else:
             npc_reached = False
-    if not any((args.self_check, args.tables, args.dump, args.to, args.to_npc, args.out)):
+    if not any((args.self_check, args.gates, args.tables, args.dump, args.to,
+                args.to_npc, args.out)):
         print_doors(g, tabs)
 
     if args.out:
