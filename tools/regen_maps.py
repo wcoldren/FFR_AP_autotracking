@@ -13,7 +13,7 @@ file copy:
 
   * the 51 shipped images are composites at 51 different sizes, each with a
     hand-solved offset in tools/map_calibration.json;
-  * the pixel coordinates of all 253 dungeon markers in locations/*.json were
+  * the pixel coordinates of all 254 dungeon markers in locations/*.json were
     computed from those offsets, so new art with old coordinates puts every
     marker somewhere other than its chest;
   * ten of the 61 maps -- the eight towns, Coneria Castle 2F and Bahamut's Lair

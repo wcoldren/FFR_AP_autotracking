@@ -134,7 +134,7 @@ All of it is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at :47.
   Waterfall's two staircases are rolled per seed.
 
 - **And the swap is one command.** `tools/regen_maps.py FFR_seed.nes` renders
-  the 61 maps, moves all 253 dungeon markers onto them, and writes maps.json
+  the 61 maps, moves all 254 dungeon markers onto them, and writes maps.json
   entries and tabs for the ten maps the pack has no art for -- into PopTracker's
   `user-override/ff1_rando_ap/`, not the checkout, so the repo keeps shipping
   the screenshots and `--clean` puts it back. Every moved marker is checked
