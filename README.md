@@ -4,9 +4,16 @@ Setting up a recieved item autotracker for FFR on Archipelago (https://github.co
 
 This is a pack for black-silver's Poptracker (https://github.com/black-sliver/PopTracker/). 
 
-It needs PopTracker 0.32.0 or newer. Older versions refuse to load the pack
+It needs PopTracker 0.35.1 or newer. Older versions refuse to load the pack
 outright rather than loading it with less in it, so if it will not open, that is
 the first thing to check.
+
+This is a fork of SunflashRune/FFR_AP_autotracking and is no longer tracking it.
+Everything upstream had is in here; upstream's last commit was 2025-11-21, and
+its unmerged `Sun` branch stopped on 2025-12-10. The one thing either still had
+that this tree did not was markers on five maps, which are now derived from the
+cartridge instead -- see the "Take what upstream/Sun still had" commit. The
+`upstream` remote is kept for reference, not as a merge target.
 
 Pretty simple to use, not 100% as fully functional as the EmoTracker pack, but works for Archipelago.
 
