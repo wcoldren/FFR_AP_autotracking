@@ -278,6 +278,22 @@ def room_and_walls(rom, map_id, tiles, art, open_art):
         if grown == room:
             break
         room = grown
+
+    # Finally fill pockets fully enclosed by the room. Mirage Tower 1F has a
+    # trap tile at (15,17) with chests on three sides and the room's wall on
+    # the fourth: walkable, but the flood cannot reach it because a chest tile
+    # is not walkable, so it kept drawing as roof between four chests where
+    # mirage1F.png has black floor. Requiring *all four* neighbours to be
+    # inside already is what makes this safe -- it cannot escape a region it
+    # is not enclosed by. 39 cells across all 61 maps.
+    while True:
+        pockets = {(r, c) for r in range(MAP_DIM) for c in range(MAP_DIM)
+                   if (r, c) not in room
+                   and all((r + dr, c + dc) in room
+                           for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)))}
+        if not pockets:
+            break
+        room |= pockets
     return room
 
 
