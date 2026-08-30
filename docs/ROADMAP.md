@@ -175,7 +175,8 @@ first.
 ## Branch queue
 
 Where item 1 actually stands, 2026-08-30, and what comes off it. This is the
-part that goes stale fastest; check `git log trunk..` before trusting it.
+part that goes stale fastest, and `git log trunk..` is what actually says
+where a branch stands.
 
 **`noverworld-logic` -- fourteen commits, merged to `trunk`, pushed.** `trunk`
 is level with `origin/trunk` and clean, as of 2026-08-30. The wiring (feed
@@ -184,9 +185,8 @@ Orb gate, the idea below, and five commits answering the review. All suites
 green; std 225/225 and shard 229/229 unmoved throughout, including across the
 gate branch below.
 
-**The review gate is closed.** `/code-review` ran in a fresh-context session on
-`trunk...noverworld-logic` at high effort and returned seven findings, all of
-which held up against the files. All seven were fixed rather than waived; each
+**The review gate is closed.** A full review of `trunk...noverworld-logic`
+returned seven findings, all of which held up against the files. All seven were fixed rather than waived; each
 has its own commit message. Two were more than tidying:
 
 - The mode guards had landed on `locations/incentives.json` alone, which the two
@@ -197,8 +197,6 @@ has its own commit message. Two were more than tidying:
 - `check_logic --derived` graded standard and shard cartridges against rules
   keyed to the No-Overworld tree, producing 279 divergences that described
   nothing. Those cartridges are skipped now.
-
-Nothing pushed without explicit go-ahead.
 
 **Landed: the remaining two object gates, and the sweep that can hold them.**
 One commit, because the parts could not land separately -- a `GATED_OBJECTS` row
@@ -243,9 +241,8 @@ naming another location, which the item sweep cannot express at any vocabulary
 size. Filed in `docs/ISSUES.md`, and it is an argument for the solver in
 `docs/IDEAS.md` rather than for a patch.
 
-**The review gate is closed on this branch too.** `/code-review` ran in a
-fresh-context session on `trunk..object-gates` at high effort and returned four
-findings, all of which held up. All four are fixed rather than waived, in one
+**The review gate is closed on this branch too.** A full review of
+`trunk..object-gates` returned four findings, all of which held up. All four are fixed rather than waived, in one
 commit. Two were more than tidying:
 
 - `object_gate_items()` could name any of `ITEM_RAM`'s seventeen items while the
@@ -289,9 +286,9 @@ separate No-Overworld pass here.
   top and cropped to the same height the rotation derives. Coneria Castle is a
   different story: 67.1 x 37.8 tiles, wider than the 64-tile grid, with a single
   4.6-tile flat band and no 35-column void, so that image is a composition rather
-  than the raw grid and cannot referee the rotation. Look at it before applying
-  the change there. `crescent_lake` and `melmond` have no calibration entry, so
-  there is nothing to check them against.
+  than the raw grid and cannot referee the rotation. `crescent_lake` and
+  `melmond` have no calibration entry, so there is nothing to check them
+  against.
 - **Trap marks keyed to the formation id**, closing the defect in
   `docs/ISSUES.md` where the same enemies carry two different letters, and
   killing every two-character label with it. 32 formations stand on a map (31 on
@@ -355,23 +352,3 @@ The solver has one more argument for it than it did, and it is still not enough
 to queue it: Lefein above is a requirement that names another *location* rather
 than an item, so no widening of the sweep reaches it. It is one location of 226,
 and it is permissive rather than silent, so it stays filed.
-
-## Working rules
-
-- One topic branch per item, off `trunk`, named for the theme.
-- `/code-review` in a fresh-context session before any merge into `trunk`.
-  Findings addressed, or waived in the commit message saying which and why.
-- Nothing is done on a successful edit alone. `tests/run.sh` and
-  `tools/tests/run.sh` green, and for item 1, `check_logic.py` clean on both a
-  No-Overworld and a standard cartridge.
-- **A new gate row does not count until it demonstrates a failure.** Adding a
-  row to `GATED_OBJECTS` -- or any other rule that is supposed to close
-  something -- means showing a location that was reachable without the item
-  before the row and gated after it, and saying so in the commit that adds it.
-  A row that changes nothing anywhere is either dead code or evidence the
-  enforcement is not wired, and both are worth catching at commit time rather
-  than on the next person to trust the output. Where the demonstration cannot
-  be run yet -- a gate whose item the sweep cannot hold until the vocabulary
-  widens -- say that in the commit rather than skipping it silently.
-  This is `test_maps.lua` check 6's lesson generalised: a check that cannot
-  fail is worthless, and so is a rule that cannot bite.

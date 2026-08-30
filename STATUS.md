@@ -148,10 +148,8 @@ The gate half of the logic branch is already done and verified on a real
 cartridge -- the router stops at the gate NPCs. What is left there is the pack
 acting on it.
 
-Two things worth knowing before running anything: seeds live in
-`~/Downloads/FFR_duck_10*/`, and `F258553F` is the one every measurement in this
-document was taken against. `FF1_ROM` points the tool tests at a cartridge, and
-they are strictly stronger with a real seed than with the vanilla image.
+Unless a section names another cartridge, `F258553F` is the seed its
+measurements were taken against. `docs/ORACLE.md` is the inventory.
 
 ## The NOverworld variants
 
@@ -1758,9 +1756,8 @@ right on both worlds, and only the reason it gave was wrong on one.
 
 ## What the review of the object-gate branch found
 
-Written 2026-08-30. `/code-review` ran in a fresh-context session on
-`trunk..object-gates` at high effort and returned four findings. All four held
-up against the files and all four are fixed rather than waived. Two were real,
+Written 2026-08-30. A full review of `trunk..object-gates` returned four
+findings. All four held up against the files and all four are fixed rather than waived. Two were real,
 one was latent, one was arithmetic in a doc.
 
 **The gate reader could name an item the sweep never varies.**
