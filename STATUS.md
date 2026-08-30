@@ -570,13 +570,17 @@ carry no alpha), and `MARKER_SIZE` is `TILE_PX` -- exactly one tile, exactly a
 sprite's size. Nothing reads behind it. A sprite under a square pin is not
 context, it is invisible.
 
-**And 13 was not the number.** `regen_maps.py` now computes it instead of anyone
-counting by hand: **3 pins on a standard seed** (`C189A0EF`) and **2 on the
-No-Overworld one** (`F258553F`) -- Dwarf Cave Smith and Nerrick on `dwarves`,
-Sarda on `sarda`. Seven object tiles do coincide with a *marker tile*, but
-Pravoka, Gaia, North West Castle and Matoya's Cave carry their pins on the
-**overworld** map only and have none on their own art, so no sprite of theirs is
-ever covered. Counting tiles instead of pins is what produced the larger figure.
+**And 13 was not the number.** `regen_maps.py` computes it instead of anyone
+counting by hand. It came out **3 pins on a standard seed** (`C189A0EF`) --
+Dwarf Cave Smith and Nerrick on `dwarves`, Sarda on `sarda` -- and **2 on the
+No-Overworld one** (`F258553F`), which does not draw Nerrick's sprite at all.
+The list this sentence used to carry was the standard seed's three against the
+No-Overworld seed's count. Seven object tiles did coincide with a *marker
+tile*, but Pravoka, Gaia, North West Castle, Matoya's Cave and Bahamut's Cave
+carried their pins on the **overworld** map only and had none on their own art,
+so no sprite of theirs could be covered. Counting tiles instead of pins is what
+produced the larger figure. Those five have pins now -- see below -- and the
+count is 8 on a standard seed and 7 on the No-Overworld one.
 
 **What is done about it**: a pin that lands on a drawn sprite is emitted as a
 `diamond` rather than the default rect. `drawDiamond` is real vertex geometry, so
@@ -592,37 +596,83 @@ conservative option is less needed than it was.
 
 
 
-### Still open: what a diamond means, and how many there should be
+### The five NPCs with no pin of their own, and what a diamond means
 
-Raised 2026-08-29, looking at the result: it feels like there should be more
-diamonds, and what one signifies is unclear. Both halves are fair.
+Raised 2026-08-29 looking at the result -- it felt like there should be more
+diamonds, and what one signified was unclear. Both halves were fair. Fixed the
+same day, and the count that framed the question was wrong in the same breath.
 
 **A diamond is not a category.** Square and diamond are the same size, the same
 centre, the same state colours and the same click target; the only difference is
 that `drawRect` fills the whole tile and `drawDiamond` fills the inscribed
 diamond, leaving the four corner triangles unpainted. Nothing in the pack tells
-a player that, so today the shape means "there is a sprite under here, let it
-breathe" and nothing more.
+a player that, so the shape means "there is a sprite under here, let it breathe"
+and nothing more.
 
-**Three is the wrong number, and the reason is a gap elsewhere.** Of the tracked
-NPCs that have a position on a map this redraws, **all 14 of 14 stand on a tile
-that draws a sprite** -- which is not a coincidence, the pin marks the NPC and
-the sprite *is* that NPC. Only 3 come out as diamonds because the other eleven
-have no pin on their own art at all: they carry `map_locations` on the
-`overworld` map only, so `place_locations` never rebuilds them onto a dungeon or
-town tab. Astos, Bikke, Matoya, Unne, the Fairy, Bahamut, Titan and the four
-fiends are all in that group. Fix that gap -- see the entry under "Known wrong"
--- and the count goes from 3 to 14 without anything about the diamond rule
-changing.
+**Three was the wrong number, and the reason was a gap elsewhere.** The pin
+marks the NPC and the sprite *is* that NPC, so every NPC pin on redrawn art is a
+diamond by construction. Only three came out that way because the other five
+had no pin on their own art at all: Astos, Matoya, Bikke, the Fairy and Bahamut
+carried `map_locations` on the `overworld` map only -- the pin on the town or
+cave that holds them -- and `place_locations` only ever rebuilt a node that
+already had a marker on a redrawn map. A node with none was never given one, so
+those five were never lost, they were never gained.
 
-**Which then makes the rule worth re-deciding.** At 3 pins a diamond reads as an
-exception. At 14 it stops distinguishing anything and starts looking like a
-category a player is meant to interpret, especially once the trapezoid arrives
-meaning "entrance". Two alternatives worth weighing at that point: make every
-NPC pin a diamond and let the shape honestly mean "NPC" rather than "collision",
-or leave shape alone and move the *sprite* off-centre within its tile. Not a
-decision to take before the missing pins exist, since their count is what makes
-one option better than the other.
+**Not fourteen, eight.** This section used to say the count would go from 3 to
+14 once the gap was closed. It does not: `npc_positions.json` holds fourteen
+NPCs, but six of them -- Unne, Titan and the four fiends -- host no section
+anywhere in the location tree, so there is no location for a pin to belong to.
+Adding boxes for them is a separate decision and a bad one on today's evidence:
+none holds a shuffled item, the fiends write no flag that could be autotracked
+at all, and `titan` as a code is already taken by `ruby` stage 2. Eight NPCs
+have a node; eight now have a pin. On a standard seed all eight are diamonds.
+
+Three things had to be true for the pin to be right, and each was its own fix.
+
+**A pin has to mean one thing.** A map marker's state is per *location*, not per
+section: `TrackerView::CalculateLocationState` walks every section of the node
+and ORs them, refs resolved (`trackerview.cpp:1170-1218`). Astos, Matoya and
+Bahamut each shared a node with other checks -- North West Castle's three
+chests, Matoya's Cave's three, the Cardia hoard -- so a pin dropped on Astos's
+tile would have sat on Astos and reported the chests. Each is now its own child
+location, which is the shape `Dwarf Cave Smith` and `Dwarf Cave Nerrick` already
+had; the parent keeps its overworld pin and mirrors the child as a ref section,
+and a child with no `access_rules` of its own inherits the parent's exactly
+(`location.cpp:103-134`), so the logic is unchanged.
+
+**The join could not be the Archipelago pool.** `marker_tiles` resolved NPCs
+through `location_mapping.lua`, which only names locations the multiworld has an
+id for -- and Bahamut is one of the eight NPCs with no AP id at all. It reads
+`hosted_item` out of the location tree now. Same codes, same table, wider door:
+chests still join by AP id, because that is what a chest index is.
+
+**A pin only goes where the party can stand.** `npc_positions.json` holds
+fifteen placements for those fourteen NPCs, and one of them is not in a map.
+Ice Cave B1 carries a second `OBJID_FAIRY` at (47,30), out in the black beyond
+the cave -- `game_flags + OBJID_FAIRY` is one global flag and `ShowMapObject`
+reveals every copy, so the cartridge treats it as the same fairy, but it stands
+on a cell the edge flood reaches and no party can walk up to it. The renderer
+draws it and the crop deliberately keeps it in frame; a *pin* there would be a
+pin in the void. `stands_on_map` runs the same flood `content_box` crops by, and
+exactly one of the fifteen fails it.
+
+**What a diamond means is still open, and now at the count that decides it.**
+At three pins a diamond read as an exception. At eight it is every NPC pin there
+is, which makes the shape a category whether or not it was meant as one --
+especially once the trapezoid arrives meaning "entrance". Two ways to settle it:
+say so out loud and let diamond mean "NPC", or leave shape alone and move the
+*sprite* off-centre within its tile so a square pin stops covering it. The first
+is free and is what the output already looks like.
+
+**The shipped hand-drawn art did not get these pins**, and that is deliberate.
+The transform reproduces the three markers DarkmoonEX drew to the pixel --
+Sarda (58,56), the Smith (140,70), Nerrick (284,758) -- and matoya lands exactly
+on her sprite. `nw_castle` does not: he draws Astos one tile above the cell the
+cartridge places him on, sitting in a throne the map data does not have there.
+The chest markers on that map are right, so it is the drawing and not the
+calibration. A pin a tile off its sprite reads as a bug, and the pack has
+already decided hand-art marker work only benefits a player who never runs
+`regen_maps.py`, so these pins are built onto rendered art only.
 
 
 ## The room floor was a hole, and the cartridge already knew
@@ -1066,12 +1116,19 @@ answer for it.
   hand-assigned for vanilla and do not describe an FFR seed. Ours are per
   cartridge and self-consistent per map. Only cross-referencing a letter
   against his guide is unsafe. See "Our letters are not DarkmoonEX's" above.
-- **Four NPC locations have no pin on their own art.** Pravoka, Gaia, North West
-  Castle and Matoya's Cave carry `map_locations` on the `overworld` map only, so
-  their town and cave tabs show no marker for them even though the cartridge
-  says exactly which tile each stands on. `place_locations` only rebuilds a
-  node that already had a marker on a redrawn map, so these were never gained
-  rather than being lost.
+- ~~**Four NPC locations have no pin on their own art.**~~ Five, and fixed
+  2026-08-29: Bahamut's Cave was missing from the list because the join went
+  through the Archipelago pool, which has no id for Bahamut. Pravoka, Gaia,
+  North West Castle, Matoya's Cave and Bahamut's Cave carried `map_locations`
+  on the `overworld` map only; all five now carry a pin on the tile the
+  cartridge places the NPC on. See "The five NPCs with no pin of their own".
+- **Six NPCs the cartridge places have no box anywhere.** Unne, Titan and the
+  four fiends host no section in the location tree, so they have no location a
+  pin could belong to. Titan's is the `titan`-code clash above; the fiends
+  write no flag that could be autotracked at all (see "Open questions"); Unne
+  holds no shuffled item. Each would be a manual-click cell, which is a
+  decision rather than an omission -- written here so it stops reading as a
+  gap in the NPC pins.
 
 ## What Archipelago can and cannot tell the tracker
 
@@ -1104,6 +1161,61 @@ clones — holds exactly fourteen ids above 510:
 The gaps are the NPCs that hold no shuffled item: Garland (514), Princess1
 (515), ElfDoc (517), Unne (523), Vampire (524), Bahamut (526), SubEngineer
 (528) and Titan (532). Lighting them from RAM only is correct, not a hole.
+
+## Four names that have drifted off what they describe
+
+Raised 2026-08-29. None is urgent and none is decided; they are grouped because
+they are the same kind of question -- a label chosen for what this was, still
+attached to what it has become. Facts first, so the decision does not start from
+scratch.
+
+**`package_version: "1.1b"`.** The version in `manifest.json` is upstream's, and
+what is on trunk shares little with the pack that carried it: two reconciled
+autotracking feeds, a Lua bridge, a ROM-reading toolchain and cartridge-drawn
+maps have all arrived since. PopTracker shows the string in the pack list and
+uses it for nothing else -- there is no update check and no compatibility gate,
+so any value is safe. That means the only question is what a reader should
+learn from it. Continuing upstream's numbering claims a lineage the tree no
+longer has; a fresh scheme, or a date, or dropping the letter suffix, all say
+"this is a fork" more honestly. Whatever it becomes should probably move the
+`author` line too, which credits five people for the pack this started from.
+
+**The repo is called `FFR_AP_autotracking`, and most of it is not AP.** The
+Archipelago feed carries checked locations and items received and nothing else
+-- `fill_slot_data` returns an empty dict (see "What Archipelago can and cannot
+tell the tracker"). Everything else the pack knows comes off the cartridge over
+UAT: orbs, turn-in stages, the flag string, the current map, the run clock, the
+seed's identity, the Chaos kill. So the name points at the thinner of the two
+feeds. Bringing AP to parity is not pack work at all -- it means changing
+`worlds/ff1` in Archipelago to publish slot data, which is a different
+repository and a different review path. Worth being explicit about that split
+before any renaming, because the name is the only place it currently reads as
+though this repo could close the gap on its own.
+
+**`STATUS.md` versus `ISSUES.md`.** Renaming would misdescribe it. Roughly a
+tenth of this file is defects; the rest is what was built and why, the
+measurements behind each decision, and the reasoning that was tried and
+rejected -- the room-floor discriminators, the trap-letter font, the
+No-Overworld triage. That is a working log, and its value is that a fresh
+session can pick a thread up cold. If the defect list wants to be findable on
+its own, "Known wrong" and "Open questions" could split out into their own file
+and be linked from here; the narrative should not follow them.
+
+**The four `NoMap` variants.** PopTracker's pack chooser lists eight entries for
+this pack, four of them map-less: "Standard Tracker", "Shard Hunt Tracker",
+"NOverworld", "NOverworld Shard Hunt". They are not the broadcast windows --
+every variant already loads a broadcast layout of its own, `NoMap` included --
+they are full trackers whose main window has no map tabs, and their tracker
+layouts are about the size of a broadcast layout (`standardNoMap/tracker.json`
+is 47 lines against `standard/tracker.json`'s 120). So the chooser offers a
+one-in-eight chance of landing in a variant with no maps, on a pack whose recent
+work is almost entirely maps. Against dropping them: they are cheap to keep,
+they are what someone with a small screen or a second monitor would pick, and
+`scripts/init.lua` already branches on the UID so nothing else has to know. For
+dropping them: every layout and location change has to be sound in both trees,
+and nobody here runs them. Deciding needs one thing this document does not have
+-- whether anyone outside this repo uses the pack at all. If the answer is no,
+four entries in the chooser are four chances to pick the wrong one.
 
 ## Open questions
 
