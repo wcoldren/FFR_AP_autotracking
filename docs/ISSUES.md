@@ -17,6 +17,38 @@ Nothing here is urgent unless it says so.
   This is the largest live defect in the pack. See `docs/NOVERWORLD.md` and
   `docs/ROADMAP.md`.
 
+- **NPC rewards that must be traded for carry no requirement.** The derivation
+  asks whether the party can stand beside an NPC, which is not the same question
+  as whether they can obtain what it holds. Nerrick wants the TNT and Astos the
+  Crown before either hands anything over; both derive as free. These are the
+  only two locations where the derived rules still disagree with FFR
+  (216 of 218 agree), and both are the same mechanism.
+
+  Nerrick is closable with what is already read: `Talk_Nerrick` is one of the
+  four routines `entrance_graph.gate_objects()` recovers, so the item is on hand
+  and only needs ANDing into that section's own rule. Astos is not — his Crown
+  requirement lives in a vanilla talk routine nothing here reads yet, so closing
+  it means reading the talk table's item checks off the cartridge rather than
+  adding a case. Worth doing together with the six unplaced NPCs below, as one
+  pass over NPC locations, rather than special-casing the one whose data happens
+  to be loaded.
+
+- **Six locations FFR pools have no derived rule at all.**
+  `noverworld_rules.placements()` resolves no tile for `Coneria Castle/King`,
+  `Coneria Castle/Sara`, `Crescent Lake/Sages`, `Elf Castle/Elf Prince`,
+  `Waterfall/Robot` and `Lefein/Incentive` — all NPCs. Wired today they would
+  fall through to the pack's stale overworld rules.
+
+- **The derivation cannot express seven of FFR's requirement items.** It varies
+  `entrance_graph.ITEM_NAMES`, the ten items that gate a *tile*. FFR's model also
+  carries `Oxyale`, `Ruby`, `Slab`, `Herb`, `Adamant`, `Bottle` and `Crystal`,
+  which are game rules rather than tile blockers — 121 uses of Oxyale and 30 of
+  the Ruby on the reference seed. `check_logic --derived` grants those to both
+  sides rather than skipping the location, so FFR reads as permissively as it
+  can and a surviving divergence cannot be blamed on the gap. That is a fair
+  test, not a fix: a derived rule set can never state an Oxyale requirement, so
+  those 154 locations are verified only up to the swept vocabulary.
+
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so a
   Locations-grid cell needs a new hosted toggle under a different code. It would
   be a bridge-only cell — Titan is not an Archipelago location either.

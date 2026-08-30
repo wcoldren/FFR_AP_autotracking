@@ -34,12 +34,48 @@ Shape of the work:
 - Extend `tests/test_maps.lua` check 6, which already compares the two trees
   location by location, to compare access rules too.
 
-**There is a real oracle for this.** `tools/check_logic.py` diffs the pack's
-access rules against FFR's own spoiler as truth tables, and names what it could
-not map rather than counting it as agreement. Run it on a No-Overworld cartridge
-before and after: rules that open a location FFR would not, and rules that hold
-one closed FFR would open, both have to reach zero. Run it on a standard seed
-too — this must not move a single standard-mode answer.
+**The oracle has been run, and the derivation has been fixed against it.**
+`tools/check_logic.py --derived` compares the derived rules with FFR's own
+Archipelago export as truth tables. First run: 218 comparable locations, 52
+agree, **166 divergent and every one permissive** — the derivation opening what
+FFR holds closed.
+
+The cause was one line. `noverworld_rules.reachable_tiles` seeded its walk from
+everything `Graph.starts()` returns, which is a fact about the *table* — the
+entrances that have a tile — not about the player. On this mode that is nine
+separate one-tile islands on the ocean stub. The party starts on exactly one of
+them, and cannot leave it: every pad carries tile property `0x0E`, walkable on
+foot and refused to the canoe, the ship and the airship alike. There is no
+sailing or flying between pads; all travel is the teleporter table, and the
+items that open it are the four gate NPCs standing in corridors.
+
+`start_doors()` now reads the party's start off the cartridge (bank `$00:$B010`,
+plus FFR's `+7` scroll offset) and takes the doors on its own landmass, walking
+the overworld with `overworld_reach` rather than assuming. On the reference
+flagset that is the eight-tile Coneria Castle platform, holding one door.
+Empty-handed reach drops from 45 maps to 22; with every item it stays 54 of 61,
+which is the invariant `docs/NOVERWORLD.md` says gates must not move.
+
+After the fix: **216 of 218 agree, 2 divergent.** The two are Nerrick and Astos,
+who want the TNT and the Crown handed over before they give anything — a trade,
+not a tile. See `docs/ISSUES.md`; that and the six unplaced NPCs are one
+remaining pass over NPC locations, and the wiring below should wait for it.
+
+The same run on a standard cartridge, against the pack's existing hand-written
+rules, is the baseline to protect: **225 checked, 225 agree, 0 divergences**, and
+unpruned — `reqs` was empty, so no achievability pruning hid anything. That is
+also what validates the harness end to end. This must not move.
+
+Both cartridges are generated locally, with their own ground truth attached:
+build FF1R at the 4.9.2 release commit `01272d4` with `FFRVersion.Sha` stamped to
+match (the schema in `tools/ffr_flags/schemas/4-9-2.json` records that SHA and
+the decoder refuses on mismatch), then generate from a flags JSON with
+`Spoilers`, `Archipelago` and the four Archipelago pool flags on — the pool flags
+are what take FFR's `rules:` from the key items alone up to 225 locations.
+Regenerating the reference seed from its own on-cart flag string reproduces its
+flag string exactly and its logic exactly — same 32365 teleport tiles, same 157
+staircases, same gates — while differing in 25540 bytes of CHR, credits and
+dialogue, which is `Preferences` and touches no map bank.
 
 ## 2. Visibility toggles
 

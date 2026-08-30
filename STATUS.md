@@ -1135,6 +1135,143 @@ The gaps are the NPCs that hold no shuffled item: Garland (514), Princess1
 (515), ElfDoc (517), Unne (523), Vampire (524), Bahamut (526), SubEngineer
 (528) and Titan (532). Lighting them from RAM only is correct, not a hole.
 
+## The oracle ran, and the walk was starting in nine places at once
+
+The derivation shipped with its own gate written into its commit message: the
+rules are emitted, applying them is a separate change, and `check_logic.py`
+against FFR's own logic is what should decide. That check had never run. It has
+now. It failed, it named one cause, and the rules agree with FFR on 216 of 218
+comparable locations once that cause is fixed.
+
+**Getting a ground truth at all was most of the work.** `check_logic` needs an
+FFR spoiler or an Archipelago export beside the cartridge, and not one of the
+four seeds on disk carries either. The reference seed `F258553F` cannot be given
+one retroactively: `Spoilers` and `Archipelago` are both encodable properties, so
+flipping either changes the flag string and therefore the seed. The way through
+is to generate the cartridges locally, with their ground truth attached.
+
+That needs the *right* randomizer. The vendored checkout is 4.9.8 with an
+unstamped `FFRVersion.Sha`, and only 4-9-2 and 4-9-7 schemas are committed — a
+4.9.8 cartridge would not decode at all, and `game_mode()` reads through that
+decoder, so even the derivation would refuse it. The 4.9.2 release commit
+`01272d4` is in the checkout, and its seven-character SHA is what
+`schemas/4-9-2.json` records. Building a worktree at that commit with the SHA
+stamped in gives a randomizer whose output the committed schema reads.
+
+**Regenerating the reference seed is the determinism proof, and it half-passes,
+which is the interesting part.** `--import F258553F_<on-cart flag string>`
+re-emits that flag string character for character, and the derived rules come
+back identical — 249 placed, 0 unreachable, 167 free / 34 cube / 28 key / 11 rod
+/ 9 canoe, the numbers recorded above. But the ROM differs in 25540 bytes. They
+are all CHR banks, credits, dialogue and menu text; bank `$14` is untouched, both
+cartridges self-check to the same 32365 teleport tiles, the same 157 staircases
+and the same four gate routines. That is `Preferences` — cosmetics the web UI
+sets and the CLI defaults — not logic. Worth writing down because "not
+byte-identical" reads like a failure and is not one here.
+
+**What the check found.** With `Spoilers`, `Archipelago` and the four Archipelago
+pool flags on, FFR writes rules for 225 locations instead of the key items alone
+— the pool flags are the lever on coverage, and ToFR is excluded from the pool
+unconditionally (`Archipelago.cs:93`), so those chests can never have an FFR
+rule.
+
+    derived rules         249   (0 unreachable)
+      resolved            249   (0 fanned, 0 ambiguous, 0 unmatched)
+    FFR rules joined      224   (1 unmappable, 20 duplicate claims collapsed)
+    compared              218   52 agree, 166 divergent in 13 shapes
+      no derived rule       6   FFR pools it, placements() found no tile
+
+Every one of the 166 is permissive: the derivation opens a location FFR holds
+closed. **Not one is strict**, so the walk never closes something FFR opens —
+which is what said the failure was one-sided and structural rather than noisy,
+and is what made it worth chasing to a single cause.
+
+**The cause is where the walk begins, and it is not what it first looked
+like.** The early reading was that the other eight pads sit across water and FFR
+gates them on the airship. Measuring killed that: every pad on the stub carries
+tile property `0x0E` — walkable on foot, refused to the canoe, the ship *and*
+the airship — and none of them is a dock. Nothing sails or flies between pads,
+and the Floater is not a vehicle in this mode at all. It is a key item four gate
+NPCs check while standing in corridors. All travel is the teleporter table.
+
+What is actually wrong is simpler. `reachable_tiles` seeded from everything
+`Graph.starts()` returns, and that method answers a question about the *table* —
+which entrances have a tile on the overworld — not about the player. The party
+begins on one pad and cannot leave it:
+
+    empty-handed from all 9 pads          45 maps, 24760 tiles
+    empty-handed from the start pad       22 maps, 10257 tiles
+    every item, either way                54 maps, 31049 tiles
+
+FFR calls 21 locations free. The derivation called 167. That the all-items count
+does not move is the invariant worth keeping — gates must not change it.
+
+**The fix reads the start off the cartridge.** FFR writes the starting position
+at bank `$00:$B010` (`MetroidVaniaMap.cs:93`) as the scroll origin, seven tiles
+short of the party; `SCCoords` is built from the same pair as `(x + 7, y + 7)`,
+which is what says the seven is a convention and not a coincidence. That gives
+`(104, 160)`, whose foot landmass is an eight-tile platform holding exactly one
+door — Coneria Castle. `start_doors()` walks the stub with `overworld_reach`
+granting the canoe, the most generous traversal available, and reports rather
+than assumes if a vehicle ever does reach a second pad.
+
+Re-derived, the shape changes as well as the counts — conjunctions appear, where
+before every rule was a single item:
+
+     52  canoe OR chime,floater          51  (free)
+     49  canoe,floater OR chime,floater  34  canoe,cube,floater OR chime,cube,floater
+     27  key                             15  floater
+     11  rod                              9  canoe
+      1  canoe,floater,key OR chime,floater,key
+
+**Against FFR: 216 of 218 agree, 2 divergent.** The two are Nerrick and Astos,
+who want the TNT and the Crown handed over before they give anything up. The
+walk asks whether the party can stand beside an NPC, which is not the question
+of whether they can obtain what it holds. Those, and the six NPC locations
+`placements()` resolves no tile for, are one remaining pass.
+
+**The result carries to the reference seed.** The oracle cartridge is not
+`F258553F` — it has the Archipelago and Spoilers flags on, so it is a different
+flag string and a different seed. Deriving from both with the fixed walk gives
+**identical rule sets**, all 249, which is what says the 216-of-218 verdict
+covers the seed every measurement in this file was taken against, even though
+that seed carries no ground truth of its own to check against directly.
+
+**A bug in the checker, found by the fix not moving enough.** The first re-run
+came back 156 divergent against 166, which was far too small a change for a
+correction that had halved the empty-handed reach. `compare()` builds its FFR
+verdict from `held` alone, so the off-vocabulary items were being pinned into
+`pinned` — which reaches the pack side only — and went on being varied and
+required on FFR's side. They now go to both sides and drop out of the variables.
+Corrected, the same two rule sets read 84/134 before the seeding fix and 216/2
+after. The lesson is the one this file keeps relearning: the number that did not
+move as much as it should have was the finding, not a rounding.
+
+**Three things the check cannot settle.** Seven of FFR's requirement items —
+Oxyale, Ruby, Slab, Herb, Adamant, Bottle, Crystal — are game rules rather than
+tile blockers and are outside the ten the sweep varies; 121 uses of Oxyale on
+this seed alone. Skipping those locations was tried first and hides real
+over-reach, because FFR's rule is an OR and a clause can sit entirely inside the
+swept vocabulary. Granting the off-vocabulary items for free instead makes FFR as
+permissive as it can be, so a surviving divergence cannot be blamed on the gap —
+a fair test, but not a fix, and a derived rule set will never state an Oxyale
+requirement. Six pooled locations resolve to no tile at all. And agreement here
+would mean the derivation matches *FFR's model of the cartridge*, not the
+cartridge.
+
+**The standard-mode baseline is clean and is what validates the harness.** The
+pack's existing hand-written rules against the same seed at `GameMode 0`: 225
+checked, 225 agree, 0 divergences, with no achievability pruning in play. If the
+parse, the join or the comparison were broken, 225 of 225 would not agree.
+
+Two traps in the adapter itself, both caught before they could produce a number.
+A free rule written the obvious way — `",".join([])` — evaluates to False, which
+would have reported all 167 free locations as stricter than FFR and looked like
+the derivation collapsing. And `trustworthy` demands vehicle placements that are
+in `pinned` on neither cartridge, so a derived run would have printed its
+findings and then reported zero divergences. Both are asserted in
+`tools/tests/test_check_logic.py`.
+
 ## Four names that have drifted off what they describe
 
 Moved to `docs/IDEAS.md`. One of the four is answered by that move: this
