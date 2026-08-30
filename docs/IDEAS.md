@@ -141,6 +141,15 @@ sha, the input fingerprint, `--npcs` and the marker geometry, and a second run o
 the same cartridge prints `up to date: 129 files ... nothing to do`. So "keep the
 images otherwise" is not work; only the trigger is.
 
+**There are two mismatches to detect, not one.** The cartridge can change, which
+is what this entry was raised about; the *pack* can also change under a fixed
+cartridge, and that is the case that has actually bitten. `INPUT_FILES`
+(`regen_maps.py:99-112`) lists `layouts/shared.json` and the four location files,
+so the `inputs` fingerprint already moves the moment one is edited -- a check
+that compares it costs nothing beyond the ROM check and catches a failure with
+no visible symptom at all. See `docs/ISSUES.md`, "A stale override silently
+shadows pack edits".
+
 **The pack cannot be the trigger.** PopTracker's Lua exposes `Tracker` (items,
 locations, maps, layouts, `ProviderCountForCode`, `FindObjectForCode`, `UiHint`,
 `OpenLink`, `ActiveVariantUID`) and `ScriptHost` (the watches, `CreateLuaItem`,

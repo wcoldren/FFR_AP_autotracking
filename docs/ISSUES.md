@@ -231,6 +231,38 @@ Nothing here is urgent unless it says so.
   is anyone reasoning from the comment. Found 2026-08-30 while settling what
   blue promises; the same reading is what corrected the README.
 
+- **A stale override silently shadows pack edits, and a missing layout key says
+  nothing at all.** `regen_maps.py` writes `layouts/shared.json`, the four
+  location files and `maps/*.json` into PopTracker's `user-override/` tree, and
+  `Pack::ReadFile` consults that tree ahead of the checkout. So editing any of
+  those in the repo has no effect at all while an override written before the
+  edit is installed -- the tracker goes on serving the older copy, and nothing
+  reports the divergence.
+
+  The layout case fails worst, because it fails quietly.
+  `Tracker::getLayout` returns `blankLayoutNode` for a key it does not have
+  (`tracker.cpp:791-794`) with no warning, so a `{"type": "layout", "key": ...}`
+  pointing at a key the override's `shared.json` predates renders an **empty
+  group** -- a header with nothing under it and no message anywhere.
+
+  Demonstrated 2026-08-30 rather than reasoned: adding `shared_display_grid` to
+  `layouts/shared.json` and referencing it from the four map trackers produced
+  an empty "Pins" group on an override written the day before. Re-running the
+  regen fixed it, because `build_layouts()` rebuilds the override's copy from
+  the checkout's.
+
+  This is **not** the cartridge mismatch `docs/IDEAS.md` describes under "Notice
+  when the drawn maps are for a different cartridge". There the ROM differs;
+  here the ROM is identical and the *pack* moved on. The detection is the same
+  shape and mostly already built: `.regen_cache.json` stores `inputs`, a sha256
+  over `INPUT_FILES` (`regen_maps.py:99-112`), which lists `layouts/shared.json`
+  and all four location files -- so the fingerprint already moves on exactly
+  this edit. Nothing compares it at load.
+
+  Workaround until then: re-run `tools/regen_maps.py` after touching any file in
+  `INPUT_FILES`, once per mode, or `--clean` the override. A regen takes about
+  six seconds per cartridge.
+
 ## Open questions
 
 - **The agreement figures used to grant away most of what they appeared to

@@ -331,6 +331,18 @@ variable; light a warning cell on mismatch per the `flagsUnread` pattern
 (`uat.lua:159-203`); and on mismatch also start the regen **detached**, because
 rendering 61 maps inline on the emulator's script thread stalls emulation.
 
+**It has a second mismatch to cover, and that one is not hypothetical.** The
+override shadows pack edits as well as cartridge changes: `layouts/shared.json`
+and the four location files are in `INPUT_FILES`, so editing one in the repo
+does nothing at all while an older override is installed, and a layout key the
+override predates renders an **empty group** with no warning anywhere
+(`tracker.cpp:791-794`). That happened on 2026-08-30 and is filed in
+`docs/ISSUES.md`. The `inputs` fingerprint already moves on such an edit, so
+covering it is one more comparison beside the ROM one -- and it is the cheaper
+half, because it needs no seed or flag string and no regen to fix a false alarm.
+Whichever warning cell this branch lights should say **which** of the two
+mismatched, since the fixes differ.
+
 **Step 0 is a measurement, not code:** `os.execute` inside Mesen's Lua is filed
 as "plausibly in reach", which is an inference from the file and socket functions
 the bridge already uses. If it is not reachable, the first three steps ship and
