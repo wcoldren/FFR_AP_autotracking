@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
-"""Pull map-object (NPC) tile positions out of a vanilla Final Fantasy (NES) ROM.
+"""Pull map-object (NPC) tile positions out of a Final Fantasy (NES) ROM.
 
-The companion to extract_chests.py, and for the same reason: FFR randomizes
-what an NPC gives you, not where the NPC stands, so vanilla map data is the
-right source for tracker map markers. (The one flag that does move them,
-ShuffleObjectiveNPCs, is not read by this pack -- see the note in
-ram_mapping.lua about sigil/mark for the same limitation.)
+The companion to extract_chests.py. It reads lut_MapObjects out of whatever
+cartridge it is handed, so a seed answers for itself.
+
+This used to say FFR randomizes what an NPC gives you and not where the NPC
+stands, and read the vanilla ROM on that basis. Measured 2026-08-30, that is
+false for at least two of them:
+
+    titan     vanilla (60,8,7)    both FFR seeds (60,4,8)
+    nerrick   vanilla (19,16,45)  the No-Overworld seed (19,15,47)
+
+MetroidVaniaMap.cs moves NPCs with its own SetNpc calls, and Titan's Tunnel
+moves on an ordinary seed. tools/npc_positions.json stays committed as the
+*vanilla* answer -- it reproduces roms/Final Fantasy (USA).nes exactly, and
+test_npc_positions.py asserts it -- but anything asking about a seed has to read
+that seed. (ShuffleObjectiveNPCs, which moves them again, is still not read by
+this pack -- see the note in ram_mapping.lua about sigil/mark.)
 
 Grounded in BenWenger's FinalFantasyDisassembly:
 
@@ -46,9 +57,30 @@ MAP_STRIDE = 48         # not OBJS_PER_MAP * RECORD; see the note above
 COORD_MASK = 0x3F       # LoadSingleMapObject masks both coords to 64 tiles
 
 # Only the objects this tracker has any use for: the ones with a turn-in or a
-# check behind them. Names match Constants.inc.
+# check behind them. Names are the `hosted_item` code the location tree uses,
+# which is what the join in noverworld_rules.placements() and regen_maps needs;
+# where Constants.inc has a name for the same object it is quoted beside it.
+#
+# The ids are AP location id - 512 (FF1Lib/Items.cs numbers an NPC location that
+# way), taken from the fourteen ids above 510 in worlds/ff1/data/locations.json.
+# That matters most for the four the disassembly does not name at all -- $01,
+# $0F, $11 and $15 -- which is the same gap entrance_graph.NPC_IDS already notes
+# for $05, the Elf Doctor. Where Constants.inc does name one the two agree:
+# OBJID_PRINCESS_2 is $12 and AP calls 530 Princess, OBJID_ELFPRINCE is $06 and
+# AP calls 518 Elf Prince.
+#
+# And each of the six lands on the map its location node is named for -- king
+# and sara on ConeriaCastle2F, elfprince on ElflandCastle, sages on
+# CrescentLake, robot on Waterfall, lefein on Lefein -- which is a second,
+# independent thing that would have to be wrong for the numbering to be wrong.
+#
+# $0F is not placed at all on a vanilla cartridge; FFR is what puts a Lefein
+# object on the map. So this list is not fully exercised by the vanilla ROM,
+# which is another way of saying the seed is the thing to read.
 WANTED = {
+    0x01: "king",           # AP 513; unnamed in Constants.inc
     0x04: "bikke",
+    0x06: "elfprince",      # OBJID_ELFPRINCE (AP 518)
     0x07: "astos",
     0x08: "nerrick",
     0x09: "smith",
@@ -56,8 +88,12 @@ WANTED = {
     0x0B: "unne",
     0x0D: "sarda",
     0x0E: "bahamut",
+    0x0F: "lefein",         # AP 527; unnamed, and unplaced in vanilla
+    0x11: "robot",          # the Waterfall cube bot, AP 529; unnamed
+    0x12: "sara",           # OBJID_PRINCESS_2, the rescued princess, AP 530
     0x13: "fairy",
     0x14: "titan",
+    0x15: "sages",          # the Crescent Lake canoe sage, AP 533; unnamed
     # The four fiends. Not turn-ins, but the orb behind each one is a location
     # the pack tracks, and their floors hold no chests at all -- which is why
     # earthB5, volcB5, seaB5 and sky5F went uncalibrated for so long: the

@@ -43,6 +43,7 @@ sys.path.insert(0, HERE)
 
 import entrance_graph as e          # noqa: E402
 import extract_chests               # noqa: E402
+import extract_npcs                 # noqa: E402
 import overworld_reach as owr        # noqa: E402
 import regen_maps                   # noqa: E402
 import split_locations              # noqa: E402
@@ -207,11 +208,21 @@ def bump(map_id, col, row):
     return lambda t: any(s in t.get(map_id, ()) for s in spots)
 
 
-def placements(rom, locations, kinds=None):
+# The join back from a location's hosted_item code to the object id the
+# cartridge knows it by. Inverted from extract_npcs.WANTED rather than written
+# out again: one table naming these objects is already one more than the ROM
+# needs, and two would drift.
+OBJECT_IDS = {code: oid for oid, code in extract_npcs.WANTED.items()}
+
+
+def placements(rom, locations, kinds=None, objects=None):
     """{location name: [(map_id, col, row)]} for every location on a dungeon map.
 
     The same join regen_maps.marker_tiles does: chests through the Archipelago
-    id, NPCs through hosted_item.
+    id, NPCs through hosted_item -- but with both halves read off the cartridge
+    in front of it, which is what lets the six NPC locations FFR pools resolve
+    at all: king, sara, sages, elfprince, robot and lefein were simply not among
+    the ids extract_npcs asked for.
 
     Chests and NPCs are not told apart here, because they ask the *same*
     reachability question -- see bump(). An earlier version returned the kind so
@@ -221,22 +232,31 @@ def placements(rom, locations, kinds=None):
     249 locations unreachable.
 
     `kinds`, if given, collects {name: {"chest"|"NPC"}} for a caller that wants
-    the split for its own reasons -- the test asserts the eight NPCs join.
+    the split for its own reasons -- the test asserts the NPCs join. `objects`
+    collects {name: {object id}} for the NPCs, which is what a caller needs to
+    ask the talk table whether that NPC wants something handed over first.
     """
     ids = split_locations.load_mapping(limit=512)
     chests, _ = extract_chests.extract(rom)
-    with open(os.path.join(HERE, "npc_positions.json")) as f:
-        npcs = json.load(f)
+    # Off this cartridge, not out of npc_positions.json. That file is the
+    # *vanilla* table, and FFR moves NPCs: Titan by (60,8,7) -> (60,4,8) on an
+    # ordinary seed, and Nerrick by (19,16,45) -> (19,15,47) on a No-Overworld
+    # one, where MetroidVaniaMap.cs re-places him. Deriving a No-Overworld rule
+    # from a vanilla tile is the same mistake as reading the standard maps from
+    # bank $04: it does not fail, it answers about a different cartridge.
+    npcs = extract_npcs.extract(rom)
 
     out, outside = {}, {}
 
-    def add(name, kind, places):
+    def add(name, kind, places, oid=None):
         for q in places:
             cell = (q["map_id"], q["tile_col"], q["tile_row"])
             if regen_maps.stands_on_map(rom, *cell, cache=outside):
                 out.setdefault(name, []).append(cell)
                 if kinds is not None:
                     kinds.setdefault(name, set()).add(kind)
+                if objects is not None and oid is not None:
+                    objects.setdefault(name, set()).add(oid)
 
     for ap, (path, _) in sorted(ids.items()):
         places = chests.get(ap - 256)
@@ -248,9 +268,10 @@ def placements(rom, locations, kinds=None):
             if not isinstance(n, dict):
                 continue
             for sec in n.get("sections") or []:
-                places = npcs.get(sec.get("hosted_item"))
+                code = sec.get("hosted_item")
+                places = npcs.get(code)
                 if places:
-                    add(n.get("name"), "NPC", places)
+                    add(n.get("name"), "NPC", places, OBJECT_IDS.get(code))
             walk(n.get("children") or [])
 
     walk(regen_maps.lenient(os.path.join(regen_maps.PACK, locations)))
@@ -272,12 +293,22 @@ def derive(rom_path, locations, verbose=True):
 
     # Before the sweep, not after: the join is where the cheap mistakes live and
     # the sweep is 70 seconds of work that would throw them away.
-    cells_by_name = placements(raw, locations)
+    hosts = {}
+    cells_by_name = placements(raw, locations, objects=hosts)
     if not cells_by_name:
         sys.exit(f"{locations}: no location resolved to a tile -- nothing to derive")
 
     g = e.Graph(rom)
     items = sorted(e.ITEM_NAMES)
+
+    # What has to be handed over before an NPC gives up what it holds. The walk
+    # answers "can the party stand beside this object", which is a different
+    # question -- Astos and Nerrick were the only two locations where the
+    # derived rules and FFR's own logic disagreed, and both were this.
+    traded = e.talk_item_requirements(rom) or {}
+    if verbose and traded:
+        print("  %d objects want something handed over first" % len(traded),
+              file=sys.stderr)
 
     # Whose doors the walk may begin at. Everything the sweep says rests on this
     # -- getting it wrong is not a small over-count, it is the difference
@@ -317,8 +348,28 @@ def derive(rom_path, locations, verbose=True):
         # "(free) OR (free) OR (free)", which is the same rule written three
         # times and would have shipped as three alternatives.
         merged = {tuple(s) for group in live for s in group}
-        out[name] = sorted(list(m) for m in merged
-                           if not any(set(o) < set(m) for o in merged))
+        rules = sorted(list(m) for m in merged
+                       if not any(set(o) < set(m) for o in merged))
+
+        # A trade is a requirement on top of getting there, so it ANDs into
+        # every alternative rather than adding one.
+        want = sorted({traded[oid] for oid in hosts.get(name, ()) if oid in traded})
+        if want:
+            # The rules are keyed by location, and check_logic fans a location's
+            # rule to each of its sections. So a node hosting two NPCs where
+            # only one of them trades would gate the other on an item it never
+            # asked for. Nothing in the tree does that today -- Coneria Castle
+            # hosts the King and Sara and neither trades -- and if one ever
+            # does, the honest answer is to say so rather than over-gate it.
+            if len(hosts.get(name, ())) > 1:
+                sys.exit("%s hosts %d NPCs and at least one wants %s handed over"
+                         " first; the rule is per location, so applying it would"
+                         " gate the others too. Split the node, or teach this to"
+                         " emit per section." % (name, len(hosts[name]), ", ".join(want)))
+            rules = [sorted(set(alt) | set(want)) for alt in rules]
+            rules = sorted(a for a in rules
+                           if not any(set(b) < set(a) for b in rules))
+        out[name] = rules
     return out, unreachable
 
 

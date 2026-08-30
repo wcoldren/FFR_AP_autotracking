@@ -162,23 +162,86 @@ if not rom_path or not os.path.exists(rom_path):
 else:
     with open(rom_path, "rb") as f:
         raw = f.read()
-    by_name = {}
+    by_name, hosts = {}, {}
     placed = nr.placements(raw, "locations/NOverworld/overworld.json",
-                           kinds=by_name)
+                           kinds=by_name, objects=hosts)
     ok(bool(placed), "placements resolved something", f"{len(placed)} locations")
 
     kinds = {}
     for names in by_name.values():
         for kind in names:
             kinds[kind] = kinds.get(kind, 0) + 1
-    # Eight NPCs have a node in the tree; the other six the cartridge places
-    # host no section, so nothing joins to them. Guessing the kind from the
-    # node name -- the first version of this -- found none of them, because
-    # marker_tiles is keyed by node name and npc_positions.json by item code.
-    ok(kinds.get("NPC") == 8, "exactly the eight NPCs with a node join",
-       str(kinds))
+    # Fourteen hosted_item codes in the tree name an object the cartridge
+    # places, over thirteen nodes -- Coneria Castle holds both the King and
+    # Sara. It was eight until extract_npcs was asked for the other six ids
+    # (king, sara, sages, elfprince, robot, lefein), which is the whole reason
+    # FFR pooled six locations that had no derived rule at all.
+    #
+    # Guessing the kind from the node name -- the first version of this -- found
+    # none of them, because marker_tiles is keyed by node name and the object
+    # table by item code.
+    ok(kinds.get("NPC") == 13, "exactly the thirteen NPC nodes join", str(kinds))
     ok(kinds.get("chest", 0) > 200, "and every dungeon chest does too",
        str(kinds.get("chest")))
+
+    # The six that used to resolve to no tile at all. Named individually
+    # because "thirteen" would still pass if one of them dropped out and an
+    # unrelated node appeared.
+    for node in ("Coneria Castle", "Crescent Lake", "Elf Castle",
+                 "Waterfall", "Lefein"):
+        ok(node in placed and "NPC" in by_name.get(node, ()),
+           f"{node} resolves to a tile", str(placed.get(node)))
+
+    # And the join back to the object id, which is what lets a rule ask the
+    # talk table whether that NPC wants something handed over first.
+    ok(hosts.get("North West Castle Astos") == {0x07},
+       "Astos's node knows it is object $07", str(hosts.get("North West Castle Astos")))
+    ok(hosts.get("Dwarf Cave Nerrick") == {0x08},
+       "Nerrick's node knows it is object $08", str(hosts.get("Dwarf Cave Nerrick")))
+
+    # Positions come off this cartridge, not out of npc_positions.json. That
+    # file is the vanilla table and reproduces the vanilla ROM exactly; FFR
+    # moves NPCs, so deriving a seed's rules from it answers about a different
+    # cartridge. Titan moves on an ordinary seed and Nerrick moves on a
+    # No-Overworld one.
+    import json as _json                                        # noqa: E402
+    import extract_npcs                                         # noqa: E402
+    cart = extract_npcs.extract(raw)
+    with open(os.path.join(os.path.dirname(__file__), "..",
+                           "npc_positions.json")) as f:
+        vanilla = _json.load(f)
+
+    def cells(places):
+        return [(q["map_id"], q["tile_col"], q["tile_row"]) for q in places]
+
+    moved = sorted(code for code in cart
+                   if code in vanilla and cells(cart[code]) != cells(vanilla[code]))
+    ok(bool(moved), "this cartridge moves at least one NPC off its vanilla tile",
+       str(moved))
+    for code in moved:
+        for node, ids in hosts.items():
+            if nr.OBJECT_IDS.get(code) in ids:
+                ok(sorted(placed[node]) == sorted(cells(cart[code])),
+                   f"{node} is placed where this cartridge puts {code}",
+                   f"{sorted(placed[node])} vs vanilla {sorted(cells(vanilla[code]))}")
+
+    # The trades themselves, which is the half the walk cannot see: it can put
+    # the party next to Astos empty-handed, and that is not the same as getting
+    # what he holds. These two were the only locations where the derived rules
+    # and FFR's own logic disagreed.
+    traded = e.talk_item_requirements(e.Rom(rom_path))
+    if traded is None:
+        print("SKIP  FF1_ROM is not an FFR cartridge; the trades need one")
+    else:
+        ok(traded.get(0x07) == "crown", "Astos wants the Crown", str(traded.get(0x07)))
+        ok(traded.get(0x08) == "tnt", "Nerrick wants the TNT", str(traded.get(0x08)))
+        # Both are in the ten items the sweep varies, so the derived rule can
+        # actually state them. The other trades this reader finds -- adamant,
+        # crystal, slab, herb, ruby -- are outside that vocabulary and are
+        # emitted anyway, since they are real requirements and the pack already
+        # uses those codes.
+        for item in ("crown", "tnt"):
+            ok(item in e.ITEM_NAMES, f"{item} is in the swept vocabulary")
 
     for name, cells in placed.items():
         for m, c, r in cells:
