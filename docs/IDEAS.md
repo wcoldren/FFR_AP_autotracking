@@ -49,10 +49,12 @@ anything, but not in front of you while you play).
 The four fiends and the ToFR refights have no pins. Two separate problems wearing
 one label, and neither needs new ROM reading:
 
-- **The four fiends are map objects.** `tools/npc_positions.json` already holds
-  their exact tiles — lich on map 32, marilith 36, kraken 42, tiamat 51 — and
-  `tools/tests/test_npc_pins.py` lists them as deliberately unpinned. What is
-  missing is a location node for a pin to belong to.
+- **The four fiends are map objects.** `extract_npcs.WANTED` already reads their
+  tiles off the seed — lich on map 32, marilith 36, kraken 42, tiamat 51, and
+  the same four in `tools/npc_positions.json`, which is the vanilla snapshot
+  those numbers came from — and `tools/tests/test_npc_pins.py` lists them as
+  deliberately unpinned. What is missing is a location node for a pin to belong
+  to.
 - **The refights and traps are `TP_SPEC_BATTLE` tiles.**
   `render_maps.trap_letters()` already reads byte 1 of each — the formation id,
   which is *which boss spawns* — and then discards it in favour of a positional

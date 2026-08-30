@@ -27,6 +27,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import entrance_graph as eg                                    # noqa: E402
+import extract_npcs as en                                      # noqa: E402
 import render_maps as rm                                       # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -91,12 +92,14 @@ def main():
             fails.append(f"{label}: got {got!r}, want {want!r}")
         print(f"{'ok  ' if got == want else 'FAIL'} {label}")
 
-    with open(os.path.join(TOOLS, "npc_positions.json")) as f:
-        npcs = {}
-        for name, places in json.load(f).items():
-            for q in places:
-                npcs.setdefault(q["map_id"], []).append(
-                    (f"npc {name}", q["tile_col"], q["tile_row"]))
+    # Off this cartridge, the way render_maps.check_crops reads it. The vanilla
+    # snapshot in npc_positions.json would check the crop against tiles this
+    # seed does not use, which is the whole reason the pins stopped reading it.
+    npcs = {}
+    for name, places in en.extract(rom).items():
+        for q in places:
+            npcs.setdefault(q["map_id"], []).append(
+                (f"npc {name}", q["tile_col"], q["tile_row"]))
 
     boxes = {}
     cut, kept, whole = [], 0, 0
