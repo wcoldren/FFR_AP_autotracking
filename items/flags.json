@@ -325,6 +325,20 @@
         ]
     },
     {
+        "name" : "Chest Pins",
+        "type" : "toggle",
+        "img" : "images/flags/showChestPins.png",
+        "codes" : "show_chests",
+        "initial_active_state" : true
+    },
+    {
+        "name" : "NPC Pins",
+        "type" : "toggle",
+        "img" : "images/flags/showNpcPins.png",
+        "codes" : "show_npcs",
+        "initial_active_state" : true
+    },
+    {
         "name" : "Incentive Rings",
         "type" : "toggle",
         "img" : "images/flags/showIncentiveRings.png",

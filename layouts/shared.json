@@ -201,6 +201,8 @@
             "item_margin": "1,2",
             "rows": [
                 [
+                    "show_chests",
+                    "show_npcs",
                     "show_gold_rings"
                 ]
             ]

@@ -465,12 +465,22 @@ do
         -- drift this field exists to show.
         secs[#secs + 1] = (sec.name or "") .. "|" .. (sec.ref or "") .. "|" ..
           tostring(sec.item_count) .. "|" .. (sec.hosted_item or "") .. "|" ..
-          table.concat(sec.access_rules or {}, " OR ")
+          table.concat(sec.access_rules or {}, " OR ") .. "|" ..
+          table.concat(sec.visibility_rules or {}, " OR ")
       end
       -- map names, not pixels: which map a marker is on must match, where on
       -- it must not, because that is the whole difference between the two.
+      --
+      -- The marker's restrict_visibility_rules travels with the map name, and
+      -- the section's visibility_rules with the section above: both are
+      -- generated -- pin_visibility.py stamps one, incentives the other -- and
+      -- neither was compared, so a rule landing on one tree and not the other
+      -- passed here in silence. Which is the exact drift this check exists for.
       local onmaps = {}
-      for _, ml in ipairs(n.map_locations or {}) do onmaps[#onmaps + 1] = ml.map end
+      for _, ml in ipairs(n.map_locations or {}) do
+        onmaps[#onmaps + 1] = ml.map .. "[" ..
+          table.concat(ml.restrict_visibility_rules or {}, " OR ") .. "]"
+      end
       -- the node's own rules as well as its sections'. A split child carries its
       -- requirement on the node -- "Coneria Castle Chests 1" is access_rules
       -- ["key"] with a bare section under it -- so a shape built from sections

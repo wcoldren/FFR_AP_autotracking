@@ -213,3 +213,83 @@ function incentiveSlot(code)
   end
   return AccessibilityLevel.Inspect
 end
+
+-- Whether a pin of a given kind is drawn.
+--
+-- Called from a pin's restrict_visibility_rules as `$showPin|<kind>[|<flag>...]`.
+-- No `^`: a visibility rule reads the return as a count, so 1 shows and 0 hides.
+-- restrict_visibility_rules hides only that one marker (location.cpp:265-279) --
+-- the section stays in the tree, in the counts, and clearable from the location
+-- list. That is deliberate: hiding a check was the bug the incentive map's old
+-- visibility_rules had, and an off switch for a pin must not re-introduce it.
+--
+-- Every pin of a kind shares one rule string and _providerCountCache keys on
+-- the whole string, so the 251 chest pins cost one call per cache generation
+-- rather than 251.
+--
+-- One entry per section, and the outer rule array is OR'd (location.cpp:266),
+-- so a pin draws if any section under it would draw and showPin folds nothing
+-- itself. A section with no incentive flag always draws, which would make its
+-- entry always true -- so a node holding one gets no rule at all rather than an
+-- entry saying so. That is what keeps the five orb pins from ever being hidden.
+--
+-- Deliberately not applied to the overworld pins: those are aggregates, no one
+-- kind describes them, and a player must not be able to empty the overworld.
+--
+-- The rules are written by tools/pin_visibility.py rather than by hand, and
+-- tools/regen_maps.py stamps a regenerated tree through the same function, so
+-- the committed tree and a regen output cannot drift apart on this.
+local PIN_TOGGLE = {
+  chest = "show_chests",
+  npc   = "show_npcs",
+  slot  = "show_skipped",
+}
+
+local PIN_WARNED = {}
+
+local function warnOnce(key, msg)
+  if not PIN_WARNED[key] then
+    PIN_WARNED[key] = true
+    print("logic: " .. msg)
+  end
+end
+
+-- A code nothing defines counts zero exactly like a toggle switched off, so a
+-- typo -- or a rule stamped before the item it names exists -- would empty a
+-- whole tab and say nothing. Fail open: draw the pin, which is what the pack
+-- did before any of these toggles existed, and say so once.
+local function toggleOn(code)
+  if Tracker:ProviderCountForCode(code) > 0 then
+    return true
+  end
+  if not Tracker:FindObjectForCode(code) then
+    warnOnce(code, "no pin toggle named " .. tostring(code) .. " -- drawing the pin")
+    return true
+  end
+  return false
+end
+
+function showPin(kind, ...)
+  local code = PIN_TOGGLE[kind]
+  if not code then
+    warnOnce(kind, "showPin does not know the pin kind " .. tostring(kind)
+                   .. " -- drawing the pin")
+    return 1
+  end
+  if kind == "slot" then
+    -- A slot this seed did incentivize is not a skipped one, so the toggle has
+    -- no say over it. The flags are the section's own ^$incentiveSlot flags,
+    -- passed in from the location file, so the pairing is not copied here.
+    -- An undefined flag counts zero and falls through to the toggle rather than
+    -- to a permanent hide; tests/test_pins.lua is what keeps one from existing.
+    for _, flag in ipairs({ ... }) do
+      if Tracker:ProviderCountForCode(flag) > 0 then
+        return 1
+      end
+    end
+  end
+  if toggleOn(code) then
+    return 1
+  end
+  return 0
+end
