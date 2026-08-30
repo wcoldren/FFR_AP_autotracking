@@ -259,7 +259,17 @@ def build_images(rom, mode, boxes, rows, graph=None, only=None):
     return out
 
 
-def build_maps_json(have):
+# A chest occupies exactly one tile, and a tile is TILE_PX pixels, so a box of
+# TILE_PX outlines the tile the chest is on and nothing more. The pack's own 24
+# comes from the hand-drawn art, where it reads fine because those images are
+# shown at roughly their drawn size; cropped renders are a third of the area
+# they were, so PopTracker scales them up and a box scales with them. Same
+# fraction of a tile, twice the pixels on screen.
+MARKER_SIZE = render_maps.TILE_PX
+MARKER_BORDER = 2
+
+
+def build_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
     """The pack's maps.json, pointed at the standard set of rendered art.
 
     The overworld and incentive entries keep the pack's own art and sizes --
@@ -281,12 +291,12 @@ def build_maps_json(have):
         if name not in order:
             order.append(name)
         e["img"] = f"images/maps/std/{name}.png"
-        e.setdefault("location_size", 24)
-        e.setdefault("location_border_thickness", 3)
+        e["location_size"] = size
+        e["location_border_thickness"] = border
     return [by_name[n] for n in order]
 
 
-def build_noverworld_maps_json(have):
+def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
     """NOverworldMaps.json, which the No-Overworld variants load second.
 
     scripts/init.lua loads maps.json and then this, and PopTracker lets the
@@ -313,8 +323,10 @@ def build_noverworld_maps_json(have):
             order.append(name)
         e["img"] = (f"images/maps/nov/{name}.png" if "nov" in have
                     else shipped[name]["img"])
-        e.setdefault("location_size", 24)
-        e.setdefault("location_border_thickness", 3)
+        # Hand-drawn art keeps the size it was drawn for; only rendered art is
+        # scaled up by the crop.
+        e["location_size"] = size if "nov" in have else 24
+        e["location_border_thickness"] = border if "nov" in have else 3
     return [by_name[n] for n in order]
 
 
@@ -551,6 +563,13 @@ def main():
     ap.add_argument("--mode", choices=tuple(MODE_DIRS),
                     help="file the art as std or nov rather than reading the "
                          "cartridge's GameMode (a vanilla image has none)")
+    ap.add_argument("--marker-size", type=int, default=MARKER_SIZE,
+                    metavar="PX",
+                    help=f"marker box on a rendered map, in image pixels "
+                         f"(default {MARKER_SIZE}, one tile; the pack's "
+                         "hand-drawn art uses 24)")
+    ap.add_argument("--marker-border", type=int, default=MARKER_BORDER,
+                    metavar="PX", help=f"its border (default {MARKER_BORDER})")
     ap.add_argument("--npcs", choices=("none", "gates", "all"), default="none",
                     help="draw map objects on the art: none (default), just "
                          "the No-Overworld gate NPCs, or every NPC")
@@ -598,6 +617,7 @@ def main():
             and was.get("rom") == rom_sha
             and cache.get("inputs") == inputs_sha
             and was.get("npcs", "none") == args.npcs
+            and was.get("marker") == [args.marker_size, args.marker_border]
             and outputs_intact(out_dir, cache)):
         print(f"up to date: {len(cache['outputs'])} files in {out_dir}")
         print("nothing to do (--force to regenerate anyway)")
@@ -711,7 +731,7 @@ def main():
                     if ml.get("map") not in sizes:
                         continue
                     w, h = sizes[ml["map"]]
-                    half = ml.get("size", 24) // 2
+                    half = args.marker_size // 2
                     if not (half <= ml["x"] <= w - half
                             and half <= ml["y"] <= h - half):
                         stray.append((n.get("name"), ml["map"], ml["x"], ml["y"]))
@@ -725,9 +745,12 @@ def main():
     for other in MODE_DIRS:
         if other != mode and os.path.isdir(os.path.join(out_dir, "images", "maps", other)):
             have.add(other)
-    files["maps/maps.json"] = (json.dumps(build_maps_json(have), indent=4) + "\n").encode()
-    files["maps/NOverworldMaps.json"] = (
-        json.dumps(build_noverworld_maps_json(have), indent=4) + "\n").encode()
+    files["maps/maps.json"] = (json.dumps(
+        build_maps_json(have, args.marker_size, args.marker_border),
+        indent=4) + "\n").encode()
+    files["maps/NOverworldMaps.json"] = (json.dumps(
+        build_noverworld_maps_json(have, args.marker_size, args.marker_border),
+        indent=4) + "\n").encode()
     files["layouts/shared.json"] = (json.dumps(build_layouts(), indent=4) + "\n").encode()
 
     def report(what, rows):
@@ -766,7 +789,8 @@ def main():
 
     if not args.dry_run:
         modes = dict((cache or {}).get("modes", {}))
-        modes[mode] = {"rom": rom_sha, "npcs": args.npcs}
+        modes[mode] = {"rom": rom_sha, "npcs": args.npcs,
+                       "marker": [args.marker_size, args.marker_border]}
         outputs = dict((cache or {}).get("outputs", {}))
         outputs.update({rel: sha(data) for rel, data in files.items()})
         with open(os.path.join(out_dir, CACHE_NAME), "w") as f:
