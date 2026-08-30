@@ -45,8 +45,8 @@ Last run 2026-08-30, on freshly rebuilt cartridges.
 | Check | Result |
 |---|---|
 | `std`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** |
-| `nov`, derived rules vs FFR | **226 compared, 226 agree, 0 divergent**; 254 derived, 0 unreachable, 0 without a derived rule |
-| `nov2`, derived rules vs FFR | **224 compared, 224 agree, 0 divergent**; 254 derived, 0 without a derived rule |
+| `nov`, derived rules vs FFR | **226 compared, 226 agree, 0 divergent**; 255 derived, 0 unreachable, 0 without a derived rule |
+| `nov2`, derived rules vs FFR | **224 compared, 224 agree, 0 divergent**; 255 derived, 0 without a derived rule |
 | `shard`, pack rules vs FFR | **229 checked, 229 agree, 0 divergences** |
 | `nov` vs `nov2`, ToFR shuffle | **0 differences** |
 

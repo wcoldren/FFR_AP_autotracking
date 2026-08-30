@@ -9,20 +9,11 @@
                 "sections": [
                     {
                         "name": "King",
-                        "access_rules": [
-                            "earlyKing",
-                            "garland"
-                        ],
-                        "item_count": 1,
-                        "hosted_item": "king"
+                        "ref": "Coneria Castle King/King"
                     },
                     {
                         "name": "Sara",
-                        "access_rules": [
-                            "garland"
-                        ],
-                        "item_count": 1,
-                        "hosted_item": "sara"
+                        "ref": "Coneria Castle Sara/Sara"
                     },
                     {
                         "name": "Coneria Castle Chests 1",
@@ -57,6 +48,33 @@
                     }
                 ],
                 "children": [
+                    {
+                        "name": "Coneria Castle King",
+                        "sections": [
+                            {
+                                "name": "King",
+                                "access_rules": [
+                                    "earlyKing",
+                                    "garland"
+                                ],
+                                "item_count": 1,
+                                "hosted_item": "king"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Coneria Castle Sara",
+                        "sections": [
+                            {
+                                "name": "Sara",
+                                "access_rules": [
+                                    "garland"
+                                ],
+                                "item_count": 1,
+                                "hosted_item": "sara"
+                            }
+                        ]
+                    },
                     {
                         "name": "Coneria Castle Chests 1",
                         "access_rules": ["key"],
@@ -1032,11 +1050,7 @@
                 "sections": [
                     {
                         "name": "Elf Prince",
-                        "access_rules": [
-                            "herb"
-                        ],
-                        "item_count": 1,
-                        "hosted_item": "elfprince"
+                        "ref": "Elf Castle Elf Prince/Elf Prince"
                     },
                     {
                         "name": "Chests 1",
@@ -1063,6 +1077,19 @@
                     }
                 ],
                 "children": [
+                    {
+                        "name": "Elf Castle Elf Prince",
+                        "sections": [
+                            {
+                                "name": "Elf Prince",
+                                "access_rules": [
+                                    "herb"
+                                ],
+                                "item_count": 1,
+                                "hosted_item": "elfprince"
+                            }
+                        ]
+                    },
                     {
                         "name": "Elf Castle Chests 1",
                         "access_rules": ["key"],
@@ -5318,9 +5345,7 @@
                 "sections": [
                     {
                         "name": "Robot",
-                        "access_rules": [],
-                        "item_count": 1,
-                        "hosted_item": "robot"
+                        "ref": "Waterfall Robot/Robot"
                     },
                     {
                         "name": "Chests 1",
@@ -5355,6 +5380,17 @@
                     }
                 ],
                 "children": [
+                    {
+                        "name": "Waterfall Robot",
+                        "sections": [
+                            {
+                                "name": "Robot",
+                                "access_rules": [],
+                                "item_count": 1,
+                                "hosted_item": "robot"
+                            }
+                        ]
+                    },
                     {
                         "name": "Waterfall Chests 1",
                         "sections": [

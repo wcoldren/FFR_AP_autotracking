@@ -903,6 +903,84 @@ calibration. A pin a tile off its sprite reads as a bug, and the pack has
 already decided hand-art marker work only benefits a player who never runs
 `regen_maps.py`, so these pins are built onto rendered art only.
 
+### The pins read the seed, and four nodes were split so they could
+
+Written 2026-08-30. The derivation started reading NPC positions off the
+cartridge on 2026-08-30; the pins did not come with it, and that gap was its own
+entry in `docs/ISSUES.md` for a day. `marker_tiles` resolved every NPC through
+`tools/npc_positions.json`, the committed vanilla snapshot, on a claim its own
+docstring made -- that FFR randomizes what an NPC gives you and not where it
+stands. It moves them:
+
+    titan     vanilla (60,8,7)    every FFR seed measured (60,4,8)
+    nerrick   vanilla (19,16,45)  both No-Overworld seeds (19,15,47)
+
+Five cartridges checked -- vanilla, the standard oracle, both No-Overworld
+seeds and the shard-hunt one. Of the fourteen codes the snapshot holds, twelve
+are identical everywhere, `titan` moves on every FFR seed and `nerrick` on the
+No-Overworld ones. So the standard tabs were right by luck and a No-Overworld
+regen drew Nerrick's pin two rows off the sprite it marks.
+
+**The fix is one line each in four places** -- `marker_tiles`, the crop guard in
+`regen_maps.main`, `render_maps.self_check` and `test_crop` all take
+`extract_npcs.extract(rom)` now, the shape `noverworld_rules.placements()`
+already used. `tools/npc_positions.json` is out of `INPUT_FILES`, replaced by
+`tools/extract_npcs.py`: what decides the output is the WANTED table plus the
+cartridge, and the ROM's sha already covers the second half.
+
+**The file stays, and the reason is that Lua has no cartridge.**
+`tests/test_maps.lua` reads it twice -- check 4c reproduces the three shipped
+hand-art pins to the pixel, and check 4d reproduces the three
+`map_calibration.json` entries solved from a fiend's tile on `earthB5`, `sarda`
+and `seaB5`, floors with no chest for the centroid solver to work from. Both are
+statements about a *vanilla* cartridge and neither is derivable in the test that
+makes them. `test_npc_pins` still asserts the snapshot's fourteen codes by name,
+retitled to say what it now anchors.
+
+**Six NPCs gained a pin, and four gained a node first.** `king`, `sara`,
+`elfprince`, `robot`, `sages` and `lefein` got derived rules in the previous
+pass and were never in the snapshot, so switching the source hands them tiles.
+Four of them hosted on `Coneria Castle`, `Elf Castle` and `Waterfall`, which
+also carry those dungeons' chests -- and a marker's state is per *location*, ORed
+over every section (`trackerview.cpp:1170-1218`), so the King's pin would have
+sat on the King and reported the castle. Each is now its own child location with
+the parent mirroring it as a `ref`, which is the shape Astos, Matoya and Bahamut
+were split into first; a child with no `access_rules` of its own inherits the
+parent's exactly, so `check_logic.load_pack_rules` reports the same chain for
+all four. `Crescent Lake` and `Lefein` already hosted alone and were left as
+they were.
+
+Four section paths moved with them, in `location_mapping.lua`,
+`incentive_slots.lua`, `test_incentives.lua` and one `check_logic.WAIVED` key --
+`Inner Sea/Coneria Castle/Sara` is now
+`Inner Sea/Coneria Castle/Coneria Castle Sara/Sara`. A waiver that stops
+matching does not error, it prints as a divergence, so the standard baseline is
+what says that one landed.
+
+Measured on the 4.9.2 oracle corpus:
+
+- Dungeon markers **259 -> 265** on the standard cartridge and **269 -> 275** on
+  the No-Overworld one, which is the six new pins and nothing else; nothing was
+  left unplaceable either way.
+- Diamonds **14 on both**, up from 8 standard and 7 No-Overworld. All fourteen
+  NPC pins now land on a drawn sprite -- including Nerrick's on the No-Overworld
+  seed, which is the same fact as the two-row move seen from the other side: the
+  old pin did not collide because it was not on him.
+- `check_logic` on the standard cartridge: **225 checked, 225 agree, 0
+  divergent**, unmoved.
+- `check_logic --derived` on the No-Overworld cartridge: **226 comparable, 226
+  agree, 0 divergent**, unmoved -- and **0 fanned**, where `Coneria Castle`
+  exposed two sections before, so its derived rule reached both the King and
+  Sara. That is the over-reach `derive()` hard-exits on when a trade is
+  involved; neither of those two trades, so it had stayed a latent one.
+- The six that keep no box -- Unne, Titan and the four fiends -- were looked at
+  again in the same pass and left alone. None holds a shuffled item, the fiends
+  write no flag that could be autotracked, and `titan` as a code is taken by
+  `ruby` stage 2. Fourteen of the twenty objects `WANTED` reads have a pin.
+
+What a diamond means is still open, and the count that framed the question has
+moved again: at fourteen it is every NPC pin on both modes.
+
 
 ## The room floor was a hole, and the cartridge already knew
 

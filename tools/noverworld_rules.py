@@ -399,9 +399,11 @@ def derive(rom_path, locations, verbose=True):
             # -- another NPC, a chest, an incentive pin -- would have that
             # section gated on an item it never asked for. Nothing in the tree
             # does that today: the four trading nodes expose one section each,
-            # and Coneria Castle, which holds two, has neither the King nor Sara
-            # trading. If one ever does, the honest answer is to say so rather
-            # than over-gate it.
+            # and the one node that used to hold two NPCs, Coneria Castle, now
+            # exposes none of its own -- the King and Sara were split onto a
+            # node apiece, and what is left under it is `ref` sections, which
+            # fanned_sections skips. If one ever does trade, the honest answer
+            # is to say so rather than over-gate it.
             #
             # Sections, not object ids. Counting objects passes a node whose one
             # trading NPC shares it with a chest, which is the same over-gating

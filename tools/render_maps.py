@@ -69,7 +69,6 @@ Usage:
 
 import argparse
 import hashlib
-import json
 import os
 import string
 import sys
@@ -83,6 +82,7 @@ from extract_chests import (  # noqa: E402
     TILESET_PROP, decompress_map, map_data_base,
 )
 import entrance_graph  # noqa: E402
+import extract_npcs  # noqa: E402
 import pngio  # noqa: E402
 
 TILE_PX = 16                      # a standard-map tile is 16x16 pixels
@@ -831,11 +831,10 @@ def self_check(rom, path):
     """
     graph = entrance_graph.Graph(entrance_graph.Rom.of(rom, path))
     npcs = {}
-    with open(os.path.join(HERE, "npc_positions.json")) as f:
-        for name, places in json.load(f).items():
-            for q in places:
-                npcs.setdefault(q["map_id"], []).append(
-                    (f"npc {name}", q["tile_col"], q["tile_row"]))
+    for name, places in extract_npcs.extract(rom).items():
+        for q in places:
+            npcs.setdefault(q["map_id"], []).append(
+                (f"npc {name}", q["tile_col"], q["tile_row"]))
 
     bad = kept = 0
     parked = []

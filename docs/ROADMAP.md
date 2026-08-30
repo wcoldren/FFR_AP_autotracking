@@ -71,6 +71,15 @@ Re-run on a freshly built 4.9.2 oracle cartridge: **226 comparable, 226 agree, 0
 divergent**, no location left without a derived rule. The count rises from 218
 because the six now resolve.
 
+The **pins** read the cartridge too, since 2026-08-30. `marker_tiles` and the
+two crop guards took NPC tiles out of `tools/npc_positions.json`, the vanilla
+snapshot, which drew Nerrick's pin two rows off his sprite on a No-Overworld
+regen. Fourteen NPCs have a pin now rather than eight; the King, Sara, the Elf
+Prince and the Robot each got a location of their own first, because a marker's
+state is ORed over its node's sections and their pins would otherwise have
+reported a dungeon's chests. `npc_positions.json` stays as the vanilla anchor
+`tests/test_maps.lua` reads, having no cartridge of its own.
+
 The same run on a standard cartridge, against the pack's existing hand-written
 rules, is the baseline to protect: **225 checked, 225 agree, 0 divergences**, and
 unpruned — `reqs` was empty, so no achievability pruning hid anything. That is

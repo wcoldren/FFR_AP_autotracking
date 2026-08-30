@@ -30,27 +30,19 @@ Nothing here is urgent unless it says so.
   as it can and a surviving divergence cannot be blamed on the gap. That is a
   fair test, not a fix.
 
-- **Map markers still come from the vanilla NPC table.**
-  `regen_maps.place_locations()` reads `tools/npc_positions.json`, which is the
-  vanilla table; the derivation stopped doing that and reads the cartridge.
-  Measured, FFR moves people: Titan by (60,8,7) → (60,4,8) on an ordinary seed,
-  Nerrick by (19,16,45) → (19,15,47) on a No-Overworld one. So a No-Overworld
-  regen draws Nerrick's pin one column and two rows off the sprite it is meant
-  to sit on. Titan has no pin, so he costs nothing today. Switching the pins to
-  the cartridge would also hand pins to the six NPCs that just gained locations,
-  which is a decision about the location tree rather than a bug fix, so the two
-  want doing together.
-
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so a
   Locations-grid cell needs a new hosted toggle under a different code. It would
   be a bridge-only cell — Titan is not an Archipelago location either.
 
-- **Six NPCs the cartridge places have no box anywhere.** Unne, Titan and the four
+- **Six NPCs the cartridge places have no box anywhere.** Fourteen of the twenty
+  objects `extract_npcs.WANTED` reads have a pin; Unne, Titan and the four
   fiends host no section in the location tree, so there is no location a pin
   could belong to. Titan's is the code clash above; the fiends write no flag that
   could be autotracked at all; Unne holds no shuffled item. Each would be a
   manual-click cell, which is a decision rather than an omission — written down
-  so it stops reading as a gap in the NPC pins.
+  so it stops reading as a gap in the NPC pins. Reaffirmed 2026-08-30 when the
+  pins moved to the cartridge and the other six gained boxes; nothing measured
+  in that pass argues for adding these.
 
 - **17 maps have no markers on the shipped hand-drawn art.** 16 were never
   calibrated and `ConeriaCastle2F` is a composite the schema cannot address. This
@@ -176,11 +168,12 @@ Nothing here is urgent unless it says so.
 - **What a diamond means is unsettled.** Square and diamond are the same size,
   centre, colours and click target; the only difference is that a diamond leaves
   the tile's four corners unpainted so a sprite reads behind it. At three pins
-  that read as an exception. At eight it is every NPC pin there is, which makes
-  the shape a category whether or not it was meant as one — especially once the
-  trapezoid arrives meaning "entrance". Either say out loud that diamond means
-  NPC, or move the sprite off-centre within its tile so a square pin stops
-  covering it. The first is free and is what the output already looks like.
+  that read as an exception. At fourteen it is every NPC pin there is, on both
+  modes, which makes the shape a category whether or not it was meant as one —
+  especially once the trapezoid arrives meaning "entrance". Either say out loud
+  that diamond means NPC, or move the sprite off-centre within its tile so a
+  square pin stops covering it. The first is free and is what the output already
+  looks like.
 
 - **Should the variant be auto-selected from `GameMode`?** Mode detection already
   works and drives nothing but a warning. PopTracker picks a variant once, at

@@ -36,12 +36,13 @@ maps.json index and its own copy of the dungeon location tree. Render one of
 each and a standard tracker and a No-Overworld one each show their own maps.
 Render neither and the pack's hand-drawn art is still there.
 
-Markers are built forward, from the cartridge's own chest tiles and the pack's
-NPC table, rather than moved from where the hand-drawn art put them. That is
-what lets a map with no hand-solved calibration entry carry markers at all --
-sixteen maps had none -- and it means a seed that moves a chest moves its
-marker. On an ordinary seed the ToFR shuffle puts five chests on a second floor
-apiece, and those floors now have pins where they never had any.
+Markers are built forward, from the cartridge's own chest and NPC tiles, rather
+than moved from where the hand-drawn art put them. That is what lets a map with
+no hand-solved calibration entry carry markers at all -- sixteen maps had none
+-- and it means a seed that moves a chest or an NPC moves its marker. On an
+ordinary seed the ToFR shuffle puts five chests on a second floor apiece, and
+those floors now have pins where they never had any; on a No-Overworld one FFR
+moves Nerrick two rows, and his pin goes with him.
 
 Re-running is cheap: it hashes the ROM and its own inputs, and if nothing moved
 it does no work at all. When the ROM does change, only the files whose bytes
@@ -69,6 +70,7 @@ sys.path.insert(0, HERE)
 
 import entrance_graph
 import extract_chests
+import extract_npcs
 import make_markers
 import pngio
 import render_maps
@@ -95,10 +97,10 @@ INPUT_FILES = [
     "tools/sprites.py",
     "tools/entrance_graph.py",
     "tools/extract_chests.py",
+    "tools/extract_npcs.py",
     "tools/make_markers.py",
     "tools/pngio.py",
     "tools/map_calibration.json",
-    "tools/npc_positions.json",
     "maps/maps.json",
     "layouts/shared.json",
     "locations/overworld.json",
@@ -380,16 +382,26 @@ def marker_tiles(rom, locations, dropped=None):
     tools/marker_positions.json, which is what says the join is the right one.
 
     NPCs join through `hosted_item` in the location tree instead, because the
-    AP pool is not the whole board. Eight of the fourteen NPCs the cartridge
-    places carry no shuffled item and so have no AP id at all -- Bahamut is one
-    -- and reading the tree covers every NPC the pack actually tracks rather
-    than only the ones Archipelago knows about. The codes are the same ones
-    npc_positions.json is keyed by, and location_mapping.lua's third field is
-    that code too, so this is the same join by a wider door.
+    AP pool is not the whole board. Several of the NPCs the cartridge places
+    carry no shuffled item and so have no AP id at all -- Bahamut is one -- and
+    reading the tree covers every NPC the pack actually tracks rather than only
+    the ones Archipelago knows about. The codes are extract_npcs.WANTED's
+    values, and location_mapping.lua's third field is that code too, so this is
+    the same join by a wider door.
 
-    Chest tiles come from the cartridge, so a seed that moves one moves its
-    marker with it. NPC tiles do not: FFR randomizes what an NPC gives you,
-    not where it stands (see extract_npcs.py).
+    Both kinds of tile come from the cartridge, so a seed that moves one moves
+    its marker with it. This used to read NPC tiles out of npc_positions.json
+    on the grounds that FFR randomizes what an NPC gives you and not where it
+    stands. Measured 2026-08-30, that is false -- MetroidVaniaMap.cs moves
+    people, titan by (60,8,7) -> (60,4,8) on an ordinary seed and nerrick by
+    (19,16,45) -> (19,15,47) on a No-Overworld one -- so a No-Overworld regen
+    drew Nerrick's pin two rows off the sprite it marks. noverworld_rules
+    .placements() stopped reading that file first; this is the pin half.
+
+    npc_positions.json survives as the vanilla snapshot tests/test_maps.lua
+    reads, because Lua has no cartridge: it reproduces the three shipped
+    hand-art pins and the three map_calibration.json entries derived from a
+    fiend's tile, on floors that hold no chest to calibrate from.
 
     `dropped`, if given, collects (name, kind, map_id, col, row) for every
     placement stands_on_map rejected. Filtering silently would be a marker that
@@ -401,8 +413,7 @@ def marker_tiles(rom, locations, dropped=None):
     """
     ids = split_locations.load_mapping(limit=512)
     chests, _ = extract_chests.extract(rom)
-    with open(os.path.join(HERE, "npc_positions.json")) as f:
-        npcs = json.load(f)
+    npcs = extract_npcs.extract(rom)
 
     out = {}
     outside = {}
@@ -827,12 +838,11 @@ def main():
     # step: the box comes from one flood, and the way a flood goes wrong is by
     # reaching somewhere it should not, which shows up here as a chest or a
     # staircase or a tracked NPC outside the frame.
-    with open(os.path.join(HERE, "npc_positions.json")) as f:
-        npc_cells = {}
-        for name, places in json.load(f).items():
-            for q in places:
-                npc_cells.setdefault(q["map_id"], []).append(
-                    (f"npc {name}", q["tile_col"], q["tile_row"]))
+    npc_cells = {}
+    for name, places in extract_npcs.extract(rom).items():
+        for q in places:
+            npc_cells.setdefault(q["map_id"], []).append(
+                (f"npc {name}", q["tile_col"], q["tile_row"]))
     cut = []
     box_graph = graph or entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
     for map_id, name in render_maps.MAP_FILES.items():
