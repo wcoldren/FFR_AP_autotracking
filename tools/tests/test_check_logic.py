@@ -184,6 +184,37 @@ ok("oxyale" not in c.SWEPT_ITEMS and "ruby" not in c.SWEPT_ITEMS,
    "Oxyale and the Ruby are outside it -- the walk cannot express them")
 
 
+# --- an off-vocabulary item is granted free from whichever side names it ----
+#
+# The trade reader gave the derived side its own off-vocabulary vocabulary:
+# Adamant, Crystal, Slab and Ruby are what NPCs want handed over, and every one
+# of them is in FFR_ITEMS.values(), so compare() varies them. Computing the
+# free set from FFR's clauses alone -- which is what this did -- leaves a
+# derived rule naming Adamant failing on every combination without it, on a
+# seed where FFR's own rule for that location never asks for it. The location
+# reports `strict` and the divergence belongs to the harness.
+offvocab_of = c.offvocab_items
+
+trade = c.as_chain([["key", "adamant"]])
+only_key = [["Key"]]
+free = offvocab_of(trade, only_key)
+ok(free == {"adamant"},
+   "a trade item only the derived rule names is granted free", sorted(free))
+ok(c.compare(trade, only_key, free, {}, (), free)[0] == "match",
+   "so the location matches instead of reading as strict",
+   str(c.compare(trade, only_key, free, {}, (), free)))
+ok(c.compare(trade, only_key, set(), {}, (), set())[0] == "strict",
+   "which is exactly what it did read as before")
+
+# And the grant is only ever off-vocabulary: an extra item the walk *can*
+# express is a real divergence and has to survive.
+swept = c.as_chain([["key", "crown"]])
+ok(offvocab_of(swept, only_key) == set(),
+   "an extra swept item is granted nothing")
+ok(c.compare(swept, only_key, set(), {}, (), set())[0] == "strict",
+   "and still reports strict")
+
+
 print()
 if fails:
     print("FAILED: " + ", ".join(fails))

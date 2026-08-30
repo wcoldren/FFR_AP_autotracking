@@ -67,9 +67,15 @@ else:
            " reads it")
 
         # Every item named has to be one the tracker knows, or the rule it ends
-        # up in is a code nothing can satisfy.
-        unknown = sorted(set(items.values()) - set(e.ITEM_RAM.values()))
-        ok(not unknown, "every requirement names a known item", str(unknown))
+        # up in is a code nothing can satisfy. Against items/items.json, not
+        # against ITEM_RAM: every name here came out of ITEM_RAM a moment ago,
+        # so that comparison is empty by construction and would keep passing if
+        # the pack lost the item entirely.
+        codes = e.pack_item_codes()
+        ok(codes is not None, "items/items.json is readable")
+        unknown = sorted(set(items.values()) - (codes or set()))
+        ok(not unknown, "every requirement names an item the pack has a code for",
+           str(unknown))
 
         # Two readers, one cartridge. gate_objects derives what the No-Overworld
         # gate NPCs want by grouping objects onto routines; this one reads the
@@ -82,6 +88,30 @@ else:
                        if gates[oid] != items[oid])
         ok(not clash, "the gate reader and the trade reader do not contradict",
            str(clash))
+
+        # A routine body stops at the requirement table, not MAX_ROUTINE past
+        # its own start. `starts` holds only jump-table targets, so the highest
+        # routine has nothing above it to bound it and takes the flat 0x200 --
+        # and $BA00, the requirement table, is in this same bank. Read as code,
+        # two data coincidences (`A6 74` and `BD 20 60`) hand every object on
+        # that routine a requirement it never checks.
+        #
+        # Built rather than waited for: point the Elf Prince at a routine
+        # sixteen bytes below the table and plant the pattern in the table
+        # itself. He is the subject because his byte is already set and already
+        # correctly ignored, so a name appearing for him is the fabrication and
+        # nothing else.
+        near = e.Rom(rom_path)
+        near.data = bytearray(near.data)
+        bank, tbl = e.talk_routine_bank(near.data)
+        slot = e.bank_off(bank, tbl) + ELF_PRINCE * 2
+        near.data[slot:slot + 2] = (e.TALK_DATA_NEW - 0x10).to_bytes(2, "little")
+        table = e.bank_off(bank, e.TALK_DATA_NEW)
+        near.data[table:table + 5] = e.LDX_REQUIREMENT + e.LDA_ITEMS_X
+        invented = e.talk_item_requirements(near)
+        ok(invented is not None and ELF_PRINCE not in invented,
+           "a routine beside the requirement table does not read it as code",
+           str(invented.get(ELF_PRINCE) if invented else invented))
 
     # The refusal, on whatever cartridge is to hand: point the engine's bank
     # constant back at the vanilla bank and the reader must stop finding a

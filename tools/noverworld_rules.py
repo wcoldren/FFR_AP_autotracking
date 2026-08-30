@@ -278,6 +278,43 @@ def placements(rom, locations, kinds=None, objects=None):
     return out
 
 
+def fanned_sections(locations):
+    """{node name: how many sections a derived rule for it would reach}.
+
+    check_logic.load_derived_rules keys the derived rules on a *node* name and
+    attaches each one to every section under that node -- chests and incentive
+    pins included, not only the NPC it was derived for. So "would this rule
+    reach something it was not derived for" is a question about sections, not
+    about object ids: a node hosting one trading NPC and one chest holds a
+    single object and two sections, and gating that chest on the trade item is
+    exactly the over-reach the guard in derive() refuses.
+
+    Both files, because check_logic.LOCATION_FILES is a pair -- the incentive
+    pins live in incentives.json beside the tree, and a node named in both is
+    fanned across both. `ref` sections are skipped for the same reason
+    load_pack_rules skips them: they point at a section defined elsewhere, which
+    is where it is already counted.
+    """
+    counts = {}
+
+    def walk(nodes):
+        for n in nodes:
+            if not isinstance(n, dict) or n.get("name") is None:
+                continue
+            for sec in n.get("sections") or []:
+                if "ref" in sec or sec.get("name") is None:
+                    continue
+                counts[n["name"]] = counts.get(n["name"], 0) + 1
+            walk(n.get("children") or [])
+
+    beside = os.path.join(os.path.dirname(locations), "incentives.json")
+    for rel in (locations, beside):
+        path = os.path.join(regen_maps.PACK, rel)
+        if os.path.exists(path):
+            walk(regen_maps.lenient(path))
+    return counts
+
+
 def derive(rom_path, locations, verbose=True):
     # Two views of the same cartridge. entrance_graph routes off a Rom object;
     # extract_chests and stands_on_map index raw bytes. Read once and hand each
@@ -330,6 +367,8 @@ def derive(rom_path, locations, verbose=True):
         print(f"  swept {2 ** len(items)} subsets over {len(targets)} tiles"
               + " " * 20, file=sys.stderr)
 
+    fanned = fanned_sections(locations)
+
     out, unreachable = {}, []
     for name, cells in sorted(cells_by_name.items()):
         # A node with several tiles is reachable when any one of them is: the
@@ -356,16 +395,24 @@ def derive(rom_path, locations, verbose=True):
         want = sorted({traded[oid] for oid in hosts.get(name, ()) if oid in traded})
         if want:
             # The rules are keyed by location, and check_logic fans a location's
-            # rule to each of its sections. So a node hosting two NPCs where
-            # only one of them trades would gate the other on an item it never
-            # asked for. Nothing in the tree does that today -- Coneria Castle
-            # hosts the King and Sara and neither trades -- and if one ever
-            # does, the honest answer is to say so rather than over-gate it.
-            if len(hosts.get(name, ())) > 1:
-                sys.exit("%s hosts %d NPCs and at least one wants %s handed over"
-                         " first; the rule is per location, so applying it would"
-                         " gate the others too. Split the node, or teach this to"
-                         " emit per section." % (name, len(hosts[name]), ", ".join(want)))
+            # rule to each of its sections. So a node holding a second section
+            # -- another NPC, a chest, an incentive pin -- would have that
+            # section gated on an item it never asked for. Nothing in the tree
+            # does that today: the four trading nodes expose one section each,
+            # and Coneria Castle, which holds two, has neither the King nor Sara
+            # trading. If one ever does, the honest answer is to say so rather
+            # than over-gate it.
+            #
+            # Sections, not object ids. Counting objects passes a node whose one
+            # trading NPC shares it with a chest, which is the same over-gating
+            # with none of the warning.
+            reach = fanned.get(name, 0)
+            if reach > 1:
+                sys.exit("%s exposes %d sections and one of its NPCs wants %s"
+                         " handed over first; the rule is per location and fans"
+                         " to every section, so applying it would gate the others"
+                         " too. Split the node, or teach this to emit per"
+                         " section." % (name, reach, ", ".join(want)))
             rules = [sorted(set(alt) | set(want)) for alt in rules]
             rules = sorted(a for a in rules
                            if not any(set(b) < set(a) for b in rules))

@@ -319,6 +319,29 @@ def chain_codes(chain):
     return out
 
 
+def offvocab_items(chain, truth):
+    """The items to hand both sides for free before comparing them.
+
+    An off-vocabulary item is one neither expression's disagreement can be
+    blamed on: SWEPT_ITEMS is entrance_graph.ITEM_NAMES, the items that gate a
+    *tile*, and everything outside it is something the walk cannot reason about
+    either way. FFR's model carries requirements that are game rules rather than
+    tile blockers -- Oxyale to breathe, the Ruby for Titan, the Slab for the
+    translation. Since the trade reader landed the derived side has its own:
+    Adamant, Crystal, Slab and Ruby are what NPCs want handed over, and all four
+    are in FFR_ITEMS.values(), so compare() varies them.
+
+    Which is why this reads both sides. Off FFR's clauses alone -- what it did
+    -- a derived rule naming Adamant fails every combination without it on a
+    seed whose FFR rule never asks for it, and the location reports `strict`: a
+    divergence belonging to the harness rather than to the derivation.
+    """
+    offv = {FFR_ITEMS.get(t, t) for clause in truth for t in clause
+            if FFR_ITEMS.get(t, t) not in SWEPT_ITEMS}
+    return offv | {code for code in chain_codes(chain)
+                   if code in FFR_ITEMS.values() and code not in SWEPT_ITEMS}
+
+
 # --------------------------------------------------------------- seed's flags
 
 def flag_codes(flags, pack=PACK):
@@ -661,10 +684,11 @@ def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False,
     pinned = flag_codes(flags)
     noverworld = flags.get("GameMode") == 2
 
-    # In derived mode the airship code cannot arise: a derived chain's terms are
-    # exactly entrance_graph.ITEM_NAMES, which has no `airship`, and the mode has
-    # no overworld, no desert and no flight to raise one over. Synthesising it
-    # from the pack's stale overworld rule would be the one place a
+    # In derived mode the airship code cannot arise: a derived chain's terms come
+    # from entrance_graph.ITEM_NAMES, the items that gate a tile, plus the trade
+    # items entrance_graph.ITEM_RAM names -- and neither set has `airship`. The
+    # mode has no overworld, no desert and no flight to raise one over anyway.
+    # Synthesising it from the pack's stale overworld rule would be the one place a
     # No-Overworld answer still depended on overworld geography. AIRSHIP_SECTION
     # does resolve in the NOverworld tree today only because that tree is a copy
     # of the standard one; leaving the call in would turn the first honest edit
@@ -808,23 +832,19 @@ def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False,
                 # divergence -- a hole in noverworld_rules.placements().
                 no_derived.append((label, path))
                 continue
-            # The derivation varies exactly entrance_graph.ITEM_NAMES, the items
-            # that gate a *tile*. FFR's model also carries requirements that are
-            # game rules rather than tile blockers -- Oxyale to breathe, the Ruby
-            # for Titan, the Slab for the translation.
-            #
-            # Skipping those locations was the first thing tried and it is too
-            # blunt: FFR's rule is an OR, so `[[Chime,Oxyale,Sigil],[Mark]]` has
-            # a clause entirely inside the swept vocabulary and is perfectly
-            # comparable. Instead, hand the player every off-vocabulary item for
-            # free. That makes FFR's side as permissive as it can possibly be,
-            # so a location that still comes out permissive is over-reach the
-            # vocabulary gap cannot explain -- and one that comes out strict
-            # would be a walk that closes what FFR opens even then.
-            offv = {FFR_ITEMS.get(t, t) for clause in truth for t in clause
-                    if FFR_ITEMS.get(t, t) not in SWEPT_ITEMS}
+            # Skipping the locations with an off-vocabulary requirement was
+            # the first thing tried and it is too blunt: FFR's rule is an OR, so
+            # `[[Chime,Oxyale,Sigil],[Mark]]` has a clause entirely inside the
+            # swept vocabulary and is perfectly comparable. Instead, hand the
+            # player every off-vocabulary item for free. That makes FFR's side
+            # as permissive as it can possibly be, so a location that still
+            # comes out permissive is over-reach the vocabulary gap cannot
+            # explain -- and one that comes out strict would be a walk that
+            # closes what FFR opens even then. Which items those are, and why
+            # they come off both sides, is offvocab_items().
+            offv = offvocab_items(chain, truth)
             if offv:
-                offvocab.append((label, path, truth))
+                offvocab.append((label, path, sorted(offv)))
             here_pinned = pinned | offv
         else:
             chain = sections[path]["chain"]
@@ -894,12 +914,15 @@ def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False,
         print("    no derived rule    %4d   FFR has a rule, placements() found"
               " no tile" % len(no_derived))
         if offvocab:
+            # The set that was actually granted, not a re-derivation of it from
+            # FFR's clauses: a location can land here because the *derived* rule
+            # names a trade item FFR's rule never mentions, and re-reading only
+            # the FFR side would leave that location counted in the line above
+            # and absent from this tally.
             seen = {}
-            for label, _, truth in offvocab:
-                for clause in truth:
-                    for t in clause:
-                        if FFR_ITEMS.get(t, t) not in SWEPT_ITEMS:
-                            seen.setdefault(t, []).append(label)
+            for label, _, granted in offvocab:
+                for code in granted:
+                    seen.setdefault(code, []).append(label)
             print("    off-vocabulary items: %s"
                   % ", ".join("%s x%d" % (t, len(v))
                               for t, v in sorted(seen.items(), key=lambda kv: -len(kv[1]))))

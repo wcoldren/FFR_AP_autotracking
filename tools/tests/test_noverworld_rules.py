@@ -156,6 +156,46 @@ except SystemExit:
     ok(True, "a start with no door raises rather than returning nothing")
 
 
+# --- the over-gating guard counts what the rule actually reaches -------------
+#
+# derive() refuses to emit a trade requirement for a node that would fan it to
+# something else. That used to be an object-id count, which passes a node whose
+# one trading NPC shares it with a chest -- the chest is then gated on the trade
+# item with no warning at all. check_logic.load_derived_rules fans to sections,
+# so sections are what the guard has to count. No node in the pack trips it
+# today, which is exactly why it needs asserting against a tree built to.
+import json as _j                                              # noqa: E402
+import tempfile                                                # noqa: E402
+import regen_maps as _rg                                       # noqa: E402
+
+_pack = _rg.PACK
+try:
+    with tempfile.TemporaryDirectory() as tmp:
+        os.mkdir(os.path.join(tmp, "locations"))
+        with open(os.path.join(tmp, "locations", "overworld.json"), "w") as f:
+            _j.dump([{"name": "Dwarf Cave", "children": [
+                {"name": "Alone", "sections": [{"name": "Nerrick"}]},
+                {"name": "Shared", "sections": [{"name": "Nerrick"},
+                                                {"name": "Chest 42"}]},
+                {"name": "Pointed At", "sections": [{"name": "Smith"},
+                                                    {"ref": "elsewhere"}]},
+                {"name": "Incentivised", "sections": [{"name": "Smith"}]}]}], f)
+        with open(os.path.join(tmp, "locations", "incentives.json"), "w") as f:
+            _j.dump([{"name": "Incentivised", "sections": [{"name": "Incentive"}]}], f)
+        _rg.PACK = tmp
+        seen = nr.fanned_sections("locations/overworld.json")
+finally:
+    _rg.PACK = _pack
+
+ok(seen.get("Alone") == 1, "a node with one section is one section", str(seen))
+ok(seen.get("Shared") == 2,
+   "an NPC sharing its node with a chest counts two -- the object count is one")
+ok(seen.get("Pointed At") == 1,
+   "a `ref` section is not counted; it is counted where it is defined")
+ok(seen.get("Incentivised") == 2,
+   "and the incentive pin beside the tree counts, because check_logic fans there too")
+
+
 rom_path = os.environ.get("FF1_ROM")
 if not rom_path or not os.path.exists(rom_path):
     print("SKIP set FF1_ROM to a Final Fantasy cartridge to run the join")

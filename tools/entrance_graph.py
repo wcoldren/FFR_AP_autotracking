@@ -425,6 +425,14 @@ LDA_ITEMS_X = b"\xbd\x20\x60"           # LDA items,X
 # one that turns out to be last gets this much and no more -- enough for any of
 # them, and short of running off into whatever else sits in the bank.
 MAX_ROUTINE = 0x200
+# `starts` only holds jump-table targets, so the *last* routine has nothing
+# above it to stop at and takes the flat MAX_ROUTINE. Two things sit in range of
+# that: the requirement table at $BA00, in this same bank, and the end of the
+# bank itself. Reading either as code is how a data coincidence -- `A6 74` plus
+# `BD 20 60`, or an `AD xx 60` -- marks every object on that routine as gated on
+# an item it never checks, which is the exact false positive the Elf Prince
+# exclusion exists to keep out. So the body stops at both.
+BANK_END = 0xC000
 
 
 def talk_requirement_bytes(rom):
@@ -458,6 +466,9 @@ def talk_item_requirements(rom):
     def code(addr):
         after = [a for a in starts if a > addr]
         end = min(after[0] if after else addr + MAX_ROUTINE, addr + MAX_ROUTINE)
+        if addr < TALK_DATA_NEW:
+            end = min(end, TALK_DATA_NEW)
+        end = min(end, BANK_END)
         lo, hi = bank_off(bank, addr), bank_off(bank, end)
         if lo < 0 or hi > len(rom.data) or hi <= lo:
             return b""
@@ -1275,6 +1286,31 @@ def check_talk_bank(g):
     return check_trades(g)
 
 
+def pack_item_codes():
+    """Every item code items/items.json defines, stage codes included, or None
+    if the pack is not beside this script.
+
+    What makes a trade requirement usable is a code the *pack* can turn on. Its
+    own ITEM_RAM values are not that test: every name a requirement resolves to
+    came out of ITEM_RAM one line earlier, so asking whether it is in ITEM_RAM
+    answers yes by construction and guards nothing. items.json is the list a
+    rule naming an item actually has to appear in.
+    """
+    path = os.path.join(HERE, "..", "items", "items.json")
+    try:
+        with open(path) as f:
+            items = json.load(f)
+    except OSError:
+        return None
+    codes = set()
+    for item in items:
+        for where in [item] + list(item.get("stages") or []):
+            for code in (where.get("codes") or "").split(","):
+                if code.strip():
+                    codes.add(code.strip())
+    return codes
+
+
 def check_trades(g):
     """The two readers of the same talk table must not contradict each other.
 
@@ -1288,11 +1324,17 @@ def check_trades(g):
     if items is None:
         print("self-check OK: no requirement table -- a stock image has none")
         return True
-    unknown = sorted(i for i in items.values() if i not in ITEM_RAM.values())
-    if unknown:
-        print(f"self-check FAILED: requirement names {unknown}, which is not an "
-              "item in the save-RAM table")
-        return False
+    codes = pack_item_codes()
+    if codes is None:
+        print("self-check SKIPPED: items/items.json is not beside this script, "
+              "so the trade names cannot be checked against the pack's codes")
+    else:
+        unknown = sorted(set(items.values()) - codes)
+        if unknown:
+            print(f"self-check FAILED: requirement names {unknown}, which the "
+                  "pack defines no item code for -- a rule naming one could "
+                  "never be satisfied")
+            return False
     gates = gate_objects(g.rom) or {}
     clash = sorted(oid for oid in set(gates) & set(items) if gates[oid] != items[oid])
     if clash:
