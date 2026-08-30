@@ -488,6 +488,43 @@ one line of assembly that was there all along.
 `test_noverworld_rules.py` asserts the three chests directly, so the bounded
 walk cannot come back quietly.
 
+## The Ordeals incentive lost its Crown, and nothing was comparing
+
+Found 2026-08-30 while diffing what the tracker loads against upstream's
+`9ed47a4`. `locations/overworld.json` gates the Castle of Ordeals incentive on
+nothing; `locations/incentives.json` gates the same slot on
+`earlyOrdeals` or `crown`. Same check, two tabs, two answers.
+
+It went in `3ec131d` ("Split the calibrated dungeons into per-chest markers"):
+that slot's section moved into a child location and its `access_rules` did not
+follow. Every other split child kept its rule, which is why nothing looked
+wrong — `Coneria Castle Chests 1` carries `["key"]` on the child node exactly as
+intended.
+
+**Measured before calling it live.** On both standard duck seeds, walking with
+every item against every item *minus the Crown* reaches an identical tile set —
+35339 tiles on `C189A0EF`, 35319 on `2CCBA52F`, delta 0 — so nothing on either
+cartridge actually sits behind a Crown tile and no pin changed colour. The rule
+was still gone, and would matter on a seed where that door gates something. The
+Crown-gated tiles do exist: two on Ordeals 2F and one on 3F on one seed, three on
+2F on the other.
+
+**Two checks, because one of them could not have seen it.** `test_maps.lua`
+check 6 compares the standard and No-Overworld dungeon trees, and it builds its
+shape from *sections* — so a rule on a split child's node was outside it
+entirely. The shape now carries the node's own `access_rules` too. Check 7 is
+new and compares the incentive tree against the dungeon tree slot by slot: 29 of
+the 30 shared slots have to agree.
+
+The thirtieth is waived by name and filed in `docs/ISSUES.md`. Gaia's
+northern-docks route carries `hwyOrdeals` on the incentive poster and not in the
+dungeon tree, identically in upstream and here, so it is older than any of this
+work; which one is right is not answerable from the location files, and changing
+a standard-mode rule on a guess is the thing this pack keeps learning not to do.
+
+Both checks were shown to fail before they were believed: reverting the rule
+fails check 7, and restoring it to only one tree fails check 6.
+
 ## Ideas from playing on the rendered maps
 
 Moved to `docs/IDEAS.md` -- towns as rooms, following the party into a

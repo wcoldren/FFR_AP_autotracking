@@ -99,6 +99,18 @@ Nothing here is urgent unless it says so.
   by stepping on the altar, not by the kill — is the only proxy. Any box for them
   would be manual-click forever.
 
+- **The two tabs disagree about how to reach Gaia.** The Gaia node's
+  northern-docks route reads `northernDocks,hwyOrdeals,gaiaMountain,ship,canal`
+  in `locations/incentives.json` and drops `hwyOrdeals` in
+  `locations/overworld.json`. Identical in upstream's `9ed47a4` and here, so it
+  is not drift — it is a rule that was written twice and never compared. It is
+  the one slot `tests/test_maps.lua` check 7 waives by name; every other slot the
+  two trees share now has to match. Which of the two is right is not answerable
+  from the location files, and the neighbouring rules do not settle it either:
+  Lefein's northern-docks route carries `hwyOrdeals` in both trees and Sky
+  Palace's carries it in neither. Deciding it wants FFR's own logic for the
+  Fairy on a seed where the two differ.
+
 - **What a diamond means is unsettled.** Square and diamond are the same size,
   centre, colours and click target; the only difference is that a diamond leaves
   the tile's four corners unpainted so a sprite reads behind it. At three pins

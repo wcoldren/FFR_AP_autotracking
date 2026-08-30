@@ -3886,6 +3886,7 @@
                 "children": [
                     {
                         "name": "Ordeals Incentive",
+                        "access_rules": ["earlyOrdeals", "crown"],
                         "sections": [
                             {
                                 "name": "Incentive",
