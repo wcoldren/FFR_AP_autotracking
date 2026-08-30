@@ -95,13 +95,39 @@ Nothing here is urgent unless it says so.
   the union opens cells the flood does not, and ToFR Air has exactly one door
   tile for 241 such cells. Understand what those are before replacing the rule.
 
-- **Crop boxes are looser than the map on several tabs.** Stray detached tiles out
-  near the boundary hold the frame open: `con_castle` 35 blank columns, `sky4F`
-  22 columns and 26 rows, `elf_castle` 31 rows, and three towns over 16 rows
-  each. Deliberately not fixed by adding another per-tile proxy — walkability and
-  size were both tried and rejected. The shape of a real answer is probably the
-  one the room work landed on: ask what a region is connected to, not what its
-  tiles look like. Insets would also dissolve it.
+- **Crop boxes are looser than the map on several tabs.** Two causes, not one.
+  This entry used to name a single one — "stray detached tiles out near the
+  boundary hold the frame open" — and **that is wrong for the four worst maps.**
+
+  **The seam.** A standard map wraps at 64 tiles (`AND #$3F`, and
+  `entrance_graph.floor_walk` already models it). `render_maps.content_box` does
+  not: it takes an axis-aligned bounding box in un-rotated coordinates, so a map
+  whose content straddles column 0 or row 0 is framed across the void between
+  its two halves. Measured 2026-08-30 over all 61 maps of the std and nov oracle
+  cartridges, which give **identical answers** — the wrap is a property of the
+  map, not of the seed, so there is no separate No-Overworld audit here:
+
+  | map | boxed now | on the torus | where the content actually is |
+  |---|---|---|---|
+  | `con_castle` | 64x35 | 31x35 | cols 62-63 + 0-26; the 35 blank columns are 27-61 |
+  | `crescent_lake` | 52x64 | 53x43 | rows 58-63 + 0-34 |
+  | `melmond` | 45x64 | 45x46 | rows 51-63 + 0-30 |
+  | `elf_castle` | 28x64 | 29x35 | row 63 + 0-31 — wrapped by a single row |
+
+  `con_castle`'s 35 columns are the number this entry always carried; only the
+  cause was wrong. Fixing it is a rotation before boxing, and it is on
+  `docs/ROADMAP.md`.
+
+  **The residue, which is the original diagnosis and still stands.** `onrac`,
+  `lefein` and `seaB1` have **no empty column at all** — a sliver of one to three
+  cells per column runs the full width and holds the frame open (`lefein` rows
+  33-47, `seaB1` cols 32-63). `iceB2` (8-column interior gap), `iceB3` (18) and
+  `sky4F` (six scattered gaps) are genuinely multi-lobe maps, where rotating
+  would put the left half on the right and make things worse. Still deliberately
+  not fixed by adding another per-tile proxy — walkability and size were both
+  tried and rejected. The shape of a real answer is the one the room work landed
+  on: ask what a region is connected to, not what its tiles look like. Insets
+  would dissolve it, and `docs/IDEAS.md` names these maps under that heading.
 
 - **The standard-seed reachability oracle is stated without its precondition.**
   It is recorded in several places as "on a Standard seed, `--have

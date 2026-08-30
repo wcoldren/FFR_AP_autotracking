@@ -34,6 +34,21 @@ laid them out would reproduce the effect — and would also dissolve the loose c
 boxes in `docs/ISSUES.md`, by laying disjoint components out separately instead
 of framing their union.
 
+**Which maps that is, now measured.** The seam-wrap half of the loose-crop entry
+has its own fix on the roadmap; what is left for this idea is six maps, in two
+shapes. `onrac`, `lefein` and `seaB1` have **no empty column anywhere** — a one-
+to three-cell sliver spans the full width, so no bounding box can help and the
+question is which components are worth framing at all. `iceB2` (8-column interior
+gap), `iceB3` (18) and `sky4F` (six scattered gaps) are multi-lobe maps where a
+rotation would actively make things worse by putting the left half on the right.
+Add the three composites above and this idea covers nine maps.
+
+The guard is already written: `render_maps.crop_violations` refuses a box that
+cuts off a chest, a staircase or an exit, so "drop a component" has a test that
+says when it went too far. What it cannot answer is the judgement — Onrac's river
+is real map content and still not worth framing — so a size threshold here is a
+decision to be defended, not tuned.
+
 **Routes drawn on the map.** Wanted in two flavours — shortest to the exit, and
 one that collects the loot on the way — and eventually per-map custom routes for
 towns, where the useful stops are shops and NPCs rather than chests.
