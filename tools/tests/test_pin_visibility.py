@@ -108,8 +108,18 @@ def main():
                 fails.append(f"{rel}: no slot named {name}")
                 print(f"FAIL {rel}: {name} is not on the sheet")
                 continue
-            check(f"{rel}: {name} takes no rule",
-                  pin_visibility.rule_for("incentives", node), None)
+            check(f"{rel}: no flag speaks for {name}",
+                  pin_visibility.flags_of(node), None)
+        # And nothing on the sheets carries a rule yet, because `slot` is not
+        # an enabled kind. Both halves are asserted: a rule with the kind still
+        # off, or the kind on with the sheets unstamped, is a drift between the
+        # gate and the trees.
+        check(f"{rel}: pins carrying a rule", sum(
+            1 for n in pinned
+            for m in n.get("map_locations") or []
+            if m.get("restrict_visibility_rules")), 0)
+    check("kinds that carry a rule today",
+          sorted(pin_visibility.ENABLED_KINDS), ["chest", "npc"])
 
     # 4. stamp() deletes as well as sets.
     #
@@ -136,10 +146,48 @@ def main():
           _digest(pin_visibility.render(doubtful)),
           _digest(pin_visibility.render(tree)))
 
+    # 5. The regen path, without a cartridge.
+    #
+    # place_locations() keeps only the pins whose map it does not redraw and
+    # rebuilds the rest through pixels(), which returns a fresh three-key dict.
+    # So every dungeon rule in the tree is dropped on the way through, and an
+    # override written without the stamp would carry none of them -- the pack
+    # ships the toggles, the tracker serves a tree where they reach nothing, and
+    # nothing says so. Reproduced here on the shipped tree rather than argued,
+    # and with no ROM: the rebuild is spelled out, the stamp puts the rules back.
+    # Every map the tree pins on except the overworld, whose art does not change
+    # and whose markers place_locations keeps untouched. Read off the tree so
+    # this needs neither the calibration file nor a cartridge.
+    redrawn = {m["map"] for n in nodes(tree)
+               for m in n.get("map_locations") or []
+               if m["map"] != "overworld"}
+    rebuilt = copy.deepcopy(tree)
+    for node in nodes(rebuilt):
+        markers = node.get("map_locations") or []
+        for i, marker in enumerate(markers):
+            if marker["map"] in redrawn:
+                markers[i] = {k: marker[k] for k in ("map", "x", "y")}
+    check("rules a regen drops before the stamp",
+          _rules(rebuilt), 0)
+    pin_visibility.stamp(rebuilt)
+    check("rules the stamp puts back", _rules(rebuilt), 254)
+    # The pins place_locations leaves alone keep their own shape, so this is
+    # also the check that the stamp did not disturb the overworld.
+    check("overworld pins still unruled", sum(
+        1 for n in nodes(rebuilt)
+        for m in n.get("map_locations") or []
+        if m["map"] == "overworld" and m.get("restrict_visibility_rules")), 0)
+
     for f in fails:
         print("     " + f)
     print("ALL PASS" if not fails else f"{len(fails)} FAILED")
     return 1 if fails else 0
+
+
+def _rules(tree):
+    return sum(1 for n in nodes(tree)
+               for m in n.get("map_locations") or []
+               if m.get("restrict_visibility_rules"))
 
 
 def _digest(text):

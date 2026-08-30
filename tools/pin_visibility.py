@@ -52,13 +52,26 @@ import incentive_slots     # noqa: E402  -- flag_of, one reading of a flag
 import render_maps         # noqa: E402  -- MAP_FILES, the 61 drawn maps
 import split_locations     # noqa: E402  -- load_mapping, leaf_of
 
-# The trees this rewrites. The incentive sheets are stamped by the same code and
-# join this list with the show_skipped toggle they need; until then a rule on
-# them would name an item nothing defines.
+# The trees this rewrites -- all four, so --check speaks for all four. Which of
+# them actually gain rules is ENABLED_KINDS' business, not this list's.
 TREES = (
     "locations/overworld.json",
     "locations/NOverworld/overworld.json",
+    "locations/incentives.json",
+    "locations/NOverworld/incentives.json",
 )
+
+# The kinds that carry a rule today. `slot` joins them the moment
+# items/flags.json defines show_skipped; until then a slot rule would name an
+# item nothing defines, on a sheet where showPin would fail open and draw the
+# pin anyway -- so the rule would be inert, and an inert rule that looks live is
+# worse than none.
+#
+# One constant rather than two, because tools/regen_maps.py stamps its own
+# output through the same function: a gate the tool honoured and the regen did
+# not would show up as a committed tree and an override that disagree, which is
+# the whole thing this arrangement exists to make impossible.
+ENABLED_KINDS = frozenset({"chest", "npc"})
 
 FIELD = "restrict_visibility_rules"
 
@@ -126,8 +139,10 @@ def rule_for(map_name, node):
     """The one rule string a pin on `map_name` gets, or None."""
     if map_name in DRAWN_MAPS:
         kind = kind_of(node)
-        return "$showPin|%s" % kind if kind else None
-    if map_name == INCENTIVE_MAP:
+        if kind in ENABLED_KINDS:
+            return "$showPin|%s" % kind
+        return None
+    if map_name == INCENTIVE_MAP and "slot" in ENABLED_KINDS:
         flags = flags_of(node)
         return "$showPin|slot|" + "|".join(flags) if flags else None
     return None

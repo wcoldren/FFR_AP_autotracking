@@ -80,6 +80,7 @@ import entrance_graph
 import extract_chests
 import extract_npcs
 import make_markers
+import pin_visibility
 import pngio
 import render_maps
 import split_locations
@@ -107,6 +108,7 @@ INPUT_FILES = [
     "tools/extract_chests.py",
     "tools/extract_npcs.py",
     "tools/make_markers.py",
+    "tools/pin_visibility.py",
     "tools/pngio.py",
     "tools/map_calibration.json",
     "maps/maps.json",
@@ -910,6 +912,14 @@ def main():
                        (incentive_locations, {})):
         doc, pl, un, bad, shade = place_locations(cal, tiles, rel,
                                                   sprite_cells)
+        # The same rules the committed tree carries, from the same function.
+        # place_locations keeps only the pins whose map it does not redraw and
+        # rebuilds the rest from tiles, so every dungeon rule the pack ships
+        # would be dropped here otherwise -- and the toggles would go quiet on
+        # exactly the seeds an override exists for. Stamping rather than
+        # preserving is also what gives the pins this cartridge newly places --
+        # Astos, Matoya, Bikke, the Fairy, Bahamut -- their rule on arrival.
+        pin_visibility.stamp(doc)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
         placed += pl
         unmoved += un
