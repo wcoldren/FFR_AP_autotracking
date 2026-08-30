@@ -27,6 +27,13 @@ was never given one. Three checks, one for each way that can come back:
     frame; a pin there would be a pin in the void. One of the fifteen
     placements fails that test and it is that one.
 
+Run against both location trees, because regen_maps picks the tree by mode and
+No-Overworld is the mode this work exists for. The two files are byte-identical
+today, so the second pass costs a few seconds and asserts nothing new -- but
+No-Overworld is what turns towns into rooms with chests, and "a node holds only
+that NPC" is exactly the invariant that would break for Pravoka and Gaia when
+it does. The pass that would catch it should not be the one nobody runs.
+
 Set FF1_ROM to a cartridge; without one this skips.
 """
 import json
@@ -41,7 +48,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
 PACK = os.path.dirname(TOOLS)
 
-LOCATIONS = "locations/overworld.json"
+LOCATIONS = ("locations/overworld.json", "locations/NOverworld/overworld.json")
 
 # The eight NPCs with a section somewhere in the location tree, and the node
 # each one's pin belongs to. Written out rather than counted so that moving a
@@ -74,17 +81,30 @@ def cells_of(rom, places):
 
 
 def nodes_of(doc):
-    """{name: node} for every location in the tree, children included."""
+    """{name: [node]} for every location in the tree, children included.
+
+    A list rather than the node, so a duplicate name cannot quietly decide
+    which node the assertions below run against. Duplicates are not
+    hypothetical in this pack -- `I: Marsh Cave` is two nodes in
+    locations/NOverworld/incentives.json -- and a "holds only Astos" check that
+    silently tested whichever Astos node came last would be no check at all.
+    """
     out = {}
 
     def walk(nodes):
         for n in nodes:
             if isinstance(n, dict):
-                out[n["name"]] = n
+                out.setdefault(n["name"], []).append(n)
                 walk(n.get("children") or [])
 
     walk(doc)
     return out
+
+
+def only(named, name):
+    """The one node called `name`, or None if there is not exactly one."""
+    got = named.get(name) or []
+    return got[0] if len(got) == 1 else None
 
 
 def main():
@@ -103,38 +123,16 @@ def main():
 
     with open(os.path.join(TOOLS, "npc_positions.json")) as f:
         npcs = json.load(f)
-    doc = sl.lenient(os.path.join(PACK, LOCATIONS))
-    nodes = nodes_of(doc)
-    tiles = rg.marker_tiles(rom, LOCATIONS)
 
     check("every NPC the cartridge places is accounted for",
           sorted(npcs), sorted(list(PINNED) + list(UNPINNED)))
 
-    hosts = {sec.get("hosted_item"): name
-             for name, node in nodes.items()
-             for sec in node.get("sections") or []}
-    for who, want in sorted(PINNED.items()):
-        check(f"{who} hosts on {want}", hosts.get(who), want)
-        check(f"{who}'s tile is the one the cartridge puts it on",
-              sorted(tiles.get(want, ())), sorted(cells_of(rom, npcs[who])))
-
-    for who in UNPINNED:
-        check(f"{who} hosts nowhere", hosts.get(who), None)
-
-    # The invariant that makes a pin mean one thing: the node an NPC pin lands
-    # on holds that NPC and nothing else. One section, hosting that code.
-    for who, name in sorted(PINNED.items()):
-        secs = nodes[name].get("sections") or []
-        check(f"{name} holds only {who}",
-              [s.get("hosted_item") for s in secs], [who])
-
-    # And the void placement is dropped, without dropping any other.
+    # The void placement is dropped, and no other is. Neither the cartridge nor
+    # npc_positions.json depends on which tree is loaded, so this is asked once.
     ice = [(q["map_id"], q["tile_col"], q["tile_row"]) for q in npcs["fairy"]]
     outside = [c for c in ice if not rg.stands_on_map(rom, *c, cache=OUTSIDE)]
     check("the Ice Cave B1 fairy is the one placement outside the map",
           outside, [(15, 47, 30)])
-    check("and it gets no pin", (15, 47, 30) in tiles["Gaia"], False)
-    check("while the Gaia one does", (5, 49, 19) in tiles["Gaia"], True)
     check("no other tracked object stands outside its map",
           [(who, q["map_id"]) for who, places in sorted(npcs.items())
            for q in places
@@ -142,27 +140,83 @@ def main():
                                    q["tile_row"], OUTSIDE)],
           [("fairy", 15)])
 
-    # place_locations then has to actually emit them, on the pixel that reads
-    # back as the ROM's own tile. The rendered calibration is one offset per
-    # axis per map, so inverting it is exact -- a pin that came out a tile
-    # away, the way the shipped hand art draws Astos, shows up right here.
+    # One flood for both passes; the calibration is a property of the cartridge
+    # and the crop, not of which location tree names the markers.
     cal = rg.rendered_calibration(rom, rg.crop_boxes(rom))
-    out, _, _, bad, _ = rg.place_locations(cal, tiles, LOCATIONS)
-    check("nothing is left unplaceable", bad, [])
-    placed = nodes_of(out)
-    for who, name in sorted(PINNED.items()):
-        got = []
-        for m in placed[name].get("map_locations") or []:
-            if m["map"] not in rg.REDRAWN:
-                continue
-            e = cal[m["map"]]
-            r = e["regions"][0]
-            got.append((e["rom_map_id"],
-                        (m["x"] - r["offset_x"]) // e["tile_px"],
-                        (m["y"] - r["offset_y"]) // e["tile_px"]))
-        check(f"{name}'s pin reads back as {who}'s tile",
-              sorted(got), sorted(cells_of(rom, npcs[who])))
 
+    for rel in LOCATIONS:
+        tag = "nov" if "NOverworld" in rel else "std"
+        print(f"\n-- {tag}: {rel}")
+        doc = sl.lenient(os.path.join(PACK, rel))
+        nodes = nodes_of(doc)
+        dropped = []
+        tiles = rg.marker_tiles(rom, rel, dropped)
+
+        check(f"{tag}: no chest placement is dropped as backdrop",
+              [d for d in dropped if d[1] == "chest"], [])
+        check(f"{tag}: the fairy's void copy is the one placement dropped",
+              dropped, [("Gaia", "NPC", 15, 47, 30)])
+
+        # Every assertion below reaches for a node by name, so a duplicate name
+        # would decide which node got tested. Rule it out first rather than
+        # letting `only` turn it into a confusing None further down.
+        check(f"{tag}: no two locations share a name",
+              sorted(n for n, got in nodes.items() if len(got) > 1), [])
+
+        # {code: [node names hosting it]}, so a code hosted twice fails the
+        # comparison rather than resolving to whichever node came last.
+        hosts = {}
+        for name, got in nodes.items():
+            for node in got:
+                for sec in node.get("sections") or []:
+                    hosts.setdefault(sec.get("hosted_item"), []).append(name)
+        for who, want in sorted(PINNED.items()):
+            check(f"{tag}: {who} hosts on {want}, and only there",
+                  sorted(hosts.get(who, ())), [want])
+            check(f"{tag}: {who}'s tile is the one the cartridge puts it on",
+                  sorted(tiles.get(want, ())), sorted(cells_of(rom, npcs[who])))
+
+        for who in UNPINNED:
+            check(f"{tag}: {who} hosts nowhere", hosts.get(who), None)
+
+        # The invariant that makes a pin mean one thing: the node an NPC pin
+        # lands on holds that NPC and nothing else. One section, hosting that
+        # code. This is the check No-Overworld is most likely to break, because
+        # it is what turns Pravoka and Gaia from towns into rooms with chests.
+        for who, name in sorted(PINNED.items()):
+            node = only(nodes, name)
+            check(f"{tag}: {name} holds only {who}",
+                  [s.get("hosted_item")
+                   for s in (node or {}).get("sections") or []], [who])
+
+        check(f"{tag}: the fairy's void copy gets no pin",
+              (15, 47, 30) in tiles["Gaia"], False)
+        check(f"{tag}: while the Gaia one does",
+              (5, 49, 19) in tiles["Gaia"], True)
+
+        # place_locations then has to actually emit them, on the pixel that
+        # reads back as the ROM's own tile. The rendered calibration is one
+        # offset per axis per map, so inverting it is exact -- a pin that came
+        # out a tile away, the way the shipped hand art draws Astos, shows up
+        # right here.
+        out, _, _, bad, _ = rg.place_locations(cal, tiles, rel)
+        check(f"{tag}: nothing is left unplaceable", bad, [])
+        placed = nodes_of(out)
+        for who, name in sorted(PINNED.items()):
+            got = []
+            node = only(placed, name)
+            for m in (node or {}).get("map_locations") or []:
+                if m["map"] not in rg.REDRAWN:
+                    continue
+                e = cal[m["map"]]
+                r = e["regions"][0]
+                got.append((e["rom_map_id"],
+                            (m["x"] - r["offset_x"]) // e["tile_px"],
+                            (m["y"] - r["offset_y"]) // e["tile_px"]))
+            check(f"{tag}: {name}'s pin reads back as {who}'s tile",
+                  sorted(got), sorted(cells_of(rom, npcs[who])))
+
+    print()
     for f in fails:
         print("     " + f)
     print("ALL PASS" if not fails else f"{len(fails)} FAILED")
