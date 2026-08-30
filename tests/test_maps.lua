@@ -459,9 +459,13 @@ do
       local here = path .. "/" .. (n.name or "?")
       local secs = {}
       for _, sec in ipairs(n.sections or {}) do
+        -- " OR " between alternatives, because "," already separates the
+        -- ANDed codes inside one: joined with a comma, ["a,b"] (a AND b) and
+        -- ["a","b"] (a OR b) are the same string, and that is exactly the
+        -- drift this field exists to show.
         secs[#secs + 1] = (sec.name or "") .. "|" .. (sec.ref or "") .. "|" ..
           tostring(sec.item_count) .. "|" .. (sec.hosted_item or "") .. "|" ..
-          table.concat(sec.access_rules or {}, ",")
+          table.concat(sec.access_rules or {}, " OR ")
       end
       -- map names, not pixels: which map a marker is on must match, where on
       -- it must not, because that is the whole difference between the two.
@@ -471,7 +475,7 @@ do
       -- requirement on the node -- "Coneria Castle Chests 1" is access_rules
       -- ["key"] with a bare section under it -- so a shape built from sections
       -- alone would let one tree gain or lose a rule without a word.
-      out[here] = table.concat(n.access_rules or {}, ",") .. " :: " ..
+      out[here] = table.concat(n.access_rules or {}, " OR ") .. " :: " ..
         table.concat(secs, ";") .. " @ " .. table.concat(onmaps, ",")
       shape(n.children or {}, here, out)
     end
@@ -548,13 +552,17 @@ do
         end
       end
       table.sort(terms)
+      -- one alternative that constrains nothing satisfies the whole OR, so the
+      -- rule as a whole constrains nothing. Not reachable on today's data --
+      -- every ^$incentiveSlot term sits either alone or in every alternative --
+      -- but the next incentive rule written the other way would otherwise be
+      -- reported as drift against a tree that correctly has no rule at all.
+      if #terms == 0 then return nil end
       alts[#alts + 1] = table.concat(terms, ",")
     end
+    if #alts == 0 then return nil end
     table.sort(alts)
-    local joined = table.concat(alts, "|")
-    -- every alternative empty means every alternative is satisfied: no rule.
-    if string.match(joined, "^|*$") then return nil end
-    return joined
+    return table.concat(alts, "|")
   end
 
   -- the chain of rules a section inherits, as a sorted set: AND commutes and
@@ -583,13 +591,23 @@ do
             local full = here
             local sc = canon(sec.access_rules or {})
             if sc then full = copy(here); full[#full + 1] = sc end
-            out[sec.hosted_item] = express(full)
+            -- every hosting, not the last one seen: cardiaIncentive is hosted
+            -- twice in each tree -- Bahamut's Cave behind the ship route and
+            -- Cardia Forest behind the airship alone -- so a single slot is
+            -- a set of rules, and keying by name alone compared one and
+            -- silently dropped the other.
+            local at = out[sec.hosted_item]
+            if not at then at = {}; out[sec.hosted_item] = at end
+            at[#at + 1] = express(full)
           end
         end
         walk(n.children or {}, here)
       end
     end
     walk(json.load(PACK .. "/" .. file), {})
+    -- sorted so the two trees can be compared as multisets: which node hosts
+    -- which copy is a fact about the art, the rules it carries are not.
+    for _, rules in pairs(out) do table.sort(rules) end
     return out
   end
 
@@ -602,25 +620,44 @@ do
   -- Filed in docs/ISSUES.md; named here so the rest of the check can be strict.
   local KNOWN = { fairy = true }
 
+  -- The four orb-lit slots are the incentive poster's own: they light the orb
+  -- panel from a flag and there is no dungeon location behind them, so they
+  -- are absent from the dungeon tree by design. Named, because "absent" is
+  -- otherwise indistinguishable from a hosted_item that has been renamed or
+  -- typo'd -- which is precisely what unlinks an incentive marker -- and
+  -- skipping every unmatched slot let that through with the count one lower.
+  local POSTER_ONLY = {
+    airorblit = true, earthorblit = true, fireorblit = true, waterorblit = true,
+  }
+
+  local function same(a, b)
+    if #a ~= #b then return false end
+    for i = 1, #a do if a[i] ~= b[i] then return false end end
+    return true
+  end
+
   local inc, ow = slots("locations/incentives.json"), slots("locations/overworld.json")
-  local drift, shared, waived = 0, 0, 0
-  for slot, rule in pairs(inc) do
-    if ow[slot] then
-      if KNOWN[slot] then
-        waived = waived + 1
-      else
-        shared = shared + 1
-        if ow[slot] ~= rule then
-          fails(string.format("the two tabs disagree about %q:\n       incentives %s\n       overworld  %s",
-            slot, rule, ow[slot]))
-          drift = drift + 1
-        end
+  local drift, shared, waived, only = 0, 0, 0, 0
+  for slot, rules in pairs(inc) do
+    if POSTER_ONLY[slot] then
+      only = only + 1
+    elseif not ow[slot] then
+      fails(string.format("the dungeon tree hosts no %q, which the incentive tree does", slot))
+      drift = drift + 1
+    elseif KNOWN[slot] then
+      waived = waived + 1
+    else
+      shared = shared + 1
+      if not same(rules, ow[slot]) then
+        fails(string.format("the two tabs disagree about %q:\n       incentives %s\n       overworld  %s",
+          slot, table.concat(rules, " / "), table.concat(ow[slot], " / ")))
+        drift = drift + 1
       end
     end
   end
   if drift == 0 then
-    print(string.format("ok   %d incentive slots carry the same rule on both tabs (%d waived)",
-                        shared, waived))
+    print(string.format("ok   %d incentive slots carry the same rule on both tabs (%d waived, %d poster-only)",
+                        shared, waived, only))
   end
 end
 

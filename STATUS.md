@@ -525,6 +525,29 @@ a standard-mode rule on a guess is the thing this pack keeps learning not to do.
 Both checks were shown to fail before they were believed: reverting the rule
 fails check 7, and restoring it to only one tree fails check 6.
 
+**Then the check itself was reviewed, and three of its four holes were the
+same mistake as the defect it was written for: something that looked compared
+and was not.** It keyed slots by `hosted_item`, but `cardiaIncentive` is hosted
+twice in each tree -- Bahamut's Cave behind the ship route, Cardia Forest behind
+the airship -- so last write won and one of the two pairs was never looked at; a
+bogus rule on the Bahamut's-Cave copy left the suite green. It skipped any slot
+the dungeon tree did not host, so renaming a `hosted_item` -- exactly what
+unlinks an incentive marker -- took the report from 29 slots to 28 and passed.
+And check 6's new node-rule field joined alternatives with `","`, the character
+that already separates the ANDed codes inside one, so `["a,b"]` and `["a","b"]`
+-- an AND and an OR -- produced the same string, in the field added to make rule
+drift visible. Slots are now compared as sorted multisets, the four orb-lit
+poster-only slots are named the way `fairy` is and anything else missing fails,
+and both concatenations use `" OR "`. Each fix was shown to catch a mutation the
+old check passed.
+
+The fourth is latent and worth writing down rather than fixing quietly: `canon`
+treated a rule as unconstrained only when *every* alternative emptied out, but
+in PopTracker an OR with one unconditional branch is unconditional. No rule
+here reaches it today -- every `^$incentiveSlot` term sits either alone in its
+list or in all of them -- so it was a false FAIL waiting on the next incentive
+rule, not a miss.
+
 ## Ideas from playing on the rendered maps
 
 Moved to `docs/IDEAS.md` -- towns as rooms, following the party into a
