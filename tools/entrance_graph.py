@@ -367,6 +367,116 @@ def gate_objects(rom):
             if addr in want}
 
 
+# --------------------------------------------------- what a talk routine wants
+#
+# Some NPC locations are a trade, not a tile. Astos hands over what he holds
+# only once the Crown is in the bag, Nerrick only once the TNT is; the walk can
+# stand beside either of them empty-handed and learns nothing. Those two were
+# the only locations where the derived No-Overworld rules disagreed with FFR's
+# own logic.
+#
+# FFR keeps the answer as data. NPCs.cs rebuilds the talk table as $D0 records
+# of six bytes -- dialogue x3, the item given, the item **required**, a battle
+# id -- and moves them into the same bank it moved the jump table to. The
+# requirement byte is an offset into the `items` array in save RAM, so 0 is "no
+# requirement" and 2 is the Crown.
+#
+# The byte alone is not the answer, because whether it means anything depends on
+# the script that object runs. FFR's generic trade routine reads it:
+#
+#     LDX tmp+4        A6 74        the requirement byte, as an index
+#     BEQ ...          F0 05        nothing required, skip the check
+#     LDA items,X      BD 20 60     do they have it?
+#
+# and an object whose script never touches tmp+4 leaves the byte lying there
+# meaning nothing. The Elf Prince is exactly that trap: his byte reads 5, the
+# Mystic Key, which is the item he *gives*, and his routine never looks at it.
+# Believing the byte on its own would have said the Elf Prince needs the key he
+# is holding out to you.
+#
+# So an object is only read as gated when one of two things is true, and both
+# are two sources agreeing rather than one asserting:
+#
+#   - its routine reads tmp+4 as an index into `items` (the pattern above), so
+#     the byte is what the engine itself consults; or
+#   - its routine loads that exact item's address directly -- `LDA item_tnt` is
+#     AD 26 60 -- *and* the requirement byte names the same item. Nerrick is the
+#     one that needs this: MetroidVaniaMap.cs leaves him the older routine,
+#     which hardcodes the TNT instead of indexing, and his byte says TNT too.
+#
+# On a cartridge with no moved talk table -- a stock image -- there is no
+# requirement table either, and this returns None rather than guessing, the same
+# way noverworld_gate_items answers "not this layout".
+TALK_DATA_NEW = 0xBA00          # FF1Lib/NPCs.cs:102, in newTalkRoutinesBank
+TALK_DATA_RECORD = 6            # NpcObject.GetBytes()
+TALK_DATA_REQUIREMENT = 4       # ... Item, Requirement, Battle
+ITEMS = 0x6020                  # variables.inc:334, items = unsram + $20
+ITEM_RAM = {                    # variables.inc:336-352, offset -> the pack's code
+    0x01: "lute", 0x02: "crown", 0x03: "crystal", 0x04: "herb",
+    0x05: "key", 0x06: "tnt", 0x07: "adamant", 0x08: "slab",
+    0x09: "ruby", 0x0A: "rod", 0x0B: "floater", 0x0C: "chime",
+    0x0D: "tail", 0x0E: "cube", 0x0F: "bottle", 0x10: "oxyale",
+    0x11: "canoe",
+}
+LDX_REQUIREMENT = b"\xa6\x74"           # LDX tmp+4
+LDA_ITEMS_X = b"\xbd\x20\x60"           # LDA items,X
+# A routine runs until the next one begins. Nothing promises the table is in
+# address order, so the bound is the next distinct address above this one, and
+# one that turns out to be last gets this much and no more -- enough for any of
+# them, and short of running off into whatever else sits in the bank.
+MAX_ROUTINE = 0x200
+
+
+def talk_requirement_bytes(rom):
+    """object id -> its requirement byte, or None where FFR has not moved the table."""
+    where = talk_routine_bank(rom.data)
+    if where is None or where[1] == TALK_JUMP_TBL:
+        return None                     # a stock image: 4-byte records, no such byte
+    bank, _ = where
+    base = bank_off(bank, TALK_DATA_NEW)
+    end = base + TALK_OBJ_COUNT * TALK_DATA_RECORD
+    if end > len(rom.data):
+        return None
+    return {oid: rom.data[base + oid * TALK_DATA_RECORD + TALK_DATA_REQUIREMENT]
+            for oid in range(TALK_OBJ_COUNT)}
+
+
+def talk_item_requirements(rom):
+    """object id -> the item its talk routine demands, or None off an FFR layout.
+
+    Only objects whose script is shown to consult the requirement appear -- see
+    the note above. An object whose byte nothing reads contributes nothing
+    rather than a guess.
+    """
+    reqs = talk_requirement_bytes(rom)
+    routines = talk_routines(rom)
+    if reqs is None or routines is None:
+        return None
+    bank, _ = talk_routine_bank(rom.data)
+    starts = sorted(set(routines.values()))
+
+    def code(addr):
+        after = [a for a in starts if a > addr]
+        end = min(after[0] if after else addr + MAX_ROUTINE, addr + MAX_ROUTINE)
+        lo, hi = bank_off(bank, addr), bank_off(bank, end)
+        if lo < 0 or hi > len(rom.data) or hi <= lo:
+            return b""
+        return rom.data[lo:hi]
+
+    bodies = {a: code(a) for a in starts}
+    out = {}
+    for oid, addr in routines.items():
+        item = ITEM_RAM.get(reqs[oid])
+        if item is None:
+            continue
+        body = bodies[addr]
+        indexed = LDX_REQUIREMENT in body and LDA_ITEMS_X in body
+        direct = bytes([0xAD, (ITEMS + reqs[oid]) & 0xFF, (ITEMS + reqs[oid]) >> 8]) in body
+        if indexed or direct:
+            out[oid] = item
+    return out
+
+
 def tab_labels():
     """map id -> the pack's PopTracker tab label, for cross-reference only."""
     path = os.path.join(HERE, os.pardir, "scripts", "autotracking", "mapValues.lua")
@@ -1031,6 +1141,34 @@ def print_gates(g):
                 print(f"      ${oid:02X} {GATE_OBJ_NAMES[oid]:22s} not placed on any map")
 
 
+
+def print_trades(g):
+    """Which objects want an item handed over before they give anything up."""
+    reqs = talk_requirement_bytes(g.rom)
+    if reqs is None:
+        print("no requirement table in this image -- the talk table has not been")
+        print("moved, so these are four-byte records with no requirement byte.")
+        return
+    items = talk_item_requirements(g.rom)
+    placed = {}
+    for m in range(MAP_COUNT):
+        for oid, x, y in g.objects(m):
+            placed.setdefault(oid, []).append((m, x, y))
+    names = {oid: name for name, oid in NPC_IDS.items()}
+    print(f"{len(items)} objects want something handed over first")
+    for oid in sorted(items):
+        where = ", ".join(f"{MAP_NAMES[m]} ({x},{y})" for m, x, y in placed.get(oid, []))
+        print(f"  ${oid:02X} {names.get(oid, GATE_OBJ_NAMES.get(oid, '')):22s} "
+              f"{items[oid]:9s} {where or 'not placed on any map'}")
+    unread = sorted(oid for oid, b in reqs.items()
+                    if b and oid not in items and b in ITEM_RAM)
+    if unread:
+        print("  and %d objects carry a requirement byte their script never reads:"
+              % len(unread))
+        for oid in unread:
+            print(f"      ${oid:02X} {names.get(oid, ''):22s} byte says "
+                  f"{ITEM_RAM[reqs[oid]]}")
+
 # The seven floors of the Temple of Fiends Revisited gauntlet, Chaos's own room
 # excluded. No-Overworld strips the 4-orbs special off TempleOfFiends (20,17) --
 # vanilla has both the special and a teleport there, which is the time warp --
@@ -1134,6 +1272,35 @@ def check_talk_bank(g):
     if mode is None:
         print("self-check SKIPPED: the gate-layout half of this test needs the "
               f"GameMode, which could not be read ({why})")
+    return check_trades(g)
+
+
+def check_trades(g):
+    """The two readers of the same talk table must not contradict each other.
+
+    talk_item_requirements reads a per-object requirement byte and checks the
+    object's script actually consults it; gate_objects groups objects onto the
+    routines noverworld_gate_items identified. They look at different fields for
+    different reasons, so where both have an opinion about an object, a
+    disagreement means one of them is reading the wrong thing.
+    """
+    items = talk_item_requirements(g.rom)
+    if items is None:
+        print("self-check OK: no requirement table -- a stock image has none")
+        return True
+    unknown = sorted(i for i in items.values() if i not in ITEM_RAM.values())
+    if unknown:
+        print(f"self-check FAILED: requirement names {unknown}, which is not an "
+              "item in the save-RAM table")
+        return False
+    gates = gate_objects(g.rom) or {}
+    clash = sorted(oid for oid in set(gates) & set(items) if gates[oid] != items[oid])
+    if clash:
+        for oid in clash:
+            print(f"self-check FAILED: object ${oid:02X} reads as a {gates[oid]} "
+                  f"gate and a {items[oid]} trade")
+        return False
+    print(f"self-check OK: {len(items)} trades read, none contradicting the gates")
     return True
 
 
@@ -1216,6 +1383,8 @@ def main():
                          + " (sigil is accepted for floater)")
     ap.add_argument("--dump", action="store_true", help="all doors and floor links")
     ap.add_argument("--tables", action="store_true", help="vanilla vs extended teleport tables")
+    ap.add_argument("--trades", action="store_true",
+                    help="what each NPC wants handed over before it gives anything")
     ap.add_argument("--gates", action="store_true",
                     help="No-Overworld gate NPCs and the item each one wants")
     ap.add_argument("--self-check", action="store_true", help="staircases must not be chests")
@@ -1248,6 +1417,8 @@ def main():
         ok = self_check(g)
     if args.gates:
         print_gates(g)
+    if args.trades:
+        print_trades(g)
     if args.tables:
         print_tables(g)
     if args.dump:
@@ -1279,8 +1450,8 @@ def main():
                   + " -- try --have key")
         else:
             npc_reached = False
-    if not any((args.self_check, args.gates, args.tables, args.dump, args.to,
-                args.to_npc, args.out)):
+    if not any((args.self_check, args.gates, args.trades, args.tables, args.dump,
+                args.to, args.to_npc, args.out)):
         print_doors(g, tabs)
 
     if args.out:
