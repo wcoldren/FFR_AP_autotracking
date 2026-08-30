@@ -65,10 +65,18 @@ runs *Lua*, not a shell command.
 **The bridge could be**, mechanically: `ffr_uat_bridge.lua` already reads and
 writes files (`EMU.readFile` / `writeFile` / `appendFile`) and already requires
 Mesen's "Allow access to I/O and OS functions" for its sockets, so `os.execute`
-is plausibly in reach. But a regen renders 61 maps, which would stall emulation
-unless detached, and it buys less than it looks like: **PopTracker loads pack
-images at load time**, which is why `regen_maps.py` signs off with "Restart
-PopTracker to pick it up". An automatic regen still ends in a manual restart.
+is plausibly in reach. Two constraints on any version that actually runs one:
+
+- **It has to be eager and detached.** Eager because the useful moment is the
+  one where the cartridge is first seen -- on connect, or on the seed swap the
+  bridge already detects -- not when someone notices the pins are wrong.
+  Detached because a regen renders 61 maps; run inline on the emulator's script
+  thread it stalls emulation for the duration.
+- **The restart is irreducible.** PopTracker loads pack images at load time,
+  which is why `regen_maps.py` signs off with "Restart PopTracker to pick it
+  up". No amount of triggering removes that step, so an automatic regen buys
+  the render, never the reload -- and a regen the player does not know happened,
+  followed by a tracker still showing the old art, is worse than no regen.
 
 **So the version worth building is detection, not execution.** The bridge reads
 `.regen_cache.json`, compares it against the cartridge in the emulator, and

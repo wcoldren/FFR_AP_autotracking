@@ -165,6 +165,51 @@ Entrance markers ship **off** by default and are worth turning on in No-Overworl
 and entrance rando. That is a setting, not a branch, which is why item 2 comes
 first.
 
+## Branch queue
+
+Where item 1 actually stands, 2026-08-30, and what comes off it. This is the
+part that goes stale fastest; check `git log trunk..` before trusting it.
+
+**`noverworld-logic` -- eight commits, unmerged, unpushed.** The wiring (feed
+split, mode guards, 25 region rules, checker), the record correction, the Black
+Orb gate, and the idea below. All suites green; std 225/225 and shard 229/229
+unmoved throughout. **The review gate is owed on these eight**: `/code-review`
+in a fresh-context session before it merges to `trunk`, findings addressed or
+waived in the commit message. Nothing pushed without explicit go-ahead.
+
+**Next branch: the remaining two object gates, and the sweep that can hold
+them.** One commit, because the parts cannot land separately -- a
+`GATED_OBJECTS` row whose item the sweep cannot hold blocks that tile in every
+subset, and everything behind it derives as unreachable rather than gated. It
+carries:
+
+- SubEngineer `0x10` -> oxyale and Titan `0x14` -> ruby, the last two rows of
+  `Sanity/SCMap.cs:167-186`. **Read off the cartridge, not tabulated**, the way
+  `black_orb_item()` and `noverworld_gate_items()` are. The two differ in what
+  is legible: Titan's requirement byte is set (`Item.Ruby = 9`) and
+  `talk_item_requirements()` already finds it; SubEngineer's byte is `0x00`
+  (`NPCs.cs` never assigns it), so the only signal is `AD 30 60` in the routine
+  body -- the same body scan the `direct` case already uses.
+- `entrance_graph.ITEM_NAMES` gains both, taking the sweep to 2^12.
+- `check_logic.SWEPT_ITEMS` gains both, or `offvocab_items()` goes on granting
+  them free and the new rules read as strict rather than as agreement.
+- The memoization at "Memoize the floor walk" in `docs/IDEAS.md`, with its
+  **all-subsets equivalence guard** -- memoized and unmemoized must produce
+  identical rules over the whole lattice. Note the filed design counts only
+  `floor_walk`; `reachable_tiles` also calls `reachable_teleports`, and both
+  need the same key or the memo is half applied.
+- A failure demonstration per row, per the working rule below. Expected payoff:
+  independent support on `nov` rising from 63 toward ~190, since oxyale alone
+  blocks 129 of the 226 comparisons.
+
+**Branch after that: the stale-override warning**, per "Notice when the drawn
+maps are for a different cartridge" in `docs/IDEAS.md`. Separate because it
+touches the bridge and the pack rather than the tools, and is worth nothing
+until someone is playing on rendered art.
+
+Not queued, and deliberately: a general requirements solver, and more oracle
+seeds. The provenance table says where the risk is; spend there.
+
 ## Working rules
 
 - One topic branch per item, off `trunk`, named for the theme.
