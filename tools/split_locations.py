@@ -42,7 +42,7 @@ def load_mapping(limit=512):
     pick the NPCs up through `hosted_item` in the location tree instead.
 
     That join is the wider one. This table only names locations the multiworld
-    has an id for, and eight of the fourteen NPCs the cartridge places carry no
+    has an id for, and several of the NPCs the cartridge places carry no
     shuffled item and so have no id at all -- Bahamut among them. A caller
     reading NPCs out of here would miss them silently.
     """
