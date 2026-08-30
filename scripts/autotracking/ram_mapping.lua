@@ -165,12 +165,16 @@ RAM_SHARDS = { code = "shards", addr = 0x6035, maxStage = 36 }
 -- ($62FE bit 0x02) and lives in LOCATION_MAPPING with the other events. See the
 -- note there about the airship, which is why it took so long to trust.
 --
--- Deliberately NOT derived from RAM:
+-- Nothing to derive from RAM:
 --
---   sigil and mark -- FFR's no-overworld mode reuses the floater byte
---   ($602B) for Sigil and the canoe byte ($6012) for Mark. Nothing in RAM
---   distinguishes them from the items they share a byte with; it depends on
---   the seed's flags, which we do not read.
+--   sigil and mark -- No-Overworld renames exactly two items and only on the
+--   item screen: MetroidVaniaMap.cs:843-844 sets ItemsText[Floater] = "SIGIL"
+--   and ItemsText[EarthOrb] = "MARK". So SIGIL is the Floater at $602B and
+--   MARK is the Earth Orb at $6031, both already read above, and neither is a
+--   byte of its own. This used to say MARK was the Canoe at $6012, which is
+--   the dialogue talking: the Canoe gate NPCs say "Lukahn's mark" and their
+--   talk routine checks the Canoe. docs/NOVERWORLD.md states it plainly for
+--   the same reason -- it was recorded backwards for a while.
 
 local UNKNOWN_CODE_WARNED = {}
 
