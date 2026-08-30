@@ -77,7 +77,9 @@
                     },
                     {
                         "name": "Coneria Castle Chests 1",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -96,7 +98,9 @@
                     },
                     {
                         "name": "Coneria Castle Chests 2",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -115,7 +119,9 @@
                     },
                     {
                         "name": "Coneria Castle Chests 3",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -134,7 +140,9 @@
                     },
                     {
                         "name": "Coneria Castle Chests 4",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -153,7 +161,9 @@
                     },
                     {
                         "name": "Coneria Castle Chests 5",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -172,7 +182,9 @@
                     },
                     {
                         "name": "Coneria Castle Incentive",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Incentive",
@@ -290,7 +302,9 @@
                     },
                     {
                         "name": "Temple of Fiends Bottom Right",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -309,7 +323,9 @@
                     },
                     {
                         "name": "Temple of Fiends Top Right 1",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -328,7 +344,9 @@
                     },
                     {
                         "name": "Temple of Fiends Top Right 2",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -677,7 +695,9 @@
                     },
                     {
                         "name": "Dwarf Cave Dwarf Armory 1",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -696,7 +716,9 @@
                     },
                     {
                         "name": "Dwarf Cave Dwarf Armory 2",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -715,7 +737,9 @@
                     },
                     {
                         "name": "Dwarf Cave Dwarf Armory 3",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -734,7 +758,9 @@
                     },
                     {
                         "name": "Dwarf Cave Dwarf Armory 4",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -753,7 +779,9 @@
                     },
                     {
                         "name": "Dwarf Cave Dwarf Armory 5",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -772,7 +800,9 @@
                     },
                     {
                         "name": "Dwarf Cave Dwarf Armory 6",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -791,7 +821,9 @@
                     },
                     {
                         "name": "Dwarf Cave Dwarf Armory 7",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -810,7 +842,9 @@
                     },
                     {
                         "name": "Dwarf Cave Dwarf Armory 8",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -879,7 +913,9 @@
                     },
                     {
                         "name": "North West Castle Chests 1",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -898,7 +934,9 @@
                     },
                     {
                         "name": "North West Castle Chests 2",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -917,7 +955,9 @@
                     },
                     {
                         "name": "North West Castle Chests 3",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -1096,7 +1136,9 @@
                     },
                     {
                         "name": "Elf Castle Chests 1",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -1115,7 +1157,9 @@
                     },
                     {
                         "name": "Elf Castle Chests 2",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -1134,7 +1178,9 @@
                     },
                     {
                         "name": "Elf Castle Chests 3",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -1153,7 +1199,9 @@
                     },
                     {
                         "name": "Elf Castle Chests 4",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -1488,7 +1536,9 @@
                     },
                     {
                         "name": "Marsh Cave Key Locked Left",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -1507,7 +1557,9 @@
                     },
                     {
                         "name": "Marsh Cave Key Locked Middle",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -1526,7 +1578,9 @@
                     },
                     {
                         "name": "Marsh Cave Marsh Locked Incentive",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Incentive",
@@ -1562,11 +1616,14 @@
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,ruby",
                     "$noOverworld,tnt"
-                 ],
+                ],
                 "sections": [
                     {
                         "name": "Sarda",
-                        "access_rules": [ "earlySarda", "vampire" ],
+                        "access_rules": [
+                            "earlySarda",
+                            "vampire"
+                        ],
                         "item_count": 1,
                         "hosted_item": "sarda"
                     }
@@ -2090,7 +2147,9 @@
                     },
                     {
                         "name": "Earth Cave 4 Bottom 1",
-                        "access_rules": ["rod"],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -2109,7 +2168,9 @@
                     },
                     {
                         "name": "Earth Cave 4 Bottom 2",
-                        "access_rules": ["rod"],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -2128,7 +2189,9 @@
                     },
                     {
                         "name": "Earth Cave 4 Bottom 3",
-                        "access_rules": ["rod"],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -2147,7 +2210,9 @@
                     },
                     {
                         "name": "Earth Cave 4 Armory 1",
-                        "access_rules": ["rod"],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -2166,7 +2231,9 @@
                     },
                     {
                         "name": "Earth Cave 4 Armory 2",
-                        "access_rules": ["rod"],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -2185,7 +2252,9 @@
                     },
                     {
                         "name": "Earth Cave 4 Armory 3",
-                        "access_rules": ["rod"],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -2204,7 +2273,9 @@
                     },
                     {
                         "name": "Earth Cave 4 Armory 4",
-                        "access_rules": ["rod"],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -2223,7 +2294,9 @@
                     },
                     {
                         "name": "Earth Cave 4 Armory 5",
-                        "access_rules": ["rod"],
+                        "access_rules": [
+                            "rod"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -2268,7 +2341,7 @@
                     "$standardWorld,airship,slab",
                     "$standardWorld,melmondRiver,canoe,slab",
                     "$noOverworld,slab"
-                 ],
+                ],
                 "sections": [
                     {
                         "name": "Dr Unne",
@@ -2304,7 +2377,10 @@
                 "sections": [
                     {
                         "name": "Sages",
-                        "access_rules": [ "earlySage", "earthorblit"],
+                        "access_rules": [
+                            "earlySage",
+                            "earthorblit"
+                        ],
                         "item_count": 1,
                         "hosted_item": "sages"
                     }
@@ -3486,7 +3562,9 @@
                 "sections": [
                     {
                         "name": "Floater Turn In",
-                        "access_rules": [ "inactiveFloater" ],
+                        "access_rules": [
+                            "inactiveFloater"
+                        ],
                         "hosted_item": "airship"
                     }
                 ],
@@ -3510,18 +3588,20 @@
                     "$standardWorld,airship",
                     "$standardWorld,cardiaDock,ship,canal",
                     "$noOverworld,$hasFloater"
-                 ],
+                ],
                 "sections": [
                     {
                         "name": "Bahamut",
                         "ref": "Bahamut's Cave Bahamut/Bahamut"
                     },
-					{
-						"name" : "Cardia Incentive - Hoard",
-						"visibility_rules" : [ "BahamutHoard" ],
-						"access_rules" : [],
-						"hosted_item" : "cardiaIncentive"
-					}
+                    {
+                        "name": "Cardia Incentive - Hoard",
+                        "visibility_rules": [
+                            "BahamutHoard"
+                        ],
+                        "access_rules": [],
+                        "hosted_item": "cardiaIncentive"
+                    }
                 ],
                 "map_locations": [
                     {
@@ -3536,7 +3616,9 @@
                         "sections": [
                             {
                                 "name": "Bahamut",
-                                "access_rules": [ "tail" ],
+                                "access_rules": [
+                                    "tail"
+                                ],
                                 "hosted_item": "bahamut"
                             }
                         ]
@@ -3950,7 +4032,10 @@
                 "children": [
                     {
                         "name": "Ordeals Incentive",
-                        "access_rules": ["earlyOrdeals", "crown"],
+                        "access_rules": [
+                            "earlyOrdeals",
+                            "crown"
+                        ],
                         "sections": [
                             {
                                 "name": "Incentive",
@@ -4142,7 +4227,10 @@
                 "sections": [
                     {
                         "name": "Incentive",
-                        "access_rules": [ "slabTranslated", "slabDone" ],
+                        "access_rules": [
+                            "slabTranslated",
+                            "slabDone"
+                        ],
                         "item_count": 1,
                         "hosted_item": "lefein"
                     }
@@ -4164,11 +4252,13 @@
                     "$standardWorld,gaiaMountain,hwyOrdeals,ship,canal,canoe",
                     "$standardWorld,lefeinBridge,gaiaMountain,bridge",
                     "$noOverworld,$hasFloater"
-                 ],
+                ],
                 "sections": [
                     {
                         "name": "Fairy",
-                        "access_rules": [ "bottle" ],
+                        "access_rules": [
+                            "bottle"
+                        ],
                         "item_count": 1,
                         "hosted_item": "fairy"
                     }
@@ -5773,7 +5863,9 @@
                     },
                     {
                         "name": "Sea Shrine TFC",
-                        "access_rules": ["key"],
+                        "access_rules": [
+                            "key"
+                        ],
                         "sections": [
                             {
                                 "name": "Chest",
@@ -6300,10 +6392,3 @@
         ]
     }
 ]
-
-
-
-
-
-
-
