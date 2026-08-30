@@ -39,6 +39,76 @@ local function isShardHunt()
   return Tracker.ActiveVariantUID:find("shardHunt") ~= nil
 end
 
+-- No-Overworld: the mode swaps the overworld for an ocean stub and wires the
+-- 61 maps together with a fixed table of teleporters, so none of the standard
+-- geography -- ship, canal, the docks, the two mountain passes -- describes it.
+-- Four of the eight variants are No-Overworld ones, and `shardHuntNOverworld`
+-- is both, so this and isShardHunt() have to be able to hold at once.
+--
+-- :find for the same reason as above: every UID carries a leading digit that
+-- fixes its place in PopTracker's variant list, so == matches none of them.
+--
+-- The variant, not the cartridge's GameMode. The variant is set before the
+-- first rule is evaluated and never changes; ffrFlag("GameMode") is nil until
+-- the bridge publishes a flag string, is nil forever on an Archipelago-only
+-- session, and has no item behind it -- and PopTracker only re-evaluates rules
+-- when an item changes, so a flag-driven branch would have nothing to fire it.
+local function isNoOverworld()
+  return Tracker.ActiveVariantUID:find("NOverworld") ~= nil
+end
+
+-- The two mode guards the location tree calls, so that one set of access_rules
+-- can serve both modes. Every alternative carries one of them; PopTracker ORs
+-- alternatives, so the other mode's alternatives fail closed and what is left
+-- is exactly the rule for the mode in play.
+--
+-- This is deliberately not a second location tree. Two trees that have to
+-- agree and are never compared is how a missing location file survived here
+-- for weeks.
+function noOverworld()
+  if isNoOverworld() then
+    return 1
+  end
+  return 0
+end
+
+function standardWorld()
+  if isNoOverworld() then
+    return 0
+  end
+  return 1
+end
+
+-- The canoe and the floater, under either feed's name for them.
+--
+-- On a No-Overworld seed the two feeds disagree about what to call these. The
+-- Archipelago exporter renames Canoe to "Mark" and Floater to "Sigil"
+-- (Archipelago.cs:287-289,339-340), so an AP-fed session sets mark and sigil;
+-- the Mesen bridge reads the game's own bytes and sets canoe and floater. Both
+-- are the same item, so a rule naming only one of them is right for one feed
+-- and wrong for the other.
+--
+-- ProviderCountForCode rather than FindObjectForCode().Active: it is the walk
+-- that knows which codes a progressive's current stage hands out, and floater
+-- is a progressive whose second stage is the airship.
+local function provided(code)
+  return Tracker:ProviderCountForCode(code) > 0
+end
+
+function hasCanoe()
+  if provided("canoe") or provided("mark") then
+    return 1
+  end
+  return 0
+end
+
+function hasFloater()
+  if provided("floater") or provided("sigil") then
+    return 1
+  end
+  return 0
+end
+
 function hasEnoughShards()
   local shards = Tracker:FindObjectForCode("shards")
   local required = Tracker:FindObjectForCode("shardsRequired")
