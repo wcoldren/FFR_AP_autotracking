@@ -44,6 +44,44 @@ first whether the drawing surface is the PopTracker tab (a static image, so the
 route has to be baked in at render time) or `tools/doormap.py` (free to draw
 anything, but not in front of you while you play).
 
+**Notice when the drawn maps are for a different cartridge.** Raised while
+regenerating after a rules change: the override shadows the checkout, so a stale
+override serves stale art *and* stale access rules, and nothing says so. The ask
+was to trigger a regen from Lua on connect when the ROM differs from last time,
+and keep the images otherwise.
+
+**The caching half already exists.** `.regen_cache.json` records each mode's ROM
+sha, the input fingerprint, `--npcs` and the marker geometry, and a second run on
+the same cartridge prints `up to date: 129 files ... nothing to do`. So "keep the
+images otherwise" is not work; only the trigger is.
+
+**The pack cannot be the trigger.** PopTracker's Lua exposes `Tracker` (items,
+locations, maps, layouts, `ProviderCountForCode`, `FindObjectForCode`, `UiHint`,
+`OpenLink`, `ActiveVariantUID`) and `ScriptHost` (the watches, `CreateLuaItem`,
+frame handlers, `RunScriptAsync`/`RunStringAsync`) and nothing else --
+`tests/pop_api.lua` is the transcribed surface. No `io`, no `os`. `RunScriptAsync`
+runs *Lua*, not a shell command.
+
+**The bridge could be**, mechanically: `ffr_uat_bridge.lua` already reads and
+writes files (`EMU.readFile` / `writeFile` / `appendFile`) and already requires
+Mesen's "Allow access to I/O and OS functions" for its sockets, so `os.execute`
+is plausibly in reach. But a regen renders 61 maps, which would stall emulation
+unless detached, and it buys less than it looks like: **PopTracker loads pack
+images at load time**, which is why `regen_maps.py` signs off with "Restart
+PopTracker to pick it up". An automatic regen still ends in a manual restart.
+
+**So the version worth building is detection, not execution.** The bridge reads
+`.regen_cache.json`, compares it against the cartridge in the emulator, and
+publishes a variable; the pack lights a warning cell the way `flagsUnread`
+already does (`uat.lua:159-203` -- a LuaItem whose Icon appears only when there
+is a reason). That fits inside both sandboxes, needs no new permission, and turns
+a silent wrong-pins failure into a visible one.
+
+One thing it needs first: the bridge has no sha256, so the cache has to record
+something cheap to compare. The FFR seed string and flag string are already read
+on both sides, so writing those into `.regen_cache.json` alongside the sha is the
+enabling change.
+
 ## Bosses and trap tiles
 
 The four fiends and the ToFR refights have no pins. Two separate problems wearing
