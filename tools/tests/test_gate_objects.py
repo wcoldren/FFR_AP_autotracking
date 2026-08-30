@@ -44,6 +44,28 @@ def graph(path, gated):
     return eg.Graph(rom)
 
 
+def and_form(path):
+    """True when the Black Orb's routine is an AND chain over four addresses.
+
+    Deliberately only the opcode skeleton: LDA abs then three AND abs. Which
+    four addresses the chain names is what black_orb_item decides, so repeating
+    that here would make the check agree with the code under test by
+    construction -- which is the failure this replaced. A shard-hunt cartridge
+    runs LDA/CMP and fails at the first AND.
+    """
+    rom = eg.Rom(path)
+    routines = eg.talk_routines(rom)
+    if routines is None or eg.BLACK_ORB_OBJ not in routines:
+        return False
+    where = eg.talk_routine_bank(rom.data)
+    if where is None:
+        return False
+    body = rom.data[eg.bank_off(where[0], routines[eg.BLACK_ORB_OBJ]):][:12]
+    if len(body) < 12:
+        return False
+    return body[0] == 0xAD and all(body[i] == 0x2D for i in (3, 6, 9))
+
+
 def main():
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):
@@ -74,10 +96,17 @@ def main():
         # in GATED_OBJECTS either: it is read per cartridge, and a stock FFR
         # image carries it whenever its routine is the four-orb AND. So the
         # expectation is the plates plus that, not the plates alone.
+        #
+        # The expected value is decided here rather than taken from
+        # black_orb_item on this same ROM. Sourcing it from the function under
+        # test only pins that Graph copies whatever that function returned:
+        # "rod", or None on a cartridge that does carry the AND form, would
+        # both pass it. `and_form` reads the opcode skeleton instead -- an LDA
+        # followed by three ANDs -- which is independent of the address sets
+        # black_orb_item matches, the part most likely to be got wrong.
         want = dict(eg.GATED_OBJECTS)
-        orb = eg.black_orb_item(eg.Rom(path))
-        if orb:
-            want[eg.BLACK_ORB_OBJ] = orb
+        if and_form(path):
+            want[eg.BLACK_ORB_OBJ] = "orbs"
         check("stock blocks the plates, and the Black Orb where it applies",
               stock.gated_objects, want)
     check("the gate layout is read back off the talk table",
@@ -145,6 +174,14 @@ def main():
           routine_says(anded(0x6032, 0x6033, 0x6034, 0x6034)), None)
     check("an AND of something that is not an orb is refused",
           routine_says(anded(0x6032, 0x6033, 0x6034, 0x6026)), None)
+    # The near-miss that matters most, because the union of the two real forms
+    # spans $6031..$6035 and "any four drawn from that" accepts this: three orb
+    # bytes plus the shard counter. Reading it as "orbs" would install a shard
+    # count as an orb gate, which is the one answer the sweep cannot hold.
+    check("three orb bytes and the shard counter is refused",
+          routine_says(anded(0x6031, 0x6032, 0x6033, 0x6035)), None)
+    check("the other mixed four is refused too",
+          routine_says(anded(0x6031, 0x6033, 0x6034, 0x6035)), None)
 
     # And the gate itself, where this cartridge carries the AND form: the warp
     # tile has to refuse a step empty-handed and allow one with the orbs.

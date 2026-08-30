@@ -188,10 +188,16 @@ GATED_OBJECTS = {0x16: "rod", 0x17: "lute"}
 #
 # So this answers "orbs" only for the AND form and None for anything else. None
 # leaves the walk stepping through, which is what it did before and is honest:
-# a shard count is not something the ten-item sweep can hold. FFR's earth orb
-# moves to $6031 (ShiftEarthOrbDown), so the four bytes are matched as a set
-# rather than in a fixed order.
-ORB_BYTES = (0x6031, 0x6032, 0x6033, 0x6034, 0x6035)
+# a shard count is not something the ten-item sweep can hold.
+#
+# The two AND forms are matched as whole sets, not as any four drawn from their
+# union: the union spans $6031..$6035, and "any four of those five" accepts a
+# mixed chain of three orbs plus the shard counter, installing a shard count as
+# an orb gate -- the one reading this must not produce. Vanilla ANDs
+# $6032..$6035; FFR's ShiftEarthOrbDown moves the Earth Orb to $6031 and the set
+# becomes $6031..$6034. Order within a set is not fixed, so each is a set.
+ORB_BYTE_SETS = (frozenset((0x6031, 0x6032, 0x6033, 0x6034)),
+                 frozenset((0x6032, 0x6033, 0x6034, 0x6035)))
 BLACK_ORB_OBJ = 0xCA
 
 
@@ -211,7 +217,7 @@ def black_orb_item(rom):
             ok = False
             break
         seen.append(body[i + 1] | (body[i + 2] << 8))
-    if not ok or len(set(seen)) != 4 or not set(seen) <= set(ORB_BYTES):
+    if not ok or frozenset(seen) not in ORB_BYTE_SETS:
         return None
     return "orbs"
 
