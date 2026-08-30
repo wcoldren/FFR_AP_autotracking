@@ -399,23 +399,34 @@ applyRamRules(byteAt)
 check("and clears once the AP feed is gone", provided("lute"), false)
 
 ------------------------------------------------------------------
--- sigil and mark share bytes with floater and canoe in no-overworld mode, so
--- nothing here may write them -- in either direction.
+-- sigil and mark are the floater and the canoe under Archipelago's names for
+-- them on a No-Overworld seed, so the bridge sets them off the same two bytes.
+--
+-- This block used to assert the opposite -- that nothing here writes them --
+-- on the reading that they were the item screen's renames and so had no byte
+-- of their own. That is half right. The item screen renames Floater to SIGIL
+-- and the *Earth Orb* to MARK, but the pack's two codes are fed by AP item ids
+-- 499 and 500, and the exporter renames Floater to Sigil and the *Canoe* to
+-- Mark (Archipelago.cs:287-289,339-340). Following the exporter is what makes
+-- the NOverworld grid's only two gate boxes light for a bridge-fed player.
 ------------------------------------------------------------------
 reset()
 MEM[0x602B], MEM[0x6012] = 1, 1
 applyRamRules(byteAt)
-check("sigil untouched by floater's byte", provided("sigil"), false)
-check("mark untouched by canoe's byte", provided("mark"), false)
-byCode["sigil"].Active = true
-byCode["mark"].Active = true
+check("sigil follows floater's byte", provided("sigil"), true)
+check("mark follows canoe's byte", provided("mark"), true)
+check("floater still set alongside sigil", provided("floater"), true)
+check("canoe still set alongside mark", provided("canoe"), true)
 MEM[0x602B], MEM[0x6012] = 0, 0
 applyRamRules(byteAt)
-check("sigil survives a clearing pass", provided("sigil"), true)
-check("mark survives a clearing pass", provided("mark"), true)
+check("sigil clears with its byte", provided("sigil"), false)
+check("mark clears with its byte", provided("mark"), false)
+reset()
+MEM[0x602B], MEM[0x6012] = 1, 1
+applyRamRules(byteAt)
 clearRamDerivedItems()
-check("sigil survives the ROM-change wipe", provided("sigil"), true)
-check("mark survives the ROM-change wipe", provided("mark"), true)
+check("sigil is wiped on a ROM change", provided("sigil"), false)
+check("mark is wiped on a ROM change", provided("mark"), false)
 
 ------------------------------------------------------------------
 -- Vehicles, canal inversion, shards
