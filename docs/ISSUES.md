@@ -17,9 +17,10 @@ Nothing here is urgent unless it says so.
   This is the largest live defect in the pack. See `docs/NOVERWORLD.md` and
   `docs/ROADMAP.md`.
 
-- **The walk models two of the five object gates the cartridge has.** It varies
-  `entrance_graph.ITEM_NAMES`, ten items, and `GATED_OBJECTS` holds two rows:
-  RodPlate `0x16` and LutePlate `0x17`. `FF1Lib/Sanity/SCMap.cs:167-186` gates
+- **The walk models three of the five object gates the cartridge has.** It
+  varies `entrance_graph.ITEM_NAMES`, ten items; `GATED_OBJECTS` holds RodPlate
+  `0x16` and LutePlate `0x17`, and `black_orb_item()` adds BlackOrb `0xCA` per
+  cartridge. **SubEngineer `0x10` (oxyale) and Titan `0x14` (ruby) remain.** `FF1Lib/Sanity/SCMap.cs:167-186` gates
   **five** object ids by tile, in one switch — the two plates plus **BlackOrb
   `0xCA` → orbs, SubEngineer `0x10` → oxyale, and Titan `0x14` → ruby**. All
   five are ordinary map objects standing on chokepoint tiles; nothing
@@ -27,12 +28,13 @@ Nothing here is urgent unless it says so.
 
   This entry used to say Oxyale and the Ruby were "game rules" the sweep could
   not see, and that was wrong twice over. They are graph properties, and
-  `orbs` — what BlackOrb wants — has been in the swept vocabulary all along, so
-  **every sweep run to date walked through an orb gate as though it were not
-  there.** That is a live defect in shipped numbers, not future work. It is why
-  six ToFR locations derive as free: No-Overworld strips the `TP_SPEC_4ORBS`
-  tile special at `TempleOfFiends (20,17)` and leaves the Black Orb object on
-  it, and the walk models only the tile.
+  `orbs` — what BlackOrb wants — had been in the swept vocabulary all along, so
+  every sweep to that date walked through an orb gate as though it were not
+  there. **Closed 2026-08-30.** It was why seven ToFR locations derived as free;
+  they derive `orbs` now. Oxyale and the Ruby are the same shape of defect and
+  are still open: unlike `orbs`, their items are not in the swept vocabulary, so
+  the rows and the widening have to land together or everything behind them
+  derives as unreachable.
 
   The genuinely non-graph requirements are the *trades*, and half of those are
   already read: `entrance_graph.talk_item_requirements()` takes them off the

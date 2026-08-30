@@ -123,13 +123,27 @@ warp -- `blocking_objects` there is empty with or without the Lute, because
 object 23 is not on that map at all. The party warps in, takes seven chests, and
 the gate stops them going deeper.
 
-That is why six ToFR locations derive as `(free)` — and that reading is
-**incomplete**. It asks where the lute gate stands and never asks what the Black
-Orb does. `Sanity/SCMap.cs:167-186` gates the BlackOrb object's tile on the four
-Orbs, the object stands at `TempleOfFiends (20,17)`, and this mode strips the
-`TP_SPEC_4ORBS` *tile* special there while leaving the object. The walk models
-the tile and not the object, so it steps through an orb gate as though it were
-not there. Those six are orb-gated, not free. It was worth checking precisely
+That is why seven ToFR locations derived as `(free)` — and that reading was
+wrong. It asks where the lute gate stands and never asks what the Black Orb
+does. `Sanity/SCMap.cs:167-186` gates the BlackOrb object's tile on the four
+Orbs; the object stands at `TempleOfFiends (20,17)`; and FFR strips the
+`TP_SPEC_4ORBS` *tile* special there while leaving the object
+(`BlackOrb.cs:286`). **Not a No-Overworld edit** — every cartridge in the corpus
+reads `0x80` at that tile, standard and No-Overworld alike, where vanilla reads
+`0x92`. The walk modelled the tile and not the object, so it stepped through an
+orb gate on every FFR seed. Fixed by `entrance_graph.black_orb_item()`, which
+reads the requirement off the NPC's routine rather than assuming it: the stock
+routine ANDs the four orb bytes, a shard-hunt seed compares a count instead, and
+the reader refuses the latter rather than gating on orbs the seed never wants.
+All seven now derive `orbs`.
+
+**The exit portal is an exit and nothing more.** `ExitToFR` is on in every
+oracle cartridge, and on Short ToFR it writes a `PortalWarp` at
+`tofrChaos (15,3)` (`TempleOfFiends.cs:398-409`) — which is exactly where the
+time warp lands you. It reads `0x40`, `TP_TELE_WARP`, and is the only teleport
+on that map, so it takes you out and creates no way in; `reachable_maps` only
+follows `TP_TELE_NORM`. On a standard seed the warp lands on
+`TempleOfFiendsRevisited1F (20,17)` instead and the portal goes there. It was worth checking precisely
 because a final-floor chest reading as free from the start is the shape of a
 walk stepping somewhere it should not -- here the geometry says otherwise.
 

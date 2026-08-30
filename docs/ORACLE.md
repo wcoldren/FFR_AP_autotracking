@@ -110,8 +110,10 @@ concentration is one item — **oxyale x129 and ruby x32 on `nov`** — so quoti
 This is now known to be **fixable rather than inherent**, and that is a change
 from how it has been filed. Oxyale and Ruby are not "game rules" the walk cannot
 see: `FF1Lib/Sanity/SCMap.cs:167-186` gates five object ids by tile — RodPlate,
-LutePlate, BlackOrb, SubEngineer and Titan — and the pack transcribed two of the
-five into `entrance_graph.GATED_OBJECTS`. They are ordinary blocking objects on
+LutePlate, BlackOrb, SubEngineer and Titan — and the pack modelled two of the
+five. BlackOrb was closed on 2026-08-30 (read per cartridge by
+`entrance_graph.black_orb_item()`); SubEngineer and Titan remain, and they are
+what the oxyale and ruby grants above are waiting on. They are ordinary blocking objects on
 chokepoint tiles, no different in kind from the two plates already handled. The
 genuinely non-graph requirements are the trades: Slab, Herb, Adamant, Bottle,
 Crystal.
