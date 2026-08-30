@@ -149,22 +149,11 @@ written into the pack: it all goes to PopTracker's user-override directory, and
 
     tools/regen_maps.py ~/Downloads/FFR_yourseed.nes
 
-## Checking the logic
-
-The access rules get checked against FFR itself rather than trusted.
-`tools/check_logic.py` reads the requirement expressions FFR wrote down for a
-seed and compares them with the pack's, as truth tables:
-
-    python3 tools/check_logic.py
-
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what it does and does not
-cover, and [`docs/ORACLE.md`](docs/ORACLE.md) for the cartridges it is graded
-against.
-
 ## Under the hood
 
-Everything above is what the pack does. How it is built, what it models, what is
-measured and what is still broken all live in **[`docs/`](docs/)** -- start with
+Everything above is what the pack does. How it is built, what it models, how its
+access rules are checked against FFR's own, what is measured and what is still
+broken all live in **[`docs/`](docs/)** -- start with
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Credits
