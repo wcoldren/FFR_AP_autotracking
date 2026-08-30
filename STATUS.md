@@ -712,12 +712,12 @@ boundary can, which is what the door flood reads.
 
 A caution about the comparison itself, learned by getting it wrong here. I read
 the shipped `waterfall.png` as showing that room's floor black where ours draws
-it cyan, and called it a defect. The judgement came back that waterfall
-renders correctly, and that is right: the black there is largely DarkmoonEX's **annotation
-panel** -- the `1 2 3 4 5 6` chest numbering, the trap-tile key and an NPC drawn
-into the room's dead space -- not the map's floor. The reference art is a
-specification *and* a drawing, and the two have to be told apart before a
-difference counts as evidence.
+it cyan, and called it a defect. The judgement came back that waterfall renders
+correctly, and that is right: the black there is largely DarkmoonEX's
+**annotation panel** -- the `1 2 3 4 5 6` chest numbering, the trap-tile key
+and an NPC drawn into the room's dead space -- not the map's floor. The
+reference art is a specification *and* a drawing, and the two have to be told
+apart before a difference counts as evidence.
 
 The guess that ToFR Air's 241 cells were teleporters is out: 240 of them are
 tile `$3F`, pure black under *both* palettes -- out-of-bounds void, so opening
@@ -736,8 +736,9 @@ voids, every suite green on three seeds and the vanilla cartridge.
 
 **A large fraction opened is not evidence of a leak.** Growth opens 3695 of
 Dwarf Cave's 4096 cells, and this document called that a runaway on the cell
-count alone. A look at the render said otherwise, and it was correct: the cave is entirely
-indoors, so nearly all of it *is* one room in the engine's terms, and what was
+count alone. A look at the render said otherwise, and it was correct: the cave
+is entirely indoors, so nearly all of it *is* one room in the engine's terms,
+and what was
 still wrong there was the opposite -- its interior walls drawing as roof. Twice
 in one session a proxy metric condemned output that the reference art vindicated.
 See [[closer-or-farther-from-the-reference]] in memory.
