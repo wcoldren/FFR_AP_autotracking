@@ -20,6 +20,38 @@ It needs PopTracker 0.35.1 or newer. Older versions refuse to load the pack
 outright rather than loading it with less in it, so if it will not open, that is
 the first thing to check.
 
+Setup
+-----
+
+To use the pack, all you need is PopTracker. Put this directory in PopTracker's
+`packs/` folder and pick one of the eight variants -- standard or shard hunt,
+No-Overworld or not, with or without map tabs.
+
+For the emulator feed, see "Autotracking from the emulator" below.
+
+To work on it you need a little more:
+
+- **Lua 5.4+** for the script tests. `tests/run.sh` needs nothing else -- no ROM,
+  no emulator, no PopTracker.
+- **Python 3** for everything in `tools/`. No third-party packages: the map
+  renderer, the font reader and the flag decoder are all standard library.
+- **A Final Fantasy cartridge** for the tools that read one. Point `FF1_ROM` at
+  it to run the full tool test suite:
+
+      FF1_ROM="$HOME/roms/Final Fantasy (USA).nes" ./tools/tests/run.sh
+
+  Tests that need a cartridge **skip** rather than fail without it, so a bare
+  `./tools/tests/run.sh` still passes and still checks less than you think. Any
+  Final Fantasy image works, since the seed-specific layouts are synthesised --
+  but a real FFR seed exercises strictly more.
+
+No ROM is included or downloaded, and none ever will be. Neither is any art
+derived from one: `tools/regen_maps.py` writes into PopTracker's user-override
+directory, never into this repo.
+
+`docs/ARCHITECTURE.md` is the place to start if you want to know how the pieces
+fit together.
+
 Pretty simple to use, not 100% as fully functional as the EmoTracker pack, but works for Archipelago.
 
 Known Issues:
