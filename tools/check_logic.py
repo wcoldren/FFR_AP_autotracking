@@ -54,11 +54,11 @@ import ffr_flags  # noqa: E402
 
 LOCATION_FILES = ["locations/overworld.json", "locations/incentives.json"]
 
-# The No-Overworld variants' own trees. overworld.json is byte-identical to the
-# standard one today and only incentives.json differs, so selecting this pair
-# changes nothing for the 249 derived sections -- but the mode's whole point is
-# that its tree will diverge, and a switch that is a no-op today is not dead
-# code, it is the switch that stops being a no-op on the first real edit.
+# The No-Overworld variants' own trees -- the files scripts/init.lua loads for
+# those four variants, so they are what a GameMode 2 seed has to be graded
+# against. The pair is chosen by the cartridge's own mode rather than by the
+# --derived switch: a hand-written No-Overworld rule set is checkable exactly
+# when the checker reads the tree the player is actually running.
 NOVERWORLD_FILES = ["locations/NOverworld/overworld.json",
                     "locations/NOverworld/incentives.json"]
 
@@ -111,6 +111,12 @@ FREE_FLAGS = {
 # has to answer them the same way scripts/logic.lua does.
 LUA_RULES = {
     "$noSardasForest": lambda flags: flags.get("MapSardasForest") is not True,
+    # The mode guards. One set of rules serves both modes by carrying both
+    # modes' alternatives and letting these two decide which are live, so for
+    # any one seed exactly one of them is pinned and the other mode's
+    # alternatives fall out. GameMode 2 is No-Overworld (Enums.cs:396-404).
+    "$noOverworld": lambda flags: flags.get("GameMode") == 2,
+    "$standardWorld": lambda flags: flags.get("GameMode") != 2,
 }
 
 # Places the pack is deliberately stricter than FFR, with the reason. FFR folds
@@ -296,12 +302,38 @@ def gating(term):
     return not term.startswith(NON_GATING)
 
 
+# scripts/logic.lua calls that stand for an item rather than for a per-seed
+# flag, which is what keeps them out of LUA_RULES.
+#
+# hasCanoe and hasFloater exist because the two feeds disagree about what to
+# call these on a No-Overworld seed: FFR's exporter renames Canoe to "Mark" and
+# Floater to "Sigil" (Archipelago.cs:287-289,339-340) and Archipelago sends
+# those, while the Mesen bridge reads the game's own bytes and sets canoe and
+# floater. A rule naming either code alone is right for one feed and wrong for
+# the other, so it names the call and the call accepts both.
+#
+# For this comparison they are simply the item. FFR's side is already folded
+# back by NOVERWORLD_ALIASES, so both sides end up saying `canoe`/`floater`.
+LUA_ITEM_RULES = {
+    "$hasCanoe": "canoe",
+    "$hasFloater": "floater",
+}
+
+
+def alt_terms(alt):
+    """The codes one alternative requires, with the item-standing $calls
+    resolved and the non-gating terms dropped."""
+    for term in alt.split(","):
+        term = term.strip()
+        if gating(term):
+            yield LUA_ITEM_RULES.get(term, term)
+
+
 def satisfied(chain, provided):
     for rules in chain:
         if not rules:
             continue
-        if not any(all(term in provided
-                       for term in alt.split(",") if gating(term))
+        if not any(all(term in provided for term in alt_terms(alt))
                    for alt in rules):
             return False
     return True
@@ -312,10 +344,7 @@ def chain_codes(chain):
     out = set()
     for rules in chain:
         for alt in rules:
-            for term in alt.split(","):
-                term = term.strip()
-                if gating(term):
-                    out.add(term)
+            out.update(alt_terms(alt))
     return out
 
 
@@ -672,7 +701,7 @@ def show_chain(chain):
 
 # --------------------------------------------------------------------- main
 
-def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False,
+def check_seed(rom_path, pack_rules, ap_paths, players_dir=None, verbose=False,
                derived=None, derived_report=None, ap_rules_path=None):
     with open(rom_path, "rb") as handle:
         rom = handle.read()
@@ -683,6 +712,12 @@ def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False,
         return 0, 0
     pinned = flag_codes(flags)
     noverworld = flags.get("GameMode") == 2
+
+    # Read the rules the cartridge's own variant loads. scripts/init.lua picks
+    # locations/NOverworld/ for the four No-Overworld variants, so checking a
+    # GameMode 2 seed against the standard tree would grade the pack on files
+    # that seed never loads -- and the incentive sheets genuinely differ.
+    sections = pack_rules[noverworld]
 
     # In derived mode the airship code cannot arise: a derived chain's terms come
     # from entrance_graph.ITEM_NAMES, the items that gate a tile, plus the trade
@@ -974,7 +1009,9 @@ def main():
     if not roms:
         raise SystemExit("no ROMs found")
 
-    sections = load_pack_rules(files=NOVERWORLD_FILES if args.derived else None)
+    pack_rules = {False: load_pack_rules(),
+                  True: load_pack_rules(files=NOVERWORLD_FILES)}
+    sections = pack_rules[True] if args.derived else pack_rules[False]
     ap_paths = ap_location_paths(ff1=args.ff1_world)
     if not ap_paths:
         print("(no worlds/ff1 found -- Archipelago rules will be skipped)\n")
@@ -986,7 +1023,7 @@ def main():
     total, unmapped = 0, 0
     for rom in roms:
         print(os.path.basename(rom))
-        d, u = check_seed(rom, sections, ap_paths, args.players_dir, args.verbose,
+        d, u = check_seed(rom, pack_rules, ap_paths, args.players_dir, args.verbose,
                           derived, report, args.ap_rules)
         total += d
         unmapped += u
