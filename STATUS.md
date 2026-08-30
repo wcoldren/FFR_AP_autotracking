@@ -555,14 +555,40 @@ compare, where the flag is one command and the cache rewrites only the maps
 whose pixels differ. `--npcs` is part of the cache key, so switching modes
 actually redraws.
 
-The trade-off it exists for, counted on seed `F258553F` rather than guessed:
-289 objects are placed across the 61 maps, and **13 of them stand on a tile
-that already carries a marker pin** -- which is not a coincidence, those are
-the tracked NPC locations, whose pin marks the very NPC now drawn under it.
-PopTracker draws pins over the image, so the sprite becomes context behind the
-pin rather than anything lost. The eight gate NPCs collide with nothing at all,
-which is what makes `--npcs gates` the conservative option: they are the ones
-with no marker of their own.
+### The pin does not let the sprite through, and now says so
+
+Corrected 2026-08-29. This section used to say 289 objects are placed and **13
+of them stand on a tile that already carries a marker pin**, and that "PopTracker
+draws pins over the image, so the sprite becomes context behind the pin rather
+than anything lost". Both halves were wrong, and the second one is why the first
+was never checked.
+
+**A pin is opaque.** `drawRect` fills the marker's interior with a solid state
+colour (`uilib/drawhelper.cpp:15-56`; `StateColors` at `mapwidget.cpp:13-23`
+carry no alpha), and `MARKER_SIZE` is `TILE_PX` -- exactly one tile, exactly a
+sprite's size. Nothing reads behind it. A sprite under a square pin is not
+context, it is invisible.
+
+**And 13 was not the number.** `regen_maps.py` now computes it instead of anyone
+counting by hand: **3 pins on a standard seed** (`C189A0EF`) and **2 on the
+No-Overworld one** (`F258553F`) -- Dwarf Cave Smith and Nerrick on `dwarves`,
+Sarda on `sarda`. Seven object tiles do coincide with a *marker tile*, but
+Pravoka, Gaia, North West Castle and Matoya's Cave carry their pins on the
+**overworld** map only and have none on their own art, so no sprite of theirs is
+ever covered. Counting tiles instead of pins is what produced the larger figure.
+
+**What is done about it**: a pin that lands on a drawn sprite is emitted as a
+`diamond` rather than the default rect. `drawDiamond` is real vertex geometry, so
+the tile's four corners stay unpainted and the sprite reads around the pin. Same
+size, same centre, so the pin still marks its own tile and nothing moves. Per-pin
+`shape` is supported from 0.26.2 against a manifest floor of 0.35.1, and diamond
+does not clash with the trapezoid reserved for entrance pins.
+
+The eight gate NPCs collide with nothing at all, which is what made
+`--npcs gates` the conservative option: they are the ones with no marker of their
+own. With the diamonds in, `--npcs all` no longer costs a hidden sprite, so the
+conservative option is less needed than it was.
+
 
 
 ## The room floor was a hole, and the cartridge already knew
@@ -866,6 +892,12 @@ here pass, with the standard seeds genuinely exercised rather than skipped.
 - ~~**`locations/NOverworld/incentives.json` has no marker validation.**~~ Fixed
   2026-08-29: `tests/test_maps.lua` walks all four location files now, so a
   marker off its art there is caught like any other.
+- **Four NPC locations have no pin on their own art.** Pravoka, Gaia, North West
+  Castle and Matoya's Cave carry `map_locations` on the `overworld` map only, so
+  their town and cave tabs show no marker for them even though the cartridge
+  says exactly which tile each stands on. `place_locations` only rebuilds a
+  node that already had a marker on a redrawn map, so these were never gained
+  rather than being lost.
 
 ## What Archipelago can and cannot tell the tracker
 

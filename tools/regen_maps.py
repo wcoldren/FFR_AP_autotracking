@@ -73,6 +73,7 @@ import make_markers
 import pngio
 import render_maps
 import split_locations
+import sprites
 
 TILE_PX = render_maps.TILE_PX
 CACHE_NAME = ".regen_cache.json"
@@ -367,8 +368,8 @@ def marker_tiles(rom):
     return out
 
 
-def place_locations(cal, tiles_by_name, path):
-    """-> (new document, placed, unmoved, unplaceable).
+def place_locations(cal, tiles_by_name, path, sprite_cells=None):
+    """-> (new document, placed, unmoved, unplaceable, shaded).
 
     Every marker on a map this redraws is rebuilt from the tile its chest or
     NPC actually sits on. Markers on the overworld and the incentive sheet are
@@ -377,6 +378,15 @@ def place_locations(cal, tiles_by_name, path):
     A location that carries a dungeon marker and resolves to no tile cannot be
     placed and is reported rather than dropped -- a marker that quietly
     disappears is worse than one that stops the run.
+
+    `sprite_cells` is {map_id: {(col, row)}} for the tiles --npcs draws a
+    sprite on. A pin landing on one is emitted as a diamond and reported as
+    `shaded`, because PopTracker's rect pin is opaque and exactly one tile:
+    drawRect fills its interior with a solid state colour (uilib/drawhelper.c
+    :15-56, and StateColors carry no alpha), so a square pin hides the whole
+    sprite it sits on. A diamond of the same size leaves the tile's four
+    corners unpainted, which is what lets the sprite read behind the pin.
+    Sized and centred exactly as before, so the pin still marks its own tile.
     """
     doc = lenient(os.path.join(PACK, path))
     by_rom = {}
@@ -384,6 +394,7 @@ def place_locations(cal, tiles_by_name, path):
         by_rom.setdefault(entry["rom_map_id"], []).append((name, entry))
     placed = unmoved = 0
     unplaceable = []
+    shaded = []
 
     def pixels(map_id, col, row):
         for name, entry in by_rom.get(map_id, []):
@@ -391,9 +402,12 @@ def place_locations(cal, tiles_by_name, path):
             if region is None:
                 continue
             half = entry["tile_px"] // 2
-            return {"map": name,
-                    "x": region["offset_x"] + col * entry["tile_px"] + half,
-                    "y": region["offset_y"] + row * entry["tile_px"] + half}
+            ml = {"map": name,
+                  "x": region["offset_x"] + col * entry["tile_px"] + half,
+                  "y": region["offset_y"] + row * entry["tile_px"] + half}
+            if (col, row) in (sprite_cells or {}).get(map_id, ()):
+                ml["shape"] = "diamond"
+            return ml
         return None
 
     def walk(nodes):
@@ -413,10 +427,12 @@ def place_locations(cal, tiles_by_name, path):
                 else:
                     n["map_locations"] = keep + fresh
                     placed += len(fresh)
+                    shaded.extend((name, ml["map"]) for ml in fresh
+                                  if ml.get("shape") == "diamond")
             walk(n.get("children") or [])
 
     walk(doc)
-    return doc, placed, unmoved, unplaceable
+    return doc, placed, unmoved, unplaceable, shaded
 
 
 def map_block(content):
@@ -689,15 +705,25 @@ def main():
     tiles_by_name = marker_tiles(rom)
     dungeon_locations = ("locations/overworld.json" if mode == "std"
                          else "locations/NOverworld/overworld.json")
+    # Which tiles end up under a sprite, so a pin landing on one can be drawn
+    # as a diamond instead of a square that hides it. Empty when --npcs none,
+    # which is why nothing changes shape unless sprites are actually drawn.
+    sprite_cells = {}
+    if graph is not None:
+        sprite_cells = {map_id: sprites.drawn_cells(rom, graph, map_id, only)
+                        for map_id in render_maps.MAP_FILES}
     placed = unmoved = 0
     unplaceable = []
+    shaded = []
     for rel in (dungeon_locations,
                 "locations/incentives.json" if mode == "std"
                 else "locations/NOverworld/incentives.json"):
-        doc, pl, un, bad = place_locations(cal, tiles_by_name, rel)
+        doc, pl, un, bad, shade = place_locations(cal, tiles_by_name, rel,
+                                                  sprite_cells)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
         placed += pl
         unmoved += un
+        shaded += shade
         unplaceable += bad
 
     # 3. the crop has to have cut nothing off. This is the guard on the whole
@@ -807,6 +833,15 @@ def main():
           "art, each on the chest or NPC tile the ROM puts it on")
     print(f"  {unmoved} left alone (the overworld and incentive maps are not "
           "redrawn, so their markers keep the pack's pixels)")
+    if graph is not None:
+        # Counted rather than eyeballed: a square pin is opaque and exactly one
+        # tile, so every one of these would have hidden the sprite it sits on.
+        print(f"  {len(shaded)} of them share a tile with a drawn sprite and "
+              "are diamonds, so the sprite reads at the tile's corners")
+        for name, m in sorted(shaded)[:10]:
+            print(f"    {name} on {m}")
+        if len(shaded) > 10:
+            print(f"    ... and {len(shaded) - 10} more")
     kept = sum((b[1] - b[0] + 1) * (b[3] - b[2] + 1) for b in boxes.values())
     print(f"  cropped to a mean {kept / len(boxes) / 4096 * 100:.0f}% of the "
           f"64x64 grid; {sum(1 for r in rows.values() if r)} maps reserve a "

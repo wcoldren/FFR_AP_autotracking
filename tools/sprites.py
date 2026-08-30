@@ -214,6 +214,20 @@ def paste(out, w, h, x, y, block):
             out[d], out[d + 1], out[d + 2] = rgb
 
 
+def drawn_cells(rom, graph, map_id, only=None):
+    """{(col, row)} for the objects draw_objects would actually paint.
+
+    The same two filters draw_objects applies -- `only`, and a sprite that
+    decodes -- so a caller asking "does a sprite land on this tile?" is told
+    about the tiles that really end up with one, not the ones lut_MapObjects
+    merely lists.
+    """
+    ids = sprite_ids(rom)
+    return {(x, y) for oid, x, y in graph.objects(map_id)
+            if (only is None or oid in only)
+            and sprite_rgb(rom, ids[oid], map_id) is not None}
+
+
 def draw_objects(rom, graph, map_id, w, h, out, only=None, origin=(0, 0)):
     """Draw the objects standing on a map onto a rendered map buffer.
 
