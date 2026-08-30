@@ -167,6 +167,54 @@ MAP_OBJECTS = INES_HEADER + (0xB400 - 0x8000)
 OBJS_PER_MAP, OBJ_RECORD, OBJ_STRIDE = 15, 3, 48
 GATED_OBJECTS = {0x16: "rod", 0x17: "lute"}
 
+# ------------------------------------------------------------ the Black Orb
+#
+# The time warp back to the Temple of Fiends Revisited, and the third of the
+# five object gates FF1Lib/Sanity/SCMap.cs:167-186 lists (the other two are the
+# Rod and Lute plates above; SubEngineer and Titan are not modelled yet).
+#
+# Vanilla gates that step twice: TempleOfFiends (20,17) carries TP_SPEC_4ORBS
+# *and* the object, byte 0x92. FFR moves the requirement off the tile and onto
+# the NPC -- BlackOrb.cs:286 Remove4OrbRequirementForToFRPortal() patches the
+# portal walkable, and every FFR cartridge measured reads 0x80 there, standard
+# and No-Overworld alike. A walk that models tiles and not objects therefore
+# steps through the orb gate on every FFR seed.
+#
+# What the NPC wants is not fixed, which is why this is read rather than
+# tabulated. The stock routine ANDs the four orb bytes; a shard-hunt seed gets
+# `LDA $6035 / CMP #goal` instead (BlackOrb.cs:215-223), and a specific-orbs
+# seed gets a shorter AND chain (:275-283). Measured on the oracle corpus: std,
+# nov and nov2 carry the AND form, the shard cartridge carries the count.
+#
+# So this answers "orbs" only for the AND form and None for anything else. None
+# leaves the walk stepping through, which is what it did before and is honest:
+# a shard count is not something the ten-item sweep can hold. FFR's earth orb
+# moves to $6031 (ShiftEarthOrbDown), so the four bytes are matched as a set
+# rather than in a fixed order.
+ORB_BYTES = (0x6031, 0x6032, 0x6033, 0x6034, 0x6035)
+BLACK_ORB_OBJ = 0xCA
+
+
+def black_orb_item(rom):
+    """"orbs" when the Black Orb's routine is the four-orb AND, else None."""
+    routines = talk_routines(rom)
+    if routines is None or BLACK_ORB_OBJ not in routines:
+        return None
+    bank, _ = talk_routine_bank(rom.data)
+    body = rom.data[bank_off(bank, routines[BLACK_ORB_OBJ])::][:12]
+    if len(body) < 12 or body[0] != 0xAD:
+        return None
+    seen, ok = [], True
+    for i in range(0, 12, 3):
+        op = body[i]
+        if op != (0xAD if i == 0 else 0x2D):
+            ok = False
+            break
+        seen.append(body[i + 1] | (body[i + 2] << 8))
+    if not ok or len(set(seen)) != 4 or not set(seen) <= set(ORB_BYTES):
+        return None
+    return "orbs"
+
 # ------------------------------------------------------- No-Overworld gate NPCs
 #
 # No-Overworld's gates are not tiles. They are NPCs standing in corridors, and
@@ -669,7 +717,9 @@ class Graph:
         # them. gate_objects returns None on every other seed, so a standard
         # cartridge blocks exactly what it blocked before.
         self.gates = gate_objects(rom)
-        self.gated_objects = {**GATED_OBJECTS, **(self.gates or {})}
+        orb = black_orb_item(rom)
+        self.gated_objects = {**GATED_OBJECTS, **(self.gates or {}),
+                              **({BLACK_ORB_OBJ: orb} if orb else {})}
 
     def grid(self, map_id):
         """(tiles, prop0, prop1) for a map, as flat 64*64 lists."""
