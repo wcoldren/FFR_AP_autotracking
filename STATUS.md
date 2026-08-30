@@ -479,9 +479,10 @@ Nothing here is designed yet and the order below is not a plan.
   pack learns the permutation by observation and reveal-on-visit cannot spoil.
   The 0.32.0 floor it wanted is in the manifest already. Staged; the first
   useful increment is the log plus a console print.
-- **Trap tiles on the map tabs.** FFR randomizes them and the tracker does not
-  show them. Shares its whole tile-to-pixel path with entrance markers, on a
-  much smaller blast radius.
+- ~~**Trap tiles on the map tabs.**~~ Done 2026-08-29 -- see "The letters are
+  drawn, in the cartridge's own font". It did share its tile-to-pixel path with
+  the entrance markers still to come, and it found the font that any later
+  annotation can now use.
 
 ## Sprites on the map
 
@@ -846,9 +847,9 @@ or centring differently, that is where it surfaces -- not as boxes sitting
 beside their chests in PopTracker. `test_crop.py` asserts the same formula from
 the other side.
 
-**Still open here.** The band is empty: drawing the letters and the key is the
-next phase. `maptab.lua` still sends maps 0-7 to the overworld tab, so it will
-not follow you into a town even though the town tabs now exist.
+**Still open here.** `maptab.lua` still sends maps 0-7 to the overworld tab, so
+it will not follow you into a town even though the town tabs now exist. The band
+is no longer empty -- see "The letters are drawn, in the cartridge's own font".
 
 **Found on the way, and fixed.** `tools/tests/test_gate_objects.py` failed
 against any *standard* FFR cartridge. Not for the reason it looked like -- the
@@ -865,6 +866,81 @@ where the vanilla address happens to be the live one, or where nothing had to be
 written at all -- which is exactly why it went unnoticed. It now asks
 `talk_routine_bank()` the way the code under test does, and all five cartridges
 here pass, with the standard seeds genuinely exercised rather than skipped.
+
+## The letters are drawn, in the cartridge's own font
+
+Finished 2026-08-29, phase 3 of the rendered-map order. The reserved band now
+carries a `Map Key`, and every fixed-formation trap tile is lettered where it
+stands.
+
+**The font is read, not drawn.** There is no Pillow in these tools and there is
+now no hand-made bitmap font either. `LoadMenuCHR` (`bank_0F.asm:9856-9863`)
+swaps in `BANK_MENUCHR` -- `$09`, `Constants.inc:84` -- points at `$8800` and
+loads `LDX #8` rows to PPU `$0800`; `CHRLoad`'s own header says a row is 16
+tiles (`bank_0F.asm:9797`). So the menu CHR is the `$800` bytes at `$09:8800`,
+128 tiles, the first 62 of which are `0-9`, `A-Z`, `a-z` in that order.
+
+What makes the base a derivation rather than a slid offset is that two sources
+that know nothing about each other give the same numbers. `LoadMenuCHR` writes
+the art to PPU `$0800`, so its first tile is background tile `$80`; FFR's own
+encoding table independently says the byte that prints `0` is `$80`, `A` is
+`$8A` and `a` is `$A4` (`FF1Lib/FF1Text.cs:174,184,210`). Those are exactly
+`TEXT_BASE + CHARS.index(ch)`, and `tools/font.py` asserts all seven at import.
+`test_font.py` adds the negative half: a base one tile or one row out has to be
+*rejected*, not merely look worse.
+
+`0` and `O` are one glyph in this font. That is the font's own property, not a
+bad base, and it is asserted as such so nobody tightens the check into "all 62
+must be distinct" and breaks it.
+
+Verified on six cartridges -- vanilla, three duck seeds and two more -- 0
+problems each.
+
+### Our letters are not DarkmoonEX's, and cannot be
+
+Settled 2026-08-29 by reading the FFR wiki's Appendix D in a browser -- it is a
+single-page app and serves nothing to a plain fetch. The page is DarkmoonEX's
+own, last edited 03/2026, so it is the current form of the same maps this repo
+ships an older copy of.
+
+The previous note here said sets matched and left the ordering open. The wiki
+closes it, and the answer is that there is nothing to match.
+
+**Our labelling diverges, and the art is self-consistent.** On `earthB1` the
+wiki draws the wall cluster as `IHH / HIH / II / HH / II / HH / II / HIH / IHH`
+-- nine rows, structurally identical to ours tile for tile, with `G` and `I`
+swapped -- and puts `G` on the three singleton tiles. `Earth B2`'s key then says
+`Trap Tile G` for the very tile we call `I`, so the art agrees with itself
+across two maps and it is ours that differs. `Volcano B5` (which the pack ships
+as `volcB4.png`) agrees with ours exactly: `M` on tile `$23`, `N` on `$2F`.
+
+**No sort key produces both.** The art requires tileset 2 to run
+`$1D, $1C, $1B, ..., $23, $2F` -- the first three descending, everything after
+ascending. All nine of those tiles carry byte 0 `$0A`, so the property byte
+cannot be the key, and their formation ids (`$21, $1F, $1E, ... $28, $29`) do
+not sort into that order in either direction. Tile id, formation id and map
+reading order were each checked against both maps; each fits one and breaks the
+other.
+
+**Because they are hand-assigned, not computed.** `waterfall`'s key reads
+`Trap Tile BB`, which is a sequence that went `A`...`Z` and then started
+doubling -- a person keeping a list as they drew dungeon after dungeon, giving
+Earth Cave `G H I` and Gurgu Volcano `M N` as contiguous per-dungeon blocks.
+There is no rule in the cartridge to recover.
+
+**And matching them would be wrong anyway.** DarkmoonEX's letters describe
+*vanilla*. FFR changes which trap tiles carry a fixed formation, so on the duck
+standard seed `earthB1` derives `F G H` where vanilla gives `G H I` -- his
+labels do not describe that cartridge at all. Ours are read from the cartridge
+in front of you and are therefore right for it, which is the property that
+matters for a tracker rendering that seed's own art. The key drawn on a map
+always lists the letters drawn on that map, so the image is never
+self-contradictory.
+
+What this costs: our `G` is not necessarily his `G`, so a letter is not a shared
+vocabulary between our art and his guide. Worth knowing before quoting one at
+another player. `test_crop.py` asserts `volcB4`'s assignment per tile rather
+than per set, which is the case where the two do coincide.
 
 ## Known wrong
 
@@ -892,6 +968,10 @@ here pass, with the standard seeds genuinely exercised rather than skipped.
 - ~~**`locations/NOverworld/incentives.json` has no marker validation.**~~ Fixed
   2026-08-29: `tests/test_maps.lua` walks all four location files now, so a
   marker off its art there is caught like any other.
+- **Our trap letters are not DarkmoonEX's**, and by design -- his are
+  hand-assigned for vanilla and do not describe an FFR seed. Ours are per
+  cartridge and self-consistent per map. Only cross-referencing a letter
+  against his guide is unsafe. See "Our letters are not DarkmoonEX's" above.
 - **Four NPC locations have no pin on their own art.** Pravoka, Gaia, North West
   Castle and Matoya's Cave carry `map_locations` on the `overworld` map only, so
   their town and cave tabs show no marker for them even though the cartridge

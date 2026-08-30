@@ -635,8 +635,54 @@ def legend_rows_for(letter_count):
     return 0 if not letter_count else LEGEND_HEADING_ROWS + letter_count
 
 
+# The Map Key's colours, as tile ids in the NES palette rather than as RGB
+# literals: the shipped art letters its trap tiles yellow and writes its key in
+# white on a dark panel, and these are the cartridge's own nearest equivalents.
+LETTER_COLOUR = 0x28          # yellow
+KEY_TEXT_COLOUR = 0x30        # white
+SHADOW_COLOUR = 0x0F          # black
+LETTER_SCALE = TILE_PX // 8   # a glyph is 8px, a tile is 16, so a letter fills it
+KEY_PAD = 4
+
+
+def draw_trap_letters(rom, font, out, w, h, origin, cols, rows, legend_rows,
+                      cells):
+    """Letter the trap tiles in place, and write the key into the band.
+
+    `cells` is map_trap_letters' {(col, row): letter}. Letters are drawn at the
+    tile they mark, at LETTER_SCALE so a glyph is exactly one tile, with a
+    one-pixel shadow -- a trap tile can sit on any floor colour, and yellow on
+    sand is otherwise unreadable. The band below gets a `Map Key` heading and
+    one `Trap Tile X` row per distinct letter, in the order the letters derive.
+    """
+    yellow = NES_PALETTE[LETTER_COLOUR]
+    white = NES_PALETTE[KEY_TEXT_COLOUR]
+    black = NES_PALETTE[SHADOW_COLOUR]
+    c0, r0 = origin
+
+    for (col, row), letter in sorted(cells.items()):
+        if not (c0 <= col < c0 + cols and r0 <= row < r0 + rows):
+            continue
+        font.draw_text(out, w, h, (col - c0) * TILE_PX, (row - r0) * TILE_PX,
+                       letter, yellow, LETTER_SCALE, rom, black)
+
+    if not legend_rows:
+        return
+    band = rows * TILE_PX
+    font.draw_text(out, w, h, KEY_PAD, band + KEY_PAD, "Map Key", white,
+                   LETTER_SCALE, rom, black)
+    # One row per letter, below the two the heading reserves. Sorted, so the
+    # key reads A B C however the tiles happen to lie on the map.
+    for i, letter in enumerate(sorted(set(cells.values()))):
+        y = band + (1 + i) * TILE_PX + KEY_PAD
+        font.draw_text(out, w, h, KEY_PAD, y, letter, yellow, LETTER_SCALE,
+                       rom, black)
+        font.draw_text(out, w, h, KEY_PAD + 2 * TILE_PX, y,
+                       f"Trap Tile {letter}", white, LETTER_SCALE, rom, black)
+
+
 def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
-           crop=None, legend_rows=0):
+           crop=None, legend_rows=0, letters=None):
     """(w, h, rgb_bytes) for one standard map.
 
     `unroof` draws the rooms open: outdoor palette everywhere, room palette on
@@ -654,6 +700,11 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
     `legend_rows` reserves that many tile-heights of backdrop below the map for
     a Map Key. Both default to off, so a plain render is still the whole 64x64
     grid at 1024x1024 and --check still compares like with like.
+
+    `letters` is trap_letters(rom). Given it, the trap tiles on this map are
+    lettered where they stand and the reserved band is filled in with the key,
+    which is what the shipped hand-drawn art does -- see earthB1.png, whose
+    G, H and I this reproduces on a vanilla cartridge.
     """
     tiles = map_tiles(rom, map_id)
     tileset = rom[TILESET_LUT + map_id]
@@ -695,6 +746,13 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
                         out[dst + 1] = g
                         out[dst + 2] = b
                         dst += 3
+    if letters:
+        # Imported here for the same reason as sprites below: font reads this
+        # module's tile decode, so a module-scope import would be a cycle.
+        import font                                                 # noqa: E402
+        draw_trap_letters(rom, font, out, w, h, (c0, r0), (c1 - c0 + 1),
+                          (r1 - r0 + 1), legend_rows,
+                          map_trap_letters(rom, map_id, tiles, letters))
     if graph is not None:
         # Imported here, not at module scope: sprites imports this module for
         # the NES palette and the tile decode.
@@ -862,7 +920,7 @@ def main():
             rows = legend_rows_for(
                 len(set(map_trap_letters(rom, map_id, tiles, letters).values())))
         w, h, rgb = render(rom, map_id, args.inside, args.unroof, graph,
-                           crop=box, legend_rows=rows or 0)
+                           crop=box, legend_rows=rows or 0, letters=letters)
         path = os.path.join(args.out, name + ".png")
         pngio.write_rgb(path, w, h, rgb)
         where = (f"tile (c,r) is pixel ({TILE_PX}(c-{box[0]}), {TILE_PX}(r-{box[2]}))"

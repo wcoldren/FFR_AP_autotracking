@@ -175,6 +175,22 @@ def main():
         check("vanilla earthB1 is the art's G H I", used["earthB1"], ["G", "H", "I"])
         check("vanilla volcB4 is the art's M N", used["volcB4"], ["M", "N"])
         check("volcB1's bare A is not a trap letter", used["volcB1"], [])
+        # Sets are not enough, and believing they were is how the earthB1
+        # mismatch below survived: the same three letters can be handed to the
+        # wrong three tiles and a sorted-set comparison never notices. volcB4
+        # is the map whose assignment was read off the shipped art tile by
+        # tile -- M on the Worm Room and Second Greed tiles, N on the Entrance
+        # and Grind Room ones -- so it is the one that can assert it.
+        assign = {}
+        for map_id, name in rm.MAP_FILES.items():
+            if name != "volcB4":
+                continue
+            tiles = rm.map_tiles(rom, map_id)
+            for (col, row), letter in rm.map_trap_letters(
+                    rom, map_id, tiles, letters).items():
+                assign[letter] = tiles[row * rm.MAP_DIM + col] & 0x7F
+        check("volcB4's letters land on the tiles the art puts them on",
+              assign, {"M": 0x23, "N": 0x2F})
     else:
         print("     (letters vs the shipped art need a vanilla cartridge; "
               "this one is an FFR seed)")
@@ -199,6 +215,24 @@ def main():
     dst = (((row - box[2]) * rm.TILE_PX * w) + (col - box[0]) * rm.TILE_PX) * 3
     check("and a tile inside it is the same pixels", small[dst:dst + 48],
           full[src:src + 48])
+
+    # The band is drawn into, not just reserved. Rendering the same map with
+    # and without `letters` has to differ inside the band, and a map with no
+    # trap tiles has to stay exactly as it was -- one check that the key is
+    # written and one that nothing is written where there is no key.
+    band = (box[3] - box[2] + 1) * rm.TILE_PX * w * 3
+    _, _, lettered = rm.render(rom, 23, unroof=True, crop=box, legend_rows=3,
+                               letters=letters)
+    check("the Map Key band is drawn into, not left as backdrop",
+          lettered[band:] != small[band:], True)
+    for map_id, name in rm.MAP_FILES.items():
+        if name != "coneria_town":
+            continue
+        b = rm.content_box(rm.map_tiles(rom, map_id))
+        plain = rm.render(rom, map_id, unroof=True, crop=b)[2]
+        keyed = rm.render(rom, map_id, unroof=True, crop=b, letters=letters)[2]
+        check("a map with no trap tiles is untouched by the letters",
+              plain == keyed, True)
 
     for f in fails:
         print("     " + f)

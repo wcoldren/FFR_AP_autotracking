@@ -239,7 +239,8 @@ def mode_of(rom, path, override=None):
              "which set of art it belongs in.")
 
 
-def build_images(rom, mode, boxes, rows, graph=None, only=None):
+def build_images(rom, mode, boxes, rows, graph=None, only=None,
+                 letters=None):
     """-> {relpath: (w, h, rgb)} for all 61 maps, rooms drawn open.
 
     Unroofed, because a tracker map is read rather than walked. In the game a
@@ -256,7 +257,7 @@ def build_images(rom, mode, boxes, rows, graph=None, only=None):
     for map_id, name in render_maps.MAP_FILES.items():
         out[f"images/maps/{mode}/{name}.png"] = render_maps.render(
             rom, map_id, unroof=True, graph=graph, only=only,
-            crop=boxes[name], legend_rows=rows[name])
+            crop=boxes[name], legend_rows=rows[name], letters=letters)
     return out
 
 
@@ -679,7 +680,8 @@ def main():
     files = {}
 
     # 1. the art, cropped to what each map actually uses and filed by mode
-    art = build_images(rom, mode, boxes, rows, graph, only)
+    art = build_images(rom, mode, boxes, rows, graph, only,
+                       render_maps.trap_letters(rom))
     sizes = {name: ((boxes[name][1] - boxes[name][0] + 1) * TILE_PX,
                     (boxes[name][3] - boxes[name][2] + 1 + rows[name]) * TILE_PX)
              for name in render_maps.MAP_FILES.values()}
