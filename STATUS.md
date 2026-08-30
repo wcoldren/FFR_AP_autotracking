@@ -41,8 +41,14 @@ Last updated 2026-08-29.
   so no seed's split moved. Feeds the run clock, the `chaos`/`clock` lines in
   `ffr_times.log`, and `ff1/goal`, which the pack now reads for
   `LOCATION_MAPPING[766]`.
-- Map tabs follow the player. 36 of 53 dungeon maps are calibrated and carry
-  per-chest markers.
+- Map tabs follow the player. On the shipped hand-drawn art, 36 of 53 dungeon
+  maps are calibrated and carry per-chest markers; on art redrawn from a
+  cartridge, all 61 do, because those markers are built from the ROM's own
+  chest tiles rather than moved from a hand-solved pixel.
+- Redrawn maps are cropped to the part of each floor that is actually map and
+  filed by the cartridge's game mode, so a standard tracker and a No-Overworld
+  one each show their own set. `tools/regen_maps.py` keeps both in one override
+  tree.
 - Offline tools that read a cartridge directly: the flag decoder, an
   entrance/floor shuffle reader and router, an HTML door map, an overworld
   reachability walk, a map renderer that can draw the NPCs standing on a map,
@@ -429,11 +435,7 @@ Nothing here is designed yet and the order below is not a plan.
 - **Frame the map on where you are.** The tab shows a whole 64x64 map at one
   zoom and never moves. Two separate things:
 
-  *Crop.* A mean 46% of each render is filler -- `coneria_town` is 19% content,
-  `ordeals1F` 15%, `nw_castle` 21%. The hand-drawn art is cropped, which is why
-  `con_castle.png` is 1074x605 and `matoya.png` 273x258. Cropping to the content
-  bounding box is a per-map offset in the calibration `regen_maps.py` already
-  generates, so nothing downstream changes.
+  *Crop.* **Done 2026-08-29** -- see "Cropped to the map, filed by mode" below.
 
   *Follow.* PopTracker takes `Tracker:UiHint("Zoom <map>", "2.5")` and
   `Tracker:UiHint("Pan <map>", "x,y")` per map (trackerview.cpp:940-956) -- only
@@ -686,13 +688,153 @@ mechanism produced a *better-looking* result than the bug, which is exactly why
 it survived a look. What caught it was reading the shipped art as a
 specification instead of as a coordinate surface.
 
+## Cropped to the map, filed by mode
+
+Both landed 2026-08-29, as one change, because they are the same piece of
+plumbing: a crop is a per-map offset, a mode is a per-map path, and every
+dungeon marker's pixel depends on both.
+
+**The crop.** A 64x64 render is mostly not map -- the filler is one tile
+repeated, the out-of-bounds void in a dungeon and the warp-out field around a
+town. `content_box()` floods that tile inward from the edge of the grid and
+takes the bounding box of what the flood cannot reach, padded a tile. Mean 48%
+of the grid survives. Mirage Tower 1F stops being a 33x33 corner of a
+1024x1024 image.
+
+Flooding rather than testing `tile == filler` is the point. Waterfall's `$46`
+is the open water outside the map *and* the room floor inside it -- the same
+tile, the same two property bytes -- which is the fact that defeated every
+per-tile test the room work tried. The wall stops a flood; it does not stop a
+comparison.
+
+**The hand-drawn art is what says the rule is right.** On the 30 maps
+`map_calibration.json` covers, the derived box lands within one tile of the box
+DarkmoonEX drew on 22 of them and exactly on `tofrAir`. Nothing was tuned to
+make that happen: the rule knows only the border tile. The rendered images come
+out the size of the drawn ones -- `con_castle` 1024x560 against 1074x605,
+`nw_castle` 528x512 against 544x442, `mirage1F` 528x544 against 545x580.
+
+The guard is that the box cuts nothing off: every chest tile, every NORM/EXIT
+teleport and every tracked NPC has to survive it. Zero violations on three FFR
+seeds, a fourth, and a vanilla cartridge. WARP teleports are excluded because
+they *are* the filler -- 30875 of them on one cartridge, the field that
+surrounds every town. The Ice Cave B1 fairy is what gives the guard teeth: it
+stands on a cell the flood reaches, so only the box keeps it.
+
+**One map is knowingly loose.** Matoya's Cave carries four cells of tile `$0B`
+at (20-23,13), detached, out in the void -- vanilla map data, present on any
+ordinary seed, removed only by No-Overworld's rebuild. They stretch the box
+seven columns past where the art stops. No filter was added: the speck is fully
+walkable while `sky4F`'s six real 88-cell platforms are not walkable at all, and
+it is 4 cells where `iceB3`'s genuine second region is 41, so neither
+walkability nor size separates junk from content. Inventing a third proxy is
+how the room-floor rule went wrong twice.
+
+**A Map Key band is reserved, not drawn.** Trap letters derive: enumerate the
+fixed-formation trap tiles (`TP_SPEC_BATTLE`, byte 1 not the random marker) over
+all eight tilesets in order and label them A, B, C. On a *vanilla* cartridge
+that reproduces the shipped art exactly -- `earthB1` comes out `{G,H,I}` and
+`volcB4` `{M,N}`, and `volcB1`'s bare `A` correctly is not a trap letter. 23 of
+61 maps use one and no map uses more than four, so the band below the map is
+small and bounded. Which branch decides byte 1 is read rather than assumed:
+`SMMove_Battle`'s `BPL` sits at 0x0DC5 in the fixed bank, `$10` on a vanilla
+image and `$D0` on an FFR one.
+
+**Filed by mode.** A No-Overworld cartridge and a standard one disagree about
+34 to 39 of the 61 maps; two standard seeds still disagree about 2 to 7 (the
+Ordeals floor shuffle, the ToFR shuffle, Gaia). The override tree used to hold
+one set with no record of which cartridge drew it, so a standard tracker showed
+No-Overworld staircases. Art now goes to `images/maps/std/` or
+`images/maps/nov/` by the cartridge's own `GameMode`, with a `maps.json` naming
+the first and a `NOverworldMaps.json` naming the second -- the mechanism the
+single "incentives" row already proved, at full size. A mode never rendered
+falls back to the pack's own art rather than to the other mode's. An unreadable
+mode stops the run instead of guessing, because art filed wrong looks
+completely normal and is wrong about every staircase.
+
+**Markers are built forward now.** `remap_locations()` used to take each
+committed marker's pixel, invert it through `map_calibration.json` to recover a
+tile, and re-emit it. That inversion is why redrawing depended on hand-solved
+offsets at all, and with it the two things that have blocked entrance markers
+and the missing tabs: the sixteen uncalibrated maps, and the composites whose
+image holds different tiles than their `rom_map_id` names. `place_locations()`
+builds from the cartridge's own chest tiles plus `npc_positions.json`, joined to
+the tree through `location_mapping.lua` (AP id below 512 is chest `id - 256`).
+Both blockers are gone by construction -- a position that was never a pixel
+cannot need a pixel-to-tile rule.
+
+It also reads the seed rather than a snapshot, and that showed up immediately:
+on an ordinary seed the ToFR shuffle places five chest ids on a *second* floor
+apiece, which `chest_positions.json` (vanilla-derived) never knew. `tofr1F` and
+`tofrWater` now carry markers where they had none. 239 of the 244 marker-bearing
+locations reproduce their committed tiles exactly; those five are the difference.
+
+Because the crop makes the same tile a different pixel in each set, the dungeon
+tree splits too: `locations/NOverworld/overworld.json` is a real file now, which
+is the slot `init.lua` used to load and that had never existed.
+`tests/test_maps.lua` check 6 compares the two trees location by location, so
+they cannot drift apart -- two files meant to agree and never compared is
+exactly how the missing one survived.
+
+**Upgrading an override written before this.** The v1 layout put all 61 images
+at `images/maps/<name>.png` and had no `locations/NOverworld/overworld.json`, so
+once `init.lua` started asking for that file the No-Overworld variants fell back
+to the pack's hand-art coordinates and drew every box off its chest. `load_cache`
+returned `None` on a version mismatch, which meant those files were never
+overwritten either. It now reads an older cache anyway and clears the files it
+lists -- only files this tool recorded writing. Re-running `regen_maps.py` is
+the whole upgrade.
+
+**The marker boxes had to shrink with it.** `location_size` is in image pixels
+and the pack's 24 comes from the hand-drawn art, which PopTracker shows at
+roughly its drawn size. A cropped render is a third of the area it was, so it
+gets scaled up and the box scales with it -- the same fraction of a tile, twice
+the pixels on screen. Rendered maps now use 16, which is exactly one tile and so
+outlines the tile the chest is on and nothing more, with a 2px border.
+`--marker-size` and `--marker-border` tune it, and both are part of the cache
+key so changing them actually rewrites. Hand-drawn art keeps its 24.
+
+**The fallback is easy to mistake for a failure.** Render only one mode and the
+other mode's variants show the pack's hand-drawn art -- which looks exactly like
+the tool having done nothing, and did on the first upgrade run. `regen_maps.py`
+now ends by saying what each tracker variant will open, so the answer is not
+"recognise a staircase". Two seams while only one mode is rendered: the nine
+maps with no hand art at all (the towns, Coneria Castle 2F, Bahamut's Lair B2)
+have nothing to fall back *to*, so they keep whatever `maps.json` gave them --
+the other mode's art -- and the dungeon markers come from the repo's committed
+tree, which is placed for the hand art. Both disappear the moment that mode is
+rendered, and there is no third option: PopTracker has no way to unregister a
+map, so those nine either point at the other mode's art or at nothing.
+
+**The one number both halves depend on** is the crop box: the art is drawn from
+it and every marker is measured from it. It is computed once in `main()` and
+handed to both, and the produced image's actual size is checked against what the
+markers assume before anything is written. If the renderer ever starts padding
+or centring differently, that is where it surfaces -- not as boxes sitting
+beside their chests in PopTracker. `test_crop.py` asserts the same formula from
+the other side.
+
+**Still open here.** The band is empty: drawing the letters and the key is the
+next phase. `maptab.lua` still sends maps 0-7 to the overworld tab, so it will
+not follow you into a town even though the town tabs now exist.
+
+**Found on the way, not fixed:** `tools/tests/test_gate_objects.py` fails
+against any *standard* cartridge -- it asserts a No-Overworld gate layout and a
+standard seed has none, so it should skip the way the other cartridge tests do.
+This predates the change here (checked against a stashed tree); it is why
+`tools/tests/run.sh` is green on the No-Overworld seed and on vanilla but not on
+the three standard ones.
+
 ## Known wrong
 
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so
   a Locations-grid cell needs a new hosted toggle under a different code. It
   would be a bridge-only cell: Titan is not an AP location either (see below).
-- **17 maps have no markers.** 16 are uncalibrated; `ConeriaCastle2F` is a
-  calibration alias away from working.
+- **17 maps have no markers on the shipped hand-drawn art.** 16 were never
+  calibrated and `ConeriaCastle2F` is a composite the schema cannot address.
+  This is now a limit of that art only: markers on redrawn art are built from
+  the cartridge and every map has them. Solving the 16 offsets by hand would
+  only benefit a player who never runs `regen_maps.py`.
 - **The incentive defaults are still a guess** on a version with no schema.
   The warning light says so, but the toggles themselves stay on whatever
   `scripts/init.lua:73-90` set. They cannot simply be cleared: an
