@@ -332,7 +332,34 @@ def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
     return [by_name[n] for n in order]
 
 
-def marker_tiles(rom):
+def stands_on_map(rom, map_id, col, row, cache=None):
+    """Is (col, row) somewhere the player can be, rather than backdrop?
+
+    The same flood content_box crops by: a cell the edge flood reaches is the
+    filler around the map, not the map. Objects are not all placed inside it.
+    The Ice Cave B1 fairy stands at (47,30) on a cell the flood reaches -- a
+    leftover copy of the Gaia object in the black outside the cave, which the
+    renderer draws (and the crop keeps in frame) but which no party can walk
+    up to. A marker there would be a pin in the void.
+
+    One object out of the fifteen the pack tracks fails this, and it is that
+    one; the other fourteen are all inside their map's content.
+
+    `cache` is {map_id: outside cells}, passed in rather than kept here: the
+    answer is a property of one cartridge, and a cache that outlived the `rom`
+    it was flooded from would answer the next one's questions with the last
+    one's map.
+    """
+    if cache is None:
+        cache = {}
+    if map_id not in cache:
+        tiles = render_maps.map_tiles(rom, map_id)
+        tile, _ = render_maps.backdrop_tile(tiles)
+        cache[map_id] = render_maps.outside_cells(tiles, tile)
+    return (col, row) not in cache[map_id]
+
+
+def marker_tiles(rom, locations):
     """{location name: [(map_id, col, row)]} for every marker on a dungeon map.
 
     Forward, out of the cartridge, rather than by inverting the pixel the
@@ -343,30 +370,55 @@ def marker_tiles(rom):
     of tiles than the rom_map_id on its entry names. Neither can matter to a
     marker whose position was never a pixel in the first place.
 
-    The join is scripts/autotracking/location_mapping.lua, which names an AP id
-    for every tracked location: below 512 an id is a chest (chest index is
-    id - 256, FF1Lib/Items.cs) and above it an NPC, whose tile comes from
-    npc_positions.json. All 254 dungeon markers in the shipped tree resolve
-    through it, and every one of them agrees with tools/marker_positions.json
-    today, which is what says the join is the right one.
+    Chests join through scripts/autotracking/location_mapping.lua, which names
+    an AP id for every location in the multiworld pool; the chest index is
+    id - 256 (FF1Lib/Items.cs). All 254 dungeon chest markers in the shipped
+    tree resolve through it and every one agrees with
+    tools/marker_positions.json, which is what says the join is the right one.
+
+    NPCs join through `hosted_item` in the location tree instead, because the
+    AP pool is not the whole board. Eight of the fourteen NPCs the cartridge
+    places carry no shuffled item and so have no AP id at all -- Bahamut is one
+    -- and reading the tree covers every NPC the pack actually tracks rather
+    than only the ones Archipelago knows about. The codes are the same ones
+    npc_positions.json is keyed by, and location_mapping.lua's third field is
+    that code too, so this is the same join by a wider door.
 
     Chest tiles come from the cartridge, so a seed that moves one moves its
     marker with it. NPC tiles do not: FFR randomizes what an NPC gives you,
     not where it stands (see extract_npcs.py).
     """
-    ids = split_locations.load_mapping(limit=None)
+    ids = split_locations.load_mapping(limit=512)
     chests, _ = extract_chests.extract(rom)
     with open(os.path.join(HERE, "npc_positions.json")) as f:
         npcs = json.load(f)
 
     out = {}
-    for ap, (path, hosted) in sorted(ids.items()):
-        places = chests.get(ap - 256) if ap < 512 else npcs.get(hosted)
-        if not places:
-            continue
-        out.setdefault(split_locations.leaf_of(path), []).extend(
-            (q["map_id"], q["tile_col"], q["tile_row"]) for q in places)
-    return out
+    outside = {}
+
+    def add(name, places):
+        out.setdefault(name, []).extend(
+            (q["map_id"], q["tile_col"], q["tile_row"]) for q in places
+            if stands_on_map(rom, q["map_id"], q["tile_col"], q["tile_row"],
+                             outside))
+
+    for ap, (path, _) in sorted(ids.items()):
+        places = chests.get(ap - 256)
+        if places:
+            add(split_locations.leaf_of(path), places)
+
+    def walk(nodes):
+        for n in nodes:
+            if not isinstance(n, dict):
+                continue
+            for sec in n.get("sections") or []:
+                places = npcs.get(sec.get("hosted_item"))
+                if places:
+                    add(n.get("name"), places)
+            walk(n.get("children") or [])
+
+    walk(lenient(os.path.join(PACK, locations)))
+    return {k: v for k, v in out.items() if v}
 
 
 def place_locations(cal, tiles_by_name, path, sprite_cells=None):
@@ -379,6 +431,18 @@ def place_locations(cal, tiles_by_name, path, sprite_cells=None):
     A location that carries a dungeon marker and resolves to no tile cannot be
     placed and is reported rather than dropped -- a marker that quietly
     disappears is worse than one that stops the run.
+
+    A location that resolves to a tile and carries *no* dungeon marker gets one
+    built. That is not a rebuild but a gain, and it is where the tracked NPCs
+    live: the pack put Astos, Matoya, Bikke, the Fairy and Bahamut on the
+    overworld pin of the town or cave that holds them and never on the tab for
+    the map itself, so five NPCs the cartridge places to the tile had no pin
+    standing on them. Only three did -- Nerrick, the Smith and Sarda -- which
+    is why only three pins ever came out as diamonds. Nothing here decides
+    which nodes those are: a node gains a marker exactly when the cartridge
+    resolves it to a tile, so a document whose nodes resolve to none (the
+    incentive sheet, whose pins live on one hand-drawn image rather than on a
+    map) is passed through untouched.
 
     `sprite_cells` is {map_id: {(col, row)}} for the tiles --npcs draws a
     sprite on. A pin landing on one is emitted as a diamond and reported as
@@ -416,15 +480,17 @@ def place_locations(cal, tiles_by_name, path, sprite_cells=None):
         for n in nodes:
             if not isinstance(n, dict):
                 continue
+            name = n.get("name")
             marks = n.get("map_locations") or []
             keep = [ml for ml in marks if ml.get("map") not in REDRAWN]
             unmoved += len(keep)
-            if len(keep) != len(marks):
-                name = n.get("name")
-                fresh = [pixels(*t) for t in tiles_by_name.get(name, ())]
+            tiles = tiles_by_name.get(name, ())
+            if tiles or len(keep) != len(marks):
+                fresh = [pixels(*t) for t in tiles]
                 if not fresh or None in fresh:
-                    unplaceable.append((name, marks[0].get("map"),
-                                        marks[0].get("x"), marks[0].get("y")))
+                    stale = marks[0] if marks else {}
+                    unplaceable.append((name, stale.get("map"),
+                                        stale.get("x"), stale.get("y")))
                 else:
                     n["map_locations"] = keep + fresh
                     placed += len(fresh)
@@ -712,9 +778,9 @@ def main():
 
     # 2. the markers, built from the cartridge onto it
     cal = rendered_calibration(rom, boxes)
-    tiles_by_name = marker_tiles(rom)
     dungeon_locations = ("locations/overworld.json" if mode == "std"
                          else "locations/NOverworld/overworld.json")
+    tiles_by_name = marker_tiles(rom, dungeon_locations)
     # Which tiles end up under a sprite, so a pin landing on one can be drawn
     # as a diamond instead of a square that hides it. Empty when --npcs none,
     # which is why nothing changes shape unless sprites are actually drawn.
