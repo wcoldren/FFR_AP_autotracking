@@ -17,18 +17,35 @@ Nothing here is urgent unless it says so.
   This is the largest live defect in the pack. See `docs/NOVERWORLD.md` and
   `docs/ROADMAP.md`.
 
-- **The sweep still cannot express the items that are game rules.** It varies
-  `entrance_graph.ITEM_NAMES`, the ten items that gate a *tile*. FFR's model also
-  carries `Oxyale`, `Ruby`, `Slab`, `Herb`, `Adamant`, `Bottle` and `Crystal`.
-  Half of that gap is closed: where one of them is a *trade*,
-  `entrance_graph.talk_item_requirements()` reads it off the talk table and the
-  rule states it — Astos's Crown, Nerrick's TNT, the Smith's Adamant, Matoya's
-  Crystal. What stays out of reach is those items used as access rules
-  elsewhere: Oxyale is "you can breathe underwater", and the oracle cartridge
-  carries 129 uses of it and 32 of the Ruby. `check_logic --derived` grants them
-  to both sides rather than skipping the location, so FFR reads as permissively
-  as it can and a surviving divergence cannot be blamed on the gap. That is a
-  fair test, not a fix.
+- **The walk models three of the five object gates the cartridge has.** It
+  varies `entrance_graph.ITEM_NAMES`, ten items; `GATED_OBJECTS` holds RodPlate
+  `0x16` and LutePlate `0x17`, and `black_orb_item()` adds BlackOrb `0xCA` per
+  cartridge. **SubEngineer `0x10` (oxyale) and Titan `0x14` (ruby) remain.** `FF1Lib/Sanity/SCMap.cs:167-186` gates
+  **five** object ids by tile, in one switch — the two plates plus **BlackOrb
+  `0xCA` → orbs, SubEngineer `0x10` → oxyale, and Titan `0x14` → ruby**. All
+  five are ordinary map objects standing on chokepoint tiles; nothing
+  distinguishes the three missing ones in kind from the two present.
+
+  This entry used to say Oxyale and the Ruby were "game rules" the sweep could
+  not see, and that was wrong twice over. They are graph properties, and
+  `orbs` — what BlackOrb wants — had been in the swept vocabulary all along, so
+  every sweep to that date walked through an orb gate as though it were not
+  there. **Closed 2026-08-30.** It was why seven ToFR locations derived as free;
+  they derive `orbs` now. Oxyale and the Ruby are the same shape of defect and
+  are still open: unlike `orbs`, their items are not in the swept vocabulary, so
+  the rows and the widening have to land together or everything behind them
+  derives as unreachable.
+
+  The genuinely non-graph requirements are the *trades*, and half of those are
+  already read: `entrance_graph.talk_item_requirements()` takes them off the
+  talk table — Astos's Crown, Nerrick's TNT, the Smith's Adamant, Matoya's
+  Crystal. `Slab`, `Herb` and `Bottle` remain.
+
+  Until the three rows land, `check_logic --derived` grants the unexpressible
+  items to both sides rather than skipping the location, so FFR reads as
+  permissively as it can and a surviving divergence cannot be blamed on the gap.
+  That is a fair test, not a fix — and see the Open questions entry on how much
+  of the agreement figure it grants away.
 
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so a
   Locations-grid cell needs a new hosted toggle under a different code. It would
@@ -105,14 +122,39 @@ Nothing here is urgent unless it says so.
 
 ## Open questions
 
-- **Nothing cross-checks the ToFR rules, so 226 of 226 does not cover them.**
+- **The agreement figures grant away most of what they appear to compare.**
+  `check_logic --derived` hands every off-vocabulary item to both sides before
+  comparing (`offvocab_items()`), so a location whose FFR rule is entirely
+  granted is counted as agreeing without being tested. Measured on the committed
+  corpus: **164 of `nov`'s 222 comparisons and 156 of `nov2`'s 220**, so "222 of
+  222 agree" describes **58** locations. The concentration is one item —
+  **oxyale x129, ruby x32** on `nov`. Every run has printed this count and no
+  page recorded it until 2026-08-30.
+
+  The pack's own No-Overworld rules have the mirror-image problem: they were
+  transcribed from FFR's export for the seed, so grading them against that export
+  is largely self-agreement. By provenance, of 226 comparisons: **63
+  independently supported, 163 self-agreeing by construction, 6 deliberately
+  strict** (Cardia Forest, whose gateway is rolled per seed). The sweep
+  contributes nothing independent, because the single rule taken from it is not
+  in FFR's pool.
+
+  Not inherent. Closing the three missing `GATED_OBJECTS` rows would let the
+  sweep state oxyale and ruby itself, which is the only thing that turns those
+  164 into real comparisons — see "The walk models two of the five object gates"
+  above. Until then, quote 63, not 220.
+
+- **Nothing cross-checks the ToFR rules, so the agreement figure does not cover them.**
   `Archipelago.cs:93` excludes ToFR from the pool unconditionally, so FFR writes
   no rule for any ToFR location and not one of them is among the 226 the
   derivation is measured against. Their derived rules are validated only by
   direct sweeps against the cartridge — which is how the six `(free)` ones were
   settled (`docs/NOVERWORLD.md`, "What the shortcut drops you into"), one
-  location at a time and by hand. This is a limit on what the agreement figure
-  licenses rather than a defect: quoting 226/226 as though it covered the whole
+  location at a time and by hand. **That settlement is now believed wrong**: it
+  reasoned from where the lute gate stands and never asked what the Black Orb
+  object does, and the walk has no row for it. The oracle could not have caught
+  it, which is the entry above in miniature. This is a limit on what the agreement figure
+  licenses rather than a defect: quoting it as though it covered the whole
   derived set overstates it by exactly the ToFR floors. Anything that changes
   how ToFR is walked needs its own measurement, because the oracle will stay
   silent.
@@ -152,6 +194,16 @@ Nothing here is urgent unless it says so.
   matching locations are not evidence of anything. Its sibling check 7, which
   compares the incentive tree against the dungeon tree, is unaffected -- those
   two files are genuinely different.
+
+- **The No-Overworld incentive poster is missing two slots.** It hosts no
+  `nerrick` and no `airship` (the Floater turn-in in Ryukahn Desert), both of
+  which `locations/incentives.json` and both dungeon trees carry. `test_maps.lua`
+  check 7 walks the incentive sheet and asks the dungeon tree about each slot it
+  finds, so a slot the poster omits is invisible to it -- the check is one-way
+  by construction, and making it two-way would fail on the four orb-lit slots
+  that are poster-only by design. Deciding what these two should look like on a
+  poster with no overworld is the same question as deriving the rest of the
+  pins, so it is filed with `docs/ROADMAP.md` item 3 rather than patched here.
 
 - **The two tabs disagree about how to reach Gaia.** The Gaia node's
   northern-docks route reads `northernDocks,hwyOrdeals,gaiaMountain,ship,canal`

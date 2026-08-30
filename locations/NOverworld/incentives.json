@@ -1,574 +1,787 @@
 [
-	{
-		"name" : "I: Starting Area",
-		"color" : "#808080",
-		"children" : [
-			{
-				"name" : "I: Coneria Castle",
-				"access_rules" : [],
-				"sections" : [
-					{
-						"name" : "I: King",
-						"access_rules" : [ "^$incentiveSlot|npcsAreIncentive" ],
-						"hosted_item" : "king"
-					},
-					{
-						"name" : "I: Sara",
-						"access_rules" : [ "garland,^$incentiveSlot|npcsAreIncentive" ],
-						"hosted_item" : "sara"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 1450,
-						"y" : 1140
-					}
-				]
-			},
-			{
-				"name": "I: Coneria Castle Locked",
-				"access_rules": [ "key" ],
-				"sections": [
-					{
-						"name" : "I: Coneria Castle Incentive",
-						"access_rules" : [ "key,^$incentiveSlot|coneriaLockedIsIncentive" ],
-						"hosted_item" : "coneriaLocked"
-					}
-				],
-				"map_locations": [
-					{
-						"map": "incentives",
-						"x": 1495,
-						"y": 1060
-					}
-				]
-			},
-			{
-				"name" : "I: Temple of Fiends",
-				"access_rules" : [],
-				"sections" : [
-					{
-						"name" : "I: Garland",
-						"access_rules" : [],
-						"hosted_item" : "garland"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 1065,
-						"y" : 1160
-					}
-				]
-			},
-			{
-				"name" : "I: Temple of Fiends Revisited",
-				"color" : "#808080",
-				"children" : [
-					{
-						"name" : "I: ToFR",
-						"access_rules" : [ "$canBreakOrb,lute,key" ],
-						"sections" : [
-							{
-								"name" : "I: Chaos",
-								"hosted_item" : "chaos"
-							}
-						],
-						"map_locations" : [
-							{
-								"map" : "incentives",
-								"x" : 1065,
-								"y" : 1070
-							}
-						]
-					}
-				]
-			},
-			{
-				"name" : "I: Dwarf Cave",
-				"access_rules" : [],
-				"sections" : [
-					{
-						"name" : "I: Smithy McBeardSmith",
-						"access_rules" : [ "adamant,^$incentiveSlot|fetchQuestsAreIncentive" ],
-						"hosted_item" : "smith"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 585,
-						"y" : 830
-					}
-				]
-			},
-			{
-				"name" : "I: North West Castle",
-				"access_rules" : [],
-				"sections" : [
-					{
-						"name" : "I: Astos",
-						"access_rules" : [ "crown,^$incentiveSlot|fetchQuestsAreIncentive" ],
-						"hosted_item" : "astos"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 2030,
-						"y" : 1930
-					}
-				]
-			},
-			{
-				"name" : "I: Matoya's Cave",
-				"access_rules" : [],
-				"sections" : [
-					{
-						"name" : "I: Matoya",
-						"access_rules" : [ "crystal,^$incentiveSlot|fetchQuestsAreIncentive" ],
-						"hosted_item" : "matoya"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 1085,
-						"y" : 1390
-					}
-				]
-			},
-			{
-				"name" : "I: Elf Castle",
-				"access_rules" : [],
-				"sections" : [
-					{
-						"name" : "I: Elf Prince",
-						"access_rules" : [ "herb,^$incentiveSlot|fetchQuestsAreIncentive" ],
-						"hosted_item" : "elfprince"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 1395,
-						"y" : 2010
-					}
-				]
-			},
-			{
-				"name" : "I: Pravoka",
-				"access_rules" : [],
-				"sections" : [
-					{
-						"name" : "I: Bikke",
-						"access_rules" : [ "^$incentiveSlot|npcsAreIncentive" ],
-						"hosted_item" : "bikke"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 920,
-						"y" : 1575
-					}
-				]
-			},
-			{
-				"name" : "I: Marsh Cave",
-				"access_rules" : [],
-				"sections" : [
-					{
-						"name" : "I: Marsh Incentive",
-						"access_rules" : [ "^$incentiveSlot|marshIsIncentive" ],
-						"hosted_item" : "marsh"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 1935,
-						"y" : 1580
-					}
-				]
-			},
-			{
-				"name" : "I: Marsh Cave",
-				"access_rules" : [],
-				"sections" : [
-					{
-						"name" : "I: Marsh Locked Incentive",
-						"access_rules" : [ "key,^$incentiveSlot|marshLockedIsIncentive" ],
-						"hosted_item" : "marshLocked"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 2215,
-						"y" : 1680
-					}
-				]
-			}
-		]
-	},
-	{
-		"name" : "I: Melmond Continent",
-		"color" : "#808080",
-		"children" : [
-			{
-				"name" : "I: Sarda's Cave",
-				"access_rules" : [ "ruby", "tnt", "mark" ],
-				"sections" : [
-					{
-						"name" : "I: Sarda",
-						"access_rules" : [ "^$incentiveSlot|npcsAreIncentive" ],
-						"hosted_item" : "sarda"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 200,
-						"y" : 920
-					}
-				]
-			},
-			{
-				"name" : "I: Titan's Trove",
-				"access_rules" : [ "ruby" ],
-				"sections" : [
-					{
-						"name" : "I: Incentive",
-						"access_rules" : [ "^$incentiveSlot|titansTroveIsIncentive" ],
-						"hosted_item" : "titansTrove"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 1040,
-						"y" : 850
-					}
-				]
-			},
-			{
-				"name" : "I: Earth Cave",
-				"access_rules" : [ "ruby", "tnt", "mark" ],
-				"sections" : [
-					{
-						"name" : "I: Earth Orb",
-						"access_rules" : [ "rod" ],
-						"hosted_item" : "earthorblit"
-					},
-					{
-						"name" : "I: Earth Incentive",
-						"access_rules" : [ "^$incentiveSlot|earthIsIncentive" ],
-						"hosted_item" : "earth"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 400,
-						"y" : 805
-					}
-				]
-			},
-			{
-				"name" : "I: Melmond",
-				"access_rules" : [ "ruby,slab", "tnt,slab", "mark,slab" ],
-				"sections" : [
-					{
-						"name" : "I: Dr Unne",
-						"access_rules" : [ "^$incentiveSlot|fetchQuestsAreIncentive" ],
-						"hosted_item" : "slabTranslated"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 500,
-						"y" : 1000
-					}
-				]
-			}
-		]
-	},
-	{
-		"name" : "I: Crescent Lake Area",
-		"color" : "#808080",
-		"children" : [
-			{
-				"name" : "I: Crescent Lake",
-				"access_rules" : [ "mark", "tnt" ],
-				"sections" : [
-					{
-						"name" : "I: Sages",
-						"access_rules" : [ "^$incentiveSlot|npcsAreIncentive" ],
-						"hosted_item" : "sages"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 790,
-						"y" : 1450
-					}
-				]
-			},
-			{
-				"name" : "I: Ice Cave",
-				"access_rules" : [ "mark", "sigil,oxyale,chime" ],
-				"sections" : [
-					{
-						"name" : "I: Ice Cave Incentive",
-						"access_rules" : [ "^$incentiveSlot|iceCaveIsIncentive" ],
-						"hosted_item" : "iceCave"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 655,
-						"y" : 2590
-					}
-				]
-			},
-			{
-				"name" : "I: Volcano",
-				"access_rules" : [ "mark", "sigil,chime,oxyale"],
-				"sections" : [
-					{
-						"name" : "I: Fire Orb",
-						"access_rules" : [],
-						"hosted_item" : "fireorblit"
-					},
-					{
-						"name" : "I: Volcano Incentive",
-						"access_rules" : [ "^$incentiveSlot|volcanoIsIncentive" ],
-						"hosted_item" : "volcano"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 225,
-						"y" : 2050
-					}
-				]
-			}
-		]
-	},
-	{
-		"name" : "I: Cardia Islands",
-		"color" : "#808080",
-		"children" : [
-			{
-				"name" : "I: Bahamut",
-				"access_rules" : [],
-				"sections" : [
-					{
-						"name" : "I: Bahamut",
-						"access_rules" : [ "tail" ],
-						"hosted_item" : "bahamut"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 2225,
-						"y" : 800
-					}
-				]
-			},
-			{
-				"name": "I: Cardia Incentive",
-				"access_rules": [],
-				"sections": [
-					{
-						"name" : "I: Cardia Incentive",
-						"access_rules" : [ "^$incentiveSlot|cardiaIsIncentive" ],
-						"hosted_item" : "cardiaIncentive"
-					}
-				],
-				"map_locations": [
-					{
-						"map": "incentives",
-						"x": 2225,
-						"y": 888
-					}
-				]
-			},
-			{
-				"name": "I: Shop Item",
-				"access_rules": [],
-				"sections": [
-					{
-						"name": "I: Shop Item",
-						"access_rules": [],
-						"hosted_item": "shopItem"
-					}
-
-				],
-				"map_locations": [
-					{
-						"map": "incentives",
-						"x": 2225,
-						"y": 965
-					}
-				]
-			}
-		]
-	},
-	{
-		"name" : "I: Castle of Ordeals",
-		"color" : "#808080",
-		"children" : [
-			{
-				"name" : "I: Ordeals",
-				"access_rules" : [ "mark" ],
-				"sections" : [
-					{
-						"name" : "I: Incentive",
-						"access_rules" : [ "^$incentiveSlot|ordealsIsIncentive" ],
-						"hosted_item" : "ordeals"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 2395,
-						"y" : 1470
-					}
-				]
-			}
-		]
-	},
-	{
-		"name" : "I: Gaia Area",
-		"color" : "#808080",
-		"children" : [
-			{
-				"name" : "I: Lefein",
-				"access_rules" : [ "sigil" ],
-				"sections" : [
-					{
-						"name" : "I: Incentive",
-						"access_rules" : [ "slabTranslated,^$incentiveSlot|fetchQuestsAreIncentive", "slabDone,^$incentiveSlot|fetchQuestsAreIncentive" ],
-						"hosted_item" : "lefein"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 1565,
-						"y" : 700
-					}
-				]
-			},
-			{
-				"name" : "I: Gaia",
-				"access_rules" : [ "sigil" ],
-				"sections" : [
-					{
-						"name" : "I: Fairy",
-						"access_rules" : [ "bottle,^$incentiveSlot|fetchQuestsAreIncentive" ],
-						"hosted_item" : "fairy"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 2775,
-						"y" : 980
-					}
-				]
-			},
-			{
-				"name" : "I: Sky Palace",
-				"access_rules" : [ "sigil,oxyale,mark,cube", "sigil,chime,cube" ],
-				"sections" : [
-					{
-						"name" : "I: Air Orb",
-						"access_rules" : [],
-						"hosted_item" : "airorblit"
-					},
-					{
-						"name" : "I: Sky Incentive",
-						"access_rules" : [ "^$incentiveSlot|skyIsIncentive" ],
-						"hosted_item" : "sky"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 2410,
-						"y" : 2195
-					}
-				]
-			}
-		]
-	},
-	{
-		"name" : "I: Onrac Continent",
-		"color" : "#808080",
-		"children" : [
-			{
-				"name" : "I: Waterfall",
-				"access_rules" : [ "sigil" ],
-				"sections" : [
-					{
-						"name" : "I: Robot",
-						"access_rules" : [ "^$incentiveSlot|npcsAreIncentive" ],
-						"hosted_item" : "robot"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 1395,
-						"y" : 965
-					}
-				]
-			},
-			{
-				"name" : "I: Sea Shrine",
-				"access_rules" : [ "sigil,oxyale,mark", "sigil,chime" ],
-				"sections" : [
-					{
-						"name" : "I: Water Orb",
-						"access_rules" : [],
-						"hosted_item" : "waterorblit"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 1850,
-						"y" : 2325
-					}
-				]
-			},
-			{
-				"name" : "I: Sea Incentive",
-				"access_rules" : [ "sigil,oxyale,mark", "sigil,chime" ],
-				"sections" : [
-					{
-						"name" : "I: Sea Incentive",
-						"access_rules" : [ "^$incentiveSlot|seaIsIncentive" ],
-						"hosted_item" : "sea"
-					}
-				],
-				"map_locations" : [
-					{
-						"map" : "incentives",
-						"x" : 2330,
-						"y" : 2600
-					}
-				]
-			}
-		]
-	}
+    {
+        "name": "I: Starting Area",
+        "color": "#808080",
+        "children": [
+            {
+                "name": "I: Coneria Castle",
+                "access_rules": [],
+                "sections": [
+                    {
+                        "name": "I: King",
+                        "access_rules": [
+                            "earlyKing,^$incentiveSlot|npcsAreIncentive",
+                            "garland,^$incentiveSlot|npcsAreIncentive"
+                        ],
+                        "hosted_item": "king"
+                    },
+                    {
+                        "name": "I: Sara",
+                        "access_rules": [
+                            "garland,^$incentiveSlot|npcsAreIncentive"
+                        ],
+                        "hosted_item": "sara"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 1450,
+                        "y": 1140
+                    }
+                ]
+            },
+            {
+                "name": "I: Coneria Castle Locked",
+                "access_rules": [],
+                "sections": [
+                    {
+                        "name": "I: Coneria Castle Incentive",
+                        "access_rules": [
+                            "key,^$incentiveSlot|coneriaLockedIsIncentive"
+                        ],
+                        "hosted_item": "coneriaLocked"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 1495,
+                        "y": 1060
+                    }
+                ]
+            },
+            {
+                "name": "I: Temple of Fiends",
+                "access_rules": [],
+                "sections": [
+                    {
+                        "name": "I: Garland",
+                        "access_rules": [],
+                        "hosted_item": "garland"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 1065,
+                        "y": 1160
+                    }
+                ]
+            },
+            {
+                "name": "I: Temple of Fiends Revisited",
+                "color": "#808080",
+                "children": [
+                    {
+                        "name": "I: ToFR",
+                        "access_rules": [
+                            "$canBreakOrb,lute,key"
+                        ],
+                        "sections": [
+                            {
+                                "name": "I: Chaos",
+                                "hosted_item": "chaos"
+                            }
+                        ],
+                        "map_locations": [
+                            {
+                                "map": "incentives",
+                                "x": 1065,
+                                "y": 1070
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "I: Dwarf Cave",
+                "access_rules": [
+                    "$standardWorld,openProgression",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen",
+                    "$noOverworld"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Smithy McBeardSmith",
+                        "access_rules": [
+                            "adamant,^$incentiveSlot|fetchQuestsAreIncentive"
+                        ],
+                        "hosted_item": "smith"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 585,
+                        "y": 830
+                    }
+                ]
+            },
+            {
+                "name": "I: North West Castle",
+                "access_rules": [
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen",
+                    "$noOverworld"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Astos",
+                        "access_rules": [
+                            "crown,^$incentiveSlot|fetchQuestsAreIncentive"
+                        ],
+                        "hosted_item": "astos"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 2030,
+                        "y": 1930
+                    }
+                ]
+            },
+            {
+                "name": "I: Matoya's Cave",
+                "access_rules": [
+                    "$standardWorld,bridge",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen,canoe",
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,lefeinBridge",
+                    "$noOverworld"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Matoya",
+                        "access_rules": [
+                            "crystal,^$incentiveSlot|fetchQuestsAreIncentive"
+                        ],
+                        "hosted_item": "matoya"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 1085,
+                        "y": 1390
+                    }
+                ]
+            },
+            {
+                "name": "I: Elf Castle",
+                "access_rules": [
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen",
+                    "$noOverworld"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Elf Prince",
+                        "access_rules": [
+                            "herb,^$incentiveSlot|fetchQuestsAreIncentive"
+                        ],
+                        "hosted_item": "elfprince"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 1395,
+                        "y": 2010
+                    }
+                ]
+            },
+            {
+                "name": "I: Pravoka",
+                "access_rules": [
+                    "$standardWorld,bridge",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen,canoe",
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,lefeinBridge",
+                    "$noOverworld"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Bikke",
+                        "access_rules": [
+                            "^$incentiveSlot|npcsAreIncentive"
+                        ],
+                        "hosted_item": "bikke"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 920,
+                        "y": 1575
+                    }
+                ]
+            },
+            {
+                "name": "I: Marsh Cave",
+                "access_rules": [
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen",
+                    "$noOverworld"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Marsh Incentive",
+                        "access_rules": [
+                            "^$incentiveSlot|marshIsIncentive"
+                        ],
+                        "hosted_item": "marsh"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 1935,
+                        "y": 1580
+                    }
+                ]
+            },
+            {
+                "name": "I: Marsh Cave",
+                "access_rules": [
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen",
+                    "$noOverworld"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Marsh Locked Incentive",
+                        "access_rules": [
+                            "key,^$incentiveSlot|marshLockedIsIncentive"
+                        ],
+                        "hosted_item": "marshLocked"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 2215,
+                        "y": 1680
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "I: Melmond Continent",
+        "color": "#808080",
+        "children": [
+            {
+                "name": "I: Sarda's Cave",
+                "access_rules": [
+                    "$standardWorld,$noSardasForest,airship",
+                    "$standardWorld,ruby,airship",
+                    "$standardWorld,ruby,ship,canal",
+                    "$standardWorld,melmondRiver,canoe,ruby",
+                    "$noOverworld,$hasCanoe",
+                    "$noOverworld,ruby",
+                    "$noOverworld,tnt"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Sarda",
+                        "access_rules": [
+                            "earlySarda,^$incentiveSlot|npcsAreIncentive",
+                            "vampire,^$incentiveSlot|npcsAreIncentive"
+                        ],
+                        "hosted_item": "sarda"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 200,
+                        "y": 920
+                    }
+                ]
+            },
+            {
+                "name": "I: Titan's Trove",
+                "access_rules": [
+                    "$standardWorld,ruby,airship",
+                    "$standardWorld,ruby,ship,canal",
+                    "$standardWorld,melmondRiver,canoe,ruby",
+                    "$noOverworld,ruby"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Incentive",
+                        "access_rules": [
+                            "^$incentiveSlot|titansTroveIsIncentive"
+                        ],
+                        "hosted_item": "titansTrove"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 1040,
+                        "y": 850
+                    }
+                ]
+            },
+            {
+                "name": "I: Earth Cave",
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$standardWorld,ship,canal",
+                    "$standardWorld,melmondRiver,canoe",
+                    "$noOverworld,$hasCanoe",
+                    "$noOverworld,ruby",
+                    "$noOverworld,tnt"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Earth Orb",
+                        "access_rules": [
+                            "rod"
+                        ],
+                        "hosted_item": "earthorblit"
+                    },
+                    {
+                        "name": "I: Earth Incentive",
+                        "access_rules": [
+                            "^$incentiveSlot|earthIsIncentive"
+                        ],
+                        "hosted_item": "earth"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 400,
+                        "y": 805
+                    }
+                ]
+            },
+            {
+                "name": "I: Melmond",
+                "access_rules": [
+                    "$standardWorld,ship,canal,slab",
+                    "$standardWorld,airship,slab",
+                    "$standardWorld,melmondRiver,canoe,slab",
+                    "$noOverworld,slab"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Dr Unne",
+                        "access_rules": [
+                            "^$incentiveSlot|fetchQuestsAreIncentive"
+                        ],
+                        "hosted_item": "slabTranslated"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 500,
+                        "y": 1000
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "I: Crescent Lake Area",
+        "color": "#808080",
+        "children": [
+            {
+                "name": "I: Crescent Lake",
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,ship,canal",
+                    "$standardWorld,extendedOpen,canoe",
+                    "$standardWorld,ship,canoe",
+                    "$noOverworld,$hasCanoe",
+                    "$noOverworld,ruby",
+                    "$noOverworld,tnt"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Sages",
+                        "access_rules": [
+                            "earlySage,^$incentiveSlot|npcsAreIncentive",
+                            "earthorblit,^$incentiveSlot|npcsAreIncentive"
+                        ],
+                        "hosted_item": "sages"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 790,
+                        "y": 1450
+                    }
+                ]
+            },
+            {
+                "name": "I: Ice Cave",
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$standardWorld,ship,canoe",
+                    "$standardWorld,bridge,canoe",
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,extendedOpen,canoe",
+                    "$noOverworld,$hasCanoe",
+                    "$noOverworld,chime,$hasFloater,oxyale"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Ice Cave Incentive",
+                        "access_rules": [
+                            "^$incentiveSlot|iceCaveIsIncentive"
+                        ],
+                        "hosted_item": "iceCave"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 655,
+                        "y": 2590
+                    }
+                ]
+            },
+            {
+                "name": "I: Volcano",
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,extendedOpen,canoe",
+                    "$standardWorld,ship,canoe",
+                    "$noOverworld,$hasCanoe",
+                    "$noOverworld,chime,$hasFloater,oxyale"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Fire Orb",
+                        "access_rules": [],
+                        "hosted_item": "fireorblit"
+                    },
+                    {
+                        "name": "I: Volcano Incentive",
+                        "access_rules": [
+                            "^$incentiveSlot|volcanoIsIncentive"
+                        ],
+                        "hosted_item": "volcano"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 225,
+                        "y": 2050
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "I: Cardia Islands",
+        "color": "#808080",
+        "children": [
+            {
+                "name": "I: Bahamut",
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$standardWorld,cardiaDock,ship,canal",
+                    "$noOverworld,$hasFloater"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Bahamut",
+                        "access_rules": [
+                            "tail"
+                        ],
+                        "hosted_item": "bahamut"
+                    },
+                    {
+                        "name": "I: Cardia Incentive",
+                        "visibility_rules": [
+                            "BahamutHoard"
+                        ],
+                        "access_rules": [],
+                        "hosted_item": "cardiaIncentive"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 2225,
+                        "y": 800
+                    }
+                ]
+            },
+            {
+                "name": "I: Cardia Incentive",
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$noOverworld,$hasCanoe,$hasFloater",
+                    "$noOverworld,chime,$hasFloater,oxyale"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Cardia Incentive",
+                        "access_rules": [
+                            "^$incentiveSlot|cardiaIsIncentive"
+                        ],
+                        "hosted_item": "cardiaIncentive"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 2225,
+                        "y": 888
+                    }
+                ]
+            },
+            {
+                "name": "I: Shop Item",
+                "access_rules": [],
+                "sections": [
+                    {
+                        "name": "I: Shop Item",
+                        "access_rules": [],
+                        "hosted_item": "shopItem"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 2225,
+                        "y": 965
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "I: Castle of Ordeals",
+        "color": "#808080",
+        "children": [
+            {
+                "name": "I: Ordeals",
+                "access_rules": [
+                    "$standardWorld,airship,canoe",
+                    "$standardWorld,ship,canal,canoe",
+                    "$standardWorld,lefeinBridge,hwyOrdeals,bridge,canoe",
+                    "$noOverworld,$hasCanoe"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Incentive",
+                        "access_rules": [
+                            "earlyOrdeals,^$incentiveSlot|ordealsIsIncentive",
+                            "crown,^$incentiveSlot|ordealsIsIncentive"
+                        ],
+                        "hosted_item": "ordeals"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 2395,
+                        "y": 1470
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "I: Gaia Area",
+        "color": "#808080",
+        "children": [
+            {
+                "name": "I: Lefein",
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$standardWorld,lefeinRiver,canoe,ship,canal",
+                    "$standardWorld,bridge,lefeinBridge",
+                    "$standardWorld,hwyOrdeals,ship,canal,canoe",
+                    "$standardWorld,northernDocks,ship,canal,hwyOrdeals",
+                    "$noOverworld,$hasCanoe,$hasFloater",
+                    "$noOverworld,$hasFloater,ruby",
+                    "$noOverworld,$hasFloater,tnt"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Incentive",
+                        "access_rules": [
+                            "slabTranslated,^$incentiveSlot|fetchQuestsAreIncentive",
+                            "slabDone,^$incentiveSlot|fetchQuestsAreIncentive"
+                        ],
+                        "hosted_item": "lefein"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 1565,
+                        "y": 700
+                    }
+                ]
+            },
+            {
+                "name": "I: Gaia",
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$standardWorld,lefeinRiver,gaiaMountain,ship,canal,canoe",
+                    "$standardWorld,northernDocks,hwyOrdeals,gaiaMountain,ship,canal",
+                    "$standardWorld,hwyOrdeals,gaiaMountain,ship,canal,canoe",
+                    "$standardWorld,lefeinBridge,gaiaMountain,bridge",
+                    "$noOverworld,$hasFloater"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Fairy",
+                        "access_rules": [
+                            "bottle,^$incentiveSlot|fetchQuestsAreIncentive"
+                        ],
+                        "hosted_item": "fairy"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 2775,
+                        "y": 980
+                    }
+                ]
+            },
+            {
+                "name": "I: Sky Palace",
+                "access_rules": [
+                    "$standardWorld,airship,chime,cube",
+                    "$standardWorld,northernDocks,ship,canal,chime,cube",
+                    "$standardWorld,lefeinBridge,bridge,hwyOrdeals,chime,cube",
+                    "$standardWorld,hwyOrdeals,ship,canal,canoe,chime,cube",
+                    "$noOverworld,$hasCanoe,$hasFloater,cube,oxyale",
+                    "$noOverworld,$hasFloater,chime,cube"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Air Orb",
+                        "access_rules": [],
+                        "hosted_item": "airorblit"
+                    },
+                    {
+                        "name": "I: Sky Incentive",
+                        "access_rules": [
+                            "^$incentiveSlot|skyIsIncentive"
+                        ],
+                        "hosted_item": "sky"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 2410,
+                        "y": 2195
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "I: Onrac Continent",
+        "color": "#808080",
+        "children": [
+            {
+                "name": "I: Waterfall",
+                "access_rules": [
+                    "$standardWorld,airship,canoe",
+                    "$standardWorld,northernDocks,ship,canal,canoe",
+                    "$noOverworld,$hasFloater"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Robot",
+                        "access_rules": [
+                            "^$incentiveSlot|npcsAreIncentive"
+                        ],
+                        "hosted_item": "robot"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 1395,
+                        "y": 965
+                    }
+                ]
+            },
+            {
+                "name": "I: Sea Shrine",
+                "access_rules": [
+                    "$standardWorld,airship,canoe,oxyale",
+                    "$standardWorld,northernDocks,ship,canal,oxyale",
+                    "$standardWorld,northernDocks,airBoat,airship,ship,oxyale",
+                    "$noOverworld,$hasCanoe,$hasFloater,oxyale",
+                    "$noOverworld,chime,$hasFloater"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Water Orb",
+                        "access_rules": [],
+                        "hosted_item": "waterorblit"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 1850,
+                        "y": 2325
+                    }
+                ]
+            },
+            {
+                "name": "I: Sea Incentive",
+                "access_rules": [
+                    "$standardWorld,airship,canoe,oxyale",
+                    "$standardWorld,northernDocks,ship,canal,oxyale",
+                    "$standardWorld,northernDocks,airBoat,airship,ship,oxyale",
+                    "$noOverworld,$hasCanoe,$hasFloater,oxyale",
+                    "$noOverworld,chime,$hasFloater"
+                ],
+                "sections": [
+                    {
+                        "name": "I: Sea Incentive",
+                        "access_rules": [
+                            "^$incentiveSlot|seaIsIncentive"
+                        ],
+                        "hosted_item": "sea"
+                    }
+                ],
+                "map_locations": [
+                    {
+                        "map": "incentives",
+                        "x": 2330,
+                        "y": 2600
+                    }
+                ]
+            }
+        ]
+    }
 ]

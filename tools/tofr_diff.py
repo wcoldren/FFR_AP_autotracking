@@ -3,7 +3,7 @@
 
 The oracle cannot see ToFR. `Archipelago.cs:93` drops it from the AP pool
 unconditionally, so FFR writes no rule for any ToFR location and not one of them
-is among the 226 that `check_logic.py` compares. Quoting 226/226 as though it
+is among the set `check_logic.py` compares. Quoting that figure as though it
 covered the derived set overstates it by exactly these eight maps -- see
 `docs/ISSUES.md`, "Nothing cross-checks the ToFR rules". This is the check that
 covers the gap, by comparison rather than by an oracle: hold the flags still,

@@ -54,10 +54,25 @@ deliberately misleading.
 CROWN and KEY gate tiles as usual. Ship and bridge are free.
 
 **Two items are renamed, and only two** (`:844`): `ItemsText[Floater] = "SIGIL"`
-and `ItemsText[EarthOrb] = "MARK"`. So SIGIL is the Floater — but **MARK is the
-Earth Orb, not the Canoe.** The Canoe NPCs' dialogue talks about "Lukahn's mark"
-and that is flavour; the item their routine checks is the Canoe. This was
-recorded backwards for a while, so it is worth stating plainly.
+and `ItemsText[EarthOrb] = "MARK"`.
+
+There are two different things called MARK here and they are not the same item.
+Say which namespace before answering, or the answer flips:
+
+| | SIGIL | MARK |
+|---|---|---|
+| **the game's item screen** (`ItemsText`, `:844`) | Floater | **Earth Orb** |
+| **the AP exporter's item name**, which is where the pack's `sigil` / `mark` codes come from | Floater | **Canoe** (`$6012`) |
+
+So on the screen the player is reading, MARK is the Earth Orb. In the tracker's
+codes — `scripts/autotracking/item_mapping.lua` and the `mark` RAM rule in
+`ram_mapping.lua` — `mark` is the Canoe, because the pack follows the exporter's
+names and the Earth Orb keeps its own `earthorb` code and its own box. The
+Canoe NPCs' dialogue talks about "Lukahn's mark", which is flavour on both
+readings; the item their routine checks is the Canoe.
+
+This has been recorded backwards twice, in both directions, which is why it is
+a table rather than a sentence.
 
 None of this is a new tracker code. The pack already tracks every one of these
 items — the mode needs new topology, not new codes.
@@ -123,8 +138,27 @@ warp -- `blocking_objects` there is empty with or without the Lute, because
 object 23 is not on that map at all. The party warps in, takes seven chests, and
 the gate stops them going deeper.
 
-That is why six ToFR locations derive as `(free)`, and it is a faithful reading
-of the cartridge rather than a hole in the walk. It was worth checking precisely
+That is why seven ToFR locations derived as `(free)` — and that reading was
+wrong. It asks where the lute gate stands and never asks what the Black Orb
+does. `Sanity/SCMap.cs:167-186` gates the BlackOrb object's tile on the four
+Orbs; the object stands at `TempleOfFiends (20,17)`; and FFR strips the
+`TP_SPEC_4ORBS` *tile* special there while leaving the object
+(`BlackOrb.cs:286`). **Not a No-Overworld edit** — every cartridge in the corpus
+reads `0x80` at that tile, standard and No-Overworld alike, where vanilla reads
+`0x92`. The walk modelled the tile and not the object, so it stepped through an
+orb gate on every FFR seed. Fixed by `entrance_graph.black_orb_item()`, which
+reads the requirement off the NPC's routine rather than assuming it: the stock
+routine ANDs the four orb bytes, a shard-hunt seed compares a count instead, and
+the reader refuses the latter rather than gating on orbs the seed never wants.
+All seven now derive `orbs`.
+
+**The exit portal is an exit and nothing more.** `ExitToFR` is on in every
+oracle cartridge, and on Short ToFR it writes a `PortalWarp` at
+`tofrChaos (15,3)` (`TempleOfFiends.cs:398-409`) — which is exactly where the
+time warp lands you. It reads `0x40`, `TP_TELE_WARP`, and is the only teleport
+on that map, so it takes you out and creates no way in; `reachable_maps` only
+follows `TP_TELE_NORM`. On a standard seed the warp lands on
+`TempleOfFiendsRevisited1F (20,17)` instead and the portal goes there. It was worth checking precisely
 because a final-floor chest reading as free from the start is the shape of a
 walk stepping somewhere it should not -- here the geometry says otherwise.
 

@@ -145,6 +145,15 @@ RAM_RULES = {
   { code = "ship",   stage = 0, addr = 0x6000 },
   { code = "bridge", stage = 0, addr = 0x6008 },
   { code = "canoe",  stage = 0, addr = 0x6012 },
+
+  -- The same two items again, under the names Archipelago uses for them on a
+  -- No-Overworld seed. These are the only boxes the NOverworld item grid has
+  -- for the canoe and the floater (layouts/shared.json), so without these two
+  -- rules a bridge-fed player watches their two most important gates stay dark
+  -- while the codes the rules read are set on items with no box. Same bytes,
+  -- read twice, on purpose -- see the note below on which rename is which.
+  { code = "sigil",  stage = 0, addr = 0x602B },
+  { code = "mark",   stage = 0, addr = 0x6012 },
   -- canal_vis is the *undug canal object*, so it reads INVERTED: the byte
   -- goes to zero once the canal is open.
   { code = "canal",  stage = 0, addr = 0x600C, zero = true },
@@ -165,16 +174,23 @@ RAM_SHARDS = { code = "shards", addr = 0x6035, maxStage = 36 }
 -- ($62FE bit 0x02) and lives in LOCATION_MAPPING with the other events. See the
 -- note there about the airship, which is why it took so long to trust.
 --
--- Nothing to derive from RAM:
+-- sigil and mark: FFR renames these twice, and the two renames disagree.
 --
---   sigil and mark -- No-Overworld renames exactly two items and only on the
---   item screen: MetroidVaniaMap.cs:843-844 sets ItemsText[Floater] = "SIGIL"
---   and ItemsText[EarthOrb] = "MARK". So SIGIL is the Floater at $602B and
---   MARK is the Earth Orb at $6031, both already read above, and neither is a
---   byte of its own. This used to say MARK was the Canoe at $6012, which is
---   the dialogue talking: the Canoe gate NPCs say "Lukahn's mark" and their
---   talk routine checks the Canoe. docs/NOVERWORLD.md states it plainly for
---   the same reason -- it was recorded backwards for a while.
+--   The item screen (MetroidVaniaMap.cs:843-844) sets ItemsText[Floater] =
+--   "SIGIL" and ItemsText[EarthOrb] = "MARK". The Archipelago exporter
+--   (archipelago/Archipelago.cs:287-289,339-340) renames Floater to "Sigil"
+--   and Canoe to "Mark". They agree about SIGIL and disagree about MARK.
+--
+--   The pack's two codes are fed by AP item ids 499 and 500
+--   (scripts/autotracking/item_mapping.lua), so they follow the exporter:
+--   sigil is the Floater at $602B and mark is the **Canoe** at $6012. That is
+--   what the rules above read. The Earth Orb keeps its own earthorb code and
+--   its own box, so nothing here is the item screen's MARK.
+--
+--   Worth restating because it has been recorded backwards before, in both
+--   directions: the Canoe gate NPCs' dialogue says "Lukahn's mark" and their
+--   talk routine checks the Canoe, which is where the exporter's name comes
+--   from. docs/NOVERWORLD.md carries the settled reading.
 
 local UNKNOWN_CODE_WARNED = {}
 

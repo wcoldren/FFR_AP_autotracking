@@ -65,9 +65,10 @@ pool, because all it does is talk to the AP server. On its own it cannot see
 chests outside the pool, orbs lit, items turned in, or shards from lighting
 orbs.
 
-The emulator feed described below covers all of those. What still needs a manual click:
-- Sigil and Mark, in no-overworld seeds. They share their memory with Floater
-  and Canoe, and nothing in RAM tells them apart.
+The emulator feed described below covers all of those, including the Sigil and
+Mark boxes on the no-overworld item grid. Those are renamed items rather than
+new ones, so they are read from the bytes their originals already use and light
+on their own. Nothing needs a manual click on the emulator feed today.
 
 
 Autotracking from the emulator (Mesen)
