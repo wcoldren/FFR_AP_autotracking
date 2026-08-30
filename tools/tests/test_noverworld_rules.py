@@ -96,5 +96,32 @@ else:
                 ok(False, f"{name} placement in range", f"{kind} {m} ({c},{r})")
                 break
 
+    # --- the map is a torus -------------------------------------------
+    #
+    # SMMove_Right adds one to sm_scroll_x and masks AND #$3F, commented "and
+    # wrap at 64 tiles" (bank_0F.asm:3070); the other three directions do the
+    # same on their axis. The walk treated the map as a bounded rectangle, which
+    # sealed off any region only reachable across an edge.
+    #
+    # Sea Shrine B1 is the case that found it. Three of its twelve Mermaid
+    # chests sit behind an 85-tile pocket, and the vanilla route is to leave by
+    # the top left and come back in at the top right. Without wrapping the walk
+    # calls them unreachable holding every item in the game -- and says so
+    # confidently, since nothing else about the floor looks wrong.
+    rom = e.Rom.of(raw, rom_path)
+    mode, _ = e.game_mode(rom)
+    if mode != e.GAME_MODE_NOVERWORLD:
+        print("SKIP  FF1_ROM is not a No-Overworld cartridge; "
+              "the Sea Shrine wrap check needs one")
+    else:
+        g = e.Graph(rom)
+        reach = nr.reachable_tiles(g, set(e.ITEM_NAMES))
+        SEA_SHRINE_B1 = 46
+        for label, col, row in (("Mermaids 4", 25, 4),
+                                ("Mermaids 5", 26, 4),
+                                ("Sea Incentive", 27, 4)):
+            ok(nr.bump(SEA_SHRINE_B1, col, row)(reach),
+               f"Sea Shrine {label} is reachable across the map edge")
+
 print("\n" + ("FAILURES: " + ", ".join(fails) if fails else "ALL PASS"))
 sys.exit(1 if fails else 0)

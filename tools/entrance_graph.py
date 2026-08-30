@@ -597,6 +597,17 @@ class Graph:
 
         Teleport tiles end the walk by default -- stepping on one takes you off
         the floor, so you cannot route *through* a staircase.
+
+        **A standard map is a torus.** Walking off one edge brings you in at the
+        other, and the engine says so itself: SMMove_Right adds one to
+        sm_scroll_x and masks `AND #$3F`, commented "and wrap at 64 tiles"
+        (bank_0F.asm:3070). SMMove_Left, Up and Down do the same on their axis.
+
+        This walk treated the map as a bounded rectangle until 2026-08-30, which
+        sealed off any region only reachable by crossing an edge. Sea Shrine B1
+        is the case that found it: three of its twelve Mermaid chests sit in an
+        85-tile pocket walled off on every side, and vanilla's intended route is
+        to leave by the top left and come back in at the top right.
         """
         _, p0, _ = self.grid(map_id)
         sx, sy = start[0] % MAP_DIM, start[1] % MAP_DIM
@@ -609,9 +620,7 @@ class Graph:
             if (x, y) in tele_at and (x, y) != (sx, sy):
                 continue
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                nx, ny = x + dx, y + dy
-                if not (0 <= nx < MAP_DIM and 0 <= ny < MAP_DIM):
-                    continue
+                nx, ny = (x + dx) % MAP_DIM, (y + dy) % MAP_DIM
                 if (nx, ny) in seen or (nx, ny) in blocked:
                     continue
                 if not self.walkable(p0[ny * MAP_DIM + nx], have):
@@ -650,9 +659,7 @@ class Graph:
                 found[(x, y)] = (hit[0], hit[1], d)
                 continue          # stepping on it takes you off the floor
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                nx, ny = x + dx, y + dy
-                if not (0 <= nx < MAP_DIM and 0 <= ny < MAP_DIM):
-                    continue
+                nx, ny = (x + dx) % MAP_DIM, (y + dy) % MAP_DIM
                 if (nx, ny) in seen:
                     continue
                 if (nx, ny) in blocked:
