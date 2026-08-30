@@ -164,12 +164,30 @@ is plausibly in reach. Two constraints on any version that actually runs one:
   the render, never the reload -- and a regen the player does not know happened,
   followed by a tracker still showing the old art, is worse than no regen.
 
-**So the version worth building is detection, not execution.** The bridge reads
+**So the first version to build is detection.** The bridge reads
 `.regen_cache.json`, compares it against the cartridge in the emulator, and
 publishes a variable; the pack lights a warning cell the way `flagsUnread`
 already does (`uat.lua:159-203` -- a LuaItem whose Icon appears only when there
 is a reason). That fits inside both sandboxes, needs no new permission, and turns
 a silent wrong-pins failure into a visible one.
+
+**And then execution, which this page used to argue against.** The old conclusion
+was "detection, not execution", on the grounds that a regen the player did not
+know happened, followed by a tracker still showing the old art, is worse than no
+regen at all. **That objection is answered by the warning cell itself**: once the
+mismatch is on screen, the player knows both that the art is stale and that
+something was done about it, and the detached regen means the new art is already
+waiting by the time PopTracker is restarted. Superseded 2026-08-30 rather than
+dropped, because the reasoning is still the reason the warning comes first.
+
+What has *not* changed is the restart. PopTracker loads pack images at load time,
+so an automatic regen buys the render and never the reload.
+
+One precondition is still unmeasured and is step 0 of that branch: `os.execute`
+is described above as "plausibly in reach" in Mesen's Lua, which is an inference
+from the file and socket functions the bridge already uses, not a test. If it
+turns out not to be reachable, the detection half ships and the execution half
+does not.
 
 One thing it needs first: the bridge has no sha256, so the cache has to record
 something cheap to compare. The FFR seed string and flag string are already read
