@@ -123,6 +123,32 @@ Nothing here is urgent unless it says so.
   by stepping on the altar, not by the kill — is the only proxy. Any box for them
   would be manual-click forever.
 
+- **The committed No-Overworld dungeon tree is a copy of the standard one.**
+  `locations/NOverworld/overworld.json` has been byte-identical to
+  `locations/overworld.json` since `c0b494b` created it, and that commit is the
+  one saying why it should not be: "the crop makes the same tile a different
+  pixel in each set, so the dungeon tree splits too". A No-Overworld cartridge
+  seals every town wall and stamps 75 new staircases, so 34 to 39 of the 61 maps
+  are cropped differently and the same tile lands elsewhere. The committed file
+  carries the standard crop's pixels for all of them. It is a fallback, not the
+  live path -- `regen_maps.py` writes markers into an override directory and
+  never into the tracked pack -- so a No-Overworld player who has rendered art
+  sees correct pins and one who has not sees every box off its chest, which is
+  the same failure `load_cache`'s stale-override branch exists to prevent. Fixing
+  it means committing a rendered No-Overworld tree, which needs a decision about
+  whether generated marker coordinates belong in the repo at all.
+
+- **`test_maps.lua` check 6 is comparing a file to itself.** It exists to hold
+  the two dungeon trees in step -- same locations, same sections, same access
+  rules, map names but not pixels -- and while the two files are identical it
+  cannot fail for any reason, including the pixel tolerance it is written around.
+  It passed the Ordeals defect for that reason and would have passed it for that
+  reason no matter what the check compared. It starts doing real work the moment
+  the trees legitimately diverge, which is the entry above; until then its 283
+  matching locations are not evidence of anything. Its sibling check 7, which
+  compares the incentive tree against the dungeon tree, is unaffected -- those
+  two files are genuinely different.
+
 - **The two tabs disagree about how to reach Gaia.** The Gaia node's
   northern-docks route reads `northernDocks,hwyOrdeals,gaiaMountain,ship,canal`
   in `locations/incentives.json` and drops `hwyOrdeals` in
