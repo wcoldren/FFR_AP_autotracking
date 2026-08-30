@@ -713,6 +713,21 @@ def check_seed(rom_path, pack_rules, ap_paths, players_dir=None, verbose=False,
     pinned = flag_codes(flags)
     noverworld = flags.get("GameMode") == 2
 
+    # --derived is a No-Overworld artefact end to end: noverworld_rules.py
+    # produces it, and main() joins its node names against the NOverworld tree
+    # once, for every ROM in the run. A standard cartridge selects the standard
+    # tree three lines below, so grading it here would compare section paths
+    # from one tree against rules keyed to the other. That silently returns "no
+    # derived rule" rather than an error, and it is invisible today only
+    # because the two overworld files are byte-identical -- the first real edit
+    # to locations/NOverworld/overworld.json would start hiding locations. The
+    # default ROM list is a glob over the whole corpus, so this is the ordinary
+    # case, not a corner: skip it loudly.
+    if derived is not None and not noverworld:
+        print("  skipped: --derived rules are keyed to the No-Overworld tree"
+              " and this cartridge is GameMode %s" % flags.get("GameMode"))
+        return 0, 0
+
     # Read the rules the cartridge's own variant loads. scripts/init.lua picks
     # locations/NOverworld/ for the four No-Overworld variants, so checking a
     # GameMode 2 seed against the standard tree would grade the pack on files
@@ -1011,6 +1026,9 @@ def main():
 
     pack_rules = {False: load_pack_rules(),
                   True: load_pack_rules(files=NOVERWORLD_FILES)}
+    # One join for the whole run, against the NOverworld tree, because that is
+    # the only tree --derived rules can be keyed to; check_seed skips any
+    # cartridge that would not load it.
     sections = pack_rules[True] if args.derived else pack_rules[False]
     ap_paths = ap_location_paths(ff1=args.ff1_world)
     if not ap_paths:
