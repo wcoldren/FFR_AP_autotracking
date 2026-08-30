@@ -8,16 +8,20 @@ maps and seals every town's outer wall -- so a screenshot of the vanilla castle
 shows the right rooms and the wrong exits. Drawing from the cartridge instead
 gets the seed's own map, whatever mode it is in.
 
-It also makes calibration disappear -- but only for a pack that has been moved
-over wholesale. Every image here is 64 tiles at 16 pixels, so tile (col, row) is
-pixel (col * 16, row * 16) exactly, with no offset to eyeball and no map left
-uncalibrated. The 51 images the pack ships today are hand-drawn composites at 51
-different sizes, each with a hand-solved offset in tools/map_calibration.json
-that make_markers.py bakes into the pixel coordinates in locations/*.json.
-Dropping these renders on top of those without rewriting map_calibration.json
-(every offset zero, one region per map) and re-running make_markers.py moves the
-art out from under every dungeon marker. Render somewhere else until that swap
-is done as one piece.
+It also makes calibration a derivation rather than an eyeballed number. Plain,
+every image is 64 tiles at 16 pixels, so tile (col, row) is pixel (16col, 16row)
+exactly. With --crop each image starts at its own content box instead, which is
+one offset per axis per map -- still computed from the cartridge, still one
+region, and still nothing to solve by hand. The 51 images the pack ships are
+hand-drawn composites at 51 different sizes, each with a hand-solved offset in
+tools/map_calibration.json; those offsets stay where they are and keep serving
+that art. Dropping these renders on top of it is a job for tools/regen_maps.py,
+which rebuilds the markers from the cartridge rather than moving the old ones.
+
+Cropping is what makes a tab readable. A mean 48% of the grid survives it, and
+the box lands within a tile of the one DarkmoonEX drew on 22 of the 30 maps
+where both exist -- which is the reason to trust it, since the rule is the
+border tile and a flood and knows nothing about the art.
 
 The rendering is FF1Lib/Sprites/MapSprites.cs's, in Python:
 
@@ -65,15 +69,18 @@ Usage:
 
 import argparse
 import hashlib
+import json
 import os
+import string
 import sys
+from collections import Counter, deque
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 from extract_chests import (  # noqa: E402
-    INES_HEADER, MAP_COUNT, MAP_DIM, TILESET_LUT,
-    decompress_map, map_data_base,
+    BANK_SIZE, INES_HEADER, MAP_COUNT, MAP_DIM, PROP_STRIDE, TILESET_LUT,
+    TILESET_PROP, decompress_map, map_data_base,
 )
 import entrance_graph  # noqa: E402
 import pngio  # noqa: E402
@@ -377,7 +384,259 @@ def hidden_cells(rom, map_id, tiles, art=None, open_art=None):
     return keep | room_and_walls(rom, map_id, tiles, art, open_art)
 
 
-def render(rom, map_id, inside=False, unroof=False, graph=None, only=None):
+# --------------------------------------------------------------------- crop
+
+# A 64x64 map is mostly not map. What fills the rest is one tile repeated --
+# the out-of-bounds void in a dungeon, the warp-out field around a town -- so a
+# render of the whole grid puts Mirage Tower 1F's interior in a corner of a
+# 1024x1024 image and leaves the rest empty. The shipped hand-drawn maps are
+# cropped, which is why con_castle.png is 1074x605 and matoya.png 273x258.
+#
+# The crop derives, and the hand art is what says so. On the 30 maps
+# map_calibration.json covers, the box below lands within one tile of the box
+# DarkmoonEX drew on about 25 of them and exactly on tofrAir. That agreement
+# was not tuned for: the rule is the border tile and a flood inward, and the
+# numbers came out where the art already was. Mean kept area is 48% of the
+# grid.
+
+
+def map_tiles(rom, map_id):
+    """The decompressed 64*64 tile grid for one standard map."""
+    base = map_data_base(rom)
+    ptr = int.from_bytes(rom[base + map_id * 2:base + map_id * 2 + 2], "little")
+    return decompress_map(rom, base + ptr)
+
+
+def backdrop_tile(tiles):
+    """(tile id, how many of the 256 border cells it holds).
+
+    The ring around the outside of the grid is filler on every map, so its
+    modal tile names the filler. The count comes back with it because a map
+    whose ring is not overwhelmingly one tile is a map to be careful about.
+    """
+    ring = [tiles[c] for c in range(MAP_DIM)]
+    ring += [tiles[(MAP_DIM - 1) * MAP_DIM + c] for c in range(MAP_DIM)]
+    ring += [tiles[r * MAP_DIM] for r in range(MAP_DIM)]
+    ring += [tiles[r * MAP_DIM + MAP_DIM - 1] for r in range(MAP_DIM)]
+    return Counter(ring).most_common(1)[0]
+
+
+def outside_cells(tiles, tile):
+    """The filler reachable from the edge of the grid, as {(col, row)}.
+
+    Flooded inward rather than tested cell by cell, and the difference is not
+    academic. Waterfall's $46 is the open water *outside* the map and the room
+    floor *inside* it -- the same tile id and the same two property bytes in
+    both places, which is the fact that defeated every per-tile test the room
+    work tried. `tiles[i] == filler` would call that room floor filler and crop
+    the room away. A flood from the edge cannot reach it: the wall is in the
+    way.
+    """
+    seen, q = set(), deque()
+
+    def push(col, row):
+        if (col, row) not in seen and tiles[row * MAP_DIM + col] == tile:
+            seen.add((col, row))
+            q.append((col, row))
+
+    for n in range(MAP_DIM):
+        push(n, 0)
+        push(n, MAP_DIM - 1)
+        push(0, n)
+        push(MAP_DIM - 1, n)
+    while q:
+        col, row = q.popleft()
+        for dc, dr in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            c, r = col + dc, row + dr
+            if 0 <= c < MAP_DIM and 0 <= r < MAP_DIM:
+                push(c, r)
+    return seen
+
+
+CROP_PAD = 1
+
+
+def content_box(tiles, pad=CROP_PAD):
+    """(c0, c1, r0, r1), inclusive: the part of the grid worth drawing.
+
+    The bounding box of everything the edge flood could not reach, padded so
+    the wall the content ends against stays in frame. One tile rather than none
+    for two reasons: a room's outer wall is content, and tests/test_maps.lua
+    bounds-checks every marker with a 12px half-box, which a 16px pad clears.
+
+    A map whose content reaches every edge comes back as the whole grid --
+    Waterfall very nearly does, sky4F does. That is the honest answer, not a
+    failure.
+    """
+    tile, _ = backdrop_tile(tiles)
+    outside = outside_cells(tiles, tile)
+    content = [(i % MAP_DIM, i // MAP_DIM) for i in range(MAP_DIM * MAP_DIM)
+               if (i % MAP_DIM, i // MAP_DIM) not in outside]
+    if not content:
+        return 0, MAP_DIM - 1, 0, MAP_DIM - 1
+    cols = [c for c, _ in content]
+    rows = [r for _, r in content]
+    return (max(0, min(cols) - pad), min(MAP_DIM - 1, max(cols) + pad),
+            max(0, min(rows) - pad), min(MAP_DIM - 1, max(rows) + pad))
+
+
+def in_box(box, col, row):
+    c0, c1, r0, r1 = box
+    return c0 <= col <= c1 and r0 <= row <= r1
+
+
+def crop_violations(rom, map_id, tiles, box, graph, extra=()):
+    """[(what, (col, row))] that the box would cut off and must not.
+
+    Zero on all 61 maps of three FFR cartridges, a fourth FFR seed and a
+    vanilla image, which is what makes this a guard rather than a hope. What it
+    covers, and why each is in it:
+
+      * **treasure-chest tiles**, because a cropped-away chest is a marker with
+        nowhere to draw;
+      * **NORM and EXIT teleports** -- every staircase and every map exit. WARP
+        is left out on purpose: it is the warp-out field that blankets a town
+        or castle exterior, 30875 tiles of it on one cartridge, and it *is* the
+        filler being cropped rather than content standing in it;
+      * **`extra`**, whatever else the caller draws markers for. regen_maps
+        passes the pack's tracked NPCs, and that is not decoration: the Ice
+        Cave B1 fairy stands on a cell the flood reaches, so it is exactly the
+        kind of thing a bad box would lose.
+    """
+    tileset = rom[TILESET_LUT + map_id]
+    prop = TILESET_PROP + tileset * PROP_STRIDE
+    bad = []
+    chest_tiles = {t for t in range(TILES_PER_SET)
+                   if (rom[prop + t * 2] & entrance_graph.TP_SPEC_MASK)
+                   == entrance_graph.TP_SPEC_TREASURE}
+    for i, t in enumerate(tiles):
+        cell = (i % MAP_DIM, i // MAP_DIM)
+        if (t & 0x7F) in chest_tiles and not in_box(box, *cell):
+            bad.append(("chest", cell))
+    for x, y, kind, _ in graph.teleports(map_id):
+        if kind != entrance_graph.TP_TELE_WARP and not in_box(box, x, y):
+            bad.append((f"teleport ${kind:02X}", (x, y)))
+    for what, col, row in extra:
+        if not in_box(box, col, row):
+            bad.append((what, (col, row)))
+    return bad
+
+
+def cropped_objects(map_id, box, graph):
+    """[(object id, (col, row))] the box leaves outside the frame.
+
+    Reported rather than fatal, because one of these is real and correct.
+    Marsh Cave B1 carries a fifth bat parked at (52,22) on void tile $3F, with
+    the same graphic as its four placed ones; it is there on a vanilla
+    cartridge too, so it is the game's own spare slot and not something a seed
+    did. Anything else showing up here wants looking at.
+    """
+    return [(oid, (x, y)) for oid, x, y in graph.objects(map_id)
+            if not in_box(box, x, y)]
+
+
+# ---------------------------------------------------------------- trap tiles
+
+# FFR randomizes which monsters a trap tile throws at you and the tracker says
+# nothing about it. The shipped art does: a yellow capital letter on the tile,
+# and a Map Key on the backdrop saying what each letter is. The letters are
+# derivable, which is worth stating because it was not obvious -- they are
+# positions in the cartridge's own flat tileset order.
+#
+# A trap tile is TP_SPEC_BATTLE, and tile properties live per tileset, so a
+# tile id means the same thing on every map sharing that tileset: the same trap
+# in Sea Shrine and Temple of Fiends is literally the same two ROM bytes.
+# Enumerating the fixed-formation ones over all eight tilesets in order and
+# labelling them A, B, C ... reproduces the shipped art on a vanilla cartridge:
+# earthB1 comes out {G, H, I} and volcB4 {M, N}, which is what DarkmoonEX drew.
+# volcB1's bare `A` is not a trap letter under this scheme and is not supposed
+# to be -- it is an entrance label, and the derivation agreeing about that is
+# part of why it is believable.
+#
+# The letters shift by a place or two on an FFR seed, because the shuffle turns
+# some fixed formations random and they drop out of the ordering. That is fine
+# and unavoidable: a letter's job is to key a tile to the legend drawn on the
+# same image.
+
+TP_SPEC_BATTLE = 0x0A
+TILESET_COUNT = 8
+SMMOVE_BATTLE_BPL = 0x0DC5    # offset into the fixed $C000 bank
+
+
+def fixed_bank(rom):
+    """The last bank: $0F on a stock 16-bank image, $1F on an FFR one."""
+    return (len(rom) - INES_HEADER) // BANK_SIZE - 1
+
+
+def battle_byte_inverted(rom):
+    """True when SMMove_Battle's BPL has been patched to BNE.
+
+    FFR does this on every seed (SpikeTile.cs:136-151, called unconditionally
+    from Randomize.cs:220) and it inverts what byte 1 of a trap tile means:
+
+        vanilla   b1 & 0x80 set -> random encounter, else fixed formation b1
+        FFR       b1 == 0x00    -> random encounter, else fixed formation b1,
+                                   0x80-0xFF included
+
+    Read rather than assumed. The opcode sits at 0x0DC5 in the fixed bank --
+    file offset 0x3CDD5 on a vanilla cartridge and 0x7CDD5 on an FFR one, the
+    same `LDA $45 / branch / JSR $C571` either way.
+    """
+    off = INES_HEADER + fixed_bank(rom) * BANK_SIZE + SMMOVE_BATTLE_BPL
+    op = rom[off]
+    if op not in (0x10, 0xD0):
+        raise ValueError(f"SMMove_Battle branch is ${op:02X} at 0x{off:X}, "
+                         "expected $10 (BPL) or $D0 (BNE)")
+    return op == 0xD0
+
+
+def _label(n):
+    """A, B, ... Z, AA, AB, ... -- there are more trap tiles than letters."""
+    a = string.ascii_uppercase
+    return a[n] if n < len(a) else a[n // len(a) - 1] + a[n % len(a)]
+
+
+def trap_letters(rom):
+    """{(tileset, tile): letter} for every fixed-formation trap tile."""
+    inverted = battle_byte_inverted(rom)
+    out = {}
+    for tileset in range(TILESET_COUNT):
+        base = TILESET_PROP + tileset * PROP_STRIDE
+        for tile in range(TILES_PER_SET):
+            b0, b1 = rom[base + tile * 2], rom[base + tile * 2 + 1]
+            if (b0 & entrance_graph.TP_SPEC_MASK) != TP_SPEC_BATTLE:
+                continue
+            random = (b1 == 0) if inverted else bool(b1 & 0x80)
+            if random:
+                continue
+            out[(tileset, tile)] = _label(len(out))
+    return out
+
+
+def map_trap_letters(rom, map_id, tiles, letters=None):
+    """{(col, row): letter} for the trap tiles standing on one map."""
+    letters = trap_letters(rom) if letters is None else letters
+    tileset = rom[TILESET_LUT + map_id]
+    return {(i % MAP_DIM, i // MAP_DIM): letters[(tileset, t & 0x7F)]
+            for i, t in enumerate(tiles) if (tileset, t & 0x7F) in letters}
+
+
+# The Map Key is drawn in the phase that draws the letters; what is reserved
+# here is somewhere to put it. A band below the map rather than beside it, so
+# offset_y is untouched and no marker moves, filled with the map's own backdrop
+# tile -- which is what the hand art does, its backdrop being the map's own
+# outdoor tint. Measured: 23 of 61 maps use a letter at all and the most any
+# map uses is four, so the band is small and bounded.
+LEGEND_HEADING_ROWS = 2
+
+
+def legend_rows_for(letter_count):
+    """How many tile-height rows to reserve for a map's Map Key."""
+    return 0 if not letter_count else LEGEND_HEADING_ROWS + letter_count
+
+
+def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
+           crop=None, legend_rows=0):
     """(w, h, rgb_bytes) for one standard map.
 
     `unroof` draws the rooms open: outdoor palette everywhere, room palette on
@@ -390,24 +649,29 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None):
     rather than a line of --gates output. The caller supplies the graph because
     building one reads and decompresses map data, and a caller rendering all 61
     maps should pay for that once. `only` narrows that to a set of object ids.
+
+    `crop` is a (c0, c1, r0, r1) tile box -- content_box(tiles) -- and
+    `legend_rows` reserves that many tile-heights of backdrop below the map for
+    a Map Key. Both default to off, so a plain render is still the whole 64x64
+    grid at 1024x1024 and --check still compares like with like.
     """
-    base = map_data_base(rom)
-    ptr = int.from_bytes(rom[base + map_id * 2:base + map_id * 2 + 2], "little")
-    tiles = decompress_map(rom, base + ptr)
+    tiles = map_tiles(rom, map_id)
     tileset = rom[TILESET_LUT + map_id]
     art = tileset_art(rom, tileset, map_palettes(rom, map_id, inside))
     open_art = tileset_art(rom, tileset, map_palettes(rom, map_id, True)) \
         if unroof and not inside else None
     rooms = hidden_cells(rom, map_id, tiles, art, open_art) if open_art else set()
 
-    side = MAP_DIM * TILE_PX
-    out = bytearray(side * side * 3)
-    for row in range(MAP_DIM):
-        for col in range(MAP_DIM):
+    c0, c1, r0, r1 = crop if crop else (0, MAP_DIM - 1, 0, MAP_DIM - 1)
+    w = (c1 - c0 + 1) * TILE_PX
+    h = (r1 - r0 + 1 + legend_rows) * TILE_PX
+    out = bytearray(w * h * 3)
+    for row in range(r0, r1 + 1):
+        for col in range(c0, c1 + 1):
             here = open_art if (row, col) in rooms else art
             block = here[tiles[row * MAP_DIM + col] & 0x7F]
             for y in range(TILE_PX):
-                dst = ((row * TILE_PX + y) * side + col * TILE_PX) * 3
+                dst = (((row - r0) * TILE_PX + y) * w + (col - c0) * TILE_PX) * 3
                 line = block[y]
                 for x in range(TILE_PX):
                     r, g, b = line[x]
@@ -415,12 +679,28 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None):
                     out[dst + 1] = g
                     out[dst + 2] = b
                     dst += 3
+    if legend_rows:
+        # The band is the map's own backdrop tile, tiled -- the same thing the
+        # hand art fills its margins with, so the Map Key drawn into it later
+        # sits on the map's colour rather than on an invented one.
+        block = art[backdrop_tile(tiles)[0] & 0x7F]
+        for row in range(r1 - r0 + 1, r1 - r0 + 1 + legend_rows):
+            for col in range(c1 - c0 + 1):
+                for y in range(TILE_PX):
+                    dst = ((row * TILE_PX + y) * w + col * TILE_PX) * 3
+                    line = block[y]
+                    for x in range(TILE_PX):
+                        r, g, b = line[x]
+                        out[dst] = r
+                        out[dst + 1] = g
+                        out[dst + 2] = b
+                        dst += 3
     if graph is not None:
         # Imported here, not at module scope: sprites imports this module for
         # the NES palette and the tile decode.
         import sprites                                              # noqa: E402
-        sprites.draw_objects(rom, graph, map_id, side, out, only)
-    return side, side, bytes(out)
+        sprites.draw_objects(rom, graph, map_id, w, h, out, only, (c0, r0))
+    return w, h, bytes(out)
 
 
 # The pack's own name for each standard map, taken from
@@ -483,6 +763,53 @@ def check(rom, ref_dir):
     return True
 
 
+def self_check(rom, path):
+    """Every crop box against the cartridge it came from.
+
+    The box is derived from one flood, so the way it goes wrong is by cutting
+    something off. That is the thing tested: chests, staircases, exits and the
+    pack's own tracked NPCs all have to survive it. Zero violations is the
+    measured baseline on three FFR seeds, a fourth, and a vanilla image.
+    """
+    graph = entrance_graph.Graph(entrance_graph.Rom.of(rom, path))
+    npcs = {}
+    with open(os.path.join(HERE, "npc_positions.json")) as f:
+        for name, places in json.load(f).items():
+            for q in places:
+                npcs.setdefault(q["map_id"], []).append(
+                    (f"npc {name}", q["tile_col"], q["tile_row"]))
+
+    bad = kept = 0
+    parked = []
+    for map_id in range(MAP_COUNT):
+        tiles = map_tiles(rom, map_id)
+        box = content_box(tiles)
+        kept += (box[1] - box[0] + 1) * (box[3] - box[2] + 1)
+        for what, cell in crop_violations(rom, map_id, tiles, box, graph,
+                                          npcs.get(map_id, ())):
+            print(f"  CUT OFF map {map_id} ({MAP_FILES[map_id]}): {what} at {cell}")
+            bad += 1
+        parked += [(MAP_FILES[map_id], oid, cell)
+                   for oid, cell in cropped_objects(map_id, box, graph)]
+
+    print(f"crop keeps a mean {kept / MAP_COUNT / (MAP_DIM * MAP_DIM) * 100:.0f}% "
+          f"of the grid across {MAP_COUNT} maps")
+    for name, oid, cell in parked:
+        print(f"  note: {name} object {oid} at {cell} is outside its box "
+              "(parked out of bounds; marshB1's spare bat is the known one)")
+    letters = trap_letters(rom)
+    used = sum(1 for m in range(MAP_COUNT)
+               if map_trap_letters(rom, m, map_tiles(rom, m), letters))
+    print(f"{len(letters)} fixed-formation trap tiles, used on {used} maps; "
+          f"SMMove_Battle byte 1 is "
+          f"{'FFR (b1 == 0 is random)' if battle_byte_inverted(rom) else 'vanilla (b1 & $80 is random)'}")
+    if bad:
+        print(f"self-check FAILED: {bad} things the crop would cut off")
+        return False
+    print("self-check passed: the crop cuts off nothing it must not")
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("rom")
@@ -496,6 +823,10 @@ def main():
                     help="draw the map's NPCs on the tiles they stand on")
     ap.add_argument("--check", metavar="DIR",
                     help="compare against FF1R renderdungeon output in DIR")
+    ap.add_argument("--crop", action="store_true",
+                    help="crop each map to its content, with a Map Key band")
+    ap.add_argument("--self-check", action="store_true",
+                    help="check every crop box against the cartridge")
     args = ap.parse_args()
 
     with open(args.rom, "rb") as f:
@@ -505,6 +836,9 @@ def main():
 
     if args.check:
         return 0 if check(rom, args.check) else 1
+
+    if args.self_check:
+        return 0 if self_check(rom, args.rom) else 1
 
     if not args.out:
         sys.exit("nothing to do: pass -o DIR to write images, or --check DIR")
@@ -517,13 +851,23 @@ def main():
         import entrance_graph                                       # noqa: E402
         graph = entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
 
+    letters = trap_letters(rom) if args.crop else None
     ids = [args.map] if args.map is not None else range(MAP_COUNT)
     for map_id in ids:
         name = MAP_FILES[map_id]
-        w, h, rgb = render(rom, map_id, args.inside, args.unroof, graph)
+        box = rows = None
+        if args.crop:
+            tiles = map_tiles(rom, map_id)
+            box = content_box(tiles)
+            rows = legend_rows_for(
+                len(set(map_trap_letters(rom, map_id, tiles, letters).values())))
+        w, h, rgb = render(rom, map_id, args.inside, args.unroof, graph,
+                           crop=box, legend_rows=rows or 0)
         path = os.path.join(args.out, name + ".png")
         pngio.write_rgb(path, w, h, rgb)
-        print(f"wrote {path}  ({w}x{h}, tile n is pixel {TILE_PX}n)")
+        where = (f"tile (c,r) is pixel ({TILE_PX}(c-{box[0]}), {TILE_PX}(r-{box[2]}))"
+                 if box else f"tile n is pixel {TILE_PX}n")
+        print(f"wrote {path}  ({w}x{h}, {where})")
     return 0
 
 

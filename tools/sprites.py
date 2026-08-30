@@ -200,21 +200,21 @@ def sprite_rgb(rom, gfx_id, map_id, pose="down", flip=False):
             for y, row in enumerate(px)]
 
 
-def paste(out, side, x, y, block):
+def paste(out, w, h, x, y, block):
     """Composite one 16x16 sprite onto an RGB buffer, skipping transparency."""
     for dy, row in enumerate(block):
         py = y + dy
-        if not 0 <= py < side:
+        if not 0 <= py < h:
             continue
         for dx, rgb in enumerate(row):
             px = x + dx
-            if rgb is None or not 0 <= px < side:
+            if rgb is None or not 0 <= px < w:
                 continue
-            d = (py * side + px) * 3
+            d = (py * w + px) * 3
             out[d], out[d + 1], out[d + 2] = rgb
 
 
-def draw_objects(rom, graph, map_id, side, out, only=None):
+def draw_objects(rom, graph, map_id, w, h, out, only=None, origin=(0, 0)):
     """Draw the objects standing on a map onto a rendered map buffer.
 
     Tile (col, row) is pixel (16col, 16row) in render_maps' output, and a map
@@ -222,11 +222,16 @@ def draw_objects(rom, graph, map_id, side, out, only=None):
     stands on. DrawMapObject nudges it three pixels up on screen for looks; a
     map drawing wants it on its tile, so that is left out.
 
+    `origin` is the (col, row) the buffer starts at, so a cropped render draws
+    its objects in the right place; the clipping in paste then does the rest,
+    which is what drops the objects a crop leaves outside the frame.
+
     `only` restricts to a set of object ids -- the gate NPCs, say, which are
     the ones with no marker of their own to collide with. Returns how many
     were drawn.
     """
     ids = sprite_ids(rom)
+    ox, oy = origin
     drawn = 0
     for oid, x, y in graph.objects(map_id):
         if only is not None and oid not in only:
@@ -234,7 +239,7 @@ def draw_objects(rom, graph, map_id, side, out, only=None):
         block = sprite_rgb(rom, ids[oid], map_id)
         if block is None:
             continue
-        paste(out, side, x * TILE_PX, y * TILE_PX, block)
+        paste(out, w, h, (x - ox) * TILE_PX, (y - oy) * TILE_PX, block)
         drawn += 1
     return drawn
 

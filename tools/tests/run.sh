@@ -15,7 +15,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 PY=${PYTHON:-python3}
 
 status=0
-for t in doormap_walk gate_objects sprites room_floors; do
+for t in doormap_walk gate_objects sprites room_floors crop; do
     echo "== $t"
     "$PY" "$HERE/test_$t.py" || status=1
 done
