@@ -629,10 +629,17 @@ def main():
     # One slot per mode, so rendering a No-Overworld cartridge does not throw
     # away the standard set. `outputs` spans both, because the two index files
     # and the layouts are shared and either run rewrites them.
+    #
+    # `inputs` is per mode for the same reason `rom` is. It used to be one key
+    # for the whole tree, which meant regenerating either mode stamped the new
+    # fingerprint over both: the other mode's art stayed on disk as the old
+    # tools drew it, and the next run of that mode said "nothing to do". A
+    # cache written before this has no per-mode fingerprint, so it reads as
+    # stale and that mode redraws once -- which is the right answer for it.
     was = (cache or {}).get("modes", {}).get(mode, {})
     if (not args.force and cache
             and was.get("rom") == rom_sha
-            and cache.get("inputs") == inputs_sha
+            and was.get("inputs") == inputs_sha
             and was.get("npcs", "none") == args.npcs
             and was.get("marker") == [args.marker_size, args.marker_border]
             and outputs_intact(out_dir, cache)):
@@ -644,8 +651,9 @@ def main():
         print(f"the {MODE_DIRS[mode]} cartridge changed since the last run")
     elif cache and not was:
         print(f"no {MODE_DIRS[mode]} art has been rendered here yet")
-    elif cache and cache.get("inputs") != inputs_sha:
-        print("the pack or these tools changed since the last run")
+    elif was and was.get("inputs") != inputs_sha:
+        print(f"the pack or these tools changed since the {MODE_DIRS[mode]} "
+              "art was last drawn")
     elif was and was.get("npcs", "none") != args.npcs:
         print(f"--npcs changed from {was.get('npcs', 'none')} to {args.npcs} "
               "since the last run")
@@ -818,6 +826,7 @@ def main():
     if not args.dry_run:
         modes = dict((cache or {}).get("modes", {}))
         modes[mode] = {"rom": rom_sha, "npcs": args.npcs,
+                       "inputs": inputs_sha,
                        "marker": [args.marker_size, args.marker_border]}
         outputs = dict((cache or {}).get("outputs", {}))
         outputs.update({rel: sha(data) for rel, data in files.items()})

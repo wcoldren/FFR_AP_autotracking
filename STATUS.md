@@ -942,6 +942,29 @@ vocabulary between our art and his guide. Worth knowing before quoting one at
 another player. `test_crop.py` asserts `volcB4`'s assignment per tile rather
 than per set, which is the case where the two do coincide.
 
+## One fingerprint for two modes marked the other one current
+
+Found 2026-08-29 while rendering the Map Key into both trees: the No-Overworld
+run said `nothing to do` immediately after the standard run, and its band was
+still a flat slab of backdrop.
+
+`.regen_cache.json` kept `inputs` -- the fingerprint of the pack and these tools
+-- once for the whole tree, while `rom`, `npcs` and `marker` were already per
+mode. So regenerating either mode stamped the new fingerprint over both. The
+other mode's art stayed on disk exactly as the older tools drew it, and its next
+run compared that shared fingerprint, found it current, and did nothing. Every
+change to the renderer since the modes split has had this hole; it only became
+visible because this one changes pixels in a place easy to test (`the band is
+one colour` versus `three`).
+
+`inputs` now lives in each mode's slot, for the same reason `rom` does. The
+version was deliberately **not** bumped: `load_cache` treats a version change as
+"clear every file the old cache lists", which would delete the other mode's art
+and not redraw it. A cache written before this simply has no per-mode
+fingerprint, so that mode reads as stale and redraws once, which is the right
+answer for it.
+
+
 ## Known wrong
 
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so
