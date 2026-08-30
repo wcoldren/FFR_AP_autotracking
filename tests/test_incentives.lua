@@ -300,7 +300,10 @@ ScriptHost = { AddWatchForCode = function(_, _, _, cb)
 end }
 AUTOTRACKER_ENABLE_DEBUG_LOGGING = false
 
-provided = {}
+-- show_gold_rings is on here because the item ships initial_active_state true,
+-- and the stub answers ProviderCountForCode out of this table rather than out
+-- of the item model. Every ring below is conditional on it.
+provided = { show_gold_rings = 1 }
 dofile(PACK .. "/scripts/incentives.lua")
 
 -- Wrap it so the depth is visible, then let a watch fire while it runs.
@@ -320,7 +323,7 @@ check("nothing ringed when no flag is set", refreshIncentiveHighlights(), 0)
 check("a skipped slot has no ring",
   sectionsByPath["@I: Coneria Castle/I: King"].Highlight, Highlight.None)
 
-provided = { npcsAreIncentive = 1 }
+provided = { show_gold_rings = 1, npcsAreIncentive = 1 }
 local ringed = refreshIncentiveHighlights()
 check("the NPC slots ring together", ringed > 0, true)
 check("the incentive tab's King is ringed",
@@ -330,12 +333,38 @@ check("and so is the one on the real board",
 check("a slot on another flag is left alone",
   sectionsByPath["@I: Sea Shrine/I: Sea Incentive"].Highlight, Highlight.None)
 
+-- The rings toggle. A Highlight is not a pin state -- PopTracker draws it as a
+-- glow around a marker it is already drawing -- so this one is a guard inside
+-- the refresh rather than a rule on the pin. What that has to buy is not just
+-- "stop drawing new rings" but "put out the ones already there", since nothing
+-- else ever revisits a section's Highlight.
+provided = { npcsAreIncentive = 1 }
+check("the toggle off rings nothing", refreshIncentiveHighlights(), 0)
+check("and puts out a ring that was already drawn",
+  sectionsByPath["@I: Coneria Castle/I: King"].Highlight, Highlight.None)
+check("on the real board too",
+  sectionsByPath["@Coneria Castle King/King"].Highlight, Highlight.None)
+
+provided = { show_gold_rings = 1, npcsAreIncentive = 1 }
+check("the toggle back on rings the same slots again",
+  refreshIncentiveHighlights(), ringed)
+
+-- A code nothing defines counts zero exactly like a toggle switched off, so a
+-- typo in the item or the rule would blank every ring for good. wantRings()
+-- separates the two cases and keeps ringing.
+local savedRingItem = byCode["show_gold_rings"]
+byCode["show_gold_rings"] = nil
+provided = { npcsAreIncentive = 1 }
+check("an undefined toggle rings anyway rather than blanking the board",
+  refreshIncentiveHighlights(), ringed)
+byCode["show_gold_rings"] = savedRingItem
+
 -- The one that matters. A refresh that opened a bulk update would flush it on
 -- the way out, the flush would run these watches, and the watches would refresh
 -- again -- for ever. PopTracker died on the stack overflow rather than saying
 -- anything.
 maxDepth = 0
-provided = { npcsAreIncentive = 1, seaIsIncentive = 1 }
+provided = { show_gold_rings = 1, npcsAreIncentive = 1, seaIsIncentive = 1 }
 refreshIncentiveHighlights()
 check("a refresh never runs inside itself", maxDepth, 1)
 

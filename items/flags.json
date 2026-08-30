@@ -323,5 +323,12 @@
                 "codes" : "tab_mode"
             }
         ]
+    },
+    {
+        "name" : "Incentive Rings",
+        "type" : "toggle",
+        "img" : "images/flags/showIncentiveRings.png",
+        "codes" : "show_gold_rings",
+        "initial_active_state" : true
     }
 ]

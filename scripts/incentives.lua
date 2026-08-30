@@ -39,6 +39,33 @@ local function incentiveFlags()
 end
 
 local highlightWarned = false
+local ringsWarned = false
+
+-- Does the player want the rings drawn at all?
+--
+-- This one toggle is Lua where the three pin toggles are rules on the pins
+-- themselves, and the difference is not a style choice: a Highlight is not a
+-- pin state. PopTracker draws it as a glow around a marker it is already
+-- drawing, so `restrict_visibility_rules` could only take the whole pin away,
+-- and taking away the slots a key item can be in is the opposite of what
+-- anyone means by turning the rings off.
+--
+-- An undefined code counts zero exactly like a toggle switched off, so a typo
+-- would put every ring out for good with nothing said. Say it once and behave
+-- as the pack did before, the way incentiveSlot() does in scripts/logic.lua.
+local function wantRings()
+  if Tracker:ProviderCountForCode("show_gold_rings") > 0 then
+    return true
+  end
+  if not Tracker:FindObjectForCode("show_gold_rings") then
+    if not ringsWarned then
+      ringsWarned = true
+      print("incentives: no toggle named show_gold_rings -- ringing anyway")
+    end
+    return true
+  end
+  return false
+end
 
 -- Guards against running inside itself. This is not hypothetical tidiness: the
 -- watches below fire from PopTracker's own change dispatch, and a refresh that
@@ -71,16 +98,20 @@ function refreshIncentiveHighlights()
   refreshing = true
   local marked = 0
   local ok, err = pcall(function()
+    local rings = wantRings()
     for _, slot in ipairs(INCENTIVE_SLOTS) do
       -- Only one of the two incentive trees is loaded, so roughly a third of
       -- these are expected to be nil. tests/test_incentives.lua is what
       -- catches a path that resolves in neither.
       local section = Tracker:FindObjectForCode(slot.path)
       if section then
-        if Tracker:ProviderCountForCode(slot.flag) > 0 then
+        if rings and Tracker:ProviderCountForCode(slot.flag) > 0 then
           section.Highlight = Highlight.Priority
           marked = marked + 1
         else
+          -- Reached with the toggle off as well as for a slot this seed
+          -- passed over, which is what puts the rings out on a click rather
+          -- than leaving the last set of them painted.
           section.Highlight = Highlight.None
         end
       end
@@ -112,6 +143,10 @@ if ScriptHost.AddWatchForCode then
     ScriptHost:AddWatchForCode("incentive:" .. flag, flag,
                                refreshIncentiveHighlights)
   end
+  -- And on the toggle itself, or turning it off would only take effect the
+  -- next time some incentive flag happened to move.
+  ScriptHost:AddWatchForCode("incentive:show_gold_rings", "show_gold_rings",
+                             refreshIncentiveHighlights)
 end
 
 refreshIncentiveHighlights()

@@ -192,6 +192,20 @@
             ]
         }
     },
+    "shared_display_grid": {
+        "type": "container",
+        "content": {
+            "type": "itemgrid",
+            "h_alignment": "center",
+            "v_alignment": "center",
+            "item_margin": "1,2",
+            "rows": [
+                [
+                    "show_gold_rings"
+                ]
+            ]
+        }
+    },
     "shared_incentives_grid": {
         "type": "container",
         "content": {

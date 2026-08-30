@@ -11,6 +11,9 @@
 --   CurrentStage is one above the stages[] index           (jsonitem.cpp:381, :473)
 --   providesCode walks DOWN from the current stage while inherit_codes holds,
 --   and yields nothing at all unless the item is active    (jsonitem.h:188-198)
+--   initial_active_state starts a toggle switched ON, and is read for toggle,
+--   toggle_badged and progressive_toggle only -- a plain progressive ignores
+--   it entirely                                            (jsonitem.cpp:118-121)
 local M = {}
 
 local function splitCodes(s)
@@ -35,7 +38,11 @@ function M.new(def)
     allowDisabled = def.allow_disabled ~= false,   -- default true
     codes = splitCodes(def.codes),
     stages = {},
-    stage1 = false,                                 -- "active"
+    -- Off unless the item asks to start on, which only these three types may
+    -- do; a "progressive" carrying the key is ignored, as PopTracker ignores it.
+    stage1 = (def.type == "toggle" or def.type == "toggle_badged"
+              or def.type == "progressive_toggle")
+             and def.initial_active_state == true or false,
     stage2 = 0,                                     -- index into stages
   }
   for _, st in ipairs(def.stages or {}) do

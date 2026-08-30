@@ -49,6 +49,15 @@
                         },
                         {
                             "type": "group",
+                            "header": "Pins",
+                            "dock": "left",
+                            "content": {
+                                "type": "layout",
+                                "key": "shared_display_grid"
+                            }
+                        },
+                        {
+                            "type": "group",
                             "header": "Pinned Locations",
                             "content": {
                                 "type": "recentpins",
