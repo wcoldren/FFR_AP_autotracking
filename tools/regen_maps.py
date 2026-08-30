@@ -36,12 +36,13 @@ maps.json index and its own copy of the dungeon location tree. Render one of
 each and a standard tracker and a No-Overworld one each show their own maps.
 Render neither and the pack's hand-drawn art is still there.
 
-Markers are built forward, from the cartridge's own chest tiles and the pack's
-NPC table, rather than moved from where the hand-drawn art put them. That is
-what lets a map with no hand-solved calibration entry carry markers at all --
-sixteen maps had none -- and it means a seed that moves a chest moves its
-marker. On an ordinary seed the ToFR shuffle puts five chests on a second floor
-apiece, and those floors now have pins where they never had any.
+Markers are built forward, from the cartridge's own chest and NPC tiles, rather
+than moved from where the hand-drawn art put them. That is what lets a map with
+no hand-solved calibration entry carry markers at all -- sixteen maps had none
+-- and it means a seed that moves a chest or an NPC moves its marker. On an
+ordinary seed the ToFR shuffle puts five chests on a second floor apiece, and
+those floors now have pins where they never had any; on a No-Overworld one FFR
+moves Nerrick two rows, and his pin goes with him.
 
 Re-running is cheap: it hashes the ROM and its own inputs, and if nothing moved
 it does no work at all. When the ROM does change, only the files whose bytes
