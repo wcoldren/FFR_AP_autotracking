@@ -96,6 +96,38 @@ of waving it through: Chaos's own room still has to be reachable, since the
 shortcut is what makes the seven unreachable. A seed that wires the gauntlet up
 passes too.
 
+### What the shortcut drops you into
+
+Measured 2026-08-30. The warp lands at `tofrChaos (15,3)`, and on a
+`ToFRMode = Short` seed there are seven chests in front of you: ToFR chest
+indices 248-254, in a fixed block at cols 12-18, rows 1-2.
+
+    vanilla                      0 chests on tofrChaos
+    6BF0DEA9  ToFRMode 0 (Long)  0
+    C189A0EF  ToFRMode 1 (Mid)   0
+    72A52C25  ToFRMode 2 (Short) 7   cols 12-18, rows 1-2
+    F258553F  ToFRMode 2 (Short) 7   the same positions, byte for byte
+
+The enum is `Long / Mid / Short / Random` = 0-3, from the `ToFRMode` declaration
+at the top of `FF1Lib/TempleOfFiends.cs` and the same mapping in
+`tools/ffr_flags/schemas/4-9-2.json`.
+
+So this follows `ToFRMode` and not `GameMode`: a *standard* Short seed has the
+same seven. See `docs/IDEAS.md` for the Long/Mid/Short taxonomy and what else
+Short moves onto this map.
+
+**The lute gate is behind the chests, not in front of them.** Object 23 is
+lute-gated and stands at `(15,5)`, two tiles past the landing spot, while the
+chests sit at rows 1-2 on the near side. Nothing on `TempleOfFiends` gates the
+warp -- `blocking_objects` there is empty with or without the Lute, because
+object 23 is not on that map at all. The party warps in, takes seven chests, and
+the gate stops them going deeper.
+
+That is why six ToFR locations derive as `(free)`, and it is a faithful reading
+of the cartridge rather than a hole in the walk. It was worth checking precisely
+because a final-floor chest reading as free from the start is the shape of a
+walk stepping somewhere it should not -- here the geometry says otherwise.
+
 ## The full shuffle is off by default
 
 It runs only with `Entrances` or `Towns` set. The stock preset ships both off, so

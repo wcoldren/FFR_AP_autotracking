@@ -643,6 +643,57 @@ here reaches it today -- every `^$incentiveSlot` term sits either alone in its
 list or in all of them -- so it was a false FAIL waiting on the next incentive
 rule, not a miss.
 
+## Chests that share a treasure index, and the rule that follows
+
+Measured 2026-08-30, after noticing on the tracker that opening one chest greys
+several squares at once.
+
+**Six treasure indices are placed on more than one tile, and that is vanilla.**
+Reading the chest table off a stock `Final Fantasy (USA).nes`: 241 indices, six
+of them on more than one tile, ten extra placements.
+
+    index  25   3 tiles   marshB2
+    index  26   2 tiles   marshB2
+    index  29   3 tiles   marshB3
+    index  92   4 tiles   volcB4 + volcB5 x3
+    index 101   2 tiles   volcB4
+    index 123   2 tiles   ordeals2F + ordeals3F
+
+Every one is in a look-alike-room area -- the Marsh Cave, the Volcano's Agama
+rooms, the Castle of Ordeals maze. A chest in this engine is a map tile carrying
+a treasure index and the open flag is set per index, so duplicated tiles clear
+together of necessity. Whether that was designed or fell out of copy-pasting
+room layouts is not decidable from the ROM, and the tile data cannot tell the
+two apart; what is certain is that it predates FFR and this pack. FFR then adds
+more of its own, seed by seed, which is the ToFR half and is in
+`docs/NOVERWORLD.md`.
+
+**The derivation ORs the tiles, and the OR is load-bearing.** `derive()` unions
+the per-tile rule sets, drops tiles the walk cannot reach rather than failing
+the location, and dedupes so four chests in one room do not ship as "(free) OR
+(free) OR (free)". Fifteen locations resolve to more than one tile on
+`F258553F`. Two of them are what says the union is doing work rather than
+agreeing with itself:
+
+    Dwarf Cave Dwarf Armory 5   cardia UNREACHABLE | dwarves key
+                                -> ships key
+    ToFR Kary Floor 2           canoe,floater OR chime,floater
+                                | UNREACHABLE | (free)
+                                -> ships (free)
+
+An AND would demand the Floater for the second. It ships free, which is right:
+opening any one copy clears the lot, so the party needs only the easiest.
+
+**A retraction, so it is not cited again.** A first pass at checking this
+printed an "if it ANDed instead" column beside each location and it agreed with
+the shipped rule everywhere, which looked like confirmation. It was computed
+over the already-filtered live-tile list, so it reproduced the OR answer by
+construction and could not have disagreed. It is evidence of nothing. The claim
+rests on the per-tile rules above instead, where the tiles genuinely differ.
+
+Nothing tests the multi-tile OR. It rests on a comment in `derive()` and on
+these measurements.
+
 ## Ideas from playing on the rendered maps
 
 Moved to `docs/IDEAS.md` -- towns as rooms, following the party into a

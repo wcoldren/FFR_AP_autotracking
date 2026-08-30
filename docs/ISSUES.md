@@ -113,6 +113,18 @@ Nothing here is urgent unless it says so.
 
 ## Open questions
 
+- **Nothing cross-checks the ToFR rules, so 226 of 226 does not cover them.**
+  `Archipelago.cs:93` excludes ToFR from the pool unconditionally, so FFR writes
+  no rule for any ToFR location and not one of them is among the 226 the
+  derivation is measured against. Their derived rules are validated only by
+  direct sweeps against the cartridge — which is how the six `(free)` ones were
+  settled (`docs/NOVERWORLD.md`, "What the shortcut drops you into"), one
+  location at a time and by hand. This is a limit on what the agreement figure
+  licenses rather than a defect: quoting 226/226 as though it covered the whole
+  derived set overstates it by exactly the ToFR floors. Anything that changes
+  how ToFR is walked needs its own measurement, because the oracle will stay
+  silent.
+
 - **`smith $6209` reads `0x05` and `fairy $6213` reads `0x04`** on a live seed —
   both have the chest bit set with the event bit clear, while their rules test
   `0x02`/`0x03`. Probably fine, since that is chest `$09`/`$13` rather than the
