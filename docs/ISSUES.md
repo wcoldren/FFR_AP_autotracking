@@ -214,6 +214,23 @@ Nothing here is urgent unless it says so.
   `key,crown,cube,orbs`. Better still, derive the expected count from `ToFRMode`
   rather than hardcoding 61.
 
+- **`ChestsKeyItems` is a seven-chest flag, and the pack describes it as a
+  general one.** `scripts/autotracking/maptab.lua:65-66` glosses it as "FFR's
+  'key items may be placed in chests' -- with it on, an ordinary chest can hold
+  the thing that opens the run", and `cartridgeChestsAreChecks()` uses it to
+  decide the full overworld tab is worth landing on. That conclusion is fine;
+  the description is looser than the cartridge. `ItemLocations.Lists.cs:178-181`
+  names exactly seven locations -- `MarshCaveMajor`, `ConeriaMajor`,
+  `EarthCaveMajor`, `IceCaveMajor`, `OrdealsMajor`, `SeaShrineMajor`,
+  `SkyPalaceMajor` -- and with the flag off `PlacementContext.cs:260` forces
+  those seven to their vanilla contents. So the flag opens seven named chests,
+  not every chest.
+
+  Not urgent, and it does not change any pin: the tab decision only asks whether
+  chests are worth watching, and seven key-item chests is a yes. What it costs
+  is anyone reasoning from the comment. Found 2026-08-30 while settling what
+  blue promises; the same reading is what corrected the README.
+
 ## Open questions
 
 - **The agreement figures used to grant away most of what they appeared to
