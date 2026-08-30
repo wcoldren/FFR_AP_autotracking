@@ -162,6 +162,15 @@ if not rom_path or not os.path.exists(rom_path):
 else:
     with open(rom_path, "rb") as f:
         raw = f.read()
+
+    # Whether this is an FFR cartridge at all, asked once and up here. Three of
+    # the checks below are true only of one -- FFR places a Lefein object that
+    # vanilla does not, and only FFR moves an NPC off its vanilla tile -- and
+    # run.sh advertises the vanilla ROM as good enough for this file. It has to
+    # stay good enough, or the suite fails under its own documented invocation.
+    traded = e.talk_item_requirements(e.Rom(rom_path))
+    ffr = traded is not None
+
     by_name, hosts = {}, {}
     placed = nr.placements(raw, "locations/NOverworld/overworld.json",
                            kinds=by_name, objects=hosts)
@@ -180,15 +189,22 @@ else:
     # Guessing the kind from the node name -- the first version of this -- found
     # none of them, because marker_tiles is keyed by node name and the object
     # table by item code.
-    ok(kinds.get("NPC") == 13, "exactly the thirteen NPC nodes join", str(kinds))
+    want_npcs = 13 if ffr else 12
+    ok(kinds.get("NPC") == want_npcs,
+       f"exactly the {want_npcs} NPC nodes join", str(kinds))
     ok(kinds.get("chest", 0) > 200, "and every dungeon chest does too",
        str(kinds.get("chest")))
 
     # The six that used to resolve to no tile at all. Named individually
     # because "thirteen" would still pass if one of them dropped out and an
-    # unrelated node appeared.
-    for node in ("Coneria Castle", "Crescent Lake", "Elf Castle",
-                 "Waterfall", "Lefein"):
+    # unrelated node appeared. Lefein is the one that is FFR-only, for the same
+    # reason the count above is: object $0F is not on a vanilla cartridge.
+    named = ["Coneria Castle", "Crescent Lake", "Elf Castle", "Waterfall"]
+    if ffr:
+        named.append("Lefein")
+    else:
+        print("SKIP  a vanilla cartridge places no Lefein object ($0F)")
+    for node in named:
         ok(node in placed and "NPC" in by_name.get(node, ()),
            f"{node} resolves to a tile", str(placed.get(node)))
 
@@ -200,12 +216,13 @@ else:
        "Nerrick's node knows it is object $08", str(hosts.get("Dwarf Cave Nerrick")))
 
     # Positions come off this cartridge, not out of npc_positions.json. That
-    # file is the vanilla table and reproduces the vanilla ROM exactly; FFR
-    # moves NPCs, so deriving a seed's rules from it answers about a different
-    # cartridge. Titan moves on an ordinary seed and Nerrick moves on a
-    # No-Overworld one.
+    # file is the vanilla table for the fourteen codes the pack pins, and it
+    # reproduces those exactly; FFR moves NPCs, so deriving a seed's rules from
+    # it answers about a different cartridge. Titan moves on an ordinary seed
+    # and Nerrick moves on a No-Overworld one.
     import json as _json                                        # noqa: E402
     import extract_npcs                                         # noqa: E402
+    import regen_maps                                           # noqa: E402
     cart = extract_npcs.extract(raw)
     with open(os.path.join(os.path.dirname(__file__), "..",
                            "npc_positions.json")) as f:
@@ -214,22 +231,44 @@ else:
     def cells(places):
         return [(q["map_id"], q["tile_col"], q["tile_row"]) for q in places]
 
+    def on_map(places):
+        """The cells of `places` the party can actually stand on.
+
+        placements() drops the rest, so an unfiltered extract is not what it
+        built. The Ice Cave B1 fairy is the standing case -- a second copy of
+        the Gaia object out in the black, which test_npc_pins asserts is the one
+        placement outside the map -- and comparing against it unfiltered would
+        fail on a correct answer.
+        """
+        return [c for c in cells(places)
+                if regen_maps.stands_on_map(raw, *c, cache=off_map)]
+
+    off_map = {}
     moved = sorted(code for code in cart
                    if code in vanilla and cells(cart[code]) != cells(vanilla[code]))
-    ok(bool(moved), "this cartridge moves at least one NPC off its vanilla tile",
-       str(moved))
-    for code in moved:
-        for node, ids in hosts.items():
-            if nr.OBJECT_IDS.get(code) in ids:
-                ok(sorted(placed[node]) == sorted(cells(cart[code])),
-                   f"{node} is placed where this cartridge puts {code}",
-                   f"{sorted(placed[node])} vs vanilla {sorted(cells(vanilla[code]))}")
+    if ffr:
+        ok(bool(moved), "this cartridge moves at least one NPC off its vanilla tile",
+           str(moved))
+    else:
+        print("SKIP  a vanilla cartridge is where npc_positions.json came from; "
+              "nothing moves")
+    for node, ids in sorted(hosts.items()):
+        if not any(extract_npcs.WANTED[oid] in moved for oid in ids):
+            continue
+        # Against every NPC the node hosts, not just the one that moved.
+        # Coneria Castle holds both the King and Sara, so `placed` there is the
+        # union of two objects' cells; comparing it to one object's would fail
+        # on a correct result the day FFR moves either of them.
+        want = sorted(c for oid in sorted(ids)
+                      for c in on_map(cart.get(extract_npcs.WANTED[oid], [])))
+        ok(sorted(placed[node]) == want,
+           f"{node} is placed where this cartridge puts its NPCs",
+           f"{sorted(placed[node])} vs {want}")
 
     # The trades themselves, which is the half the walk cannot see: it can put
     # the party next to Astos empty-handed, and that is not the same as getting
     # what he holds. These two were the only locations where the derived rules
     # and FFR's own logic disagreed.
-    traded = e.talk_item_requirements(e.Rom(rom_path))
     if traded is None:
         print("SKIP  FF1_ROM is not an FFR cartridge; the trades need one")
     else:

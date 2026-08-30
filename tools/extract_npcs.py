@@ -12,11 +12,22 @@ false for at least two of them:
     nerrick   vanilla (19,16,45)  the No-Overworld seed (19,15,47)
 
 MetroidVaniaMap.cs moves NPCs with its own SetNpc calls, and Titan's Tunnel
-moves on an ordinary seed. tools/npc_positions.json stays committed as the
-*vanilla* answer -- it reproduces roms/Final Fantasy (USA).nes exactly, and
-test_npc_positions.py asserts it -- but anything asking about a seed has to read
-that seed. (ShuffleObjectiveNPCs, which moves them again, is still not read by
-this pack -- see the note in ram_mapping.lua about sigil/mark.)
+moves on an ordinary seed. Anything asking about a seed has to read that seed.
+(ShuffleObjectiveNPCs, which moves them again, is still not read by this pack --
+see the note in ram_mapping.lua about sigil/mark.)
+
+tools/npc_positions.json is *not* this script's output any more, and running
+`extract_npcs.py <vanilla> -o tools/npc_positions.json` would break the pack.
+It is the committed vanilla snapshot of the fourteen codes the pack draws pins
+for, and regen_maps, render_maps and tests/test_maps.lua all read it as that.
+WANTED has since grown to twenty ids so a *seed*'s rules can be derived for the
+six NPC nodes that had none (see the list below); on a vanilla cartridge that
+now yields nineteen codes, five more than the file holds -- king, sara, sages,
+elfprince and robot, which the pack pins nothing for. The fourteen shared codes
+do still match the file byte for byte, and test_npc_pins.py asserts the file's
+code list against PINNED + UNPINNED. Widening the snapshot means widening those
+two lists, and deciding what a pin for each new code would mean, in the same
+change.
 
 Grounded in BenWenger's FinalFantasyDisassembly:
 
