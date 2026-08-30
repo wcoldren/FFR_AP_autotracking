@@ -493,6 +493,15 @@ walk cannot come back quietly.
 Written 2026-08-30. The derivation now agrees with FFR on every comparable
 location: **226 of 226**, up from 216 of 218, with nothing left unresolved.
 
+**Corrected 2026-08-30, later the same day.** That sentence is true and says far
+less than it sounds like. Most of those comparisons are granted rather than
+made: `offvocab_items()` hands the items the sweep cannot express to both sides,
+and on the committed corpus that is **164 of 222**, concentrated in oxyale
+(x129) and ruby (x32). Read `docs/ORACLE.md`, "What these figures do not cover".
+The cause is not a vocabulary limit -- three rows are missing from
+`GATED_OBJECTS` -- see `docs/ISSUES.md`, "The walk models two of the five object
+gates the cartridge has".
+
 Two defects, and they turned out to share a join.
 
 **Six locations FFR pools had no derived rule at all** -- Coneria Castle's King
@@ -563,6 +572,10 @@ On a 4.9.2 oracle cartridge built for the purpose, with `Spoilers`,
     derived rules       254   (was 249)   0 unreachable
     compared            226   (was 218)   226 agree, 0 divergent
     no derived rule       0   (was 6)
+
+That run's derived output was never committed. Re-running against the corpus
+files as they stand gives 254 derived and 222 compared, of which 164 are granted
+away -- so 58 are really compared. `docs/ORACLE.md` carries both figures.
 
 and the standard-mode baseline that validates the whole harness is unmoved at
 **225 checked, 225 agree, 0 divergences**. The derivation's two pinned numbers
@@ -969,7 +982,8 @@ Measured on the 4.9.2 oracle corpus:
 - `check_logic` on the standard cartridge: **225 checked, 225 agree, 0
   divergent**, unmoved.
 - `check_logic --derived` on the No-Overworld cartridge: **226 comparable, 226
-  agree, 0 divergent**, unmoved -- and **0 fanned**, where `Coneria Castle`
+  agree, 0 divergent**, unmoved -- though 164 of those are granted rather than
+  compared, which nothing here said at the time -- and **0 fanned**, where `Coneria Castle`
   exposed two sections before, so its derived rule reached both the King and
   Sara. That is the over-reach `derive()` hard-exits on when a trade is
   involved; neither of those two trades, so it had stayed a latent one.
@@ -1532,9 +1546,12 @@ after. The lesson is the one this file keeps relearning: the number that did not
 move as much as it should have was the finding, not a rounding.
 
 **Three things the check cannot settle.** Seven of FFR's requirement items —
-Oxyale, Ruby, Slab, Herb, Adamant, Bottle, Crystal — are game rules rather than
-tile blockers and are outside the ten the sweep varies; 121 uses of Oxyale on
-this seed alone. Skipping those locations was tried first and hides real
+Oxyale, Ruby, Slab, Herb, Adamant, Bottle, Crystal — are outside the ten the
+sweep varies; 121 uses of Oxyale on the reference seed `F258553F` (the oracle
+cartridge carries 129). **"Game rules rather than tile blockers" was wrong about
+two of them**: Oxyale and the Ruby are map objects standing on chokepoint tiles,
+`Sanity/SCMap.cs:167-186`, and the walk simply has no `GATED_OBJECTS` row for
+them — see `docs/ISSUES.md`. The genuinely non-graph five are the trades. Skipping those locations was tried first and hides real
 over-reach, because FFR's rule is an OR and a clause can sit entirely inside the
 swept vocabulary. Granting the off-vocabulary items for free instead makes FFR as
 permissive as it can be, so a surviving divergence cannot be blamed on the gap —

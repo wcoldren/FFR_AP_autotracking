@@ -123,8 +123,13 @@ warp -- `blocking_objects` there is empty with or without the Lute, because
 object 23 is not on that map at all. The party warps in, takes seven chests, and
 the gate stops them going deeper.
 
-That is why six ToFR locations derive as `(free)`, and it is a faithful reading
-of the cartridge rather than a hole in the walk. It was worth checking precisely
+That is why six ToFR locations derive as `(free)` — and that reading is
+**incomplete**. It asks where the lute gate stands and never asks what the Black
+Orb does. `Sanity/SCMap.cs:167-186` gates the BlackOrb object's tile on the four
+Orbs, the object stands at `TempleOfFiends (20,17)`, and this mode strips the
+`TP_SPEC_4ORBS` *tile* special there while leaving the object. The walk models
+the tile and not the object, so it steps through an orb gate as though it were
+not there. Those six are orb-gated, not free. It was worth checking precisely
 because a final-floor chest reading as free from the start is the shape of a
 walk stepping somewhere it should not -- here the geometry says otherwise.
 

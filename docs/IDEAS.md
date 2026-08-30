@@ -134,9 +134,11 @@ a set of samples to minimise afterwards.
 
 That is the only approach that survives the items the derivation currently cannot
 express, and it emits the same shape `check_logic` already compares against. Two
-things to hold on to when it is done: the sweep is now validated against FFR at
-216 of 218, which makes it the right oracle for the solver on the ten-item
-vocabulary before the solver is trusted on seventeen; and some of FFR's
+things to hold on to when it is done: the sweep's agreement with FFR is
+much weaker than it was recorded as -- most comparisons grant the disputed item
+to both sides, and it is 58 of 222 that are really compared -- so it is a
+starting point for the solver on the ten-item vocabulary, not the oracle it was
+called here; and some of FFR's
 requirements are not graph properties at all — Oxyale is "you can breathe
 underwater", the Crown is a talk-routine trade — so the item-semantics half stays
 a separate cartridge read either way.

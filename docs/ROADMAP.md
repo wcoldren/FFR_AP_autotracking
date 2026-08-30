@@ -69,7 +69,9 @@ being read off the seed rather than out of the vanilla snapshot, which FFR moves
 
 Re-run on a freshly built 4.9.2 oracle cartridge: **226 comparable, 226 agree, 0
 divergent**, no location left without a derived rule. The count rises from 218
-because the six now resolve.
+because the six now resolve. (That run's output was never committed; the corpus
+files as they stand give 254 derived and 222 compared. And most of the agreeing
+222 are granted away rather than compared — see `docs/ORACLE.md`.)
 
 The **pins** read the cartridge too, since 2026-08-30. `marker_tiles` and the
 two crop guards took NPC tiles out of `tools/npc_positions.json`, the vanilla
@@ -93,10 +95,19 @@ their flag strings, the `ffr-492-oracle` build tree, and the exact commands.
 Rebuilding is bit-reproducible — regenerating either cartridge from its flags
 preset at its recorded seed gives byte-identical output.
 
-Two results from that page belong here, because they are what this item rests
-on: the standard baseline is **225 checked, 225 agree**, and it must not move;
-the derived No-Overworld rules agree with FFR on **226 of 226**, and on a second
-seed **224 of 224**. Shard hunt now has a first measurement too, **229 of 229**.
+Three results from that page belong here, because they are what this item rests
+on. The standard baseline is **225 checked, 225 agree**, and it must not move;
+shard hunt has a first measurement too, **229 of 229**. Both are hand-written
+rules graded against an independent export, so both mean what they say.
+
+The No-Overworld numbers do not. Read `docs/ORACLE.md`, "What these figures do
+not cover", before quoting them. The derived rules report 222 of 222 agreeing,
+but **164 of those 222 had an off-vocabulary item granted free**, so 58 are
+actually compared. The pack's own rules report 220 of 226, but they were
+transcribed from the export they are graded against: **63 independently
+supported, 163 self-agreeing by construction, 6 deliberately strict**. The
+honest figure for this item is 63, and the way to move it is the three missing
+`GATED_OBJECTS` rows, not more seeds.
 
 What the oracle does not cover is ToFR — `Archipelago.cs:93` drops it from the
 AP pool unconditionally. `tools/tofr_diff.py` covers that gap by comparison
@@ -162,3 +173,14 @@ first.
 - Nothing is done on a successful edit alone. `tests/run.sh` and
   `tools/tests/run.sh` green, and for item 1, `check_logic.py` clean on both a
   No-Overworld and a standard cartridge.
+- **A new gate row does not count until it demonstrates a failure.** Adding a
+  row to `GATED_OBJECTS` -- or any other rule that is supposed to close
+  something -- means showing a location that was reachable without the item
+  before the row and gated after it, and saying so in the commit that adds it.
+  A row that changes nothing anywhere is either dead code or evidence the
+  enforcement is not wired, and both are worth catching at commit time rather
+  than on the next person to trust the output. Where the demonstration cannot
+  be run yet -- a gate whose item the sweep cannot hold until the vocabulary
+  widens -- say that in the commit rather than skipping it silently.
+  This is `test_maps.lua` check 6's lesson generalised: a check that cannot
+  fail is worthless, and so is a rule that cannot bite.
