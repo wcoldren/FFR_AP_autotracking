@@ -170,12 +170,26 @@ first.
 Where item 1 actually stands, 2026-08-30, and what comes off it. This is the
 part that goes stale fastest; check `git log trunk..` before trusting it.
 
-**`noverworld-logic` -- eight commits, unmerged, unpushed.** The wiring (feed
-split, mode guards, 25 region rules, checker), the record correction, the Black
-Orb gate, and the idea below. All suites green; std 225/225 and shard 229/229
-unmoved throughout. **The review gate is owed on these eight**: `/code-review`
-in a fresh-context session before it merges to `trunk`, findings addressed or
-waived in the commit message. Nothing pushed without explicit go-ahead.
+**`noverworld-logic` -- fourteen commits, merged to `trunk`, unpushed.** The
+wiring (feed split, mode guards, 25 region rules, checker), the record
+correction, the Black Orb gate, the idea below, and five commits answering the
+review. All suites green; std 225/225 and shard 229/229 unmoved throughout.
+
+**The review gate is closed.** `/code-review` ran in a fresh-context session on
+`trunk...noverworld-logic` at high effort and returned seven findings, all of
+which held up against the files. All seven were fixed rather than waived; each
+has its own commit message. Two were more than tidying:
+
+- The mode guards had landed on `locations/incentives.json` alone, which the two
+  NoMap variants load, while the two *map* variants load
+  `locations/NOverworld/incentives.json` and kept the poster's old geography.
+  Twenty-two slots disagreed between the two sheets. `test_maps.lua` check 7
+  compares them and had been exempted for exactly that pair.
+- `check_logic --derived` graded standard and shard cartridges against rules
+  keyed to the No-Overworld tree, producing 279 divergences that described
+  nothing. Those cartridges are skipped now.
+
+Nothing pushed without explicit go-ahead.
 
 **Next branch: the remaining two object gates, and the sweep that can hold
 them.** One commit, because the parts cannot land separately -- a

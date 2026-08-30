@@ -649,6 +649,18 @@ poster-only slots are named the way `fairy` is and anything else missing fails,
 and both concatenations use `" OR "`. Each fix was shown to catch a mutation the
 old check passed.
 
+**A fourth hole surfaced later, and it was the exemption rather than the
+algorithm.** Check 7 ran on the standard pair only; the No-Overworld pair was
+skipped by name, because its incentive sheet was hand-authored against
+upstream's poster and disagreed about twenty slots anyway. When the mode guards
+went in they went into `locations/incentives.json`, which the two NoMap variants
+load -- and the two *map* variants load `locations/NOverworld/incentives.json`,
+which kept the old geography. Twenty-two slots then disagreed between the two
+sheets, in a new way, and the only check that would have said so was off for
+exactly that pair. The rules are the standard sheet's now and check 7 runs over
+both pairs; what stays hand-authored is where the pins sit, which check 7 does
+not read. An exemption written around a known defect is a place a new one fits.
+
 The fourth is latent and worth writing down rather than fixing quietly: `canon`
 treated a rule as unconstrained only when *every* alternative emptied out, but
 in PopTracker an OR with one unconditional branch is unconditional. No rule
