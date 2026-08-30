@@ -17,12 +17,17 @@ What it compares, per ToFR map:
               design* -- the shortcut points TempleOfFiends at Chaos and nothing
               teleports into the gauntlet. A reachability-based reader would
               report both cartridges as empty and call that agreement.
-  chests      the treasure indices sitting on the map.
-  inbound     teleports anywhere on the cartridge that land in ToFR.
+  chests      the treasure indices sitting on the map, each with the tile it
+              sits on. Index alone would miss a chest that moved *within* one
+              map, which changes reachability and so changes the derived rule.
+  inbound     everything on the cartridge that lands in ToFR: both the extended
+              normal-teleport table and the 32-entry overworld entrance table.
+              A door repointed into ToFR is invisible if you read only the
+              first, and entrance shuffle repoints exactly that table.
 
-Three answers, not two. Cartridges whose ToFRMode differs are *incomparable*
-(the mode decides which floors exist at all), and saying so is different from
-saying nothing moved -- exit 2 rather than a cheerful 0.
+Three answers, not two. Cartridges the flags cannot certify as comparable get
+exit 2 rather than a cheerful 0 -- see `comparable` below for the three ways
+that happens. Saying "I cannot tell" is different from saying nothing moved.
 
     tofr_diff.py a.nes b.nes          0 = same, 1 = differs, 2 = incomparable
 """
@@ -46,6 +51,12 @@ TOFR_MAPS = eg.TOFR_INTERIOR + ("TempleOfFiendsRevisitedChaos",)
 
 KIND_NAME = {eg.TP_TELE_NORM: "norm", eg.TP_TELE_EXIT: "exit",
              eg.TP_TELE_WARP: "warp"}
+
+# ffr_flags/schemas/4-9-2.json: ToFRMode 3 is "Random". The flag block records
+# the *setting*, never the roll -- FF1Lib/TempleOfFiends.cs:52 collapses Random
+# to a real mode with `rng.Between` and writes that nowhere. Two cartridges from
+# the same Random preset both decode as 3 while one is Long and the other Short.
+TOFR_MODE_RANDOM = 3
 
 
 def tofr_map_ids():
@@ -82,11 +93,27 @@ def read(path):
     raw = open(path, "rb").read()
     if raw[:4] != b"NES\x1a":
         sys.exit(f"{path}: not an iNES ROM")
-    _, flags = ffr_flags.decode_rom(raw)
+    try:
+        _, flags = ffr_flags.decode_rom(raw)
+    except ffr_flags.DecodeError as err:
+        # Same shape as check_logic.py:680 and entrance_graph.py:1027. A vanilla
+        # image, or an FFR build whose version has no schema, clears the iNES
+        # check above and would otherwise exit on a traceback instead of the
+        # plain reason the exception already carries.
+        sys.exit(f"{path}: cannot read the flags: {err}")
 
     g = eg.Graph(eg.Rom(path))
     ids = tofr_map_ids()
-    _, per_map = extract_chests.extract(raw)
+
+    # The placements, not the per-map index lists: `extract` hands back the tile
+    # each chest sits on, and a chest that moved from one corner of Chaos to
+    # another is a real difference -- it can change what is reachable and so what
+    # the derived rule has to say. Teleports are already compared with their
+    # (x, y); dropping the chests' would be an asymmetry, not a decision.
+    placements = collections.defaultdict(collections.Counter)
+    for idx, spots in extract_chests.extract(raw)[0].items():
+        for spot in spots:
+            placements[spot["map_id"]][(idx, spot["tile_col"], spot["tile_row"])] += 1
 
     # Multisets throughout. A treasure index can sit on more than one tile, and
     # collapsing them to a set would hide a chest that gained or lost a twin.
@@ -94,9 +121,13 @@ def read(path):
     for map_id, name in sorted(ids.items()):
         maps[name] = {
             "teleports": collections.Counter(teleport_rows(g, map_id)),
-            "chests": collections.Counter(per_map.get(map_id, [])),
+            "chests": placements.get(map_id, collections.Counter()),
         }
 
+    # Two tables reach a map, and only one of them is staircases. Rows are
+    # (source, destination map, arrival x, arrival y) with the source spelled out
+    # as text, so a door and a staircase can share one counter without a tuple
+    # whose fields mean different things in different rows.
     inbound = collections.Counter()
     for m in range(eg.MAP_COUNT):
         if m in ids:
@@ -106,8 +137,18 @@ def read(path):
                 continue
             dest = g.norm_map[pay]
             if dest in ids:
-                inbound[(eg.MAP_NAMES[m], x, y, ids[dest],
+                inbound[(f"{eg.MAP_NAMES[m]} ({x},{y})", ids[dest],
                          eg.coord(g.norm_x[pay]), eg.coord(g.norm_y[pay]))] += 1
+
+    # All 32 entrance slots, not just the ones some overworld tile currently
+    # points at: this is a census of the table, the same way the rest of the tool
+    # reads tables rather than walking. No entrance lands in ToFR on a stock
+    # seed; entrance shuffle is what makes this worth reading.
+    for i in range(eg.ENTR_COUNT):
+        dest = g.entr_map[i]
+        if dest in ids:
+            inbound[(f"door {eg.DOOR_NAMES[i]} (#{i})", ids[dest],
+                     eg.coord(g.entr_x[i]), eg.coord(g.entr_y[i]))] += 1
 
     return {
         "game_mode": flags.get("GameMode"),
@@ -115,6 +156,33 @@ def read(path):
         "maps": maps,
         "inbound": inbound,
     }
+
+
+def comparable(a, b):
+    """Why these two cartridges cannot be compared, or None if they can.
+
+    Comparing is only meaningful when both cartridges were built to the same
+    ToFR shape, and the flags are the only place to ask. Three ways they refuse
+    to certify it, and all three are exit 2 rather than a difference count --
+    reporting a shape difference as a shuffle difference would be a wrong
+    answer dressed as a finding.
+    """
+    if a["game_mode"] != b["game_mode"]:
+        # No-Overworld does not merely reach ToFR differently, it repoints
+        # TempleOfFiends straight at Chaos and orphans the seven interior
+        # floors (docs/NOVERWORLD.md). `inbound` then differs by construction.
+        return (f"GameMode differs ({a['game_mode']} vs {b['game_mode']}) -- the "
+                "mode decides how ToFR is wired into the rest of the cartridge.")
+    if a["tofr_mode"] != b["tofr_mode"]:
+        return (f"ToFRMode differs ({a['tofr_mode']} vs {b['tofr_mode']}) -- the "
+                "mode decides which floors exist at all.")
+    if a["tofr_mode"] == TOFR_MODE_RANDOM:
+        return ("ToFRMode is Random on both -- the cartridge records the setting, "
+                "not the roll, so equal flags do not mean equal ToFR shape. One "
+                "of these may be Long and the other Short.")
+    if a["tofr_mode"] is None:
+        return "no ToFRMode in the decoded flags -- nothing certifies the shape."
+    return None
 
 
 def diff_counter(a, b):
@@ -129,9 +197,9 @@ def report(a, b, name_a, name_b, verbose=False):
     print(f"ToFRMode: {a['tofr_mode']} vs {b['tofr_mode']}"
           f"   GameMode: {a['game_mode']} vs {b['game_mode']}")
 
-    if a["tofr_mode"] != b["tofr_mode"]:
-        print("\nincomparable: ToFRMode decides which floors exist, so a "
-              "difference here is not a shuffle difference.")
+    why = comparable(a, b)
+    if why is not None:
+        print(f"\nincomparable: {why}")
         return None
 
     n = 0

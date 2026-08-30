@@ -154,5 +154,16 @@ reports a cheerful zero. `--ap-rules` is load-bearing for the reason above. The
 `nov` derivation sweep is about 85 seconds; everything else is fast.
 
 `tofr_diff.py` has three answers, not two — 0 same, 1 differs, 2 incomparable.
-Cartridges whose `ToFRMode` differs are incomparable, because the mode decides
-which floors exist at all, and saying so is not the same as saying nothing moved.
+It refuses to compare rather than report a shape difference as a shuffle
+difference, and there are three ways it refuses:
+
+- `GameMode` differs. No-Overworld repoints TempleOfFiends straight at Chaos and
+  orphans the seven interior floors, so `inbound` differs by construction. This
+  is what `std` against `nov` hits first.
+- `ToFRMode` differs. The mode decides which floors exist at all.
+- `ToFRMode` is 3 (**Random**) on both sides. The cartridge records the setting,
+  never the roll — `FF1Lib/TempleOfFiends.cs:52` collapses Random with `rng` and
+  writes the result nowhere — so two cartridges from one Random preset can be
+  Long and Short while their flags match to the byte. Equal is not comparable.
+  A corpus meant for this tool should pin `ToFRMode`, which is what the three
+  presets here do.
