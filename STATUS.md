@@ -583,6 +583,66 @@ the sections, so there is no way to say it for one section only. Nothing in the
 tree does that today -- Coneria Castle holds the King and Sara and neither
 trades.
 
+## The Ordeals incentive lost its Crown, and nothing was comparing
+
+Found 2026-08-30 while diffing what the tracker loads against upstream's
+`9ed47a4`. `locations/overworld.json` gates the Castle of Ordeals incentive on
+nothing; `locations/incentives.json` gates the same slot on
+`earlyOrdeals` or `crown`. Same check, two tabs, two answers.
+
+It went in `3ec131d` ("Split the calibrated dungeons into per-chest markers"):
+that slot's section moved into a child location and its `access_rules` did not
+follow. Every other split child kept its rule, which is why nothing looked
+wrong — `Coneria Castle Chests 1` carries `["key"]` on the child node exactly as
+intended.
+
+**Measured before calling it live.** On both standard duck seeds, walking with
+every item against every item *minus the Crown* reaches an identical tile set —
+35339 tiles on `C189A0EF`, 35319 on `2CCBA52F`, delta 0 — so nothing on either
+cartridge actually sits behind a Crown tile and no pin changed colour. The rule
+was still gone, and would matter on a seed where that door gates something. The
+Crown-gated tiles do exist: two on Ordeals 2F and one on 3F on one seed, three on
+2F on the other.
+
+**Two checks, because one of them could not have seen it.** `test_maps.lua`
+check 6 compares the standard and No-Overworld dungeon trees, and it builds its
+shape from *sections* — so a rule on a split child's node was outside it
+entirely. The shape now carries the node's own `access_rules` too. Check 7 is
+new and compares the incentive tree against the dungeon tree slot by slot: 29 of
+the 30 shared slots have to agree.
+
+The thirtieth is waived by name and filed in `docs/ISSUES.md`. Gaia's
+northern-docks route carries `hwyOrdeals` on the incentive poster and not in the
+dungeon tree, identically in upstream and here, so it is older than any of this
+work; which one is right is not answerable from the location files, and changing
+a standard-mode rule on a guess is the thing this pack keeps learning not to do.
+
+Both checks were shown to fail before they were believed: reverting the rule
+fails check 7, and restoring it to only one tree fails check 6.
+
+**Then the check itself was reviewed, and three of its four holes were the
+same mistake as the defect it was written for: something that looked compared
+and was not.** It keyed slots by `hosted_item`, but `cardiaIncentive` is hosted
+twice in each tree -- Bahamut's Cave behind the ship route, Cardia Forest behind
+the airship -- so last write won and one of the two pairs was never looked at; a
+bogus rule on the Bahamut's-Cave copy left the suite green. It skipped any slot
+the dungeon tree did not host, so renaming a `hosted_item` -- exactly what
+unlinks an incentive marker -- took the report from 29 slots to 28 and passed.
+And check 6's new node-rule field joined alternatives with `","`, the character
+that already separates the ANDed codes inside one, so `["a,b"]` and `["a","b"]`
+-- an AND and an OR -- produced the same string, in the field added to make rule
+drift visible. Slots are now compared as sorted multisets, the four orb-lit
+poster-only slots are named the way `fairy` is and anything else missing fails,
+and both concatenations use `" OR "`. Each fix was shown to catch a mutation the
+old check passed.
+
+The fourth is latent and worth writing down rather than fixing quietly: `canon`
+treated a rule as unconstrained only when *every* alternative emptied out, but
+in PopTracker an OR with one unconditional branch is unconditional. No rule
+here reaches it today -- every `^$incentiveSlot` term sits either alone in its
+list or in all of them -- so it was a false FAIL waiting on the next incentive
+rule, not a miss.
+
 ## Ideas from playing on the rendered maps
 
 Moved to `docs/IDEAS.md` -- towns as rooms, following the party into a
