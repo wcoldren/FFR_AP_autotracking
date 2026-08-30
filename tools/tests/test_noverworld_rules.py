@@ -74,6 +74,88 @@ ok(nr.minimal_sets([frozenset({"rod"}), frozenset({"key"})]) ==
    "two independent routes both survive minimisation")
 
 # --- the join -------------------------------------------------------------
+# --- where the walk is allowed to begin --------------------------------------
+#
+# The first version seeded from everything Graph.starts() returns. That method
+# answers a question about the *table* -- which entrances have a tile on the
+# overworld -- and on a No-Overworld cartridge that is nine separate one-tile
+# islands on an ocean stub. Seeding from all of them assumes the party begins
+# standing on every town at once: 45 of 61 maps open empty-handed instead of 22,
+# and 167 locations read as free where FFR says 21. Checked against FFR's own
+# export, 166 of 218 comparable locations diverged, every one of them permissive.
+#
+# The mechanism is tested here without a cartridge, because the cartridge tests
+# below skip when FF1_ROM is unset and a regression this expensive should not be
+# protected only by a test that usually does not run.
+
+import overworld_reach as owr        # noqa: E402
+
+OCEAN, PAD, RIVER = 0, 1, 2
+# A set bit refuses that vehicle (bank_0F.asm:1139). Ocean carries the ship
+# alone; a pad is walkable and refuses the canoe, the ship and the airship
+# alike, which is what every real pad does and why no vehicle leaves one.
+FAKE_PROP = [0x0B, 0, 0x0E, 0, 0x0D, 0]
+
+
+class FakeOverworld(owr.Overworld):
+    def __init__(self, pads, rivers=()):
+        self.rows = [[OCEAN] * owr.OW_DIM for _ in range(owr.OW_DIM)]
+        self.prop = FAKE_PROP
+        for x, y in pads:
+            self.rows[y][x] = PAD
+        for x, y in rivers:
+            self.rows[y][x] = RIVER
+
+
+class FakeGraph:
+    def __init__(self, doors):
+        self.doors = doors
+
+    def starts(self):
+        return [(d, d, (0, 0)) for d in self.doors]
+
+
+def doors_from(pads, start, rivers=()):
+    w = FakeOverworld(pads, rivers)
+    g = FakeGraph({i + 1: [p] for i, p in enumerate(pads)})
+    saved = nr.start_position
+    nr.start_position = lambda raw: start
+    try:
+        return nr.start_doors(g, b"", w)
+    finally:
+        nr.start_position = saved
+
+
+# Two isolated one-tile pads: the party can only be on the one it started on.
+found, note = doors_from([(10, 10), (20, 20)], (10, 10))
+ok([d for d, _, _ in found] == [1],
+   "an isolated start pad seeds one door, not every door",
+   str([d for d, _, _ in found]))
+ok(note is None, "and needs no caveat")
+
+# Adjacent pads are one landmass, so both doors are legitimately seeds.
+found, note = doors_from([(10, 10), (11, 10)], (10, 10))
+ok(sorted(d for d, _, _ in found) == [1, 2],
+   "two pads sharing a landmass seed both doors",
+   str(sorted(d for d, _, _ in found)))
+
+# A canoe channel between two pads is a real route, and one the item sweep would
+# have to account for -- so it is reported rather than silently taken.
+found, note = doors_from([(10, 10), (10, 12)], (10, 10), rivers=[(10, 11)])
+ok(sorted(d for d, _, _ in found) == [1, 2],
+   "a canoe channel joins two pads")
+ok(note is not None and "not item-independent" in note,
+   "and says so, instead of quietly assuming the canoe is held", str(note))
+
+# Nothing on the party's own landmass is not a shrug -- it means the start
+# position or the overworld read is wrong, and every later number is nonsense.
+try:
+    doors_from([(20, 20)], (10, 10))
+    ok(False, "a start with no door raises")
+except SystemExit:
+    ok(True, "a start with no door raises rather than returning nothing")
+
+
 rom_path = os.environ.get("FF1_ROM")
 if not rom_path or not os.path.exists(rom_path):
     print("SKIP set FF1_ROM to a Final Fantasy cartridge to run the join")
@@ -130,6 +212,34 @@ else:
                                 ("Sea Incentive", 27, 4)):
             ok(nr.bump(SEA_SHRINE_B1, col, row)(reach),
                f"Sea Shrine {label} is reachable across the map edge")
+
+# --- the same question asked of a real cartridge ------------------------------
+if rom_path and os.path.exists(rom_path):
+    with open(rom_path, "rb") as handle:
+        raw2 = handle.read()
+    rom2 = e.Rom.of(raw2, rom_path)
+    if e.game_mode(rom2)[0] != e.GAME_MODE_NOVERWORLD:
+        print("SKIP  FF1_ROM is not a No-Overworld cartridge; "
+              "the start-pad numbers need one")
+    else:
+        g2 = e.Graph(rom2)
+        seeds, _ = nr.start_doors(g2, raw2)
+        ok(len(seeds) == 1, "a real No-Overworld cartridge seeds exactly one door",
+           str([e.MAP_NAMES[m] for _, m, _ in seeds]))
+        every = set(e.ITEM_NAMES)
+        # The invariant docs/NOVERWORLD.md names: neither the gates nor the start
+        # pad may move the all-items answer. Only the empty-handed reach changes.
+        wide = nr.reachable_tiles(g2, every)
+        narrow = nr.reachable_tiles(g2, every, seeds)
+        ok(len(wide) == len(narrow),
+           "with every item, seeding narrowly changes nothing",
+           f"{len(wide)} maps either way")
+        bare_wide = nr.reachable_tiles(g2, set())
+        bare_narrow = nr.reachable_tiles(g2, set(), seeds)
+        ok(len(bare_wide) > len(bare_narrow),
+           "empty-handed, seeding from every door over-reaches",
+           f"{len(bare_wide)} from all doors vs {len(bare_narrow)} from the start")
+
 
 print("\n" + ("FAILURES: " + ", ".join(fails) if fails else "ALL PASS"))
 sys.exit(1 if fails else 0)

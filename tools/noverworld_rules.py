@@ -43,18 +43,79 @@ sys.path.insert(0, HERE)
 
 import entrance_graph as e          # noqa: E402
 import extract_chests               # noqa: E402
+import overworld_reach as owr        # noqa: E402
 import regen_maps                   # noqa: E402
 import split_locations              # noqa: E402
 
+# Where FFR writes the party's starting overworld position, and the offset it
+# stores it at. MetroidVaniaMap.cs:93 puts (coneria_x, coneria_y) here, and
+# those came from LoadInTown as (tile_x - 7, tile_y - 7) -- the scroll origin,
+# not the party. Sanity/SCCoords is built as (x + 7, y + 7) from the same pair,
+# which is what says the seven is the convention rather than a coincidence.
+START_POS = 0x00, 0xB010
+START_OFFSET = 7
 
-def reachable_tiles(g, have):
-    """{map_id: {(x, y)}} -- every tile you can stand on, walking from the doors.
+
+def start_position(raw):
+    """(x, y) the party stands on when a new game begins."""
+    bank, addr = START_POS
+    off = e.INES_HEADER + bank * 0x2000 + (addr - 0x8000)
+    return raw[off] + START_OFFSET, raw[off + 1] + START_OFFSET
+
+
+def start_doors(g, raw, w=None):
+    """The doors the party can actually walk to, as (doors, note).
+
+    `w` is the decompressed overworld, decompressed here when not supplied.
+
+    `Graph.starts()` answers a question about the *table*: which entrances have a
+    tile on the overworld. Seeding a reachability walk from all of them assumes
+    the party begins standing on every one at once, and on a No-Overworld
+    cartridge that is nine separate one-tile islands -- the eight towns and
+    Coneria Castle -- scattered across an ocean stub. It is not a small error:
+    it opened 45 of 61 maps empty-handed where the true figure is 22, and made
+    167 locations read as free where FFR says 21.
+
+    So ask the overworld instead. `overworld_reach.reach` is the transcription of
+    the three move handlers, and it is run with the canoe granted, which is the
+    most generous traversal the party could ever have. Every pad on the stub
+    carries tile property 0x0E -- walkable on foot, and refused to the canoe, the
+    ship and the airship alike -- so no vehicle moves you between pads and the
+    answer does not depend on what is held. That is measured here rather than
+    assumed: if a cartridge ever does let a vehicle off the start pad, the note
+    says so instead of the tool quietly picking one reading.
+    """
+    if w is None:
+        w = owr.Overworld(raw)
+    sx, sy = start_position(raw)
+    walkable = owr.reach(w, (sx, sy, "land"), canoe=True)
+    on_foot = owr.landmass(w, (sx, sy))
+
+    doors = [s for s in g.starts()
+             if any(xy in walkable for xy in g.doors.get(s[0], []))]
+    note = None
+    if walkable != on_foot:
+        extra = sorted(d for d, _, _ in doors
+                       if not any(xy in on_foot for xy in g.doors.get(d, [])))
+        if extra:
+            note = ("a vehicle reaches doors %s from the start pad, so the seed"
+                    " set is not item-independent on this cartridge" % extra)
+    if not doors:
+        raise SystemExit("no door on the party's own landmass at %s -- the start"
+                         " position or the overworld read is wrong" % ((sx, sy),))
+    return doors, note
+
+
+def reachable_tiles(g, have, seeds=None):
+    """{map_id: {(x, y)}} -- every tile you can stand on, walking from `seeds`.
 
     The same fixed point `reachable_maps` runs, keeping the floor walk instead of
-    discarding it.
+    discarding it. `seeds` defaults to every door with a tile, which is what
+    `reachable_maps` asks and the wrong question for a player -- see
+    `start_doors`.
     """
     seen, q, tiles = set(), deque(), {}
-    for _, m, a in g.starts():
+    for _, m, a in (g.starts() if seeds is None else seeds):
         if (m, a) not in seen:
             seen.add((m, a))
             q.append((m, a))
@@ -79,7 +140,7 @@ def reachable_tiles(g, have):
     return tiles
 
 
-def sweep(g, items, targets, progress=None):
+def sweep(g, items, targets, progress=None, seeds=None):
     """{target: [frozenset(items), ...]} -- which subsets can reach each target.
 
     `targets` is an iterable of (map_id, col, row). The answer for each is
@@ -102,7 +163,7 @@ def sweep(g, items, targets, progress=None):
     for n in range(len(items) + 1):
         for combo in itertools.combinations(items, n):
             subset = frozenset(combo)
-            tiles = reachable_tiles(g, set(combo))
+            tiles = reachable_tiles(g, set(combo), seeds)
             for t, hit in tests:
                 if hit(tiles):
                     out[t].append(subset)
@@ -218,12 +279,22 @@ def derive(rom_path, locations, verbose=True):
     g = e.Graph(rom)
     items = sorted(e.ITEM_NAMES)
 
-    def note(done, total):
+    # Whose doors the walk may begin at. Everything the sweep says rests on this
+    # -- getting it wrong is not a small over-count, it is the difference
+    # between 22 maps open empty-handed and 45.
+    seeds, note = start_doors(g, raw)
+    if verbose:
+        print("  starting from %s"
+              % ", ".join(e.MAP_NAMES[m] for _, m, _ in seeds), file=sys.stderr)
+        if note:
+            print("  %s" % note, file=sys.stderr)
+
+    def progress(done, total):
         if verbose:
             print(f"  {done}/{total} subsets", end="\r", file=sys.stderr)
 
     targets = {cell for cells in cells_by_name.values() for cell in cells}
-    reaching = sweep(g, items, targets, note)
+    reaching = sweep(g, items, targets, progress, seeds)
     if verbose:
         print(f"  swept {2 ** len(items)} subsets over {len(targets)} tiles"
               + " " * 20, file=sys.stderr)
