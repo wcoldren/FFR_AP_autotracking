@@ -1,19 +1,24 @@
 # FFR_AP_autotracking
 
-Setting up a recieved item autotracker for FFR on Archipelago (https://github.com/ArchipelagoMW/Archipelago).
+An autotracker pack for Final Fantasy Randomizer, for black-sliver's PopTracker
+(https://github.com/black-sliver/PopTracker/). It tracks over Archipelago
+(https://github.com/ArchipelagoMW/Archipelago) and over a Mesen Lua bridge, so
+it works on a plain FFR async too.
 
-This is a pack for black-silver's Poptracker (https://github.com/black-sliver/PopTracker/). 
+This is a fork of SunflashRune/FFR_AP_autotracking, and a personal project. I
+picked it up to learn the randomizer from the inside -- how a seed lays out its
+checks, how you read one out of the cartridge while the game is running, how the
+entrance shuffle is stored -- and to see how far PopTracker's own features go.
+A set of offline tools grew out of that and lives in `tools/`: a flag decoder, an
+entrance router, a clickable door map, an overworld reachability walk, and a
+renderer that draws the game's maps out of your own ROM.
+
+The pack, the maps and most of the groundwork are other people's work. See the
+credits at the end.
 
 It needs PopTracker 0.35.1 or newer. Older versions refuse to load the pack
 outright rather than loading it with less in it, so if it will not open, that is
 the first thing to check.
-
-This is a fork of SunflashRune/FFR_AP_autotracking and is no longer tracking it.
-Everything upstream had is in here; upstream's last commit was 2025-11-21, and
-its unmerged `Sun` branch stopped on 2025-12-10. The one thing either still had
-that this tree did not was markers on five maps, which are now derived from the
-cartridge instead -- see the "Take what upstream/Sun still had" commit. The
-`upstream` remote is kept for reference, not as a merge target.
 
 Pretty simple to use, not 100% as fully functional as the EmoTracker pack, but works for Archipelago.
 
@@ -255,7 +260,36 @@ Either way you get a false negative and four correct rules look like false
 greens.
 
 
-Introducing:  Maps!
-- This is in it's most basic form. These maps were mostly created and shared with the FFR community by DarkmoonEX.
-- Some of the maps are placeholders for the moment.
-- Hopefully with the next release maps with chest on them will have red/green tracker boxes on them.
+Maps
+
+The dungeon maps are DarkmoonEX's, drawn and shared with the FFR community. The
+same set is published in the wiki's chest-location appendix, which is the thing
+to have open while you play:
+
+  https://wiki.finalfantasyrandomizer.com/FFRGuide/Appendix_D/ChestLocations
+
+They carry a lot more than walls -- chests numbered per room, trap tiles keyed
+by letter, optimal and loot routes, a legend on each one -- and the appendix has
+more than one map for the floors a flag can reshuffle. Reading them as a
+specification rather than as pictures is where most of the map work here came
+from.
+
+Drawn for a vanilla layout, though. A seed that moves things is showing you the
+right rooms and the wrong exits, and No-Overworld moves a great deal: it seals
+every town's outer wall and stamps 75 new staircases across 34 maps.
+
+So `tools/regen_maps.py` will redraw them from your own cartridge if you want
+that -- your seed's maps, cropped to the part of each floor that is actually
+map, with every chest where the ROM puts it, and rooms drawn open so you can see
+what is in them. It reads the cartridge's game mode and keeps a standard set and
+a No-Overworld set side by side, so each tracker variant shows its own. Nothing
+is written into the pack: it all goes to PopTracker's user-override directory,
+and `--clean` puts DarkmoonEX's art back.
+
+    tools/regen_maps.py ~/Downloads/FFR_yourseed.nes
+
+Credits
+
+jat2980, DarkmoonEX, HaateXIII, SunflashRune and meklin89 built this pack and
+its maps; black-sliver builds PopTracker. FFR itself is at
+https://finalfantasyrandomizer.com/.
