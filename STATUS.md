@@ -989,8 +989,18 @@ answer for it.
 - **`shopItem`** is the one Locations-grid cell with no incentive toggle behind
   it and no FFR flag mapped to it, so it is never blue and never gold.
 - ~~**`locations/NOverworld/incentives.json` has no marker validation.**~~ Fixed
-  2026-08-29: `tests/test_maps.lua` walks all four location files now, so a
-  marker off its art there is caught like any other.
+  2026-08-29, then found to be only half fixed, then fixed properly the same
+  day. Walking all four location files was not enough: `test_maps.lua` kept one
+  merged table of map definitions, so `NOverworldMaps.json`'s `incentives` row
+  overwrote `maps.json`'s, and its art is the pack's only `.jpg`, which
+  `imageSize` could not measure. Check 2 is guarded by `if mp.w`, so it skipped
+  every incentive marker in **both** trees -- 54 pins that read as checked and
+  were not, including the 26 standard ones that had been checked before the jpg
+  row joined the loop. `imageSize` now walks the JPEG segment chain to its frame
+  header, the two map tables are kept apart so each tree is judged against the
+  art its own variant opens, and an unmeasurable marker is now a failure rather
+  than a silent skip. Verified by moving a pin out of bounds and watching it
+  fail.
 - **Our trap letters are not DarkmoonEX's**, and by design -- his are
   hand-assigned for vanilla and do not describe an FFR seed. Ours are per
   cartridge and self-consistent per map. Only cross-referencing a letter

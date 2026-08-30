@@ -12,6 +12,31 @@ local function fails(msg)
   fail = fail + 1
 end
 
+-- JPEG keeps its dimensions in a frame header that sits an arbitrary distance
+-- in, behind however many other segments the encoder wrote, so unlike PNG there
+-- is no fixed offset to read. Walking the segment chain is still only a few
+-- lines, and it is what lets nooverworldmap.jpg be bounds-checked like anything
+-- else -- see the note on the two map tables below for why that mattered.
+local function jpegSize(data)
+  if data:sub(1, 2) ~= "\255\216" then return nil end
+  local i = 3
+  while i + 3 <= #data do
+    if data:byte(i) ~= 0xFF then return nil end
+    local marker = data:byte(i + 1)
+    if marker >= 0xD0 and marker <= 0xD9 then
+      i = i + 2                                   -- standalone, no length
+    else
+      -- SOF0..SOF15 carry the size; 0xC4, 0xC8 and 0xCC are not frame headers.
+      if marker >= 0xC0 and marker <= 0xCF
+         and marker ~= 0xC4 and marker ~= 0xC8 and marker ~= 0xCC then
+        return string.unpack(">I2", data, i + 7), string.unpack(">I2", data, i + 5)
+      end
+      i = i + 2 + string.unpack(">I2", data, i + 2)
+    end
+  end
+  return nil
+end
+
 -- PNG keeps width and height big-endian in the IHDR, at bytes 17-24. That is
 -- the whole reason this check can live in the Lua suite instead of a tool with
 -- an image dependency.
@@ -19,24 +44,50 @@ local function imageSize(path)
   local f = io.open(path, "rb")
   if not f then return nil, "missing" end
   local head = f:read(24)
+  if head and #head >= 24 and head:sub(2, 4) == "PNG" then
+    f:close()
+    return string.unpack(">I4", head, 17), string.unpack(">I4", head, 21)
+  end
+  f:seek("set", 0)
+  local data = f:read("a")
   f:close()
-  -- Only PNG is measurable here; the pack has one .jpg, which still has to
-  -- exist but cannot be bounds-checked.
-  if not head or #head < 24 or head:sub(2, 4) ~= "PNG" then return nil, "unmeasured" end
-  return string.unpack(">I4", head, 17), string.unpack(">I4", head, 21)
+  local w, h = jpegSize(data or "")
+  if w then return w, h end
+  return nil, "unmeasured"
 end
 
--- every map name the pack defines, and how big its art is
-local maps = {}
-for _, file in ipairs({ "maps/maps.json", "maps/NOverworldMaps.json" }) do
+-- Every map name the pack defines, and how big its art is -- in two tables,
+-- because the pack loads two. scripts/init.lua reads maps.json and then, on the
+-- NOverworld variants only, NOverworldMaps.json over the top, later entries
+-- winning. So "incentives" means overworld.png on a standard tracker and
+-- nooverworldmap.jpg on a No-Overworld one.
+--
+-- This used to be one merged table, which is worse than it sounds: the jpg row
+-- overwrote the png one, and a jpg was unmeasurable, so check 2's `if mp.w`
+-- guard silently skipped every incentive marker in BOTH trees -- 54 pins that
+-- looked checked and were not. Measuring the jpg fixes the guard; keeping the
+-- tables apart is what makes each tree checked against the art its own variant
+-- actually opens.
+local function loadMaps(file, into)
+  local out = into or {}
   for _, m in ipairs(json.load(PACK .. "/" .. file)) do
     local w, h = imageSize(PACK .. "/" .. m.img)
     if not w and h == "missing" then
       fails(string.format("map %q points at %s, which does not exist", m.name, m.img))
     end
-    maps[m.name] = { w = w, h = h, img = m.img, size = m.location_size or 0 }
+    out[m.name] = { w = w, h = h, img = m.img, size = m.location_size or 0 }
   end
+  return out
 end
+local maps = loadMaps("maps/maps.json")
+local novMaps = loadMaps("maps/NOverworldMaps.json", (function()
+  local copy = {}
+  for k, v in pairs(maps) do copy[k] = v end
+  return copy
+end)())
+
+-- Which table a marker is judged against: the tree it came from decides.
+local function mapsFor(m) return m.nov and novMaps or maps end
 
 -- Every location file the pack loads. The two NOverworld trees were outside
 -- this test until now, which mattered once the No-Overworld variants stopped
@@ -52,17 +103,21 @@ local LOCATION_FILES = {
 -- every marker in every location file
 local markers = {}
 local into = markers
+local inNOverworld = false
 local function walk(nodes)
   for _, n in ipairs(nodes) do
     for _, ml in ipairs(n.map_locations or {}) do
-      into[#into + 1] = { name = n.name, map = ml.map, x = ml.x, y = ml.y }
+      into[#into + 1] = { name = n.name, map = ml.map, x = ml.x, y = ml.y,
+                          nov = inNOverworld }
     end
     walk(n.children or {})
   end
 end
 for _, file in ipairs(LOCATION_FILES) do
+  inNOverworld = file:find("^locations/NOverworld/") ~= nil
   walk(json.load(PACK .. "/" .. file))
 end
+inNOverworld = false
 
 -- The counting checks below -- sixteen Ice Cave chests, seven in Cardia Forest
 -- -- are about what the tree contains, not about how many copies of it the
@@ -75,13 +130,13 @@ for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json" 
 end
 into = markers
 print(string.format("ok   %d markers across %d maps", #markers, (function()
-  local n = 0; for _ in pairs(maps) do n = n + 1 end; return n
+  local n = 0; for _ in pairs(novMaps) do n = n + 1 end; return n
 end)()))
 
 -- 1. every marker names a map the pack actually defines
 local unknown = 0
 for _, m in ipairs(markers) do
-  if not maps[m.map] then
+  if not mapsFor(m)[m.map] then
     fails(string.format("%s: marker on undefined map %q", m.name, tostring(m.map)))
     unknown = unknown + 1
   end
@@ -92,7 +147,7 @@ if unknown == 0 then print("ok   every marker names a defined map") end
 --    so a marker within half a box of the edge is clipped rather than drawn.
 local outside = 0
 for _, m in ipairs(markers) do
-  local mp = maps[m.map]
+  local mp = mapsFor(m)[m.map]
   if mp and mp.w then
     local half = math.floor(mp.size / 2)
     if type(m.x) ~= "number" or type(m.y) ~= "number" then
@@ -105,7 +160,21 @@ for _, m in ipairs(markers) do
     end
   end
 end
-if outside == 0 then print("ok   every marker sits inside its image") end
+local unmeasured = 0
+for _, m in ipairs(markers) do
+  local mp = mapsFor(m)[m.map]
+  if mp and not mp.w then unmeasured = unmeasured + 1 end
+end
+if unmeasured > 0 then
+  -- The whole point of the rewrite above: a marker that cannot be measured is
+  -- a marker that is not checked, and that has to be said out loud rather than
+  -- passing as a clean run.
+  fails(string.format("%d markers sit on art this test cannot measure",
+    unmeasured))
+end
+if outside == 0 and unmeasured == 0 then
+  print("ok   every marker sits inside its image")
+end
 
 -- 3. a location with a marker must have sections of its own.
 --    PopTracker's CalculateLocationState only walks loc.getSections(); it does
