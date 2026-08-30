@@ -134,7 +134,9 @@ LUA_RULES = {
 WAIVED = {
     ("Gaia Area/Lefein/Incentive", "strict"):
         "the pack wants the Slab translated by Dr Unne, not just carried; FFR"
-        " counts holding it, because Unne is reachable whenever Lefein is",
+        " folds the visit in, because SCLogic.cs:555-557 resolves an NPC gated"
+        " on the Unne flag to Unne's own reachability, so its rule already"
+        " requires standing where the translation happens",
     ("Inner Sea/Coneria Castle/Coneria Castle Sara/Sara", "strict"):
         "the pack wants Garland beaten before the princess is back; FFR folds"
         " that in, because Garland is beatable from the start",

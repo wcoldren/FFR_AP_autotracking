@@ -69,12 +69,18 @@ Nothing here is urgent unless it says so.
   permissive, so the derived rules open Lefein earlier than FFR does.
 
   One thing this contradicts, and the contradiction is only about
-  No-Overworld: `check_logic.WAIVED` says the pack is stricter than FFR at
-  Lefein "because Unne is reachable whenever Lefein is". That holds on a
+  No-Overworld: `check_logic.WAIVED` used to say the pack is stricter than FFR
+  at Lefein "because Unne is reachable whenever Lefein is". That holds on a
   standard overworld and does not hold here, where the Waterfall route reaches
-  Lefein without going near Melmond. The waiver is a statement about the
-  hand-written standard rules and is not applied in derived mode, so it is not
-  wrong where it is used — but it should not be carried over.
+  Lefein without going near Melmond — and the waiver *is* applied here, on the
+  `--ap-rules` run for both No-Overworld cartridges, so the reason was being
+  stated where it was false. What the waiver concludes survives: FFR's rule
+  already requires reaching Unne, because `SCLogic.cs:555-557` resolves an NPC
+  gated on the Unne flag to Unne's own reachability, and on No-Overworld that
+  resolution is exactly the `Tnt OR Ruby OR Canoe` term above. So the step the
+  pack shows and FFR folds in is still always takeable, and only the rationale
+  needed correcting — done 2026-08-30. Clearing the waiver instead would report
+  Lefein as a divergence on every cartridge, standard included.
 
   A second, smaller gap sits behind the same NPC. `talk_item_requirements()`
   finds no requirement for the Lefein man `$0F`, though his byte reads `$0B`

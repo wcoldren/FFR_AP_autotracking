@@ -280,9 +280,10 @@ on `FF1_SLOW=1`; it passed on the `nov` cartridge over all 4096 subsets on
 It does not move the exponent, and did not have to. The outer loop is still 2^n,
 but the sweep went from 1024 subsets in about 85 seconds to 4096 in about 57 --
 which is what made the SubEngineer and Titan rows affordable in the same commit.
-The seven further items -- the Slab, the Herb, the Adamant, the Bottle, the
-Crystal and what is left -- are trades rather than tiles, so they want the solver
-below rather than more headroom.
+The five further items -- the Slab, the Herb, the Adamant, the Bottle and the
+Crystal -- are trades rather than tiles, so they want the solver below rather
+than more headroom. It was seven before this commit; Oxyale and the Ruby were
+the two that turned out to be tiles after all.
 
 **Solve the requirements instead of sampling them.** The sweep asks the walker
 2^n times. FFR does not: `Sanity/SCLogic.cs` propagates `SCRequirements` bitflags

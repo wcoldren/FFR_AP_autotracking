@@ -1743,10 +1743,55 @@ resolves an NPC gated on the Unne flag to Dr Unne's own reachability.
 That is a requirement naming another location, and the sweep's vocabulary is
 items -- no amount of widening reaches it. Filed rather than patched, in
 `docs/ISSUES.md`, where it is the strongest argument yet for the propagating
-solver in `docs/IDEAS.md`. It also shows up an assumption worth not carrying
-over: `check_logic.WAIVED` says the pack is stricter at Lefein "because Unne is
+solver in `docs/IDEAS.md`. It also showed up a rationale that had gone stale:
+`check_logic.WAIVED` said the pack is stricter at Lefein "because Unne is
 reachable whenever Lefein is", which holds on a standard overworld and does not
-hold here.
+hold here. Corrected in the review commit below -- what the waiver concludes was
+right on both worlds, and only the reason it gave was wrong on one.
+
+## What the review of the object-gate branch found
+
+Written 2026-08-30. `/code-review` ran in a fresh-context session on
+`trunk..object-gates` at high effort and returned four findings. All four held
+up against the files and all four are fixed rather than waived. Two were real,
+one was latent, one was arithmetic in a doc.
+
+**The gate reader could name an item the sweep never varies.**
+`object_gate_items()` returns whatever the cartridge names, and `ITEM_RAM` has
+seventeen entries against `ITEM_NAMES`' twelve. A row naming one of the other
+five blocks that chokepoint in *every* subset, so everything behind it derives
+as unreachable rather than gated -- which is the invariant this very commit
+states on three pages and enforced nowhere. Shown by rewriting the sub
+engineer's body to `LDA item_bottle`: the reader returned `{$10: bottle}` and
+his tile stayed blocked while holding all twelve swept items. It refuses now,
+which is the same refusal `black_orb_item()` makes on a shard count it cannot
+express. Inert on the corpus -- all five cartridges still read
+`{$10: oxyale, $14: ruby}` -- and that is the point: the reason this is a reader
+at all is that a cartridge is free to reassign the routine.
+
+**The Lefein waiver was stating a reason where it was false.** `WAIVED` is
+suppressed in `--derived` mode but not per cartridge, so it fires on the
+`--ap-rules` run for both No-Overworld cartridges, carrying "because Unne is
+reachable whenever Lefein is" onto a world where the Waterfall route reaches
+Lefein without going near Melmond. The conclusion survives the correction:
+`SCLogic.cs:555-557` resolves an NPC gated on the Unne flag to Unne's own
+reachability, and on No-Overworld that resolution *is* the `Tnt OR Ruby OR
+Canoe` term, so FFR's rule does require standing where the translation happens
+and the step the pack shows is still always takeable. So the fix is the
+rationale, not the waiver: clearing it instead would report Lefein as a
+divergence on every cartridge, standard included. Figures unmoved -- `nov` 226
+checked / 220 agree, `std` 225/225.
+
+**The walk caches were invalidated by one of their two inputs.** Assigning
+`gated_objects` throws them away; `floor_items()` also reads the map's tile
+properties, so a caller that patches `rom.data` and empties `grids` alone gets a
+stale memo silently. Both tests that patch a cartridge do clear both -- but only
+because they happen to write them in one statement, and a memo whose correctness
+rests on the order of a tuple assignment is one line from being wrong. `grids`
+is a property with the same setter now.
+
+**And `docs/IDEAS.md` said "seven further items" over a list of five.** Seven
+was the count before this commit, when Oxyale and the Ruby were still in it.
 
 ## Four names that have drifted off what they describe
 

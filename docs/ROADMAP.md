@@ -243,6 +243,27 @@ naming another location, which the item sweep cannot express at any vocabulary
 size. Filed in `docs/ISSUES.md`, and it is an argument for the solver in
 `docs/IDEAS.md` rather than for a patch.
 
+**The review gate is closed on this branch too.** `/code-review` ran in a
+fresh-context session on `trunk..object-gates` at high effort and returned four
+findings, all of which held up. All four are fixed rather than waived, in one
+commit. Two were more than tidying:
+
+- `object_gate_items()` could name any of `ITEM_RAM`'s seventeen items while the
+  sweep varies twelve, so a reassigned routine would have blocked its chokepoint
+  in every subset -- the exact invariant this branch states on three pages and
+  enforced nowhere. It refuses an off-vocabulary row now, as `black_orb_item()`
+  already refused a shard count.
+- `check_logic.WAIVED`'s Lefein reason was being stated on the two No-Overworld
+  `--ap-rules` runs, where it is false. The waiver's conclusion holds on both
+  worlds and the rationale is rewritten to one that does; clearing the waiver
+  would have reported Lefein as a divergence on every cartridge.
+
+The two smaller ones: the walk memo was invalidated by `gated_objects` but not by
+`grids`, though `floor_items()` reads both, and `docs/IDEAS.md` said "seven
+further items" over a list of five. All figures unmoved -- `nov --derived`
+226/225/1 with 5 granted, `nov` 226/220, std 225/225, shard 229/229 -- and the
+`FF1_SLOW` full-lattice guard re-passed on `nov`, 4096 of 4096.
+
 **Next branch: make the rendered maps legible.** Three changes that share
 one regen, because each moves the `inputs` or `marker` fingerprint in
 `.regen_cache.json` and a single run picks up all of them. All measured

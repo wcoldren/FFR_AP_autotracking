@@ -262,6 +262,16 @@ def main():
           scan_says(lda(0x11)), None)
     check("and does not stop a real load beside it being read",
           scan_says(lda(0x11) + lda(0x10)), "oxyale")
+    # ITEM_RAM has seventeen names and the sweep varies twelve, so a routine
+    # naming one of the other five reads perfectly well and must still be
+    # refused: a gate on an item no subset ever holds blocks that chokepoint in
+    # every subset, and everything behind it derives unreachable rather than
+    # gated. The Bottle is the plainest case -- a real item, a real load, and
+    # outside the vocabulary.
+    check("the Bottle is a real item the sweep cannot hold, so it is refused",
+          scan_says(lda(0x0F)), None)
+    check("and the Bottle is indeed readable but off-vocabulary",
+          (eg.ITEM_RAM[0x0F], "bottle" in eg.ITEM_NAMES), ("bottle", False))
 
     # And the gates themselves. Same shape as the Black Orb's: refuse a step
     # empty-handed, allow one with the item.

@@ -620,6 +620,15 @@ def object_gate_items(rom):
     {} rather than None when nothing is readable: an unreadable cartridge
     contributes no rows and the walk blocks what it blocked before, which is
     what these two did while they were unmodelled.
+
+    A row is emitted only when its item is in ITEM_NAMES, which is the same
+    refusal black_orb_item makes on a shard count. Both readers can name any of
+    the 17 entries in ITEM_RAM, and a gate on an item the sweep never varies
+    blocks that chokepoint in *every* subset -- so everything behind it derives
+    as unreachable rather than gated, which is the failure mode that made the
+    row and the vocabulary widening land in one commit. Enforced here rather
+    than left to the two names FFR happens to stamp today: the whole reason
+    this is a reader is that a cartridge is free to reassign the routine.
     """
     routines = talk_routines(rom)
     if routines is None:
@@ -634,7 +643,7 @@ def object_gate_items(rom):
             loads = direct_item_loads(bodies.get(routines.get(oid), b""))
             if len(loads) == 1:
                 item = ITEM_RAM[loads.pop()]
-        if item is not None:
+        if item in ITEM_NAMES:
             out[oid] = item
     return out
 
@@ -829,7 +838,8 @@ class Graph:
         # routine-keyed gates first, everything id-keyed over the top.
         #
         # Assigning gated_objects is also what creates the walk caches -- see
-        # the property below.
+        # the properties below, which is why `self.grids = {}` above has
+        # already made them once.
         self.gates = gate_objects(rom)
         orb = black_orb_item(rom)
         self.gated_objects = {**(self.gates or {}), **GATED_OBJECTS,
@@ -855,6 +865,9 @@ class Graph:
     # rows back to the plates to prove the gates change something, and without
     # this it would be handed back the gated walks it had already asked for.
 
+    def _drop_walks(self):
+        self._floor_items, self._walks, self._teleports = {}, {}, {}
+
     @property
     def gated_objects(self):
         return self._gated_objects
@@ -862,7 +875,23 @@ class Graph:
     @gated_objects.setter
     def gated_objects(self, value):
         self._gated_objects = value
-        self._floor_items, self._walks, self._teleports = {}, {}, {}
+        self._drop_walks()
+
+    # `grids` invalidates for the same reason, and is a property rather than a
+    # plain dict for the same reason: floor_items() reads a map's tile
+    # properties as well as its objects, so a caller that patches rom.data and
+    # empties the grid cache has changed what a walk consults just as surely as
+    # one that swaps a gate row. Both tests that patch a cartridge do clear both
+    # -- but only by writing them in one statement, and a memo whose correctness
+    # rests on the order of a tuple assignment is one line from being wrong.
+    @property
+    def grids(self):
+        return self._grids
+
+    @grids.setter
+    def grids(self, value):
+        self._grids = value
+        self._drop_walks()
 
     def floor_items(self, map_id):
         """The items that can change what a walk on this floor reaches.
