@@ -70,23 +70,22 @@ Nothing here is urgent unless it says so.
   one the room work landed on: ask what a region is connected to, not what its
   tiles look like. Insets would also dissolve it.
 
-- **The standard-seed reachability oracle does not hold as written.** It is
-  recorded in several places as "on a Standard seed, `--have key,crown,cube,orbs`
-  reaches all 61 maps from the 32 overworld doors". Measured 2026-08-30 on two
-  standard FFR seeds (`C189A0EF`, `2CCBA52F`): that item set reaches **52 of
-  61**, and holding *every* item in `ITEM_NAMES` reaches **59**, with
-  `TempleOfFiendsRevisited2F` and `3F` unreachable on both.
+- **The standard-seed reachability oracle is stated without its precondition.**
+  It is recorded in several places as "on a Standard seed, `--have
+  key,crown,cube,orbs` reaches all 61 maps". Measured 2026-08-30 on two standard
+  seeds: that set reaches 52 of 61, and every item reaches 59, with
+  `TempleOfFiendsRevisited2F` and `3F` unreachable.
 
-  Not a regression -- identical before and after the map-edge wrap fix, checked
-  by running the pre-wrap `entrance_graph.py` side by side. So it is either a
-  second gap in the walk, like the map edge was, or the invariant was never true
-  and was written down from reasoning rather than from a run. The No-Overworld
-  oracle (54 of 61, the seven ToFR gauntlet floors excepted) is measured and
-  does hold; only the standard-seed form is in question.
+  **That is correct behaviour, not a gap.** Both seeds roll `ToFRMode = Mid`,
+  and `MidToFR` (`FF1Lib/TempleOfFiends.cs:138-153`) repoints 1F's left stairs
+  straight at the Earth floor and blocks the passages to Stairs B. 2F and 3F are
+  never wired in, so they are not in the dungeon to reach. Only `ToFRMode = Long`
+  can reach all 61.
 
-  Worth settling before the standard-seed oracle is trusted or cited again. It
-  is currently cited in the No-Overworld work as the cheap check that would have
-  caught the map-bank bug.
+  The oracle needs its precondition attached wherever it is cited: **all 61 maps
+  is a Long-ToFR statement**, and the item set has to be every item rather than
+  `key,crown,cube,orbs`. Better still, derive the expected count from `ToFRMode`
+  rather than hardcoding 61.
 
 ## Open questions
 

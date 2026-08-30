@@ -64,6 +64,29 @@ a pin on it wants offsetting by a tile — that is `± tile_px` in the same
 transform, and there is precedent for the problem in the other direction (the
 shipped art draws Astos one tile above the cell the cartridge places him on).
 
+**ToFR is not one layout, and the bosses move with it.** `ToFRMode` is
+`Long / Mid / Short / Random` (`FF1Lib/TempleOfFiends.cs:6-16`) and it changes
+which floors exist and where the fiends stand:
+
+- **Long** wires the whole gauntlet, 1F through 3F and the four elemental
+  floors.
+- **Mid** (`:138-153`) repoints 1F's left stairs straight at the Earth floor and
+  blocks the passages to Stairs B, so **2F and 3F are not in the dungeon at
+  all**. Both standard seeds here are Mid.
+- **Short** collapses it further, and the fiends end up on the Chaos map.
+  Measured on `F258553F`: `tofrChaos` carries **8 fixed-formation trap tiles in
+  a row at y=9**, where both Mid seeds have none on that map.
+
+`FiendsRefights` moves them again -- `None` writes `0x5C` over the four refight
+tiles outright (`TempleOfFiends.cs:92-97`), and `TwoPaths` shuffles which floor
+each staircase leads to.
+
+So any boss annotation has to read the cartridge, never a vanilla table. The
+good news is that the existing mechanism already does: `trap_letters()` and
+`map_trap_letters()` enumerate fixed-formation tiles off the tileset property
+tables, so they are mode-correct by construction. The thing to avoid is
+hardcoding a floor list or a tile position from vanilla.
+
 The blocker is unchanged and is in `docs/ISSUES.md`: none of them writes a flag,
 so every such box is manual-click forever. Worth deciding whether that is
 acceptable before drawing anything.
