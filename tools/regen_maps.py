@@ -883,9 +883,22 @@ def main():
         if len(rows) > 10:
             print(f"  ... and {len(rows) - 10} more")
 
-    # A chest the party cannot stand on is a real AP location, and either
-    # answer is wrong on its own: a pin in the void, or a check missing from
-    # the tracker. Neither is this tool's call to make quietly, so it stops.
+    # A chest rejected as backdrop would be a real AP location with nowhere to
+    # pin it, and both answers are wrong on their own -- a pin in the void, or a
+    # check missing from the tracker -- so the run stops rather than choosing
+    # quietly.
+    #
+    # It cannot fire today, and that is structural rather than lucky.
+    # stands_on_map rejects a cell only if outside_cells reached it, and
+    # outside_cells floods on tile id equal to the map's backdrop
+    # (render_maps.py:438). A chest cell carries a treasure tile, never the
+    # border filler, so no chest is ever rejected -- 0 of 251 on the reference
+    # cartridge, and no seed can change that while the flood keys on tile id.
+    # The NPC half does fire, because an object is drawn over whatever cell it
+    # stands on and the Ice Cave B1 fairy stands on backdrop.
+    #
+    # Kept as a tripwire on that reasoning, not as live protection: if the flood
+    # ever grows a second rule, this is where a chest would fall through.
     voided = [(f"chest {name}", render_maps.MAP_FILES.get(map_id, map_id),
                f"tile {col}", row)
               for name, kind, map_id, col, row in dropped if kind == "chest"]

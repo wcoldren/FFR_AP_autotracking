@@ -70,9 +70,9 @@ only prints a warning when it disagrees with the chosen variant.
 
 ### The location tree
 
-`locations/overworld.json` is the whole board — roughly 794 named nodes and 283
-map pins. `locations/incentives.json` is a smaller sheet of just the slots a key
-item can be in.
+`locations/overworld.json` is the whole board — 283 locations holding 511
+sections between them, and 283 map pins. `locations/incentives.json` is a
+smaller sheet of just the slots a key item can be in.
 
 The No-Overworld variants load their own copies from `locations/NOverworld/`.
 Those exist because the *art* differs: a No-Overworld cartridge and a standard
@@ -146,6 +146,7 @@ library — no Pillow, no .NET.
 | `render_maps.py` | Draws all 61 maps out of a ROM using the game's own tile art |
 | `regen_maps.py` | Renders, places every marker, and installs the result |
 | `entrance_graph.py` | Reads the entrance/floor shuffle; routes; self-checks |
+| `noverworld_rules.py` | Derives a No-Overworld seed's access rules from the walk |
 | `doormap.py` | A clickable HTML page of the shuffle |
 | `overworld_reach.py` | Walks the overworld for reachability |
 | `check_logic.py` | Diffs the pack's access rules against FFR's own spoiler |
@@ -175,7 +176,7 @@ maps must be reachable from the doors. `entrance_graph.py --self-check`.
 ```
 tests/run.sh         13 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   7 Python suites for the cartridge-reading tools. Tests that
+tools/tests/run.sh   8 Python suites for the cartridge-reading tools. Tests that
                      need a cartridge skip unless FF1_ROM points at one.
 ```
 

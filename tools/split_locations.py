@@ -37,9 +37,14 @@ def load_mapping(limit=512):
     """{AP id: (location path, hosted item)} out of location_mapping.lua.
 
     `limit` caps the ids read. The default keeps chests only, which is what
-    splitting a grouped section is about; regen_maps passes None because it
-    also needs the NPC rows above 512 -- Nerrick, the Smith and Sarda are the
-    three dungeon markers that are not a chest.
+    splitting a grouped section is about, and is now what every caller wants:
+    regen_maps.marker_tiles and noverworld_rules.placements both pass 512 and
+    pick the NPCs up through `hosted_item` in the location tree instead.
+
+    That join is the wider one. This table only names locations the multiworld
+    has an id for, and eight of the fourteen NPCs the cartridge places carry no
+    shuffled item and so have no id at all -- Bahamut among them. A caller
+    reading NPCs out of here would miss them silently.
     """
     ids = {}
     for line in open(MAP):

@@ -49,23 +49,29 @@ ok(not nr.bump(7, 10, 10)({7: {(12, 10)}}),
 ok(not nr.bump(7, 10, 10)({8: {(10, 11)}}),
    "bump: a neighbour on another map does not count")
 
+# and its neighbours wrap, because reachable_tiles' keys are mod 64. A chest on
+# column 63 approached from column 0 is the case; without the modulo it loses
+# that approach and can report unreachable.
+ok(nr.bump(7, 63, 10)({7: {(0, 10)}}),
+   "bump: column 63 is approachable from column 0")
+ok(nr.bump(7, 10, 0)({7: {(10, 63)}}),
+   "bump: row 0 is approachable from row 63")
+
 # --- minimal sets ---------------------------------------------------------
-lattice = {
-    frozenset(): {1: set()},
-    frozenset({"key"}): {1: {(0, 0)}},
-    frozenset({"rod"}): {1: set()},
-    frozenset({"key", "rod"}): {1: {(0, 0)}},
-}
-mins = nr.minimal_sets(lattice, lambda t: (0, 0) in t.get(1, ()))
+reaching = [frozenset({"key"}), frozenset({"key", "rod"})]
+mins = nr.minimal_sets(reaching)
 ok(mins == [["key"]], "minimal_sets keeps key and drops the key+rod superset",
    str(mins))
 
-ok(nr.minimal_sets(lattice, lambda t: (9, 9) in t.get(1, ())) is None,
-   "minimal_sets returns None when nothing satisfies it")
+ok(nr.minimal_sets([]) is None,
+   "minimal_sets returns None when no subset reaches it")
 
-free = {frozenset(): {1: {(0, 0)}}, frozenset({"key"}): {1: {(0, 0)}}}
-ok(nr.minimal_sets(free, lambda t: (0, 0) in t.get(1, ())) == [[]],
+ok(nr.minimal_sets([frozenset(), frozenset({"key"})]) == [[]],
    "a location open from the start derives the empty set")
+
+ok(nr.minimal_sets([frozenset({"rod"}), frozenset({"key"})]) ==
+   [["key"], ["rod"]],
+   "two independent routes both survive minimisation")
 
 # --- the join -------------------------------------------------------------
 rom_path = os.environ.get("FF1_ROM")
@@ -74,12 +80,14 @@ if not rom_path or not os.path.exists(rom_path):
 else:
     with open(rom_path, "rb") as f:
         raw = f.read()
-    placed = nr.placements(raw, "locations/NOverworld/overworld.json")
+    by_name = {}
+    placed = nr.placements(raw, "locations/NOverworld/overworld.json",
+                           kinds=by_name)
     ok(bool(placed), "placements resolved something", f"{len(placed)} locations")
 
     kinds = {}
-    for cells in placed.values():
-        for kind, *_ in cells:
+    for names in by_name.values():
+        for kind in names:
             kinds[kind] = kinds.get(kind, 0) + 1
     # Eight NPCs have a node in the tree; the other six the cartridge places
     # host no section, so nothing joins to them. Guessing the kind from the
@@ -91,9 +99,9 @@ else:
        str(kinds.get("chest")))
 
     for name, cells in placed.items():
-        for kind, m, c, r in cells:
+        for m, c, r in cells:
             if not (0 <= m < e.MAP_COUNT and 0 <= c < 64 and 0 <= r < 64):
-                ok(False, f"{name} placement in range", f"{kind} {m} ({c},{r})")
+                ok(False, f"{name} placement in range", f"{m} ({c},{r})")
                 break
 
     # --- the map is a torus -------------------------------------------

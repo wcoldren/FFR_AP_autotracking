@@ -630,12 +630,18 @@ class Graph:
         return seen
 
     def can_reach_npc(self, map_id, start, spot, have):
-        """You talk to an NPC from an adjacent tile; its own tile is blocked."""
+        """You talk to an NPC from an adjacent tile; its own tile is blocked.
+
+        The neighbours wrap for the same reason floor_walk does -- every key it
+        returns is mod 64, so a raw `nx + 1` on column 63 names a tile that
+        cannot be in the walk. An NPC approachable only across the edge would
+        report unreachable, and on a gate NPC that prunes everything behind it.
+        """
         walk = self.floor_walk(map_id, start, have)
         nx, ny = spot["tile_col"], spot["tile_row"]
-        best = [walk[(nx + dx, ny + dy)]
-                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
-                if (nx + dx, ny + dy) in walk]
+        spots = [((nx + dx) % MAP_DIM, (ny + dy) % MAP_DIM)
+                 for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+        best = [walk[s] for s in spots if s in walk]
         return min(best) if best else None
 
     def reachable_teleports(self, map_id, start, have):

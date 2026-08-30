@@ -79,28 +79,49 @@ def reachable_tiles(g, have):
     return tiles
 
 
-def sweep(g, items, progress=None):
-    """{frozenset(items): {map_id: {(x, y)}}} over the whole subset lattice."""
-    out = {}
+def sweep(g, items, targets, progress=None):
+    """{target: [frozenset(items), ...]} -- which subsets can reach each target.
+
+    `targets` is an iterable of (map_id, col, row). The answer for each is
+    evaluated while that subset's walk is still in hand and the walk is then
+    dropped, so only one tile set is ever live.
+
+    Keeping the whole lattice instead -- {subset: {map_id: {(x, y)}}} -- is the
+    obvious shape and does not fit in memory. One entry is about 1.7 MB on a
+    cartridge reaching 26 of 61 maps, so 1024 of them is roughly 1.8 GB, and a
+    No-Overworld cartridge reaches 54 maps and would want three or four. That is
+    a MemoryError after the seventy seconds of walking are already spent, on the
+    machine the tool exists for. Nothing is lost by folding early: `bump`
+    membership is the only question ever asked of a walk.
+    """
+    targets = list(targets)
+    tests = [(t, bump(*t)) for t in targets]
+    out = {t: [] for t in targets}
     total = 2 ** len(items)
+    done = 0
     for n in range(len(items) + 1):
         for combo in itertools.combinations(items, n):
-            out[frozenset(combo)] = reachable_tiles(g, set(combo))
-            if progress and len(out) % 64 == 0:
-                progress(len(out), total)
+            subset = frozenset(combo)
+            tiles = reachable_tiles(g, set(combo))
+            for t, hit in tests:
+                if hit(tiles):
+                    out[t].append(subset)
+            done += 1
+            if progress and done % 64 == 0:
+                progress(done, total)
     return out
 
 
-def minimal_sets(lattice, test):
-    """Minimal item sets satisfying `test(tiles) -> bool`, as sorted lists.
+def minimal_sets(reaching):
+    """The minimal item sets among `reaching`, as sorted lists.
 
-    None when nothing satisfies it -- unreachable holding everything, which for
-    a No-Overworld cartridge means the seven orphaned ToFR floors.
+    None when the target is reachable by no subset at all -- not even holding
+    everything.
     """
-    ok = [s for s, tiles in lattice.items() if test(tiles)]
-    if not ok:
+    if not reaching:
         return None
-    return sorted(sorted(s) for s in ok if not any(o < s for o in ok))
+    return sorted(sorted(s) for s in reaching
+                  if not any(o < s for o in reaching))
 
 
 def bump(map_id, col, row):
@@ -114,21 +135,32 @@ def bump(map_id, col, row):
     locations unreachable on a cartridge where most of the board is open from the
     start.
     """
-    spots = [(col + dx, row + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+    #
+    # The neighbours wrap, because the walk does. Every key in reachable_tiles is
+    # mod 64 now, so a raw col+1 on column 63 names a tile that can never be in
+    # the set -- a chest on an edge would quietly lose an approach, and if that
+    # were its only one the location would report unreachable. Exactly the bug
+    # the wrapping fix exists to kill, one FFR layout change away from firing.
+    spots = [((col + dx) % e.MAP_DIM, (row + dy) % e.MAP_DIM)
+             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
     return lambda t: any(s in t.get(map_id, ()) for s in spots)
 
 
-def placements(rom, locations):
-    """{location name: [(kind, map_id, col, row)]}, kind "chest" or "NPC".
+def placements(rom, locations, kinds=None):
+    """{location name: [(map_id, col, row)]} for every location on a dungeon map.
 
-    The same join regen_maps.marker_tiles does -- chests through the Archipelago
-    id, NPCs through hosted_item -- but keeping which kind each placement is,
-    because the two ask different reachability questions. You stand on a chest;
-    you talk to an NPC from the tile beside it, its own being blocked.
+    The same join regen_maps.marker_tiles does: chests through the Archipelago
+    id, NPCs through hosted_item.
 
-    Guessing the kind from the node name does not work: marker_tiles is keyed by
-    bare node name ("Dwarf Cave Smith") and npc_positions.json by item code
-    ("smith"), and nothing maps one to the other.
+    Chests and NPCs are not told apart here, because they ask the *same*
+    reachability question -- see bump(). An earlier version returned the kind so
+    the two could be tested differently; nothing consumed it, and a docstring
+    promising a distinction the code does not make is an invitation to restore
+    the stand-on-the-tile test for chests, which is the bug that called 241 of
+    249 locations unreachable.
+
+    `kinds`, if given, collects {name: {"chest"|"NPC"}} for a caller that wants
+    the split for its own reasons -- the test asserts the eight NPCs join.
     """
     ids = split_locations.load_mapping(limit=512)
     chests, _ = extract_chests.extract(rom)
@@ -141,7 +173,9 @@ def placements(rom, locations):
         for q in places:
             cell = (q["map_id"], q["tile_col"], q["tile_row"])
             if regen_maps.stands_on_map(rom, *cell, cache=outside):
-                out.setdefault(name, []).append((kind,) + cell)
+                out.setdefault(name, []).append(cell)
+                if kinds is not None:
+                    kinds.setdefault(name, set()).add(kind)
 
     for ap, (path, _) in sorted(ids.items()):
         places = chests.get(ap - 256)
@@ -188,9 +222,11 @@ def derive(rom_path, locations, verbose=True):
         if verbose:
             print(f"  {done}/{total} subsets", end="\r", file=sys.stderr)
 
-    lattice = sweep(g, items, note)
+    targets = {cell for cells in cells_by_name.values() for cell in cells}
+    reaching = sweep(g, items, targets, note)
     if verbose:
-        print(f"  swept {len(lattice)} subsets" + " " * 20, file=sys.stderr)
+        print(f"  swept {2 ** len(items)} subsets over {len(targets)} tiles"
+              + " " * 20, file=sys.stderr)
 
     out, unreachable = {}, []
     for name, cells in sorted(cells_by_name.items()):
@@ -198,8 +234,8 @@ def derive(rom_path, locations, verbose=True):
         # pin's state ORs its sections, and the Marsh Cave and ToFR floors are
         # exactly this case.
         per = []
-        for _kind, map_id, col, row in cells:
-            per.append(minimal_sets(lattice, bump(map_id, col, row)))
+        for cell in cells:
+            per.append(minimal_sets(reaching[cell]))
         live = [p for p in per if p is not None]
         if not live:
             unreachable.append(name)
