@@ -170,7 +170,8 @@ first.
 Where item 1 actually stands, 2026-08-30, and what comes off it. This is the
 part that goes stale fastest; check `git log trunk..` before trusting it.
 
-**`noverworld-logic` -- fourteen commits, merged to `trunk`, unpushed.** The
+**`noverworld-logic` -- fourteen commits, merged to `trunk`.** `trunk` is
+sixteen commits ahead of `origin/trunk` and clean, as of 2026-08-30. The
 wiring (feed split, mode guards, 25 region rules, checker), the record
 correction, the Black Orb gate, the idea below, and five commits answering the
 review. All suites green; std 225/225 and shard 229/229 unmoved throughout.
@@ -216,10 +217,89 @@ carries:
   independent support on `nov` rising from 63 toward ~190, since oxyale alone
   blocks 129 of the 226 comparisons.
 
+**Branch after that: make the rendered maps legible.** Three changes that share
+one regen, because each moves the `inputs` or `marker` fingerprint in
+`.regen_cache.json` and a single run picks up all of them. All measured
+2026-08-30 on the std and nov oracle cartridges, which agree, so there is no
+separate No-Overworld pass here.
+
+- **Rotate before boxing, and treat it as a contract change.** A standard map
+  wraps at 64 tiles and `render_maps.content_box` does not, so four maps are
+  framed across the void between their two halves: `con_castle` 64x35 -> 31x35,
+  `crescent_lake` 52x64 -> 53x43, `melmond` 45x64 -> 45x46, `elf_castle` 28x64 ->
+  29x35. The box is not a render detail -- it is computed once
+  (`regen_maps.py:177`), handed both to the render (`:262`) and to marker
+  placement, and asserted from the other side by `tools/tests/test_crop.py`. So
+  pick the representation up front rather than discovering it: **rotate the grid
+  first and keep the box axis-aligned in rotated coordinates**, a `(shift_x,
+  shift_y)` pair alongside an ordinary `(c0, c1, r0, r1)`. Every consumer goes on
+  receiving a plain box; only the tile-to-pixel mapping gains the modular shift.
+
+  **The hand art confirms this for `elf_castle` and does not settle
+  `con_castle`.** Checked 2026-08-30 against the shipped images: DarkmoonEX's
+  Elf Castle is 34.2 x 34.2 tiles with **no flat row band anywhere**, against the
+  tool's current 28x64 and the rotated 29x35 -- he drew the wrapped row at the
+  top and cropped to the same height the rotation derives. Coneria Castle is a
+  different story: 67.1 x 37.8 tiles, wider than the 64-tile grid, with a single
+  4.6-tile flat band and no 35-column void, so that image is a composition rather
+  than the raw grid and cannot referee the rotation. Look at it before applying
+  the change there. `crescent_lake` and `melmond` have no calibration entry, so
+  there is nothing to check them against.
+- **Trap marks keyed to the formation id**, closing the defect in
+  `docs/ISSUES.md` where the same enemies carry two different letters, and
+  killing every two-character label with it. 32 formations stand on a map (31 on
+  nov) against 35 single glyphs in `0-9A-Z` minus `O` -- `O` because
+  `tools/font.py` asserts it and `0` are the same glyph in the cartridge's font.
+  Assert the ceiling: a cartridge past 35 falls back to two characters rather
+  than silently reusing a mark.
+- **The marker default, 16px -> 14px, conditionally.** `MARKER_SIZE = TILE_PX`
+  carries a written rationale (`regen_maps.py:265-273`) -- the box outlines the
+  tile the chest stands on and nothing more -- so the number does not move on its
+  own. It moves with a rewritten rationale in the same commit, or it does not
+  move. The argument to test: once a trap mark is one glyph and therefore exactly
+  one tile, a marker box *inside* a tile is what separates outline from glyph.
+  Render one map both ways and look. A recorded decline is a valid outcome.
+
+Two claims this branch invalidates, and must update rather than leave standing:
+`test_crop.py:179` and `:195` assert `volcB4`'s letters are `{M,N}` and land on
+named tiles (updated to the new scheme, not waived -- the per-tile half exists
+because a sorted-set comparison hides a mis-assignment), and `STATUS.md:1213`
+records that the enumeration "reproduces the shipped art exactly", which becomes
+historical with a line saying what replaced it.
+
+Acceptance beyond the suites: `test_crop.py` gains an explicit wrapped case, it
+has none today; and the four seam maps pass `crop_violations` with their markers
+landing on their chests.
+
 **Branch after that: the stale-override warning**, per "Notice when the drawn
 maps are for a different cartridge" in `docs/IDEAS.md`. Separate because it
 touches the bridge and the pack rather than the tools, and is worth nothing
 until someone is playing on rendered art.
+
+It builds **detection and execution both**, which is a change from what that page
+used to conclude -- see the entry, which says why the old "detection, not
+execution" no longer holds rather than dropping it. In order: record the FFR seed
+and flag strings into `.regen_cache.json` beside the sha, since the bridge has no
+sha256 and both sides already read both; compare on connect and publish a
+variable; light a warning cell on mismatch per the `flagsUnread` pattern
+(`uat.lua:159-203`); and on mismatch also start the regen **detached**, because
+rendering 61 maps inline on the emulator's script thread stalls emulation.
+
+**Step 0 is a measurement, not code:** `os.execute` inside Mesen's Lua is filed
+as "plausibly in reach", which is an inference from the file and socket functions
+the bridge already uses. If it is not reachable, the first three steps ship and
+the fourth does not. The restart is irreducible either way.
+
+Acceptance is a demonstrated failure, per the working rule below: connect with a
+mismatched cartridge and show the cell lights, connect with the matching one and
+show it does not.
+
+**On the order of those two.** The legibility branch sits first so the regen the
+warning triggers produces the better art. That holds **only while it stays one
+branch of the size above** -- the torus leg is a contract change and is the leg
+that might grow. If it does, the warning branch goes first and a regen is re-run
+once the art lands. That costs one extra regen, which is cheaper than delaying a
+correctness guard behind an art change.
 
 Not queued, and deliberately: a general requirements solver, and more oracle
 seeds. The provenance table says where the risk is; spend there.
