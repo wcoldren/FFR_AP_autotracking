@@ -76,29 +76,22 @@ rules, is the baseline to protect: **225 checked, 225 agree, 0 divergences**, an
 unpruned — `reqs` was empty, so no achievability pruning hid anything. That is
 also what validates the harness end to end. This must not move.
 
-Both cartridges are generated locally, with their own ground truth attached:
-build FF1R at the 4.9.2 release commit `01272d4` with `FFRVersion.Sha` stamped to
-match (the schema in `tools/ffr_flags/schemas/4-9-2.json` records that SHA and
-the decoder refuses on mismatch), then generate from a flags JSON with
-`Spoilers`, `Archipelago` and the four Archipelago pool flags on — the pool flags
-are what take FFR's `rules:` from the key items alone up to 225 locations.
+Both cartridges are generated locally, with their own ground truth attached.
+**The recipe, the inventory and the recorded numbers now live in
+`docs/ORACLE.md`** rather than here, alongside the corpus they describe: four
+cartridges (standard, No-Overworld, a second No-Overworld seed, shard hunt),
+their flag strings, the `ffr-492-oracle` build tree, and the exact commands.
+Rebuilding is bit-reproducible — regenerating either cartridge from its flags
+preset at its recorded seed gives byte-identical output.
 
-Two things that cost time rebuilding this on 2026-08-30, worth having written
-down. **4.9.2's CLI cannot write the Archipelago export** — `--ap-export` is a
-later addition, and only the web UI downloaded the export at that release. The
-spoiler it does write carries no `rules:` section, so `check_logic` has nothing
-to compare against. Ten lines in the local worktree's `FF1R/Commands/Generate.cs`,
-copied from how the current fork does it, write `Utilities.ArchipelagoCache`
-beside the ROM; it is a local build, so nothing needs committing anywhere. And
-the projects target `net6.0`, which a modern SDK will not run without
-`DOTNET_ROLL_FORWARD=LatestMajor`. `-j <flags.json>` takes a preset-shaped file,
-which is what the `FF1Blazorizer/wwwroot/presets/` files already are; `-p` looks
-in the user settings directory instead and will not find a path.
+Two results from that page belong here, because they are what this item rests
+on: the standard baseline is **225 checked, 225 agree**, and it must not move;
+the derived No-Overworld rules agree with FFR on **226 of 226**, and on a second
+seed **224 of 224**. Shard hunt now has a first measurement too, **229 of 229**.
 
-Regenerating the reference seed from its own on-cart flag string reproduces its
-flag string exactly and its logic exactly — same 32365 teleport tiles, same 157
-staircases, same gates — while differing in 25540 bytes of CHR, credits and
-dialogue, which is `Preferences` and touches no map bank.
+What the oracle does not cover is ToFR — `Archipelago.cs:93` drops it from the
+AP pool unconditionally. `tools/tofr_diff.py` covers that gap by comparison
+instead: same flags, different seed, report what the shuffle moved.
 
 ## 2. Visibility toggles
 
