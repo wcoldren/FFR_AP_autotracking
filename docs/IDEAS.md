@@ -59,6 +59,77 @@ first whether the drawing surface is the PopTracker tab (a static image, so the
 route has to be baked in at render time) or `tools/doormap.py` (free to draw
 anything, but not in front of you while you play).
 
+The reference art both online and in the older guides already draws these lanes,
+and is the thing to improve on rather than copy: **it is not consistent about
+colour**, swapping cyan and purple between the optimised route and the with-loot
+one from map to map. Ours should fix one colour per lane across all 61 and draw a
+key on the map saying which is which — the Map Key band `render_maps` already
+reserves is where that goes.
+
+**"Optimal" needs an objective function, and it is not purely step count.**
+Lowest step count first, but tie-broken toward **running into a wall rather than
+turning in an open four-way**: holding a direction until the map stops you is
+much easier to execute than counting tiles and turning on the right one. A route
+that is two steps shorter and needs three counted turns is the worse route. Where
+turning at a non-dead-end is genuinely necessary the route should still take it —
+the preference is a tie-break, not a constraint.
+
+Deriving is not the whole job either. A by-eye pass per map, flagging where a
+better route exists than the reference draws, is expected to stay in the loop.
+
+**Linked chests belong on the same drawing pass.** A chest index can sit on more
+than one tile, so opening any one clears the lot, and nothing on the map says so
+today. Measured 2026-08-30 on the oracle corpus — and the count is
+**seed-dependent**, so it derives per cartridge rather than from a table:
+
+- **6 multi-tile indices on std, 14 on nov.** The difference is Short ToFR, which
+  duplicates indices onto `tofrChaos`.
+- **Same-map groups, wanting a grey connecting line:** four, identical on both —
+  `25` and `26` on `marshB2`, `29` on `marshB3`, `101` on `volcB4`.
+- **Cross-map groups, wanting a badge or a circle rather than a line, because
+  there is no line to draw:** two on std (`92` across volcB4+volcB5, `123` across
+  ordeals2F+3F), ten on nov, including `254` across `cardia`, `tofr3F` and
+  `tofrChaos`.
+
+`extract_chests.extract()` already returns a *list* of placements per index for
+exactly this reason, so the data needs no new ROM reading. Note the pin side has
+bitten before: keying pins by map name collapses three `marshB3` pins into one,
+so compare as multisets.
+
+**Mark the hint givers.** Wanted as an annotation beside the sprite rather than a
+PopTracker marker — a reminder of which NPC in a town has something to say, and
+whether you have been to them. There is no flag for "talked to", so a pin would
+be manual-click forever; drawing it into the art at render time sidesteps that
+entirely, and it is the same mechanism the trap marks already use
+(`font.draw_text` over the rendered tile). No location node, no autotracking
+question.
+
+What is already known, off FFR's own source rather than guessed:
+
+- **The hint givers are a fixed set of eight**, one per town, written as a
+  literal in `FF1Lib/NpcHints.cs:452` — ConeriaOldMan `52`, PravokaOldMan `64`,
+  ElflandScholar1 `83`, MelmondOldMan2 `110`, CrescentSage11 `130`,
+  OnracOldMan2 `154`, GaiaWitch `185`, LefeinMan12 `200`. They are not shuffled
+  into the role. None is in `extract_npcs.WANTED` today, and adding them there is
+  how their tiles get read.
+- **Positions still have to come off the cartridge.** Turning hints on *moves*
+  the Lefein one (`maps[MapIndex.Lefein].MapObjects.MoveNpc(0x0C, 0x0E, 0x15…)`),
+  which is the same reason the NPC pins stopped reading `npc_positions.json`.
+- **Whether the seed has hints at all is knowable.** `flags.HintsVillage` is in
+  the decoded schema (`tools/ffr_flags/schemas/4-9-2.json:2255`) and already
+  reaches the pack over the bridge.
+- **The catch that decides the scope: there are no village hints on an
+  Archipelago seed.** `NPCHints()` returns immediately when `flags.Archipelago`
+  is set (`NpcHints.cs:427`), alongside DeepDungeon. So this annotation is a
+  bridge/UAT-only feature by construction, and drawing it on an AP seed would be
+  pointing at an NPC with nothing to say.
+
+Unsettled: whether "have I visited this one" can be shown at all without a flag,
+or whether the annotation is purely static and the visited-ness stays in the
+player's head. The observation channel the entrance markers are designed around —
+the bridge watching party position — is the only thing that could answer it, and
+standing next to an NPC is not the same as having talked to them.
+
 **Notice when the drawn maps are for a different cartridge.** Raised while
 regenerating after a rules change: the override shadows the checkout, so a stale
 override serves stale art *and* stale access rules, and nothing says so. The ask
