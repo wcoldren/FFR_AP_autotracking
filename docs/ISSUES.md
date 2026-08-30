@@ -83,9 +83,35 @@ Nothing here is urgent unless it says so.
   and no FFR flag mapped to it, so it is never blue and never gold.
 
 - **Our trap letters are not DarkmoonEX's**, by design. His are hand-assigned for
-  vanilla and do not describe an FFR seed; ours are read per cartridge and are
-  self-consistent per map. Only cross-referencing a letter against his guide is
-  unsafe.
+  vanilla and do not describe an FFR seed; ours are read per cartridge. Only
+  cross-referencing a letter against his guide is unsafe.
+
+  This used to say ours are "self-consistent per map", which is true and is also
+  the whole problem — see the next entry. Once the marks are keyed to the
+  formation they become self-consistent per *cartridge*, which is the stronger
+  claim and the one worth making.
+
+- **The same enemies can carry two different trap letters.** `trap_letters()`
+  numbers by `(tileset, tile)` enumeration order rather than by the formation the
+  tile spawns, so one formation reached through two tileset entries gets two
+  labels. Measured 2026-08-30, three formations on each oracle cartridge: on the
+  std seed formation `$10` is drawn **G** on `earthB1` and **W** on `marshB3`;
+  `$1C` is AA and AG; `$4A` is V and X.
+
+  That defeats the thing a trap letter is for. Meet a fixed formation early,
+  decide it is worth fighting or worth avoiding, and the label it carries the
+  next time you meet it may be a different one.
+
+  The same enumeration is why labels run to two characters. 38 distinct labels
+  exist on the std cartridge, so everything past index 25 becomes AA…AL — seven
+  maps carry one, `tofrChaos` reads AG AH AI AJ across eight tiles in a row and
+  `seaB4` reads AB AC AD AE, and at two tiles wide a label no longer says which
+  tile it marks.
+
+  Both close together by keying the mark to the formation id. Only **32
+  formations actually stand on a map** (31 on nov), and the cartridge's own font
+  carries `0-9A-Z` — 35 single glyphs once `O` is dropped, since `tools/font.py`
+  asserts `0` and `O` are the same glyph in it. On `docs/ROADMAP.md`.
 
 - **A room bigger than the guard stays shut.** Mirage Tower 1F's interior is 458
   cells and `ROOM_MAX_CELLS` is 256, so it does not open. Raising the cap is not
