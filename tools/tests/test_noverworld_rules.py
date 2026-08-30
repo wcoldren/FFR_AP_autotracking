@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""tools/noverworld_rules.py -- the derivation, and the two bugs that shaped it.
+
+The full sweep is 1024 graph walks and takes over a minute, so it is not run
+here. What is checked is the reasoning around it: the reachability test, the
+minimisation, and the join. Those are where both real bugs were.
+"""
+
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+TOOLS = os.path.dirname(HERE)
+sys.path.insert(0, TOOLS)
+sys.path.insert(0, HERE)
+
+import entrance_graph as e          # noqa: E402
+import noverworld_rules as nr       # noqa: E402
+
+fails = []
+
+
+def ok(cond, label, got=""):
+    print(f"{'ok  ' if cond else 'FAIL'} {label:58} {got}")
+    if not cond:
+        fails.append(label)
+
+
+# --- a chest is never stood on -------------------------------------------
+#
+# The first version of this tool asked whether the party could occupy a chest's
+# own tile. walkable() says no for every chest in the game, so it called 241 of
+# 249 locations unreachable on a cartridge where most of the board is open. The
+# assertion below is what makes that a caught regression rather than a rerun.
+every = set(e.ITEM_NAMES)
+treasure = e.TP_SPEC_TREASURE
+ok(not e.walkable(treasure, every),
+   "a treasure tile is not walkable, holding everything")
+ok(not e.walkable(treasure | e.TP_NOMOVE, every),
+   "nor is one that also carries NOMOVE")
+
+# so the test has to be adjacency, and must not accept the tile itself
+tiles = {7: {(10, 11)}}
+ok(nr.bump(7, 10, 10)(tiles), "bump: reachable from the tile below")
+ok(not nr.bump(7, 10, 10)({7: {(10, 10)}}),
+   "bump: the target's own tile does not count")
+ok(not nr.bump(7, 10, 10)({7: {(12, 10)}}),
+   "bump: a tile two away does not count")
+ok(not nr.bump(7, 10, 10)({8: {(10, 11)}}),
+   "bump: a neighbour on another map does not count")
+
+# --- minimal sets ---------------------------------------------------------
+lattice = {
+    frozenset(): {1: set()},
+    frozenset({"key"}): {1: {(0, 0)}},
+    frozenset({"rod"}): {1: set()},
+    frozenset({"key", "rod"}): {1: {(0, 0)}},
+}
+mins = nr.minimal_sets(lattice, lambda t: (0, 0) in t.get(1, ()))
+ok(mins == [["key"]], "minimal_sets keeps key and drops the key+rod superset",
+   str(mins))
+
+ok(nr.minimal_sets(lattice, lambda t: (9, 9) in t.get(1, ())) is None,
+   "minimal_sets returns None when nothing satisfies it")
+
+free = {frozenset(): {1: {(0, 0)}}, frozenset({"key"}): {1: {(0, 0)}}}
+ok(nr.minimal_sets(free, lambda t: (0, 0) in t.get(1, ())) == [[]],
+   "a location open from the start derives the empty set")
+
+# --- the join -------------------------------------------------------------
+rom_path = os.environ.get("FF1_ROM")
+if not rom_path or not os.path.exists(rom_path):
+    print("SKIP set FF1_ROM to a Final Fantasy cartridge to run the join")
+else:
+    with open(rom_path, "rb") as f:
+        raw = f.read()
+    placed = nr.placements(raw, "locations/NOverworld/overworld.json")
+    ok(bool(placed), "placements resolved something", f"{len(placed)} locations")
+
+    kinds = {}
+    for cells in placed.values():
+        for kind, *_ in cells:
+            kinds[kind] = kinds.get(kind, 0) + 1
+    # Eight NPCs have a node in the tree; the other six the cartridge places
+    # host no section, so nothing joins to them. Guessing the kind from the
+    # node name -- the first version of this -- found none of them, because
+    # marker_tiles is keyed by node name and npc_positions.json by item code.
+    ok(kinds.get("NPC") == 8, "exactly the eight NPCs with a node join",
+       str(kinds))
+    ok(kinds.get("chest", 0) > 200, "and every dungeon chest does too",
+       str(kinds.get("chest")))
+
+    for name, cells in placed.items():
+        for kind, m, c, r in cells:
+            if not (0 <= m < e.MAP_COUNT and 0 <= c < 64 and 0 <= r < 64):
+                ok(False, f"{name} placement in range", f"{kind} {m} ({c},{r})")
+                break
+
+print("\n" + ("FAILURES: " + ", ".join(fails) if fails else "ALL PASS"))
+sys.exit(1 if fails else 0)
