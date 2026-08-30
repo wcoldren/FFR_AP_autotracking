@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""Draw the four pin-toggle icons.
+
+These are display controls, not seed flags, and they have to look like it. The
+flags grid is full of cartridge sprites -- a king, a chest, a dock -- so an icon
+built from one reads as "this seed did something", which is the opposite of what
+a toggle says. The pack already has a house style for the other kind:
+`autoTab.png` and `tabAuto.png` are 32x32 schematics on a near-black ground with
+a thin border and a flat glyph, and nothing about them looks like it came off a
+cartridge. These follow it, and the palette is sampled from `autoTab.png` rather
+than guessed.
+
+Nothing here reads a ROM. That is the point: `README.md` says no art derived
+from a cartridge enters this repo, so these are drawn from constants, and the
+script is committed so a reader can see that rather than take it on trust.
+
+The shapes are the pack's own vocabulary, not decoration:
+
+    chest pins      square outlines -- what PopTracker draws for a marker
+    NPC pins        diamonds -- the shape the NPC pins already use
+    skipped pins    a square in PopTracker's own "checkable" blue
+    incentive rings a square inside a gold ring
+
+The two colours are read out of PopTracker rather than eyeballed off a
+screenshot: `src/ui/mapwidget.cpp:32` is `checkable -> blue` and `:58` is
+`Highlight::PRIORITY` gold, so an icon shows the colour the player's board
+actually paints.
+
+Only the "on" images are drawn. PopTracker greys a toggle's image itself when
+it is off (`disabled_image_filter`, 0% saturation and 67% brightness), which is
+what most of the pack's toggles rely on. If a greyed one reads badly, adding a
+`noXxx.png` alongside is a one-line change to the item.
+
+    python3 tools/make_toggle_icons.py            # write images/flags/*.png
+    python3 tools/make_toggle_icons.py --check    # exit 1 if any differ
+"""
+
+import argparse
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pngio
+
+PACK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+SIZE = 32
+
+# Sampled from images/flags/autoTab.png, which is the icon these are siblings of.
+GROUND = (24, 24, 28)
+EDGE = (0, 0, 0)
+GLYPH = (188, 188, 188)
+
+# PopTracker's own, so the icon matches the board: src/ui/mapwidget.cpp:32 and :58.
+CHECKABLE = (0x30, 0x40, 0xFF)
+PRIORITY = (0xFF, 0xD7, 0x00)
+
+
+class Canvas:
+    def __init__(self, w=SIZE, h=SIZE, fill=GROUND):
+        self.w, self.h = w, h
+        self.px = [fill] * (w * h)
+
+    def set(self, x, y, c):
+        if 0 <= x < self.w and 0 <= y < self.h:
+            self.px[y * self.w + x] = c
+
+    def border(self, c=EDGE):
+        for i in range(self.w):
+            self.set(i, 0, c)
+            self.set(i, self.h - 1, c)
+        for j in range(self.h):
+            self.set(0, j, c)
+            self.set(self.w - 1, j, c)
+
+    def square(self, cx, cy, half, c, fill=None):
+        """A marker box: outline `c`, optionally filled."""
+        for y in range(cy - half, cy + half + 1):
+            for x in range(cx - half, cx + half + 1):
+                edge = (x in (cx - half, cx + half)
+                        or y in (cy - half, cy + half))
+                if edge:
+                    self.set(x, y, c)
+                elif fill is not None:
+                    self.set(x, y, fill)
+
+    def diamond(self, cx, cy, half, c, fill=None):
+        """The shape the NPC pins use."""
+        for y in range(cy - half, cy + half + 1):
+            for x in range(cx - half, cx + half + 1):
+                d = abs(x - cx) + abs(y - cy)
+                if d == half:
+                    self.set(x, y, c)
+                elif d < half and fill is not None:
+                    self.set(x, y, fill)
+
+    def ring(self, cx, cy, r, c):
+        """A one-pixel circle, the glow PopTracker draws around a priority pin."""
+        for y in range(cy - r, cy + r + 1):
+            for x in range(cx - r, cx + r + 1):
+                dd = (x - cx) ** 2 + (y - cy) ** 2
+                if (r - 0.6) ** 2 <= dd <= (r + 0.6) ** 2:
+                    self.set(x, y, c)
+
+    def rgb(self):
+        out = bytearray()
+        for p in self.px:
+            out += bytes(p)
+        return bytes(out)
+
+
+def chest_pins():
+    """Three marker boxes: the pin a chest gets, three times over."""
+    c = Canvas()
+    c.border()
+    c.square(10, 10, 4, GLYPH)
+    c.square(22, 12, 4, GLYPH)
+    c.square(15, 22, 4, GLYPH)
+    return c
+
+
+def npc_pins():
+    """Two diamonds, which is what an NPC pin is drawn as."""
+    c = Canvas()
+    c.border()
+    c.diamond(11, 12, 6, GLYPH)
+    c.diamond(22, 21, 6, GLYPH)
+    return c
+
+
+def skipped_pins():
+    """One box in the blue an Inspect-level pin comes out."""
+    c = Canvas()
+    c.border()
+    c.square(11, 11, 4, GLYPH)
+    c.square(20, 20, 5, GLYPH, fill=CHECKABLE)
+    return c
+
+
+def incentive_rings():
+    """A box inside the gold ring Highlight.Priority draws around it."""
+    c = Canvas()
+    c.border()
+    c.ring(16, 16, 11, PRIORITY)
+    c.ring(16, 16, 10, PRIORITY)
+    c.square(16, 16, 4, GLYPH)
+    return c
+
+
+ICONS = {
+    "showChestPins": chest_pins,
+    "showNpcPins": npc_pins,
+    "showSkippedPins": skipped_pins,
+    "showIncentiveRings": incentive_rings,
+}
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--check", action="store_true",
+                    help="report what would change and write nothing")
+    args = ap.parse_args(argv)
+
+    bad = 0
+    for name, draw in sorted(ICONS.items()):
+        path = os.path.join(PACK, "images", "flags", name + ".png")
+        want = draw().rgb()
+        have = None
+        if os.path.exists(path):
+            w, h, have = pngio.read_rgb(path)
+            if (w, h) != (SIZE, SIZE):
+                have = None
+        if have == want:
+            continue
+        if args.check:
+            print("differs: images/flags/%s.png" % name)
+            bad += 1
+        else:
+            pngio.write_rgb(path, SIZE, SIZE, want)
+            print("wrote images/flags/%s.png" % name)
+    if args.check and bad:
+        return 1
+    if args.check:
+        print("all four icons match")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
