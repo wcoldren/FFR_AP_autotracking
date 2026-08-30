@@ -821,11 +821,7 @@
                 "sections": [
                     {
                         "name": "Astos",
-                        "access_rules": [
-                            "crown"
-                        ],
-                        "item_count": 1,
-                        "hosted_item": "astos"
+                        "ref": "North West Castle Astos/Astos"
                     },
                     {
                         "name": "Chests 1",
@@ -848,6 +844,19 @@
                     }
                 ],
                 "children": [
+                    {
+                        "name": "North West Castle Astos",
+                        "sections": [
+                            {
+                                "name": "Astos",
+                                "access_rules": [
+                                    "crown"
+                                ],
+                                "item_count": 1,
+                                "hosted_item": "astos"
+                            }
+                        ]
+                    },
                     {
                         "name": "North West Castle Chests 1",
                         "access_rules": ["key"],
@@ -920,11 +929,7 @@
                 "sections": [
                     {
                         "name": "Matoya",
-                        "access_rules": [
-                            "crystal"
-                        ],
-                        "item_count": 1,
-                        "hosted_item": "matoya"
+                        "ref": "Matoya's Cave Matoya/Matoya"
                     },
                     {
                         "name": "Chests 1",
@@ -947,6 +952,19 @@
                     }
                 ],
                 "children": [
+                    {
+                        "name": "Matoya's Cave Matoya",
+                        "sections": [
+                            {
+                                "name": "Matoya",
+                                "access_rules": [
+                                    "crystal"
+                                ],
+                                "item_count": 1,
+                                "hosted_item": "matoya"
+                            }
+                        ]
+                    },
                     {
                         "name": "Matoya's Cave Chests 1",
                         "sections": [
@@ -3442,8 +3460,7 @@
                 "sections": [
                     {
                         "name": "Bahamut",
-                        "access_rules": [ "tail" ],
-                        "hosted_item": "bahamut"
+                        "ref": "Bahamut's Cave Bahamut/Bahamut"
                     },
 					{
 						"name" : "Cardia Incentive - Hoard",
@@ -3457,6 +3474,18 @@
                         "map": "overworld",
                         "x": 1200,
                         "y": 480
+                    }
+                ],
+                "children": [
+                    {
+                        "name": "Bahamut's Cave Bahamut",
+                        "sections": [
+                            {
+                                "name": "Bahamut",
+                                "access_rules": [ "tail" ],
+                                "hosted_item": "bahamut"
+                            }
+                        ]
                     }
                 ]
             },
