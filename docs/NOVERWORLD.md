@@ -1,0 +1,150 @@
+# What No-Overworld actually is
+
+Settled reference for FFR's No-Overworld mode (`GameMode 2`), derived from a live
+cartridge and checked against FFR's own source. This is the stable half of what
+was triaged in `STATUS.md`; the log there keeps the story of how it was found.
+
+Everything below was verified on seed `F258553F` (FFR 4-9-2) and re-checked on a
+4.9.8 seed. Where a number is quoted, it was measured rather than reasoned.
+
+All of the mode is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at
+line 47.
+
+## The overworld is not removed
+
+It is swapped for `nooverworld.ffm`, an ocean stub with nine one-tile pads around
+`x 96-110, y 154-162` — the eight towns plus Coneria Castle. Confirmed off the
+cartridge: of 32 entrance rows, only those nine have a tile on the map. The other
+23 keep an ordinary map byte and no tile anywhere, which is why anything counting
+"doors" has to ask `Graph.starts()` rather than filtering on FFR's spare pair.
+
+## Everything else is a fixed table
+
+A hand-authored table of **75 teleporters**, ids `0x41-0x8B`, at
+`MetroidVaniaMap.cs:458-776`. 54 of the 61 maps are wired into it.
+
+The mode is deterministic apart from three things:
+
+- the three Cardia/Bahamut one-way gateways are permuted across Waterfall,
+  Ice Cave B1 and Gaia (`:726`);
+- the two Waterfall stair positions;
+- which ToFR chest ids the two bonus chests reuse.
+
+None of that reaches the spoiler log, so the cartridge is the only source. On the
+reference seed, Bahamut is behind Gaia.
+
+Measured across three seeds: **157 links each**, and the only differences are
+those two rolled things. The other ~154 links are identical on every seed, which
+is what makes a static connection diagram the right shape — the three gateways
+want a `?` rather than a destination.
+
+## The gates are NPCs standing in corridors
+
+FFR's own logic model says which item each wants — `Sanity/SCMap.cs:218-226`,
+which is the authority worth using over the dialogue, because the dialogue is
+deliberately misleading.
+
+| Routine | Wants | Stands on |
+|---|---|---|
+| `NoOW_Floater` | Floater | Coneria Castle 1F, Castle Ordeals 1F, Ice Cave B1 |
+| `NoOW_Canoe` | Canoe | Crescent Lake, Elfland Castle, Castle Ordeals 1F |
+| `NoOW_Chime` | Chime | Gaia (the robot, Gaia to Mirage) |
+| `Talk_Nerrick` | TNT | Dwarf Cave |
+
+CROWN and KEY gate tiles as usual. Ship and bridge are free.
+
+**Two items are renamed, and only two** (`:844`): `ItemsText[Floater] = "SIGIL"`
+and `ItemsText[EarthOrb] = "MARK"`. So SIGIL is the Floater — but **MARK is the
+Earth Orb, not the Canoe.** The Canoe NPCs' dialogue talks about "Lukahn's mark"
+and that is flavour; the item their routine checks is the Canoe. This was
+recorded backwards for a while, so it is worth stating plainly.
+
+None of this is a new tracker code. The pack already tracks every one of these
+items — the mode needs new topology, not new codes.
+
+The object-to-item map is **read, not transcribed**:
+`entrance_graph.noverworld_gate_items()` reads the talk routine each object runs
+and refuses to answer unless the eight objects sort into four routines wanting
+four items, so a standard cartridge says "no gate layout" rather than inventing
+one.
+
+One thing deliberately left alone: `Talk_Nerrick` is the *vanilla* routine
+(`MetroidVaniaMap.cs:833-834` leaves the `NoOW_Nerrick` assignment commented out)
+and `SCMap.cs:214` gates it on TNT for every mode. So a standard cartridge's
+router walks through Nerrick too. Changing that moves standard-mode answers.
+
+## The Temple of Fiends Revisited is orphaned
+
+Seven maps cannot be reached from the doors while holding every item: ToFR 1F,
+2F, 3F, Earth, Fire, Water and Air. This is the cartridge, not a bug in the walk.
+
+- On a **vanilla** cartridge `TempleOfFiends (20,17)` carries both a
+  `TP_SPEC_4ORBS` special and a normal teleport. That pair is the time warp: the
+  special gates on the four Orbs, the teleport moves you.
+- On a **No-Overworld** seed the special is **stripped** and the teleport points
+  straight at `TempleOfFiendsRevisitedChaos`. The mode skips the gauntlet and
+  drops you at the Chaos fight.
+
+Nothing else on the cartridge teleports into those seven, of any teleport kind.
+`MetroidVaniaMap.cs` gives them a backdrop (`:942-948`) and a tileset
+(`:1108-1114`) but no entry in its teleporter table. The chain runs
+1F → Earth → Fire → Water → Air → Chaos and 1F → 2F → 3F, all of it flowing
+toward Chaos, with no way in.
+
+The reachability oracle excepts those seven by name and checks the reason instead
+of waving it through: Chaos's own room still has to be reachable, since the
+shortcut is what makes the seven unreachable. A seed that wires the gauntlet up
+passes too.
+
+## The full shuffle is off by default
+
+It runs only with `Entrances` or `Towns` set. The stock preset ships both off, so
+a default No-Overworld seed uses the fixed table above.
+
+## Version drift is not the thing to worry about
+
+Measured rather than assumed. Diffing FFR from the commit that first stamped
+4.9.2 (Nov 2025) to 4.9.8 (May 2026) — six releases — the whole No-Overworld
+surface moved by **one line**, and that line is a shop flag:
+
+    FF1Lib/MetroidVaniaMap.cs | 3 ++-
+    FF1Lib/Sanity/SCMap.cs        unchanged
+    FF1Lib/Teleporters.cs         unchanged
+    FF1Lib/StandardMaps.cs        unchanged
+    FF1Lib/Enums.cs               unchanged
+
+Generating a 4.9.8 seed and reading it with the same tools gives identical
+numbers across six releases *and* a different seed:
+
+    4.9.2  F258553F   stairs=157 gates=8 empty-handed=45/61 links=124 walkable=117 all-items=54/61
+    4.9.8  F2585540   stairs=157 gates=8 empty-handed=45/61 links=124 walkable=117 all-items=54/61
+
+The volatile surface is the **flag string**, not the topology — 4.9.8 adds five
+properties and drops two, so a 4.9.8 seed genuinely cannot be read with the 4-9-7
+schema. That has its own mechanism (`tools/ffr_flags/gen_schema.py`) and
+regenerating is one command.
+
+**No 4-9-8 schema is committed, deliberately.** A schema records the build SHA it
+was proved against and the decoder refuses on mismatch, so one keyed to a local
+fork build would never match a real 4.9.8 seed — dead weight that reads as
+support. Regenerate from the release checkout when 4.9.8 ships.
+
+The conclusion worth keeping: **derive from the cartridge, transcribe nothing from
+C#.** A derived rule set re-derives on a new version, and that is worth more than
+tracking upstream.
+
+## Where the pack stands against this
+
+- Map art can be drawn per seed and is filed by game mode, so a standard tracker
+  and a No-Overworld one each show their own set.
+- The gates are readable off the cartridge and the router stops at them. On the
+  reference seed that moved maps-open-empty-handed from 47 to 45 and walkable
+  floor links from 135 to 117 — eighteen staircases that a SIGIL, Canoe or Chime
+  barrier actually blocks. The all-items count is 54 before and after, which is
+  the check worth keeping: gates must not move that answer.
+- **The logic is still the standard-overworld logic.** `scripts/logic.lua`
+  branches on shard hunt and nothing else, so a No-Overworld seed is gated on
+  vanilla ship/canoe/canal/floater reachability — for a mode with no overworld,
+  whose canoe and floater are not vehicles. This is the open defect; see
+  `docs/ROADMAP.md`.
+- Mode detection works and drives nothing but a warning.
