@@ -292,8 +292,8 @@ else:
         ok(bool(moved), "this cartridge moves at least one NPC off its vanilla tile",
            str(moved))
     else:
-        print("SKIP  a vanilla cartridge is where npc_positions.json came from; "
-              "nothing moves")
+        ok(moved == [], "a vanilla cartridge matches npc_positions.json, which is "
+           "where the file came from; nothing moves", str(moved))
     for node, ids in sorted(hosts.items()):
         if not any(extract_npcs.WANTED[oid] in moved for oid in ids):
             continue
