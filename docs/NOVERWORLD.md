@@ -10,6 +10,12 @@ Everything below was verified on seed `F258553F` (FFR 4-9-2) and re-checked on a
 All of the mode is `FF1Lib/MetroidVaniaMap.cs`, entry `FF1Rom.NoOverworld()` at
 line 47.
 
+**This is not a description of the setting.** For what No-Overworld does to a
+run as a player, read the FFR wiki or the preset itself. What is here is the
+half a tracker has to model and cannot look up: the teleporter table, which
+entrance rows have a tile, and what each gate NPC actually wants. Most of it
+reaches no spoiler log, so the cartridge is the only source.
+
 ## The overworld is not removed
 
 It is swapped for `nooverworld.ffm`, an ocean stub with nine one-tile pads around
