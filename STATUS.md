@@ -824,12 +824,21 @@ the other side.
 next phase. `maptab.lua` still sends maps 0-7 to the overworld tab, so it will
 not follow you into a town even though the town tabs now exist.
 
-**Found on the way, not fixed:** `tools/tests/test_gate_objects.py` fails
-against any *standard* cartridge -- it asserts a No-Overworld gate layout and a
-standard seed has none, so it should skip the way the other cartridge tests do.
-This predates the change here (checked against a stashed tree); it is why
-`tools/tests/run.sh` is green on the No-Overworld seed and on vanilla but not on
-the three standard ones.
+**Found on the way, and fixed.** `tools/tests/test_gate_objects.py` failed
+against any *standard* FFR cartridge. Not for the reason it looked like -- the
+test already synthesises a gate layout for a cartridge that has none -- but
+because it wrote that layout to the **vanilla** talk jump table at `$0E:90D3`
+while the reader asks `talk_routine_bank()`, which on an FFR cartridge answers
+`$11:8000`. FFR leaves a complete, well-formed, vanilla copy behind at the old
+address (`Dialogues.cs:137` bulk-copies the region), so the write did not fail:
+it landed somewhere nothing reads. The same shape as the standard maps left
+behind in bank `$04`, and the third time that pattern has bitten in this tree.
+
+It passed on the vanilla image and on a real No-Overworld seed -- the two cases
+where the vanilla address happens to be the live one, or where nothing had to be
+written at all -- which is exactly why it went unnoticed. It now asks
+`talk_routine_bank()` the way the code under test does, and all five cartridges
+here pass, with the standard seeds genuinely exercised rather than skipped.
 
 ## Known wrong
 

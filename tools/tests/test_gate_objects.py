@@ -1,9 +1,10 @@
 """The No-Overworld gate NPCs have to block a step, and only on that mode.
 
 Set FF1_ROM to a cartridge. A real No-Overworld seed is tested as it is; any
-other image gets a gate layout synthesised into its talk table, so the test is
-useful on the vanilla cartridge this repo can assume and stronger on a seed.
-Without FF1_ROM it skips rather than passing quietly.
+other image -- vanilla or an FFR seed of any mode -- gets a gate layout
+synthesised into whichever talk jump table that cartridge actually uses, so the
+test is useful on the vanilla cartridge this repo can assume and stronger on a
+seed. Without FF1_ROM it skips rather than passing quietly.
 """
 import os
 import sys
@@ -16,10 +17,28 @@ FAKE = {"floater": 0x9C00, "canoe": 0x9C10, "chime": 0x9C20, "tnt": 0x9C30}
 
 
 def graph(path, gated):
+    """A Graph on this cartridge, optionally with a gate layout written in.
+
+    The synthesised layout has to go in the table the reader actually reads,
+    which is not a constant: FFR moves the talk jump table out of $0E:90D3 and
+    into $11:8000, and leaves a complete, well-formed, vanilla copy behind at
+    the old address (Dialogues.cs:137 bulk-copies the region). Writing to the
+    old one on an FFR cartridge therefore does not fail -- it writes somewhere
+    nothing reads, and the gates come back unset.
+
+    That is what made this test fail on every FFR standard seed while passing
+    on the vanilla image and on a real No-Overworld one: the two cases where
+    the vanilla address happens to be the live one, or where nothing had to be
+    written at all. Ask talk_routine_bank, the same way the code under test
+    does.
+    """
     rom = eg.Rom(path)
     rom.data = bytearray(rom.data)
     if gated:
-        base = eg.bank_off(eg.VANILLA_TALK_BANK, eg.TALK_JUMP_TBL)
+        where = eg.talk_routine_bank(rom.data)
+        if where is None:
+            return None
+        base = eg.bank_off(*where)
         for oid, item in eg.NOVERWORLD_GATES.items():
             rom.data[base + oid * 2:base + oid * 2 + 2] = FAKE[item].to_bytes(2, "little")
     return eg.Graph(rom)
@@ -37,6 +56,10 @@ def main():
     # then also has to prove it blocked nothing before that.
     noow = native if real else graph(path, True)
     stock = None if real else native
+    if noow is None:
+        print("SKIP  this image has no readable talk jump table, so a gate "
+              "layout cannot be written into it")
+        return 0
     print(f"({'a real No-Overworld seed' if real else 'gate layout synthesised'})")
     fails = []
 
