@@ -104,7 +104,15 @@ def main():
         # both pass it. `and_form` reads the opcode skeleton instead -- an LDA
         # followed by three ANDs -- which is independent of the address sets
         # black_orb_item matches, the part most likely to be got wrong.
+        # SubEngineer and Titan are id-keyed the same way, and their items are
+        # constants of the game rather than of the seed -- SCMap.cs:167-186
+        # stamps Oxyale on the one and Ruby on the other, and FF1 has done so
+        # since 1987. Named here for that reason; that the *reader* gets them
+        # off this cartridge rather than out of a table is checked below,
+        # against the requirement byte and against synthesised bodies.
         want = dict(eg.GATED_OBJECTS)
+        want[eg.NPC_IDS["subengineer"]] = "oxyale"
+        want[eg.NPC_IDS["titan"]] = "ruby"
         if and_form(path):
             want[eg.BLACK_ORB_OBJ] = "orbs"
         check("stock blocks the plates, and the Black Orb where it applies",
@@ -195,6 +203,105 @@ def main():
                   (x, y) in g.blocking_objects(m, set()), True)
             check("the warp tile opens once the orbs are lit",
                   (x, y) in g.blocking_objects(m, {"orbs"}), False)
+
+    # --------------------------------- SubEngineer and Titan, gated by their id
+    #
+    # The last two of SCMap.cs:167-186's five object gates. Read off the
+    # cartridge, and the two halves are read differently because the cartridge
+    # makes them differently legible -- see object_gate_items. Both halves are
+    # checked against something other than the function under test: Titan
+    # against the requirement byte in FFR's own talk table, which is a field the
+    # body scan never looks at, and SubEngineer against synthesised bodies whose
+    # answer is decided here.
+    gates = eg.object_gate_items(eg.Rom(path))
+    reqs = eg.talk_requirement_bytes(eg.Rom(path))
+    titan, engineer = eg.NPC_IDS["titan"], eg.NPC_IDS["subengineer"]
+
+    # Titan: the byte says Item.Ruby (variables.inc item_ruby = items + $09) and
+    # the routine loads that same address, so talk_item_requirements answers and
+    # object_gate_items has only to carry it through. On a stock image there is
+    # no requirement table at all, and then the body scan is the only path --
+    # which is worth having run, so this asserts the answer either way.
+    check("Titan wants the Ruby", gates.get(titan), "ruby")
+    if reqs is not None:
+        check("and FFR's own requirement byte says items + $09",
+              reqs[titan], 0x09)
+    check("the sub engineer wants the Oxyale", gates.get(engineer), "oxyale")
+    if reqs is not None:
+        # The half that makes the scan necessary rather than a second opinion.
+        check("while the sub engineer's byte says nothing at all",
+              reqs[engineer], 0x00)
+
+    # The scan's shape, on bodies written here. One item address is the answer;
+    # anything else is a refusal, because with the byte empty there is no second
+    # source to break a tie.
+    def scan_says(body):
+        rom = eg.Rom(path)
+        rom.data = bytearray(rom.data)
+        where = eg.talk_routine_bank(rom.data)
+        addr = eg.talk_routines(rom)[engineer]
+        off = eg.bank_off(where[0], addr)
+        # Blank the routine first: a shorter body would leave the real one's
+        # `AD 30 60` trailing behind it and every case would read as oxyale.
+        rom.data[off:off + 0x40] = b"\x60" * 0x40
+        rom.data[off:off + len(body)] = body
+        return eg.object_gate_items(rom).get(engineer)
+
+    def lda(off):
+        return bytes([0xAD, (eg.ITEMS + off) & 0xFF, (eg.ITEMS + off) >> 8])
+
+    check("one item load names that item", scan_says(lda(0x10)), "oxyale")
+    check("a different one names a different item", scan_says(lda(0x06)), "tnt")
+    check("no item load at all is refused", scan_says(b"\xa5\x71\x60"), None)
+    check("two item loads are refused", scan_says(lda(0x10) + lda(0x06)), None)
+    # items + $11 is item_canoe's address and also where FFR's ShiftEarthOrbDown
+    # puts the Earth Orb, so a body naming it means two different things and the
+    # scan must not pick one. Reading it as the canoe would gate the Sea Shrine
+    # on a vehicle the mode does not have.
+    check("items + $11 is refused, being the canoe and the Earth Orb both",
+          scan_says(lda(0x11)), None)
+    check("and does not stop a real load beside it being read",
+          scan_says(lda(0x11) + lda(0x10)), "oxyale")
+
+    # And the gates themselves. Same shape as the Black Orb's: refuse a step
+    # empty-handed, allow one with the item.
+    g = eg.Graph(eg.Rom(path))
+    for oid, item in sorted(gates.items()):
+        spots = [(m, x, y) for m in range(eg.MAP_COUNT)
+                 for o, x, y in g.objects(m) if o == oid]
+        check(f"object ${oid:02X} stands somewhere", len(spots) >= 1, True)
+        for m, x, y in spots:
+            check(f"${oid:02X} blocks its tile empty-handed",
+                  (x, y) in g.blocking_objects(m, set()), True)
+            check(f"${oid:02X} steps aside once you hold the {item}",
+                  (x, y) in g.blocking_objects(m, {item}), False)
+
+    # The working rule: a gate row that closes nothing anywhere is either dead
+    # code or evidence the enforcement is not wired.
+    #
+    # Asked of the floor rather than of the map list, because on a vanilla
+    # cartridge the map list cannot answer: the Sea Shrine's entrance is an
+    # overworld whirlpool tile, so Graph.starts() seeds the walk inside it and
+    # every Sea Shrine floor is "reachable" whatever the engineer does. That is
+    # a fact about seeding from all doors, not about the gate. The derivation
+    # asks per tile for exactly this reason -- so does this. Walk in from each
+    # side of the object and require that at least one side loses ground.
+    for oid, item in sorted(gates.items()):
+        have = set(eg.ITEM_NAMES) - {item}
+        spots = [(m, x, y) for m in range(eg.MAP_COUNT)
+                 for o, x, y in g.objects(m) if o == oid]
+        shrank = False
+        for m, x, y in spots:
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                side = ((x + dx) % eg.MAP_DIM, (y + dy) % eg.MAP_DIM)
+                gated = len(g.floor_walk(m, side, have))
+                g.gated_objects = {k: v for k, v in g.gated_objects.items()
+                                   if k != oid}
+                loose = len(g.floor_walk(m, side, have))
+                g.gated_objects = eg.Graph(eg.Rom(path)).gated_objects
+                shrank = shrank or gated < loose
+        check(f"${oid:02X} cuts its floor for a player without the {item}",
+              shrank, True)
 
     for f in fails:
         print("     " + f)

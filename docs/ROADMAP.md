@@ -69,9 +69,9 @@ being read off the seed rather than out of the vanilla snapshot, which FFR moves
 
 Re-run on a freshly built 4.9.2 oracle cartridge: **226 comparable, 226 agree, 0
 divergent**, no location left without a derived rule. The count rises from 218
-because the six now resolve. (That run's output was never committed; the corpus
-files as they stand give 254 derived and 222 compared. And most of the agreeing
-222 are granted away rather than compared — see `docs/ORACLE.md`.)
+because the six now resolve. (The corpus's derived files were behind that for a
+while, giving 254 derived and 222 compared; they were regenerated on 2026-08-30
+with the widened sweep and now give 255 and 226.)
 
 The **pins** read the cartridge too, since 2026-08-30. `marker_tiles` and the
 two crop guards took NPC tiles out of `tools/npc_positions.json`, the vanilla
@@ -100,14 +100,21 @@ on. The standard baseline is **225 checked, 225 agree**, and it must not move;
 shard hunt has a first measurement too, **229 of 229**. Both are hand-written
 rules graded against an independent export, so both mean what they say.
 
-The No-Overworld numbers do not. Read `docs/ORACLE.md`, "What these figures do
-not cover", before quoting them. The derived rules report 222 of 222 agreeing,
-but **164 of those 222 had an off-vocabulary item granted free**, so 58 are
-actually compared. The pack's own rules report 220 of 226, but they were
-transcribed from the export they are graded against: **63 independently
-supported, 163 self-agreeing by construction, 6 deliberately strict**. The
-honest figure for this item is 63, and the way to move it is the three missing
-`GATED_OBJECTS` rows, not more seeds.
+The No-Overworld numbers said much less until 2026-08-30, and the reason is
+worth keeping. The derived rules reported 222 of 222 agreeing, but **164 of
+those 222 had an off-vocabulary item granted free**, so 58 were actually
+compared; the pack's own rules reported 220 of 226 while having been transcribed
+from the export they were graded against — **63 independently supported, 163
+self-agreeing by construction, 6 deliberately strict**. The honest figure was
+63, and the way to move it was the missing `GATED_OBJECTS` rows rather than more
+seeds.
+
+That is what the SubEngineer and Titan rows did. The grant is down to **5 of
+226**, the derived rules are **226 compared, 225 agree, 1 divergent**, and **215
+of the 226 now rest on two independent readings** — the transcription and a walk
+of the cartridge — against 63 before. Read `docs/ORACLE.md`, "What these figures
+do not cover", before quoting any of it; the one divergence is Lefein, filed in
+`docs/ISSUES.md`.
 
 What the oracle does not cover is ToFR — `Archipelago.cs:93` drops it from the
 AP pool unconditionally. `tools/tofr_diff.py` covers that gap by comparison
@@ -170,11 +177,12 @@ first.
 Where item 1 actually stands, 2026-08-30, and what comes off it. This is the
 part that goes stale fastest; check `git log trunk..` before trusting it.
 
-**`noverworld-logic` -- fourteen commits, merged to `trunk`.** `trunk` is
-sixteen commits ahead of `origin/trunk` and clean, as of 2026-08-30. The
-wiring (feed split, mode guards, 25 region rules, checker), the record
-correction, the Black Orb gate, the idea below, and five commits answering the
-review. All suites green; std 225/225 and shard 229/229 unmoved throughout.
+**`noverworld-logic` -- fourteen commits, merged to `trunk`, pushed.** `trunk`
+is level with `origin/trunk` and clean, as of 2026-08-30. The wiring (feed
+split, mode guards, 25 region rules, checker), the record correction, the Black
+Orb gate, the idea below, and five commits answering the review. All suites
+green; std 225/225 and shard 229/229 unmoved throughout, including across the
+gate branch below.
 
 **The review gate is closed.** `/code-review` ran in a fresh-context session on
 `trunk...noverworld-logic` at high effort and returned seven findings, all of
@@ -192,32 +200,50 @@ has its own commit message. Two were more than tidying:
 
 Nothing pushed without explicit go-ahead.
 
-**Next branch: the remaining two object gates, and the sweep that can hold
-them.** One commit, because the parts cannot land separately -- a
-`GATED_OBJECTS` row whose item the sweep cannot hold blocks that tile in every
-subset, and everything behind it derives as unreachable rather than gated. It
-carries:
+**Landed: the remaining two object gates, and the sweep that can hold them.**
+One commit, because the parts could not land separately -- a `GATED_OBJECTS` row
+whose item the sweep cannot hold blocks that tile in every subset, and everything
+behind it derives as unreachable rather than gated. What went in:
 
 - SubEngineer `0x10` -> oxyale and Titan `0x14` -> ruby, the last two rows of
-  `Sanity/SCMap.cs:167-186`. **Read off the cartridge, not tabulated**, the way
-  `black_orb_item()` and `noverworld_gate_items()` are. The two differ in what
-  is legible: Titan's requirement byte is set (`Item.Ruby = 9`) and
-  `talk_item_requirements()` already finds it; SubEngineer's byte is `0x00`
-  (`NPCs.cs` never assigns it), so the only signal is `AD 30 60` in the routine
-  body -- the same body scan the `direct` case already uses.
-- `entrance_graph.ITEM_NAMES` gains both, taking the sweep to 2^12.
-- `check_logic.SWEPT_ITEMS` gains both, or `offvocab_items()` goes on granting
-  them free and the new rules read as strict rather than as agreement.
-- The memoization at "Memoize the floor walk" in `docs/IDEAS.md`, with its
-  **all-subsets equivalence guard** -- memoized and unmemoized must produce
-  identical rules over the whole lattice. Note the filed design counts only
-  `floor_walk`; `reachable_tiles` also calls `reachable_teleports`, and both
-  need the same key or the memo is half applied.
-- A failure demonstration per row, per the working rule below. Expected payoff:
-  independent support on `nov` rising from 63 toward ~190, since oxyale alone
-  blocks 129 of the 226 comparisons.
+  `Sanity/SCMap.cs:167-186`, read off the cartridge by
+  `entrance_graph.object_gate_items()`. The two differ in what is legible, and
+  the reader follows the cartridge rather than flattening them: Titan's
+  requirement byte is set (`Item.Ruby = 9`) and `talk_item_requirements()`
+  already found it, while SubEngineer's is `0x00`, so his item comes from the
+  routine body -- `AD 30 60`, LDA item_oxyale -- and only when the body names
+  exactly one item address.
+- `entrance_graph.ITEM_NAMES` gained both, taking the sweep to 2^12, and
+  `check_logic.SWEPT_ITEMS` with it, so the two stop being granted free.
+- The memoized floor walk, with the all-subsets equivalence guard, in
+  `tools/tests/test_memo_walk.py`. `reachable_teleports` is memoized alongside
+  `floor_walk`, which the filed design had missed. The sweep went from 1024
+  subsets in ~85s to 4096 in ~57s.
 
-**Branch after that: make the rendered maps legible.** Three changes that share
+The demonstrations, per the working rule below. On `std`, holding every item but
+the one: SubEngineer closes 32 locations across the five Sea Shrine floors,
+Titan closes the 4 in his tunnel. On `nov` Titan closes the same 4; SubEngineer
+closes nothing at that level, because with everything else in hand the Sea Shrine
+has another way in -- so the demonstration for it is one subset down, holding
+`chime,floater`, where it closes 59 locations across Crescent Lake, the Ice Cave
+and all five Volcano floors. That is FFR's own `(Chime AND Oxyale AND Sigil) OR
+(Mark)` shape, derived rather than transcribed.
+
+The payoff was larger than the estimate. Independent support on `nov` went from
+63 of 226 to **215**, not the ~190 guessed here: the off-vocabulary grant fell
+from 164 to 5, and at every location where the pack's transcribed rule agrees
+with FFR the derived rule now agrees too.
+
+One thing it uncovered rather than caused: **Lefein**, the only `--derived`
+divergence left on either No-Overworld cartridge. The Ruby grant had been hiding
+it. FFR wants `(Tnt OR Ruby OR Canoe) AND Floater AND Slab` and the derivation
+says `floater`, because the Lefein man wants the Slab *translated* and
+`SCLogic.cs:555-557` resolves that to Dr Unne's own reachability -- a requirement
+naming another location, which the item sweep cannot express at any vocabulary
+size. Filed in `docs/ISSUES.md`, and it is an argument for the solver in
+`docs/IDEAS.md` rather than for a patch.
+
+**Next branch: make the rendered maps legible.** Three changes that share
 one regen, because each moves the `inputs` or `marker` fingerprint in
 `.regen_cache.json` and a single run picks up all of them. All measured
 2026-08-30 on the std and nov oracle cartridges, which agree, so there is no
@@ -303,6 +329,11 @@ correctness guard behind an art change.
 
 Not queued, and deliberately: a general requirements solver, and more oracle
 seeds. The provenance table says where the risk is; spend there.
+
+The solver has one more argument for it than it did, and it is still not enough
+to queue it: Lefein above is a requirement that names another *location* rather
+than an item, so no widening of the sweep reaches it. It is one location of 226,
+and it is permissive rather than silent, so it stays filed.
 
 ## Working rules
 

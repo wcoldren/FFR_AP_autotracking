@@ -46,10 +46,10 @@ Last run 2026-08-30, on freshly rebuilt cartridges.
 |---|---|
 | `std`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** |
 | `shard`, pack rules vs FFR | **229 checked, 229 agree, 0 divergences** |
-| `nov`, pack rules vs FFR | **226 compared, 220 agree, 6 deliberately strict**; of the 226, **63 independently supported, 163 self-agreeing by construction** |
-| `nov2`, pack rules vs FFR | **224 compared, 218 agree, 6 deliberately strict**; **69 independently supported, 155 self-agreeing** |
-| `nov`, derived rules vs FFR | **222 compared, 222 agree, 0 divergent** — but **164 of the 222 had an off-vocabulary item granted free**, so **58** are genuinely comparable; 254 derived, 0 unreachable |
-| `nov2`, derived rules vs FFR | **220 compared, 220 agree, 0 divergent** — **156 granted**, **64** genuinely comparable; 254 derived |
+| `nov`, pack rules vs FFR | **226 compared, 220 agree, 6 deliberately strict**; of the 226, **215 independently supported** by the sweep, 11 not |
+| `nov2`, pack rules vs FFR | **224 compared, 218 agree, 6 deliberately strict** |
+| `nov`, derived rules vs FFR | **226 compared, 225 agree, 1 divergent** (Lefein) — **5 granted an off-vocabulary item**, so **221** are genuinely comparable; 255 derived, 0 unreachable |
+| `nov2`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein) — **5 granted**, **219** genuinely comparable; 255 derived, 0 unreachable |
 | `nov` vs `nov2`, ToFR shuffle | **0 differences** |
 
 `std`'s 225/225 is the baseline to protect: it validates the harness end to end
@@ -73,12 +73,23 @@ Tagging all 226 comparisons on `nov` by where the pack-side rule came from:
 | 18 | no gate at all |
 | 0 | derived from the cartridge sweep |
 
-Only the last three groups are independent of the transcription, and the sweep
-contributes **nothing** to the compared set: the one rule taken from it,
-Bahamut's Cave, is not in FFR's pool and is never compared. Counting a location
-as independently supported when its gate is pre-existing, ungated, or
-corroborated by the sweep gives **63 of 226**; the other 163 rest on the
-transcription alone.
+That table is a snapshot of where each pack-side *rule* came from, and it has
+not changed — the pack's No-Overworld rules were not touched when the last two
+gate rows landed. What changed is the second reading available to check them
+against. Until 2026-08-30 the sweep contributed **nothing** to the compared set:
+the one rule taken from it, Bahamut's Cave, is not in FFR's pool and is never
+compared, so independent support counted only the pre-existing and ungated
+groups and came to **63 of 226**.
+
+With SubEngineer and Titan gated and Oxyale and the Ruby swept, the sweep
+derives a rule for every one of the 226 and agrees with FFR at 225 of them, 221
+of those without an item being granted away. At every location where the pack's
+transcribed rule agrees with FFR, the derived rule agrees too — the two never
+part company. So **215 of the 226 now rest on two independent readings**, the
+transcription and a walk of the cartridge. The eleven that do not are the 6
+deliberately strict below, the 4 still granted a trade item (Herb, Adamant,
+Bottle, Crystal), and Lefein, where the derivation is permissive and FFR is
+right — see `docs/ISSUES.md`.
 
 The **6 deliberately strict** are Cardia Forest, and they are not a defect. FFR
 says `chime,floater,oxyale OR canoe` on `nov` and `floater` on `nov2` because
@@ -86,9 +97,9 @@ that gateway is rolled per seed; the pack ships one static rule, so it ships the
 conjunction and is strict on both. A check shown red that is reachable beats a
 check shown green that is not.
 
-`nov2`'s counts are 224 and 220 rather than 226 and 222 because that seed's
-export carries 225 locations rather than 227 — which pool a seed draws varies,
-and the comparable set follows it.
+`nov2`'s counts are 224 rather than 226 because that seed's export carries 225
+locations rather than 227 — which pool a seed draws varies, and the comparable
+set follows it.
 
 Two waivers apply to every run against hand-written rules, and are not
 divergences: Princess2 (the pack wants Garland beaten, FFR folds that in because
@@ -97,26 +108,29 @@ translated, FFR counts holding it).
 
 ### What these figures do not cover
 
-**The off-vocabulary grant, which is the big one.** `check_logic --derived`
-hands every item the sweep cannot express — Oxyale, the Ruby, the Slab, the
-Bottle — to *both* sides before comparing, so FFR reads as permissively as it
-can and a surviving divergence cannot be blamed on the vocabulary gap. That is a
-fair test, but a location where FFR's whole rule is granted away is not really
-compared at all. Every `--derived` run prints the count and it was recorded
-nowhere until now: **164 of `nov`'s 222, 156 of `nov2`'s 220.** The
-concentration is one item — **oxyale x129 and ruby x32 on `nov`** — so quoting
-"222 of 222 agree" describes 58 locations, not 222.
+**The off-vocabulary grant, which was the big one and is now small.**
+`check_logic --derived` hands every item the sweep cannot express to *both*
+sides before comparing, so FFR reads as permissively as it can and a surviving
+divergence cannot be blamed on the vocabulary gap. That is a fair test, but a
+location where FFR's whole rule is granted away is not really compared at all.
+Every `--derived` run prints the count and it was recorded nowhere until
+2026-08-30: **164 of `nov`'s 222, 156 of `nov2`'s 220**, concentrated in one
+item — **oxyale x129 and ruby x32 on `nov`** — so "222 of 222 agree" described
+58 locations, not 222.
 
-This is now known to be **fixable rather than inherent**, and that is a change
-from how it has been filed. Oxyale and Ruby are not "game rules" the walk cannot
-see: `FF1Lib/Sanity/SCMap.cs:167-186` gates five object ids by tile — RodPlate,
-LutePlate, BlackOrb, SubEngineer and Titan — and the pack modelled two of the
-five. BlackOrb was closed on 2026-08-30 (read per cartridge by
-`entrance_graph.black_orb_item()`); SubEngineer and Titan remain, and they are
-what the oxyale and ruby grants above are waiting on. They are ordinary blocking objects on
-chokepoint tiles, no different in kind from the two plates already handled. The
-genuinely non-graph requirements are the trades: Slab, Herb, Adamant, Bottle,
-Crystal.
+That was **fixable rather than inherent**, and it is fixed. Oxyale and Ruby were
+never "game rules" the walk could not see: `FF1Lib/Sanity/SCMap.cs:167-186`
+gates five object ids by tile — RodPlate, LutePlate, BlackOrb, SubEngineer and
+Titan — and the pack modelled the first three. The last two landed the same day,
+with the vocabulary widening they require: `ITEM_NAMES` is twelve items, the
+sweep is 2^12, and the grant is down to **5 of 226 on `nov` and 5 of 224 on
+`nov2`** — one each for Herb, Adamant, Bottle, Crystal and Slab, the trades that
+genuinely are not graph properties.
+
+The sweep is 2^12 and still runs in under a minute, because the floor walk is
+memoized on the map, the arrival tile, and the part of the held set that floor
+actually consults. That key is the whole risk of having a memo, so it is guarded
+exhaustively over the lattice by `tools/tests/test_memo_walk.py`.
 
 **The Temple of Fiends Revisited.** `Archipelago.cs:93` drops ToFR from the AP
 pool unconditionally, so FFR writes no rule for any ToFR location and not one of
@@ -141,13 +155,13 @@ Chaos's room holds the whole chest block. Whether Short is genuinely seed-stable
 or these two seeds simply agree needs a second standard pair to say, and has not
 been measured.
 
-**The committed corpus artefacts are behind the numbers above.**
-`derived_nov.json` and `derived_nov2.json` predate the NPC-location split, so
-re-running `--derived` against them gives 254 derived and 222/220 compared where
-this page once recorded 255 and 226/224. The larger figures came from a
-regenerated set that was never committed, so they cannot be reproduced from the
-corpus as it stands. The derived-rule rows above quote what the committed files
-actually produce.
+**The derived-rule files in the corpus were regenerated on 2026-08-30**, when
+the SubEngineer and Titan rows widened the sweep to 2^12. They had been behind
+the page for a while before that — the committed pair predated the NPC-location
+split and gave 254 derived and 222/220 compared where this page recorded 255 and
+226/224 — and the rows above are what the regenerated files actually produce.
+Regenerating them is the two `noverworld_rules.py` commands below and about two
+minutes.
 
 ## Rebuilding
 
@@ -212,7 +226,9 @@ touches a map bank.)
 
 `--ff1-world` is load-bearing: without it only about 20 checks map and the run
 reports a cheerful zero. `--ap-rules` is load-bearing for the reason above. The
-`nov` derivation sweep is about 85 seconds; everything else is fast.
+`nov` derivation sweep is about 60 seconds -- 4096 subsets rather than the old
+1024, and faster than the old sweep was, because the floor walk is memoized;
+everything else is fast.
 
 `tofr_diff.py` has three answers, not two — 0 same, 1 differs, 2 incomparable.
 It refuses to compare rather than report a shape difference as a shuffle

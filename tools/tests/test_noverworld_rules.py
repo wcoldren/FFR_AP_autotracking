@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """tools/noverworld_rules.py -- the derivation, and the two bugs that shaped it.
 
-The full sweep is 1024 graph walks and takes over a minute, so it is not run
+The full sweep is 4096 graph walks and takes about a minute, so it is not run
 here. What is checked is the reasoning around it: the reachability test, the
 minimisation, and the join. Those are where both real bugs were.
 """
@@ -317,11 +317,11 @@ else:
     else:
         ok(traded.get(0x07) == "crown", "Astos wants the Crown", str(traded.get(0x07)))
         ok(traded.get(0x08) == "tnt", "Nerrick wants the TNT", str(traded.get(0x08)))
-        # Both are in the ten items the sweep varies, so the derived rule can
-        # actually state them. The other trades this reader finds -- adamant,
-        # crystal, slab, herb, ruby -- are outside that vocabulary and are
-        # emitted anyway, since they are real requirements and the pack already
-        # uses those codes.
+        # Both are in the items the sweep varies, so the derived rule can
+        # actually state them. So is the ruby, since the Titan gate landed. The
+        # other trades this reader finds -- adamant, crystal, slab, herb -- are
+        # outside that vocabulary and are emitted anyway, since they are real
+        # requirements and the pack already uses those codes.
         for item in ("crown", "tnt"):
             ok(item in e.ITEM_NAMES, f"{item} is in the swept vocabulary")
 

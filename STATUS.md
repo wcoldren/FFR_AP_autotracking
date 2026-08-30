@@ -427,7 +427,7 @@ Asked per tile, `key` alone opens 610. `reachable_tiles` is the same fixed point
 **Minimal sets over the whole lattice, not one probe per item.** `floater` and
 `crown` each open zero tiles on their own, so a per-item probe would drop both;
 an item that opens nothing alone can still be half of a pair. 1024 walks, about
-70 seconds.
+70 seconds. (4096 walks in about 57 since the memo, 2026-08-30.)
 
 What seed `F258553F` derives, over all 249 locations, none refusing:
 
@@ -499,8 +499,12 @@ made: `offvocab_items()` hands the items the sweep cannot express to both sides,
 and on the committed corpus that is **164 of 222**, concentrated in oxyale
 (x129) and ruby (x32). Read `docs/ORACLE.md`, "What these figures do not cover".
 The cause is not a vocabulary limit -- three rows are missing from
-`GATED_OBJECTS` -- see `docs/ISSUES.md`, "The walk models two of the five object
-gates the cartridge has".
+`GATED_OBJECTS` -- see `docs/ISSUES.md`.
+
+**All three rows landed the same day**, and the grant is 5 of 226 now. The
+figure to quote for this section is **226 compared, 225 agree, 1 divergent**,
+with 221 genuinely compared -- see "Five object gates, twelve items, and one
+divergence that had been hiding" at the end of this file.
 
 Two defects, and they turned out to share a join.
 
@@ -995,7 +999,8 @@ Measured on the 4.9.2 oracle corpus:
   divergent**, unmoved.
 - `check_logic --derived` on the No-Overworld cartridge: **226 comparable, 226
   agree, 0 divergent**, unmoved -- though 164 of those are granted rather than
-  compared, which nothing here said at the time -- and **0 fanned**, where `Coneria Castle`
+  compared, which nothing here said at the time, and one of the 226 turned out
+  to be a real divergence once the grant was lifted -- and **0 fanned**, where `Coneria Castle`
   exposed two sections before, so its derived rule reached both the King and
   Sara. That is the over-reach `derive()` hard-exits on when a trade is
   involved; neither of those two trades, so it had stayed a latent one.
@@ -1568,7 +1573,10 @@ sweep varies; 121 uses of Oxyale on the reference seed `F258553F` (the oracle
 cartridge carries 129). **"Game rules rather than tile blockers" was wrong about
 two of them**: Oxyale and the Ruby are map objects standing on chokepoint tiles,
 `Sanity/SCMap.cs:167-186`, and the walk simply has no `GATED_OBJECTS` row for
-them — see `docs/ISSUES.md`. The genuinely non-graph five are the trades. Skipping those locations was tried first and hides real
+them — see `docs/ISSUES.md`. The genuinely non-graph five are the trades.
+**Both rows landed on 2026-08-30 and the sweep varies twelve items now**, so the
+count outside it is five and "a derived rule set will never state an Oxyale
+requirement", below, is historical -- it states one at 143 locations on `nov`. Skipping those locations was tried first and hides real
 over-reach, because FFR's rule is an OR and a clause can sit entirely inside the
 swept vocabulary. Granting the off-vocabulary items for free instead makes FFR as
 permissive as it can be, so a surviving divergence cannot be blamed on the gap —
@@ -1653,6 +1661,92 @@ on more than one tile on std and **fourteen on nov** -- Short ToFR duplicates
 indices onto `tofrChaos`. Four same-map groups on both (`25`, `26` on `marshB2`,
 `29` on `marshB3`, `101` on `volcB4`); two cross-map on std against ten on nov.
 Seed-dependent, so any annotation derives per cartridge.
+
+## Five object gates, twelve items, and one divergence that had been hiding
+
+Written 2026-08-30. `Sanity/SCMap.cs:167-186` gates five object ids by tile in
+one switch, and the walk modelled three: the Rod and Lute plates, and the Black
+Orb once it was read per cartridge. The last two -- SubEngineer `0x10` wanting
+the Oxyale, Titan `0x14` wanting the Ruby -- went in with the vocabulary that
+carries them, because they could not go in without it. A `GATED_OBJECTS` row
+whose item the sweep cannot hold blocks that tile in *every* subset, so
+everything behind it derives as unreachable rather than gated, and the rules
+come out saying nothing instead of saying the wrong thing loudly.
+
+**The two are not equally legible on the cartridge, and the reader says so
+rather than flattening them.** Titan's requirement byte is set --
+`NPCs.cs` assigns him `Item.Ruby = 9` -- and his routine opens `AD 29 60`, LDA
+item_ruby, so `talk_item_requirements()` already answered for him: the byte and
+the code naming the same item, which is the two-sources-agree discipline that
+function exists for. SubEngineer's byte is `0x00`. Nothing assigns him one, so
+there is no second source at all and the only signal is `AD 30 60` in the body.
+With one source carrying the answer the shape is pinned hard instead: the body
+must name exactly one address in the `items` array, and two or none is a refusal.
+`items + $11` is excluded from that scan on purpose -- it is item_canoe's
+address and also where FFR's `ShiftEarthOrbDown` puts the Earth Orb, so a body
+naming it means two different things and the scan cannot tell which. The
+requirement byte has no such problem, being an index FFR writes, so only the
+scan drops it.
+
+Verified on five cartridges -- vanilla and all four oracle seeds -- and all five
+read `{$10: oxyale, $14: ruby}`. On vanilla that is the body scan doing the work
+for both, since a stock image has no requirement table at all.
+
+**Each row demonstrates a failure, per the working rule.** On `std`, holding
+every item but the one: the sub engineer closes 32 locations across the five Sea
+Shrine floors, the Titan the 4 in his tunnel. On `nov` the Titan closes the same
+4, and the sub engineer closes nothing at that level -- with everything else in
+hand the Sea Shrine has another way in. So his demonstration is one subset down:
+holding `chime,floater`, his row closes 59 locations across Crescent Lake, the
+Ice Cave and all five Volcano floors. Which is FFR's own shape for those
+locations, `(Chime AND Oxyale AND Sigil) OR (Mark)`, arrived at by walking the
+cartridge rather than by transcribing the export.
+
+**The sweep is 2^12 and got faster.** 4096 subsets in about 57 seconds against
+1024 in about 85, because `floor_walk` and `reachable_teleports` are memoized on
+`(map, arrival, the part of the held set that floor consults)`. 42 of the 61
+floors on vanilla consult no item at all and are walked once for the whole
+sweep. The filed design memoized only `floor_walk`; `reachable_tiles` calls both,
+so that would have been half a memo.
+
+The key is the whole risk -- one that omits an item the walk consults hands back
+another subset's reachability with nothing failing -- so `test_memo_walk.py`
+guards it twice. The cheap guard runs every time and is still exhaustive: a walk
+reads the held set in exactly two places, so if neither `walkable()` on any of a
+map's property bytes nor `blocking_objects()` on its objects can tell `have` from
+the trimmed key, over all 61 maps and all 4096 subsets, then no walk can. The
+expensive one compares memoized against unmemoized tile for tile over the whole
+lattice; it runs on `FF1_SLOW=1` and passed on `nov`, 4096 of 4096.
+
+**What it bought is on the measurement.** `offvocab_items()` hands both sides
+every item the sweep cannot express, and Oxyale and the Ruby were 161 of the 164
+grants on `nov`. The grant is 5 now -- Herb, Adamant, Bottle, Crystal, Slab, one
+each -- so `nov` goes from 58 genuinely compared to **221 of 226**, and `nov2`
+from 64 to 219. Independent support for the pack's own No-Overworld rules goes
+from **63 of 226 to 215**: the sweep derives a rule for every compared location,
+agrees with FFR at 225 of them, and never parts company with the pack's rule
+where the pack agrees with FFR.
+
+The two baselines did not move -- std 225/225, shard 229/229 -- which is what
+says the new rows describe the cartridge rather than the mode.
+
+**And one thing surfaced that the grant had been hiding.** Lefein is the only
+`--derived` divergence left, on both No-Overworld cartridges. FFR wants
+`(Tnt OR Ruby OR Canoe) AND Floater AND Slab`; the derivation says `floater`.
+Both are right about the geography: Lefein town is two teleports from the start
+-- Coneria Castle 1F `(2,8)`, behind the SIGIL barrier, to Waterfall `(57,56)`,
+then Waterfall `(25,28)` to Lefein -- and FFR agrees, wanting only `Sigil` for
+the Waterfall chests. The extra term is the requirement for reaching *Melmond*,
+because the Lefein man wants the Slab translated and `SCLogic.cs:555-557`
+resolves an NPC gated on the Unne flag to Dr Unne's own reachability.
+
+That is a requirement naming another location, and the sweep's vocabulary is
+items -- no amount of widening reaches it. Filed rather than patched, in
+`docs/ISSUES.md`, where it is the strongest argument yet for the propagating
+solver in `docs/IDEAS.md`. It also shows up an assumption worth not carrying
+over: `check_logic.WAIVED` says the pack is stricter at Lefein "because Unne is
+reachable whenever Lefein is", which holds on a standard overworld and does not
+hold here.
 
 ## Four names that have drifted off what they describe
 

@@ -17,35 +17,71 @@ Nothing here is urgent unless it says so.
   This is the largest live defect in the pack. See `docs/NOVERWORLD.md` and
   `docs/ROADMAP.md`.
 
-- **The walk models three of the five object gates the cartridge has.** It
-  varies `entrance_graph.ITEM_NAMES`, ten items; `GATED_OBJECTS` holds RodPlate
-  `0x16` and LutePlate `0x17`, and `black_orb_item()` adds BlackOrb `0xCA` per
-  cartridge. **SubEngineer `0x10` (oxyale) and Titan `0x14` (ruby) remain.** `FF1Lib/Sanity/SCMap.cs:167-186` gates
-  **five** object ids by tile, in one switch — the two plates plus **BlackOrb
-  `0xCA` → orbs, SubEngineer `0x10` → oxyale, and Titan `0x14` → ruby**. All
-  five are ordinary map objects standing on chokepoint tiles; nothing
-  distinguishes the three missing ones in kind from the two present.
+- **The walk models all five object gates the cartridge has. Closed
+  2026-08-30.** `FF1Lib/Sanity/SCMap.cs:167-186` gates **five** object ids by
+  tile, in one switch: RodPlate `0x16`, LutePlate `0x17`, BlackOrb `0xCA` →
+  orbs, SubEngineer `0x10` → oxyale and Titan `0x14` → ruby. All five are
+  ordinary map objects standing on chokepoint tiles, and the walk now blocks all
+  five. `GATED_OBJECTS` holds the two plates; `black_orb_item()` and
+  `object_gate_items()` read the other three off the cartridge per seed.
 
   This entry used to say Oxyale and the Ruby were "game rules" the sweep could
   not see, and that was wrong twice over. They are graph properties, and
   `orbs` — what BlackOrb wants — had been in the swept vocabulary all along, so
   every sweep to that date walked through an orb gate as though it were not
-  there. **Closed 2026-08-30.** It was why seven ToFR locations derived as free;
-  they derive `orbs` now. Oxyale and the Ruby are the same shape of defect and
-  are still open: unlike `orbs`, their items are not in the swept vocabulary, so
-  the rows and the widening have to land together or everything behind them
-  derives as unreachable.
+  there. BlackOrb closed first; it was why seven ToFR locations derived as free,
+  and they derive `orbs` now. The last two closed the same day, together with
+  the vocabulary widening they needed: a `GATED_OBJECTS` row whose item the
+  sweep cannot hold blocks that tile in every subset, so the row and the item
+  have to land in one commit or everything behind the gate derives as
+  unreachable rather than gated. `ITEM_NAMES` is twelve items and the sweep is
+  2^12.
+
+  What that bought is on the measurement rather than on the map: the
+  off-vocabulary grant `check_logic --derived` hands both sides fell from 164 of
+  `nov`'s 222 comparisons to **5 of 226**, because Oxyale and the Ruby were 161
+  of those 164. See `docs/ORACLE.md`.
 
   The genuinely non-graph requirements are the *trades*, and half of those are
   already read: `entrance_graph.talk_item_requirements()` takes them off the
   talk table — Astos's Crown, Nerrick's TNT, the Smith's Adamant, Matoya's
-  Crystal. `Slab`, `Herb` and `Bottle` remain.
+  Crystal, Unne's Slab, the Elf Doctor's Herb, and Titan's Ruby. `Bottle`
+  remains, and so does the Lefein man below.
 
-  Until the three rows land, `check_logic --derived` grants the unexpressible
-  items to both sides rather than skipping the location, so FFR reads as
-  permissively as it can and a surviving divergence cannot be blamed on the gap.
-  That is a fair test, not a fix — and see the Open questions entry on how much
-  of the agreement figure it grants away.
+- **The derivation cannot say "reach another location", and Lefein is where
+  that shows.** Found 2026-08-30, when dropping the Ruby grant uncovered it:
+  FFR's rule for Lefein is `(Tnt OR Ruby OR Canoe) AND Floater AND Slab`, and
+  the derivation says `floater` alone. It is the only divergence left in
+  `--derived` on either No-Overworld cartridge.
+
+  Both sides are right about the geography. Lefein town is two teleports from
+  the party's start — Coneria Castle 1F `(2,8)`, behind the SIGIL barrier, to
+  Waterfall `(57,56)`, then Waterfall `(25,28)` to Lefein — and FFR agrees, its
+  Waterfall chests wanting `Sigil` and nothing else. The extra `Tnt OR Ruby OR
+  Canoe` is the requirement for reaching **Melmond**, because the Lefein man
+  wants the Slab *translated*: `Sanity/SCLogic.cs:555-557` resolves an NPC
+  gated on the Unne flag to Dr Unne's own reachability ANDed with `Slab`.
+
+  That is a requirement naming another location, and the sweep's vocabulary is
+  items. Nothing here is a small fix — it is the general requirements solver in
+  `docs/IDEAS.md`, or a second pass that resolves NPC flags to the reachability
+  of the NPC that sets them. Filed rather than fixed; the divergence is
+  permissive, so the derived rules open Lefein earlier than FFR does.
+
+  One thing this contradicts, and the contradiction is only about
+  No-Overworld: `check_logic.WAIVED` says the pack is stricter than FFR at
+  Lefein "because Unne is reachable whenever Lefein is". That holds on a
+  standard overworld and does not hold here, where the Waterfall route reaches
+  Lefein without going near Melmond. The waiver is a statement about the
+  hand-written standard rules and is not applied in derived mode, so it is not
+  wrong where it is used — but it should not be carried over.
+
+  A second, smaller gap sits behind the same NPC. `talk_item_requirements()`
+  finds no requirement for the Lefein man `$0F`, though his byte reads `$0B`
+  (Slab): his routine consults it as `A4 74` / `JSR $9079` — LDY tmp+4 into a
+  subroutine — rather than the `A6 74` / `BD 20 60` pair the reader matches.
+  Closing that would AND the Slab into the derived rule; it would not close the
+  divergence above, since the Slab is granted to both sides anyway.
 
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so a
   Locations-grid cell needs a new hosted toggle under a different code. It would
@@ -174,27 +210,36 @@ Nothing here is urgent unless it says so.
 
 ## Open questions
 
-- **The agreement figures grant away most of what they appear to compare.**
-  `check_logic --derived` hands every off-vocabulary item to both sides before
-  comparing (`offvocab_items()`), so a location whose FFR rule is entirely
-  granted is counted as agreeing without being tested. Measured on the committed
-  corpus: **164 of `nov`'s 222 comparisons and 156 of `nov2`'s 220**, so "222 of
-  222 agree" describes **58** locations. The concentration is one item —
-  **oxyale x129, ruby x32** on `nov`. Every run has printed this count and no
-  page recorded it until 2026-08-30.
+- **The agreement figures used to grant away most of what they appeared to
+  compare. Largely closed 2026-08-30.** `check_logic --derived` hands every
+  off-vocabulary item to both sides before comparing (`offvocab_items()`), so a
+  location whose FFR rule is entirely granted is counted as agreeing without
+  being tested. On the corpus as it stood that was **164 of `nov`'s 222
+  comparisons and 156 of `nov2`'s 220**, so "222 of 222 agree" described **58**
+  locations. The concentration was one item — **oxyale x129, ruby x32** on
+  `nov` — and neither was in the swept vocabulary because the SubEngineer and
+  Titan gate rows were missing.
 
-  The pack's own No-Overworld rules have the mirror-image problem: they were
-  transcribed from FFR's export for the seed, so grading them against that export
-  is largely self-agreement. By provenance, of 226 comparisons: **63
-  independently supported, 163 self-agreeing by construction, 6 deliberately
-  strict** (Cardia Forest, whose gateway is rolled per seed). The sweep
-  contributes nothing independent, because the single rule taken from it is not
-  in FFR's pool.
+  Both rows landed with the vocabulary that carries them. The grant is now **5
+  of `nov`'s 226 and 5 of `nov2`'s 224** — one each for Herb, Adamant, Bottle,
+  Crystal and Slab, the trades the walk genuinely cannot express — so 221 and
+  219 are really compared, against 58 and 64 before.
 
-  Not inherent. Closing the three missing `GATED_OBJECTS` rows would let the
-  sweep state oxyale and ruby itself, which is the only thing that turns those
-  164 into real comparisons — see "The walk models two of the five object gates"
-  above. Until then, quote 63, not 220.
+  The pack's own No-Overworld rules had the mirror-image problem: transcribed
+  from FFR's export for the seed, so grading them against that export was
+  largely self-agreement. By provenance, of 226 comparisons: **63 independently
+  supported, 163 self-agreeing by construction, 6 deliberately strict** (Cardia
+  Forest, whose gateway is rolled per seed), with the sweep contributing nothing
+  because the single rule taken from it was not in FFR's pool.
+
+  That is what the two rows changed. The sweep now derives a rule for every
+  compared location and agrees with FFR at 225 of 226, and at every location
+  where the pack's transcribed rule agrees with FFR the derived rule does too.
+  **215 of the 226 now rest on two independent readings** — the transcription
+  and a walk of the cartridge — rather than on the transcription alone. The
+  eleven that do not: 6 deliberately strict, 4 still granted a trade item, and
+  Lefein, where the derivation is genuinely permissive (see above). Quote 215,
+  not 220, and not 226.
 
 - **Nothing cross-checks the ToFR rules, so the agreement figure does not cover them.**
   `Archipelago.cs:93` excludes ToFR from the pool unconditionally, so FFR writes

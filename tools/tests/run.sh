@@ -8,6 +8,12 @@
 # synthesised rather than shipped.
 #
 #   FF1_ROM="$HOME/roms/Final Fantasy (USA).nes" ./tools/tests/run.sh
+#
+# One guard is slower than the rest and opts in separately: the floor-walk
+# memo's full-lattice comparison wants a No-Overworld cartridge and several
+# minutes, and says so when it skips.
+#
+#   FF1_SLOW=1 FF1_ROM=<a GameMode 2 seed> ./tools/tests/run.sh
 
 set -e
 
@@ -15,7 +21,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 PY=${PYTHON:-python3}
 
 status=0
-for t in doormap_walk gate_objects talk_items sprites font room_floors crop npc_pins noverworld_rules check_logic tofr_diff; do
+for t in doormap_walk gate_objects memo_walk talk_items sprites font room_floors crop npc_pins noverworld_rules check_logic tofr_diff; do
     echo "== $t"
     "$PY" "$HERE/test_$t.py" || status=1
 done

@@ -155,6 +155,11 @@ ITEM_NAMES = {
     # cartridge, where --have simply ignores them. "floater" is the item's own
     # name; No-Overworld renames it SIGIL on screen and nowhere else.
     "tnt": "TNT", "floater": "Floater", "canoe": "Canoe", "chime": "Chime",
+    # The two objects SCMap gates by object id -- the sub engineer in Onrac and
+    # the Titan in his tunnel. Both stand on a chokepoint on every cartridge,
+    # standard included, so these are not a No-Overworld addition. See
+    # object_gate_items() for how each one's item is read.
+    "oxyale": "Oxyale", "ruby": "Ruby",
 }
 # What a No-Overworld player sees on the item screen. MetroidVaniaMap.cs:844
 # renames exactly two items, and only the Floater is a gate -- MARK is the Earth
@@ -170,8 +175,8 @@ GATED_OBJECTS = {0x16: "rod", 0x17: "lute"}
 # ------------------------------------------------------------ the Black Orb
 #
 # The time warp back to the Temple of Fiends Revisited, and the third of the
-# five object gates FF1Lib/Sanity/SCMap.cs:167-186 lists (the other two are the
-# Rod and Lute plates above; SubEngineer and Titan are not modelled yet).
+# five object gates FF1Lib/Sanity/SCMap.cs:167-186 lists. The other four are the
+# Rod and Lute plates above, and SubEngineer and Titan -- see object_gate_items.
 #
 # Vanilla gates that step twice: TempleOfFiends (20,17) carries TP_SPEC_4ORBS
 # *and* the object, byte 0x92. FFR moves the requirement off the tile and onto
@@ -188,7 +193,7 @@ GATED_OBJECTS = {0x16: "rod", 0x17: "lute"}
 #
 # So this answers "orbs" only for the AND form and None for anything else. None
 # leaves the walk stepping through, which is what it did before and is honest:
-# a shard count is not something the ten-item sweep can hold.
+# a shard count is not something the item sweep can hold.
 #
 # The two AND forms are matched as whole sets, not as any four drawn from their
 # union: the union spans $6031..$6035, and "any four of those five" accepts a
@@ -503,17 +508,16 @@ def talk_requirement_bytes(rom):
             for oid in range(TALK_OBJ_COUNT)}
 
 
-def talk_item_requirements(rom):
-    """object id -> the item its talk routine demands, or None off an FFR layout.
+def talk_routine_bodies(rom):
+    """routine address -> its bytes, bounded so data is never read as code.
 
-    Only objects whose script is shown to consult the requirement appear -- see
-    the note above. An object whose byte nothing reads contributes nothing
-    rather than a guess.
+    Factored out because two readers want it and the bounds are the whole
+    subtlety: see MAX_ROUTINE and BANK_END above for why a routine stops where
+    it does. {} when the cartridge has no readable talk table.
     """
-    reqs = talk_requirement_bytes(rom)
     routines = talk_routines(rom)
-    if reqs is None or routines is None:
-        return None
+    if routines is None:
+        return {}
     bank, _ = talk_routine_bank(rom.data)
     starts = sorted(set(routines.values()))
 
@@ -528,7 +532,21 @@ def talk_item_requirements(rom):
             return b""
         return rom.data[lo:hi]
 
-    bodies = {a: code(a) for a in starts}
+    return {a: code(a) for a in starts}
+
+
+def talk_item_requirements(rom):
+    """object id -> the item its talk routine demands, or None off an FFR layout.
+
+    Only objects whose script is shown to consult the requirement appear -- see
+    the note above. An object whose byte nothing reads contributes nothing
+    rather than a guess.
+    """
+    reqs = talk_requirement_bytes(rom)
+    routines = talk_routines(rom)
+    if reqs is None or routines is None:
+        return None
+    bodies = talk_routine_bodies(rom)
     out = {}
     for oid, addr in routines.items():
         item = ITEM_RAM.get(reqs[oid])
@@ -538,6 +556,85 @@ def talk_item_requirements(rom):
         indexed = LDX_REQUIREMENT in body and LDA_ITEMS_X in body
         direct = bytes([0xAD, (ITEMS + reqs[oid]) & 0xFF, (ITEMS + reqs[oid]) >> 8]) in body
         if indexed or direct:
+            out[oid] = item
+    return out
+
+
+# ------------------------------------- the two objects gated by their own id
+#
+# SubEngineer and Titan, the last two of the five object gates
+# FF1Lib/Sanity/SCMap.cs:167-186 lists. SCMap keys these two by *object id* and
+# stamps SCBitFlags.Oxyale and .Ruby onto the tile each one stands on -- exactly
+# what it does for the Rod and Lute plates -- so they are ordinary blocking
+# objects and nothing about them belongs to No-Overworld. Both sit on a
+# chokepoint on a standard cartridge too: the sub engineer in Onrac is the only
+# way down to the Sea Shrine, and the Titan blocks his tunnel.
+#
+# Which item each one wants is read off its talk routine rather than tabulated,
+# for the reason black_orb_item is a reader: a cartridge is free to reassign a
+# routine, and a table cannot notice. The two are not equally legible, and that
+# is a property of the cartridge rather than a choice made here.
+#
+#   - **Titan's requirement byte is set.** NPCs.cs assigns him Item.Ruby = 9,
+#     and his routine opens `AD 29 60`, LDA item_ruby -- the byte and the code
+#     naming the same item, which is the two-sources-agree discipline
+#     talk_item_requirements exists for. So he needs nothing new: that reader
+#     already answers "ruby" for object $14.
+#   - **SubEngineer's byte is 0x00.** NPCs.cs never assigns him one, so the byte
+#     says nothing at all and the only signal is the routine body, which opens
+#     `AD 30 60`, LDA item_oxyale. One source has to carry the answer alone, so
+#     the shape is pinned hard instead: the body must name exactly one item
+#     address. Two, or none, and this returns nothing rather than picking.
+#
+# `items + $11` is deliberately not readable this way. FFR's ShiftEarthOrbDown
+# moves the Earth Orb onto $6031, which is item_canoe's address, so that one
+# load means two different things depending on the seed and the body cannot say
+# which. The requirement *byte* has no such problem -- it is an index FFR writes
+# -- which is why only the scan drops it.
+OBJECT_ITEM_GATES = ("subengineer", "titan")
+LDA_ABS = 0xAD
+CANOE_OFFSET = 0x11
+
+
+def direct_item_loads(body):
+    """The `items` offsets a routine loads by absolute address, as a set.
+
+    Not instruction-aligned, the same way talk_item_requirements' `direct` test
+    is not: an operand pair can read as `AD lo hi`. That costs a false extra
+    entry, never a missing one, and every caller here treats "more than one" as
+    a refusal -- so the scan errs towards saying nothing.
+    """
+    out = set()
+    for i in range(max(0, len(body) - 2)):
+        if body[i] != LDA_ABS:
+            continue
+        off = (body[i + 1] | (body[i + 2] << 8)) - ITEMS
+        if off in ITEM_RAM and off != CANOE_OFFSET:
+            out.add(off)
+    return out
+
+
+def object_gate_items(rom):
+    """object id -> the item you must hold to step past it, for the two above.
+
+    {} rather than None when nothing is readable: an unreadable cartridge
+    contributes no rows and the walk blocks what it blocked before, which is
+    what these two did while they were unmodelled.
+    """
+    routines = talk_routines(rom)
+    if routines is None:
+        return {}
+    reqs = talk_item_requirements(rom) or {}
+    bodies = talk_routine_bodies(rom)
+    out = {}
+    for name in OBJECT_ITEM_GATES:
+        oid = NPC_IDS[name]
+        item = reqs.get(oid)
+        if item is None:
+            loads = direct_item_loads(bodies.get(routines.get(oid), b""))
+            if len(loads) == 1:
+                item = ITEM_RAM[loads.pop()]
+        if item is not None:
             out[oid] = item
     return out
 
@@ -719,13 +816,69 @@ class Graph:
         self.sm_base = map_data_base(rom.data)
         self.grids = {}
         self.doors = door_positions(rom)
-        # Rod and Lute always; the No-Overworld gate NPCs when the cartridge has
-        # them. gate_objects returns None on every other seed, so a standard
-        # cartridge blocks exactly what it blocked before.
+        # Every object gate SCMap.cs:167-186 knows about. The Rod and Lute
+        # plates always; the sub engineer and the Titan wherever their routines
+        # can be read, which is every cartridge measured, vanilla included; the
+        # Black Orb where its routine is the four-orb AND; and the No-Overworld
+        # gate NPCs where the layout is that mode's -- gate_objects returns None
+        # on every other seed.
+        #
+        # Order matters where a cartridge ever puts two of those on one object.
+        # SCMap switches on the object id and reaches the routine only in its
+        # default case, so the id-keyed rows are the ones FFR itself uses:
+        # routine-keyed gates first, everything id-keyed over the top.
+        #
+        # Assigning gated_objects is also what creates the walk caches -- see
+        # the property below.
         self.gates = gate_objects(rom)
         orb = black_orb_item(rom)
-        self.gated_objects = {**GATED_OBJECTS, **(self.gates or {}),
+        self.gated_objects = {**(self.gates or {}), **GATED_OBJECTS,
+                              **object_gate_items(rom),
                               **({BLACK_ORB_OBJ: orb} if orb else {})}
+
+    # ------------------------------------------------------------- the memos
+    #
+    # A full sweep walks the same floor over and over: instrumenting a
+    # 1024-subset sweep on a No-Overworld cartridge gave 86464 floor_walk calls
+    # over 129 distinct (map, arrival) pairs producing 188 distinct results, and
+    # 92 of the 129 walked identically whatever was held. 2^12 makes that four
+    # times worse. So the walks are cached, keyed on the only part of `have`
+    # that can change the answer.
+    #
+    # **The key is the entire risk.** One that leaves out an item the walk
+    # consults returns another subset's reachability, silently, which is the
+    # failure class this tree has hit repeatedly. So it is not a list: it is
+    # derived from the same two tables the walk itself reads, on the same map,
+    # by floor_items() below. And because the object half of that comes from
+    # `gated_objects`, assigning that attribute has to throw the caches away --
+    # which is what the property exists for. test_gate_objects.py strips the
+    # rows back to the plates to prove the gates change something, and without
+    # this it would be handed back the gated walks it had already asked for.
+
+    @property
+    def gated_objects(self):
+        return self._gated_objects
+
+    @gated_objects.setter
+    def gated_objects(self, value):
+        self._gated_objects = value
+        self._floor_items, self._walks, self._teleports = {}, {}, {}
+
+    def floor_items(self, map_id):
+        """The items that can change what a walk on this floor reaches.
+
+        Everything walkable() and blocking_objects() consult on this map and
+        nothing else, so two subsets agreeing on this set walk identically.
+        Read off the map's own tile properties and objects rather than listed,
+        because a list is what goes stale when a gate is added.
+        """
+        if map_id not in self._floor_items:
+            _, p0, _ = self.grid(map_id)
+            need = {GATED_SPECIALS.get(b0 & TP_SPEC_MASK) for b0 in p0}
+            need |= {self.gated_objects.get(oid) for oid, _, _ in self.objects(map_id)}
+            need.discard(None)
+            self._floor_items[map_id] = frozenset(need)
+        return self._floor_items[map_id]
 
     def grid(self, map_id):
         """(tiles, prop0, prop1) for a map, as flat 64*64 lists."""
@@ -772,6 +925,10 @@ class Graph:
     def floor_walk(self, map_id, start, have, stop_on_teleport=True):
         """Tiles reachable on foot from `start`, as {(x, y): steps}.
 
+        Memoized on (map, arrival, stop_on_teleport, what of `have` this floor
+        consults) -- see floor_items(). The dict handed back is the cached one,
+        so a caller that wants to modify it copies first; nothing here does.
+
         Teleport tiles end the walk by default -- stepping on one takes you off
         the floor, so you cannot route *through* a staircase.
 
@@ -786,8 +943,12 @@ class Graph:
         85-tile pocket walled off on every side, and vanilla's intended route is
         to leave by the top left and come back in at the top right.
         """
-        _, p0, _ = self.grid(map_id)
         sx, sy = start[0] % MAP_DIM, start[1] % MAP_DIM
+        key = (map_id, sx, sy, stop_on_teleport,
+               frozenset(have) & self.floor_items(map_id))
+        if key in self._walks:
+            return self._walks[key]
+        _, p0, _ = self.grid(map_id)
         tele_at = {(x, y) for x, y, _, _ in self.teleports(map_id)} if stop_on_teleport else set()
         blocked = self.blocking_objects(map_id, have)
         seen = {(sx, sy): 0}
@@ -804,6 +965,7 @@ class Graph:
                     continue
                 seen[(nx, ny)] = seen[(x, y)] + 1
                 q.append((nx, ny))
+        self._walks[key] = seen
         return seen
 
     def can_reach_npc(self, map_id, start, spot, have):
@@ -826,10 +988,16 @@ class Graph:
 
         Floors are not fully connected -- that is the whole point of a locked
         door -- so "the graph has an edge" is not the same as "you can take it".
+
+        Memoized on the same key floor_walk uses, and for the same reason: this
+        is the second half of the sweep's per-floor work, and a memo on one and
+        not the other is half a memo. The cached dict is handed back as-is.
         """
+        sx, sy = start[0] % MAP_DIM, start[1] % MAP_DIM
+        key = (map_id, sx, sy, frozenset(have) & self.floor_items(map_id))
+        if key in self._teleports:
+            return self._teleports[key]
         _, p0, _ = self.grid(map_id)
-        sx, sy = start
-        sx, sy = sx % MAP_DIM, sy % MAP_DIM
         seen = {(sx, sy)}
         q = deque([(sx, sy, 0)])
         found = {}
@@ -851,6 +1019,7 @@ class Graph:
                     continue
                 seen.add((nx, ny))
                 q.append((nx, ny, d + 1))
+        self._teleports[key] = found
         return found
 
     def reachable_maps(self, have):

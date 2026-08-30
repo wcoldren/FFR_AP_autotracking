@@ -207,7 +207,9 @@ tracking upstream.
   reference seed that moved maps-open-empty-handed from 47 to 45 and walkable
   floor links from 135 to 117 — eighteen staircases that a SIGIL, Canoe or Chime
   barrier actually blocks. The all-items count is 54 before and after, which is
-  the check worth keeping: gates must not move that answer.
+  the check worth keeping: gates must not move that answer. Still 54 after the
+  SubEngineer and Titan rows landed on 2026-08-30, and `test_gate_objects.py`
+  asserts it rather than leaving it to a rerun.
 - **The logic is still the standard-overworld logic.** `scripts/logic.lua`
   branches on shard hunt and nothing else, so a No-Overworld seed is gated on
   vanilla ship/canoe/canal/floater reachability — for a mode with no overworld,

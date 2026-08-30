@@ -180,8 +180,12 @@ import entrance_graph as e          # noqa: E402
 ok(c.SWEPT_ITEMS == set(e.ITEM_NAMES),
    "SWEPT_ITEMS matches entrance_graph.ITEM_NAMES exactly",
    sorted(c.SWEPT_ITEMS ^ set(e.ITEM_NAMES)) or "identical")
-ok("oxyale" not in c.SWEPT_ITEMS and "ruby" not in c.SWEPT_ITEMS,
-   "Oxyale and the Ruby are outside it -- the walk cannot express them")
+# Oxyale and the Ruby are inside it since SubEngineer and Titan became gates.
+# Pinned by name rather than left to the identity above, because they are the
+# two the off-vocabulary grant used to hand away 161 times on one cartridge, and
+# a quiet removal from ITEM_NAMES would take them back out with nothing said.
+ok("oxyale" in c.SWEPT_ITEMS and "ruby" in c.SWEPT_ITEMS,
+   "Oxyale and the Ruby are inside it -- the walk gates on both now")
 
 
 # --- an off-vocabulary item is granted free from whichever side names it ----

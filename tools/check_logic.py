@@ -32,10 +32,10 @@ verified before it is wired into anything:
 
 That mode prints every population as a number and reconciles them, because a run
 that compared twelve locations must not read like one that compared two hundred.
-The derivation varies only the ten items that gate a tile; FFR also requires
-Oxyale, the Ruby and five others, so those are granted for free rather than
-skipped -- FFR then reads as permissively as it can, and a divergence that
-survives cannot be blamed on the vocabulary gap.
+The derivation varies only the twelve items that gate a tile; FFR also requires
+five trade items -- the Slab, Herb, Adamant, Bottle and Crystal -- so those are
+granted for free rather than skipped, and FFR then reads as permissively as it
+can, so a divergence that survives cannot be blamed on the vocabulary gap.
 """
 
 import argparse
@@ -93,8 +93,14 @@ NOVERWORLD_ALIASES = {"Mark": "Canoe", "Sigil": "Floater"}
 # What tools/noverworld_rules.py actually varies -- entrance_graph.ITEM_NAMES,
 # the items that gate a tile. Held here rather than imported so this tool does
 # not need the cartridge reader just to name the set.
+#
+# Oxyale and the Ruby joined it when SubEngineer and Titan did. They were the
+# two biggest off-vocabulary grants by a distance -- 129 and 32 of `nov`'s 222
+# comparisons -- and the grant is what made "222 of 222 agree" describe 58
+# locations. Both are tile blockers like any other now, so the comparison
+# actually varies them.
 SWEPT_ITEMS = {"key", "crown", "cube", "orbs", "rod", "lute",
-               "tnt", "floater", "canoe", "chime"}
+               "tnt", "floater", "canoe", "chime", "oxyale", "ruby"}
 
 # Vehicles and items FFR can hand you at the start. Its own logic stops
 # mentioning them once they are free, and the pack picks them up from cart RAM

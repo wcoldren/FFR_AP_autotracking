@@ -19,7 +19,7 @@ can stand on.
 Why tiles and not maps. `Graph.reachable_maps` answers "can you enter this
 floor", and a gate NPC or a locked door cuts a floor in half -- you enter Castle
 Ordeals 1F freely and the half with the chests in it is behind a SIGIL barrier.
-Asked per map, four of the ten items look irrelevant: floater, crown, chime and
+Asked per map, four of the items look irrelevant: floater, crown, chime and
 tnt change no map's reachability at all. Asked per tile they do, which is the
 whole point of the mode.
 
@@ -150,9 +150,9 @@ def sweep(g, items, targets, progress=None, seeds=None):
 
     Keeping the whole lattice instead -- {subset: {map_id: {(x, y)}}} -- is the
     obvious shape and does not fit in memory. One entry is about 1.7 MB on a
-    cartridge reaching 26 of 61 maps, so 1024 of them is roughly 1.8 GB, and a
+    cartridge reaching 26 of 61 maps, so 4096 of them is roughly 7 GB, and a
     No-Overworld cartridge reaches 54 maps and would want three or four. That is
-    a MemoryError after the seventy seconds of walking are already spent, on the
+    a MemoryError after the minute of walking is already spent, on the
     machine the tool exists for. Nothing is lost by folding early: `bump`
     membership is the only question ever asked of a walk.
     """

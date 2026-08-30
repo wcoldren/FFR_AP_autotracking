@@ -245,34 +245,44 @@ acceptable before drawing anything.
 
 ## On the derivation
 
-**Memoize the floor walk. 99.8% of it is repeated work, measured.** Instrumenting
-a full 1024-subset sweep on a No-Overworld cartridge:
+**Memoize the floor walk. Built 2026-08-30.** Instrumenting a full 1024-subset
+sweep on a No-Overworld cartridge said 99.8% of it was repeated work:
 
     floor_walk calls over the full sweep : 86464
     distinct (map, arrival) pairs        :   129
     distinct results across all of them  :   188
 
-92 of the 129 pairs produce the same walk no matter what is held, and none
-produces more than four distinct results. So 86464 calls are doing 188 walks'
+92 of the 129 pairs produced the same walk no matter what was held, and none
+produced more than four distinct results, so 86464 calls were doing 188 walks'
 worth of work.
 
-The key cannot be `have` wholesale — that is 1024 distinct sets and gives no
-reuse at all. It has to be `(map, arrival, have & gates-on-this-floor)`, with the
-floor's gates found by scanning its tile properties and objects for what
-`walkable()` and `gated_objects` actually consult. For the 92 that intersection
-is empty and the floor is walked once for the whole sweep.
+The key could not be `have` wholesale — that is one distinct set per subset and
+gives no reuse at all. It is `(map, arrival, stop_on_teleport, have & the items
+this floor consults)`, with the floor's items found by scanning its tile
+properties and objects for what `walkable()` and `gated_objects` actually
+consult. On the vanilla cartridge 42 of the 61 floors consult nothing and are
+walked once for the whole sweep; on the No-Overworld oracle it is 38. Both
+`floor_walk` and `reachable_teleports` are memoized -- the filed design counted
+only the first, and `reachable_tiles` calls both, so a memo on one is half a
+memo.
 
-The key is the entire risk: one that omits an item the walk consults returns
+The key was the entire risk: one that omits an item the walk consults returns
 stale reachability silently, which is the failure class this tree has hit four
-times. The guard is cheap and exact — the memoized sweep must produce identical
-rules to the unmemoized one over all 1024 subsets, and that is a test, not a
-smoke check.
+times. `tools/tests/test_memo_walk.py` guards it two ways. The cheap one is
+exhaustive and runs every time: a walk reads `have` in exactly two places, so if
+neither `walkable()` on any of a map's property bytes nor `blocking_objects()`
+on its objects can tell `have` from the trimmed key, over every map and all 4096
+subsets, then no walk can. The expensive one is the equivalence the entry
+demanded -- every subset, memoized against unmemoized, tile for tile -- and runs
+on `FF1_SLOW=1`; it passed on the `nov` cartridge over all 4096 subsets on
+2026-08-30.
 
-What it does not do is move the exponent. The outer loop is still 2^n and the
-graph traversal per subset stays; this buys an item or two of headroom, not the
-seven that Oxyale, the Ruby, the Slab, the Herb, the Adamant, the Bottle and the
-Crystal would need. What share of wall time the floor walk actually is has not
-been measured, so no speedup is quoted here.
+It does not move the exponent, and did not have to. The outer loop is still 2^n,
+but the sweep went from 1024 subsets in about 85 seconds to 4096 in about 57 --
+which is what made the SubEngineer and Titan rows affordable in the same commit.
+The seven further items -- the Slab, the Herb, the Adamant, the Bottle, the
+Crystal and what is left -- are trades rather than tiles, so they want the solver
+below rather than more headroom.
 
 **Solve the requirements instead of sampling them.** The sweep asks the walker
 2^n times. FFR does not: `Sanity/SCLogic.cs` propagates `SCRequirements` bitflags
@@ -285,13 +295,15 @@ a set of samples to minimise afterwards.
 That is the only approach that survives the items the derivation currently cannot
 express, and it emits the same shape `check_logic` already compares against. Two
 things to hold on to when it is done: the sweep's agreement with FFR is
-much weaker than it was recorded as -- most comparisons grant the disputed item
-to both sides, and it is 58 of 222 that are really compared -- so it is a
-starting point for the solver on the ten-item vocabulary, not the oracle it was
-called here; and some of FFR's
-requirements are not graph properties at all — Oxyale is "you can breathe
-underwater", the Crown is a talk-routine trade — so the item-semantics half stays
-a separate cartridge read either way.
+much weaker than it was once recorded as. Most comparisons used to grant the
+disputed item to both sides -- 58 of 222 were really compared -- and closing the
+SubEngineer and Titan gates took that to 221 of 226, so the sweep is now a real
+check on the twelve-item vocabulary rather than the oracle it was called here.
+What is left outside it is not a graph property at all: the trades, and the
+requirements that name another *location* rather than an item -- Lefein wants
+the Slab translated, which is Dr Unne's own reachability. That last shape is the
+one the sampling approach cannot express at any vocabulary size, and it is the
+strongest argument for the solver.
 
 ## Notes and hints
 
