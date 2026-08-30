@@ -93,8 +93,21 @@ functions return `0` or `1` rather than booleans, because PopTracker reads the
 return as an accessibility level and `0` is truthy in Lua.
 
 A skipped slot is drawn **blue** (`AccessibilityLevel.Inspect`) rather than
-hidden. That was a deliberate change: hiding a slot the seed did not incentivize
+hidden. That was a deliberate change: hiding a slot the seed did not reserve
 took a real check off the board, and on a shard hunt that was nearly every check.
+
+"Slot" means one of the sections `scripts/incentive_slots.lua` names and nothing
+else. `^$incentiveSlot|<flag>` is ANDed only onto those, and only on the two
+incentive sheets -- `grep -c incentiveSlot locations/*.json` gives 25 and 29 on
+the sheets and **zero** on either dungeon tree -- so an ordinary chest cannot
+come out blue. The 26 dungeon-tree rows in that table are there so
+`scripts/incentives.lua` can ring them gold, not to demote them.
+
+Blue is a statement about what the seed promised, not about what is in the slot.
+FFR places a key item it did not pick as an incentive into the pool of locations
+it did not reserve (`PredictivePlacement.cs:139-143,167,204`), and pushes
+overflow incentive items into the same list when a seed rolls more of them than
+it has incentive locations (`:178-181`). So a blue slot can hold a key item.
 
 ## The Lua
 

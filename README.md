@@ -103,20 +103,29 @@ tab if you would rather decide yourself.
 
 ## What the pin colours mean
 
-    gold ring    this seed put an incentive here -- a key item can be in it
+    gold ring    an incentive location this seed reserved -- an incentivized
+                 item is here
     green        reachable
-    blue         reachable, but the seed did not incentivize it
+    blue         an incentive location this seed did not reserve
     red          not reachable yet
     dark grey    done
 
-A blue pin is still a check. The NPC still hands you something and the chest is
-still there; it is just not somewhere a key item can be, so it is worth knowing
-about and not worth a detour. The incentive map used to hide those pins outright,
-which on a shard hunt took nearly every check off the board.
+Gold and blue belong to incentive locations and to nothing else. FFR keeps a
+fixed set of places it is allowed to guarantee something good in; each seed
+reserves some of them and passes over the rest. An ordinary chest is never blue.
+It is green, red or done, like any other check.
 
-Red beats blue: a slot that is both unincentivized and out of logic reads as
-unreachable, like any other check you cannot get to yet. Worth knowing if you run
-PopTracker with `hide unreachable locations` on, since that will still hide it.
+**Blue does not mean "nothing good here."** It means this seed did not promise
+anything. A key item FFR did not pick as an incentive goes into the pool of
+locations it did not reserve, and the blue ones are in that pool -- as is any
+incentivized item left over when a seed rolls more of them than it has places to
+put them. So a blue pin is a check like any other, with no promise attached
+either way. The incentive map used to hide those pins outright, which on a shard
+hunt took nearly every check off the board.
+
+Red beats blue: a slot that is unreserved and out of logic reads as unreachable,
+like any other check you cannot get to yet. Worth knowing if you run PopTracker
+with `hide unreachable locations` on, since that will still hide it.
 
 The colours themselves are PopTracker's rather than the pack's -- packs choose
 which state a pin reports, not what colour the tracker paints it. If you want

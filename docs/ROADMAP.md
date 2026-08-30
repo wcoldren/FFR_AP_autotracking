@@ -138,9 +138,11 @@ on both — that is what makes a `visibility_rules` entry flip.
 Start with the categories that have pins today, chests and NPCs, and add a
 category alongside each later feature rather than declaring empty ones now.
 
-One thing not to break: a slot the seed did not incentivize is drawn blue rather
-than hidden, deliberately, because it is still a check. These toggles are a
-different question and must not quietly re-introduce hiding.
+One thing not to break: an incentive slot the seed did not reserve is drawn blue
+rather than hidden, deliberately, because it is still a check -- and can still
+hold a key item, since FFR places the ones it did not incentivize into exactly
+that pool. These toggles are a different question and must not quietly
+re-introduce hiding.
 
 `layouts/settings_popup.json` — the gear-button panel — is a later pass, once
 there are enough toggles to justify it.
