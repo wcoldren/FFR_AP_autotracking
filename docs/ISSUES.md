@@ -195,6 +195,16 @@ Nothing here is urgent unless it says so.
   compares the incentive tree against the dungeon tree, is unaffected -- those
   two files are genuinely different.
 
+- **The No-Overworld incentive poster is missing two slots.** It hosts no
+  `nerrick` and no `airship` (the Floater turn-in in Ryukahn Desert), both of
+  which `locations/incentives.json` and both dungeon trees carry. `test_maps.lua`
+  check 7 walks the incentive sheet and asks the dungeon tree about each slot it
+  finds, so a slot the poster omits is invisible to it -- the check is one-way
+  by construction, and making it two-way would fail on the four orb-lit slots
+  that are poster-only by design. Deciding what these two should look like on a
+  poster with no overworld is the same question as deriving the rest of the
+  pins, so it is filed with `docs/ROADMAP.md` item 3 rather than patched here.
+
 - **The two tabs disagree about how to reach Gaia.** The Gaia node's
   northern-docks route reads `northernDocks,hwyOrdeals,gaiaMountain,ship,canal`
   in `locations/incentives.json` and drops `hwyOrdeals` in

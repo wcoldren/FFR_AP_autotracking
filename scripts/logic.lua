@@ -62,9 +62,16 @@ end
 -- alternatives, so the other mode's alternatives fail closed and what is left
 -- is exactly the rule for the mode in play.
 --
--- This is deliberately not a second location tree. Two trees that have to
--- agree and are never compared is how a missing location file survived here
--- for weeks.
+-- The mode difference lives here rather than in a second set of rules. There
+-- are still two of each location file, because the No-Overworld art crops
+-- differently and a pin coordinate is a fact about the art -- but the two
+-- carry the same access_rules, and tests/test_maps.lua checks 6 and 7 compare
+-- them. That pairing is not optional: the guards below first landed on
+-- locations/incentives.json alone, and the No-Overworld map variants, which
+-- load locations/NOverworld/incentives.json, kept the old overworld geography
+-- for as long as check 7 exempted that pair. Two files that have to agree and
+-- are never compared is also how a missing location file survived here for
+-- weeks.
 function noOverworld()
   if isNoOverworld() then
     return 1

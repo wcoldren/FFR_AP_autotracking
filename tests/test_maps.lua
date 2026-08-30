@@ -528,12 +528,18 @@ end
 -- Not compared: the ^$incentiveSlot|<flag> term, which only the incentive tree
 -- carries and which decides a colour rather than access.
 --
--- Not compared either: the No-Overworld pair. locations/NOverworld/incentives.json
--- is still hand-authored against upstream's poster rather than derived from a
--- cartridge -- docs/ROADMAP.md item 3 -- so it disagrees with its dungeon tree
--- about twenty slots, all of them the one defect already filed. Comparing them
--- today would file it twenty more times and say nothing new. This check wants
--- turning on for that pair the moment those pins are derived.
+-- Both pairs are compared, the standard one and the No-Overworld one. The
+-- No-Overworld pair used to be exempt, on the grounds that its incentive sheet
+-- was hand-authored against upstream's poster and disagreed about twenty slots
+-- anyway. That exemption is what let the mode guards land on one of the two
+-- sheets and not the other: the guarded rules went into
+-- locations/incentives.json, which the two NoMap variants load, while the two
+-- map variants load locations/NOverworld/incentives.json and kept the old
+-- geography. Nothing said so, because the only check that would have was off
+-- for exactly that pair.
+--
+-- What stays hand-authored is where the pins sit, which is docs/ROADMAP.md item
+-- 3 and is not what this check reads. The rules are the standard sheet's now.
 do
   local function copy(t)
     local out = {}
@@ -636,28 +642,38 @@ do
     return true
   end
 
-  local inc, ow = slots("locations/incentives.json"), slots("locations/overworld.json")
-  local drift, shared, waived, only = 0, 0, 0, 0
-  for slot, rules in pairs(inc) do
-    if POSTER_ONLY[slot] then
-      only = only + 1
-    elseif not ow[slot] then
-      fails(string.format("the dungeon tree hosts no %q, which the incentive tree does", slot))
-      drift = drift + 1
-    elseif KNOWN[slot] then
-      waived = waived + 1
-    else
-      shared = shared + 1
-      if not same(rules, ow[slot]) then
-        fails(string.format("the two tabs disagree about %q:\n       incentives %s\n       overworld  %s",
-          slot, table.concat(rules, " / "), table.concat(ow[slot], " / ")))
+  local PAIRS = {
+    { "standard", "locations/incentives.json", "locations/overworld.json" },
+    { "No-Overworld", "locations/NOverworld/incentives.json",
+      "locations/NOverworld/overworld.json" },
+  }
+
+  for _, pair in ipairs(PAIRS) do
+    local label, incFile, owFile = pair[1], pair[2], pair[3]
+    local inc, ow = slots(incFile), slots(owFile)
+    local drift, shared, waived, only = 0, 0, 0, 0
+    for slot, rules in pairs(inc) do
+      if POSTER_ONLY[slot] then
+        only = only + 1
+      elseif not ow[slot] then
+        fails(string.format("%s: the dungeon tree hosts no %q, which the incentive tree does",
+          label, slot))
         drift = drift + 1
+      elseif KNOWN[slot] then
+        waived = waived + 1
+      else
+        shared = shared + 1
+        if not same(rules, ow[slot]) then
+          fails(string.format("%s: the two tabs disagree about %q:\n       incentives %s\n       overworld  %s",
+            label, slot, table.concat(rules, " / "), table.concat(ow[slot], " / ")))
+          drift = drift + 1
+        end
       end
     end
-  end
-  if drift == 0 then
-    print(string.format("ok   %d incentive slots carry the same rule on both tabs (%d waived, %d poster-only)",
-                        shared, waived, only))
+    if drift == 0 then
+      print(string.format("ok   %s: %d incentive slots carry the same rule on both tabs (%d waived, %d poster-only)",
+                          label, shared, waived, only))
+    end
   end
 end
 

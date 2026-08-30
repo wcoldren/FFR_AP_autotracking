@@ -67,9 +67,14 @@ for _, file in ipairs(INCENTIVE_FILES) do
     end
   end)
 end
-check("only BahamutHoard still hides a pin", #hidden, 1)
-if #hidden == 1 and not hidden[1]:find("BahamutHoard", 1, true) then
-  fails("the surviving visibility rule is " .. hidden[1] .. ", not BahamutHoard")
+-- One per incentive sheet, because both sheets host that slot now. The
+-- NOverworld sheet was missing the hosting entirely until the rules were
+-- brought into line with the standard sheet's.
+check("only BahamutHoard still hides a pin", #hidden, #INCENTIVE_FILES)
+for _, one in ipairs(hidden) do
+  if not one:find("BahamutHoard", 1, true) then
+    fails("a surviving visibility rule is " .. one .. ", not BahamutHoard")
+  end
 end
 
 ------------------------------------------------------------------
@@ -105,7 +110,10 @@ for _, file in ipairs(INCENTIVE_FILES) do
   end)
 end
 -- 26 gated sections in locations/incentives.json less the Bahamut hoard, plus
--- 24 in the NOverworld tree, which has neither Nerrick nor the hoard.
+-- 24 in the NOverworld tree, which has no Nerrick. The hoard hosting the
+-- NOverworld tree gained is not counted on either side: it carries a
+-- visibility rule and an empty access_rules, so it is hidden rather than
+-- demoted.
 check("sections reporting Inspect when not incentivized", gated, 49)
 
 ------------------------------------------------------------------
@@ -209,8 +217,9 @@ for _, path in ipairs(unresolved) do
 end
 
 -- 26 on the incentive tab (the 25 demoted plus the hoard, which still hides),
--- 2 more the NOverworld tree renames, and 26 on the real board.
-check("slots in the generated table", #INCENTIVE_SLOTS, 54)
+-- 3 more the NOverworld tree renames or hosts under a different node, and 26 on
+-- the real board.
+check("slots in the generated table", #INCENTIVE_SLOTS, 55)
 
 for flag in pairs(flagsInTable) do
   if not byCode[flag] then

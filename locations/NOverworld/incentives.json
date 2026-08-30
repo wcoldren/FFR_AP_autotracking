@@ -10,7 +10,8 @@
                     {
                         "name": "I: King",
                         "access_rules": [
-                            "^$incentiveSlot|npcsAreIncentive"
+                            "earlyKing,^$incentiveSlot|npcsAreIncentive",
+                            "garland,^$incentiveSlot|npcsAreIncentive"
                         ],
                         "hosted_item": "king"
                     },
@@ -32,9 +33,7 @@
             },
             {
                 "name": "I: Coneria Castle Locked",
-                "access_rules": [
-                    "key"
-                ],
+                "access_rules": [],
                 "sections": [
                     {
                         "name": "I: Coneria Castle Incentive",
@@ -97,7 +96,13 @@
             },
             {
                 "name": "I: Dwarf Cave",
-                "access_rules": [],
+                "access_rules": [
+                    "$standardWorld,openProgression",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen",
+                    "$noOverworld"
+                ],
                 "sections": [
                     {
                         "name": "I: Smithy McBeardSmith",
@@ -117,7 +122,13 @@
             },
             {
                 "name": "I: North West Castle",
-                "access_rules": [],
+                "access_rules": [
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen",
+                    "$noOverworld"
+                ],
                 "sections": [
                     {
                         "name": "I: Astos",
@@ -137,7 +148,15 @@
             },
             {
                 "name": "I: Matoya's Cave",
-                "access_rules": [],
+                "access_rules": [
+                    "$standardWorld,bridge",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen,canoe",
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,lefeinBridge",
+                    "$noOverworld"
+                ],
                 "sections": [
                     {
                         "name": "I: Matoya",
@@ -157,7 +176,13 @@
             },
             {
                 "name": "I: Elf Castle",
-                "access_rules": [],
+                "access_rules": [
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen",
+                    "$noOverworld"
+                ],
                 "sections": [
                     {
                         "name": "I: Elf Prince",
@@ -177,7 +202,15 @@
             },
             {
                 "name": "I: Pravoka",
-                "access_rules": [],
+                "access_rules": [
+                    "$standardWorld,bridge",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen,canoe",
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,lefeinBridge",
+                    "$noOverworld"
+                ],
                 "sections": [
                     {
                         "name": "I: Bikke",
@@ -197,7 +230,13 @@
             },
             {
                 "name": "I: Marsh Cave",
-                "access_rules": [],
+                "access_rules": [
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen",
+                    "$noOverworld"
+                ],
                 "sections": [
                     {
                         "name": "I: Marsh Incentive",
@@ -217,7 +256,13 @@
             },
             {
                 "name": "I: Marsh Cave",
-                "access_rules": [],
+                "access_rules": [
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,ship",
+                    "$standardWorld,airship",
+                    "$standardWorld,extendedOpen",
+                    "$noOverworld"
+                ],
                 "sections": [
                     {
                         "name": "I: Marsh Locked Incentive",
@@ -244,15 +289,20 @@
             {
                 "name": "I: Sarda's Cave",
                 "access_rules": [
-                    "ruby",
-                    "tnt",
-                    "mark"
+                    "$standardWorld,$noSardasForest,airship",
+                    "$standardWorld,ruby,airship",
+                    "$standardWorld,ruby,ship,canal",
+                    "$standardWorld,melmondRiver,canoe,ruby",
+                    "$noOverworld,$hasCanoe",
+                    "$noOverworld,ruby",
+                    "$noOverworld,tnt"
                 ],
                 "sections": [
                     {
                         "name": "I: Sarda",
                         "access_rules": [
-                            "^$incentiveSlot|npcsAreIncentive"
+                            "earlySarda,^$incentiveSlot|npcsAreIncentive",
+                            "vampire,^$incentiveSlot|npcsAreIncentive"
                         ],
                         "hosted_item": "sarda"
                     }
@@ -268,7 +318,10 @@
             {
                 "name": "I: Titan's Trove",
                 "access_rules": [
-                    "ruby"
+                    "$standardWorld,ruby,airship",
+                    "$standardWorld,ruby,ship,canal",
+                    "$standardWorld,melmondRiver,canoe,ruby",
+                    "$noOverworld,ruby"
                 ],
                 "sections": [
                     {
@@ -290,9 +343,12 @@
             {
                 "name": "I: Earth Cave",
                 "access_rules": [
-                    "ruby",
-                    "tnt",
-                    "mark"
+                    "$standardWorld,airship",
+                    "$standardWorld,ship,canal",
+                    "$standardWorld,melmondRiver,canoe",
+                    "$noOverworld,$hasCanoe",
+                    "$noOverworld,ruby",
+                    "$noOverworld,tnt"
                 ],
                 "sections": [
                     {
@@ -321,9 +377,10 @@
             {
                 "name": "I: Melmond",
                 "access_rules": [
-                    "ruby,slab",
-                    "tnt,slab",
-                    "mark,slab"
+                    "$standardWorld,ship,canal,slab",
+                    "$standardWorld,airship,slab",
+                    "$standardWorld,melmondRiver,canoe,slab",
+                    "$noOverworld,slab"
                 ],
                 "sections": [
                     {
@@ -351,14 +408,21 @@
             {
                 "name": "I: Crescent Lake",
                 "access_rules": [
-                    "mark",
-                    "tnt"
+                    "$standardWorld,airship",
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,ship,canal",
+                    "$standardWorld,extendedOpen,canoe",
+                    "$standardWorld,ship,canoe",
+                    "$noOverworld,$hasCanoe",
+                    "$noOverworld,ruby",
+                    "$noOverworld,tnt"
                 ],
                 "sections": [
                     {
                         "name": "I: Sages",
                         "access_rules": [
-                            "^$incentiveSlot|npcsAreIncentive"
+                            "earlySage,^$incentiveSlot|npcsAreIncentive",
+                            "earthorblit,^$incentiveSlot|npcsAreIncentive"
                         ],
                         "hosted_item": "sages"
                     }
@@ -374,8 +438,13 @@
             {
                 "name": "I: Ice Cave",
                 "access_rules": [
-                    "mark",
-                    "sigil,oxyale,chime"
+                    "$standardWorld,airship",
+                    "$standardWorld,ship,canoe",
+                    "$standardWorld,bridge,canoe",
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,extendedOpen,canoe",
+                    "$noOverworld,$hasCanoe",
+                    "$noOverworld,chime,$hasFloater,oxyale"
                 ],
                 "sections": [
                     {
@@ -397,8 +466,12 @@
             {
                 "name": "I: Volcano",
                 "access_rules": [
-                    "mark",
-                    "sigil,chime,oxyale"
+                    "$standardWorld,airship",
+                    "$standardWorld,openProgression,canoe",
+                    "$standardWorld,extendedOpen,canoe",
+                    "$standardWorld,ship,canoe",
+                    "$noOverworld,$hasCanoe",
+                    "$noOverworld,chime,$hasFloater,oxyale"
                 ],
                 "sections": [
                     {
@@ -430,7 +503,11 @@
         "children": [
             {
                 "name": "I: Bahamut",
-                "access_rules": [],
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$standardWorld,cardiaDock,ship,canal",
+                    "$noOverworld,$hasFloater"
+                ],
                 "sections": [
                     {
                         "name": "I: Bahamut",
@@ -438,6 +515,14 @@
                             "tail"
                         ],
                         "hosted_item": "bahamut"
+                    },
+                    {
+                        "name": "I: Cardia Incentive",
+                        "visibility_rules": [
+                            "BahamutHoard"
+                        ],
+                        "access_rules": [],
+                        "hosted_item": "cardiaIncentive"
                     }
                 ],
                 "map_locations": [
@@ -450,7 +535,11 @@
             },
             {
                 "name": "I: Cardia Incentive",
-                "access_rules": [],
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$noOverworld,$hasCanoe,$hasFloater",
+                    "$noOverworld,chime,$hasFloater,oxyale"
+                ],
                 "sections": [
                     {
                         "name": "I: Cardia Incentive",
@@ -495,13 +584,17 @@
             {
                 "name": "I: Ordeals",
                 "access_rules": [
-                    "mark"
+                    "$standardWorld,airship,canoe",
+                    "$standardWorld,ship,canal,canoe",
+                    "$standardWorld,lefeinBridge,hwyOrdeals,bridge,canoe",
+                    "$noOverworld,$hasCanoe"
                 ],
                 "sections": [
                     {
                         "name": "I: Incentive",
                         "access_rules": [
-                            "^$incentiveSlot|ordealsIsIncentive"
+                            "earlyOrdeals,^$incentiveSlot|ordealsIsIncentive",
+                            "crown,^$incentiveSlot|ordealsIsIncentive"
                         ],
                         "hosted_item": "ordeals"
                     }
@@ -523,7 +616,14 @@
             {
                 "name": "I: Lefein",
                 "access_rules": [
-                    "sigil"
+                    "$standardWorld,airship",
+                    "$standardWorld,lefeinRiver,canoe,ship,canal",
+                    "$standardWorld,bridge,lefeinBridge",
+                    "$standardWorld,hwyOrdeals,ship,canal,canoe",
+                    "$standardWorld,northernDocks,ship,canal,hwyOrdeals",
+                    "$noOverworld,$hasCanoe,$hasFloater",
+                    "$noOverworld,$hasFloater,ruby",
+                    "$noOverworld,$hasFloater,tnt"
                 ],
                 "sections": [
                     {
@@ -546,7 +646,12 @@
             {
                 "name": "I: Gaia",
                 "access_rules": [
-                    "sigil"
+                    "$standardWorld,airship",
+                    "$standardWorld,lefeinRiver,gaiaMountain,ship,canal,canoe",
+                    "$standardWorld,northernDocks,hwyOrdeals,gaiaMountain,ship,canal",
+                    "$standardWorld,hwyOrdeals,gaiaMountain,ship,canal,canoe",
+                    "$standardWorld,lefeinBridge,gaiaMountain,bridge",
+                    "$noOverworld,$hasFloater"
                 ],
                 "sections": [
                     {
@@ -568,8 +673,12 @@
             {
                 "name": "I: Sky Palace",
                 "access_rules": [
-                    "sigil,oxyale,mark,cube",
-                    "sigil,chime,cube"
+                    "$standardWorld,airship,chime,cube",
+                    "$standardWorld,northernDocks,ship,canal,chime,cube",
+                    "$standardWorld,lefeinBridge,bridge,hwyOrdeals,chime,cube",
+                    "$standardWorld,hwyOrdeals,ship,canal,canoe,chime,cube",
+                    "$noOverworld,$hasCanoe,$hasFloater,cube,oxyale",
+                    "$noOverworld,$hasFloater,chime,cube"
                 ],
                 "sections": [
                     {
@@ -602,7 +711,9 @@
             {
                 "name": "I: Waterfall",
                 "access_rules": [
-                    "sigil"
+                    "$standardWorld,airship,canoe",
+                    "$standardWorld,northernDocks,ship,canal,canoe",
+                    "$noOverworld,$hasFloater"
                 ],
                 "sections": [
                     {
@@ -624,8 +735,11 @@
             {
                 "name": "I: Sea Shrine",
                 "access_rules": [
-                    "sigil,oxyale,mark",
-                    "sigil,chime"
+                    "$standardWorld,airship,canoe,oxyale",
+                    "$standardWorld,northernDocks,ship,canal,oxyale",
+                    "$standardWorld,northernDocks,airBoat,airship,ship,oxyale",
+                    "$noOverworld,$hasCanoe,$hasFloater,oxyale",
+                    "$noOverworld,chime,$hasFloater"
                 ],
                 "sections": [
                     {
@@ -645,8 +759,11 @@
             {
                 "name": "I: Sea Incentive",
                 "access_rules": [
-                    "sigil,oxyale,mark",
-                    "sigil,chime"
+                    "$standardWorld,airship,canoe,oxyale",
+                    "$standardWorld,northernDocks,ship,canal,oxyale",
+                    "$standardWorld,northernDocks,airBoat,airship,ship,oxyale",
+                    "$noOverworld,$hasCanoe,$hasFloater,oxyale",
+                    "$noOverworld,chime,$hasFloater"
                 ],
                 "sections": [
                     {
