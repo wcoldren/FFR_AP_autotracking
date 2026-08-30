@@ -123,7 +123,7 @@ WAIVED = {
     ("Gaia Area/Lefein/Incentive", "strict"):
         "the pack wants the Slab translated by Dr Unne, not just carried; FFR"
         " counts holding it, because Unne is reachable whenever Lefein is",
-    ("Inner Sea/Coneria Castle/Sara", "strict"):
+    ("Inner Sea/Coneria Castle/Coneria Castle Sara/Sara", "strict"):
         "the pack wants Garland beaten before the princess is back; FFR folds"
         " that in, because Garland is beatable from the start",
 }

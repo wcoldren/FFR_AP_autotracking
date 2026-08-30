@@ -317,7 +317,7 @@ check("the NPC slots ring together", ringed > 0, true)
 check("the incentive tab's King is ringed",
   sectionsByPath["@I: Coneria Castle/I: King"].Highlight, Highlight.Priority)
 check("and so is the one on the real board",
-  sectionsByPath["@Coneria Castle/King"].Highlight, Highlight.Priority)
+  sectionsByPath["@Coneria Castle King/King"].Highlight, Highlight.Priority)
 check("a slot on another flag is left alone",
   sectionsByPath["@I: Sea Shrine/I: Sea Incentive"].Highlight, Highlight.None)
 

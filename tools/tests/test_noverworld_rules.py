@@ -221,25 +221,27 @@ else:
         for kind in names:
             kinds[kind] = kinds.get(kind, 0) + 1
     # Fourteen hosted_item codes in the tree name an object the cartridge
-    # places, over thirteen nodes -- Coneria Castle holds both the King and
-    # Sara. It was eight until extract_npcs was asked for the other six ids
-    # (king, sara, sages, elfprince, robot, lefein), which is the whole reason
-    # FFR pooled six locations that had no derived rule at all.
+    # places, one node each. It was eight until extract_npcs was asked for the
+    # other six ids (king, sara, sages, elfprince, robot, lefein), which is the
+    # whole reason FFR pooled six locations that had no derived rule at all,
+    # and thirteen nodes until the King and Sara were split off Coneria Castle
+    # so each could carry a pin that meant only itself.
     #
     # Guessing the kind from the node name -- the first version of this -- found
     # none of them, because marker_tiles is keyed by node name and the object
     # table by item code.
-    want_npcs = 13 if ffr else 12
+    want_npcs = 14 if ffr else 13
     ok(kinds.get("NPC") == want_npcs,
        f"exactly the {want_npcs} NPC nodes join", str(kinds))
     ok(kinds.get("chest", 0) > 200, "and every dungeon chest does too",
        str(kinds.get("chest")))
 
     # The six that used to resolve to no tile at all. Named individually
-    # because "thirteen" would still pass if one of them dropped out and an
+    # because "fourteen" would still pass if one of them dropped out and an
     # unrelated node appeared. Lefein is the one that is FFR-only, for the same
     # reason the count above is: object $0F is not on a vanilla cartridge.
-    named = ["Coneria Castle", "Crescent Lake", "Elf Castle", "Waterfall"]
+    named = ["Coneria Castle King", "Coneria Castle Sara", "Crescent Lake",
+             "Elf Castle Elf Prince", "Waterfall Robot"]
     if ffr:
         named.append("Lefein")
     else:
@@ -295,10 +297,11 @@ else:
     for node, ids in sorted(hosts.items()):
         if not any(extract_npcs.WANTED[oid] in moved for oid in ids):
             continue
-        # Against every NPC the node hosts, not just the one that moved.
-        # Coneria Castle holds both the King and Sara, so `placed` there is the
-        # union of two objects' cells; comparing it to one object's would fail
-        # on a correct result the day FFR moves either of them.
+        # Against every NPC the node hosts, not just the one that moved. No
+        # node holds two objects today -- the King and Sara were split apart
+        # for their pins -- but `placed` is a union either way, and a rule that
+        # only ever compares one object's cells would fail on a correct result
+        # the day two share a node again.
         want = sorted(c for oid in sorted(ids)
                       for c in on_map(cart.get(extract_npcs.WANTED[oid], [])))
         ok(sorted(placed[node]) == want,
