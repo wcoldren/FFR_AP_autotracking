@@ -453,9 +453,10 @@ def place_locations(cal, tiles_by_name, path, sprite_cells=None):
     standing on them. Only three did -- Nerrick, the Smith and Sarda -- which
     is why only three pins ever came out as diamonds. Nothing here decides
     which nodes those are: a node gains a marker exactly when the cartridge
-    resolves it to a tile, so a document whose nodes resolve to none (the
-    incentive sheet, whose pins live on one hand-drawn image rather than on a
-    map) is passed through untouched.
+    resolves it to a tile. The incentive sheet, whose pins live on one
+    hand-drawn image rather than on a map, is handed no tiles at all and so
+    passes through untouched -- see the call site for why that is done by
+    handing it nothing rather than by trusting that none of its names collide.
 
     `sprite_cells` is {map_id: {(col, row)}} for the tiles --npcs draws a
     sprite on. A pin landing on one is emitted as a diamond and reported as
@@ -793,6 +794,8 @@ def main():
     cal = rendered_calibration(rom, boxes)
     dungeon_locations = ("locations/overworld.json" if mode == "std"
                          else "locations/NOverworld/overworld.json")
+    incentive_locations = ("locations/incentives.json" if mode == "std"
+                           else "locations/NOverworld/incentives.json")
     dropped = []
     tiles_by_name = marker_tiles(rom, dungeon_locations, dropped)
     # Which tiles end up under a sprite, so a pin landing on one can be drawn
@@ -805,10 +808,14 @@ def main():
     placed = unmoved = 0
     unplaceable = []
     shaded = []
-    for rel in (dungeon_locations,
-                "locations/incentives.json" if mode == "std"
-                else "locations/NOverworld/incentives.json"):
-        doc, pl, un, bad, shade = place_locations(cal, tiles_by_name, rel,
+    # The incentive sheet is handed no tiles rather than handed the board's and
+    # trusted not to match any: tiles_by_name is keyed by bare node name, and
+    # `I: Shop Item` is already a node name in both documents. If a board node
+    # ever resolved to a tile under a name the sheet also uses, the sheet's
+    # node would silently gain a dungeon-map pin on art it does not show.
+    for rel, tiles in ((dungeon_locations, tiles_by_name),
+                       (incentive_locations, {})):
+        doc, pl, un, bad, shade = place_locations(cal, tiles, rel,
                                                   sprite_cells)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
         placed += pl
