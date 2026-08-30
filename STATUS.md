@@ -592,6 +592,39 @@ conservative option is less needed than it was.
 
 
 
+### Still open: what a diamond means, and how many there should be
+
+Raised 2026-08-29, looking at the result: it feels like there should be more
+diamonds, and what one signifies is unclear. Both halves are fair.
+
+**A diamond is not a category.** Square and diamond are the same size, the same
+centre, the same state colours and the same click target; the only difference is
+that `drawRect` fills the whole tile and `drawDiamond` fills the inscribed
+diamond, leaving the four corner triangles unpainted. Nothing in the pack tells
+a player that, so today the shape means "there is a sprite under here, let it
+breathe" and nothing more.
+
+**Three is the wrong number, and the reason is a gap elsewhere.** Of the tracked
+NPCs that have a position on a map this redraws, **all 14 of 14 stand on a tile
+that draws a sprite** -- which is not a coincidence, the pin marks the NPC and
+the sprite *is* that NPC. Only 3 come out as diamonds because the other eleven
+have no pin on their own art at all: they carry `map_locations` on the
+`overworld` map only, so `place_locations` never rebuilds them onto a dungeon or
+town tab. Astos, Bikke, Matoya, Unne, the Fairy, Bahamut, Titan and the four
+fiends are all in that group. Fix that gap -- see the entry under "Known wrong"
+-- and the count goes from 3 to 14 without anything about the diamond rule
+changing.
+
+**Which then makes the rule worth re-deciding.** At 3 pins a diamond reads as an
+exception. At 14 it stops distinguishing anything and starts looking like a
+category a player is meant to interpret, especially once the trapezoid arrives
+meaning "entrance". Two alternatives worth weighing at that point: make every
+NPC pin a diamond and let the shape honestly mean "NPC" rather than "collision",
+or leave shape alone and move the *sprite* off-centre within its tile. Not a
+decision to take before the missing pins exist, since their count is what makes
+one option better than the other.
+
+
 ## The room floor was a hole, and the cartridge already knew
 
 Found 2026-08-29 by looking at the unroofed maps in PopTracker: rooms came out
@@ -762,6 +795,33 @@ walkable while `sky4F`'s six real 88-cell platforms are not walkable at all, and
 it is 4 cells where `iceB3`'s genuine second region is 41, so neither
 walkability nor size separates junk from content. Inventing a third proxy is
 how the room-floor rule went wrong twice.
+
+**The boxes are looser than one speck, and the towns show it worst.** Noticed
+2026-08-29 while playing on the rendered tabs: some village maps keep stray
+non-void tiles out at the boundary and the frame stays open around them.
+Measured on seed `F258553F`, counting rows and columns *inside* the crop that
+are entirely backdrop:
+
+    sky4F           22 blank cols, 26 blank rows
+    con_castle      35 blank cols
+    elf_castle      31 blank rows
+    crescent_lake   23 blank rows   (town)
+    melmond         21 blank rows   (town)
+    lefein          16 blank rows   (town)
+    iceB3           19 blank cols
+
+`con_castle` is the clearest: the castle ends around column 27 and a detached
+wall sliver out at the right edge holds the box 35 columns wider than the map,
+so more than half the tab is empty field. This is the Matoya speck again at a
+size that actually costs the tab, and the towns have it because their warp-out
+field is not one uniform tile everywhere.
+
+Not fixed, and deliberately not fixed by adding a third proxy -- walkability and
+size were both tried and rejected for the speck, and inventing another filter is
+how the room-floor rule went wrong twice. The shape of a real answer is probably
+the same one the room work landed on: ask what the region is connected to rather
+than what its tiles look like. Insets (below) would also dissolve it, by laying
+disjoint components out separately instead of framing their union.
 
 **A Map Key band is reserved, not drawn.** Trap letters derive: enumerate the
 fixed-formation trap tiles (`TP_SPEC_BATTLE`, byte 1 not the random marker) over
