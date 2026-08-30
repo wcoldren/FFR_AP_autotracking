@@ -91,6 +91,54 @@ The blocker is unchanged and is in `docs/ISSUES.md`: none of them writes a flag,
 so every such box is manual-click forever. Worth deciding whether that is
 acceptable before drawing anything.
 
+## On the derivation
+
+**Memoize the floor walk. 99.8% of it is repeated work, measured.** Instrumenting
+a full 1024-subset sweep on a No-Overworld cartridge:
+
+    floor_walk calls over the full sweep : 86464
+    distinct (map, arrival) pairs        :   129
+    distinct results across all of them  :   188
+
+92 of the 129 pairs produce the same walk no matter what is held, and none
+produces more than four distinct results. So 86464 calls are doing 188 walks'
+worth of work.
+
+The key cannot be `have` wholesale — that is 1024 distinct sets and gives no
+reuse at all. It has to be `(map, arrival, have & gates-on-this-floor)`, with the
+floor's gates found by scanning its tile properties and objects for what
+`walkable()` and `gated_objects` actually consult. For the 92 that intersection
+is empty and the floor is walked once for the whole sweep.
+
+The key is the entire risk: one that omits an item the walk consults returns
+stale reachability silently, which is the failure class this tree has hit four
+times. The guard is cheap and exact — the memoized sweep must produce identical
+rules to the unmemoized one over all 1024 subsets, and that is a test, not a
+smoke check.
+
+What it does not do is move the exponent. The outer loop is still 2^n and the
+graph traversal per subset stays; this buys an item or two of headroom, not the
+seven that Oxyale, the Ruby, the Slab, the Herb, the Adamant, the Bottle and the
+Crystal would need. What share of wall time the floor walk actually is has not
+been measured, so no speedup is quoted here.
+
+**Solve the requirements instead of sampling them.** The sweep asks the walker
+2^n times. FFR does not: `Sanity/SCLogic.cs` propagates `SCRequirements` bitflags
+over the map it built, which is a fixpoint over the graph rather than a sweep
+over the item lattice. Reachability here is monotone — holding more never closes
+a route — so the same shape works: each tile carries an or-of-ands requirement,
+minimised as it propagates, and the output is the expression directly rather than
+a set of samples to minimise afterwards.
+
+That is the only approach that survives the items the derivation currently cannot
+express, and it emits the same shape `check_logic` already compares against. Two
+things to hold on to when it is done: the sweep is now validated against FFR at
+216 of 218, which makes it the right oracle for the solver on the ten-item
+vocabulary before the solver is trusted on seventeen; and some of FFR's
+requirements are not graph properties at all — Oxyale is "you can breathe
+underwater", the Crown is a talk-routine trade — so the item-semantics half stays
+a separate cartridge read either way.
+
 ## Notes and hints
 
 Wanted: somewhere to write down a hint — which orbs a seed requires, what an NPC
