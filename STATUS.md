@@ -6,14 +6,10 @@ here, and so is the reasoning that was tried and rejected.
 
 Last updated 2026-08-30.
 
-If you are looking for something specific, it is probably not in here:
-
-    README.md              how to use the pack
-    docs/ARCHITECTURE.md   how the pieces fit -- start here if you are new
-    docs/NOVERWORLD.md     what the No-Overworld mode actually is
-    docs/ROADMAP.md        what is next, in order
-    docs/ISSUES.md         known defects and open questions
-    docs/IDEAS.md          unscoped, with the facts already attached
+If you are looking for something specific, it is probably not in here. This is
+the log; the settled half was lifted out of it into `docs/`, and `docs/README.md`
+says which page holds what. To use the tracker rather than read about it, the
+root `README.md` is the whole story.
 
 > The NOverworld variants are the current focus and are further behind than the
 > rest of this document implies. They have their own section below.

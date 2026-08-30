@@ -171,25 +171,64 @@ Two things to know before trusting any tool that reads maps:
 The cheap test that catches most routing mistakes: holding every item, all 61
 maps must be reachable from the doors. `entrance_graph.py --self-check`.
 
+**`check_logic.py` reads FFR rather than trusting the pack.** It takes the
+requirement expressions FFR wrote down for a seed -- in its own spoiler, and in
+the `rules:` Archipelago is handed -- pins the flag grid from the cartridge, and
+compares the two as truth tables over the items they mention. It reports rules
+that open a location FFR would not and rules that hold one closed FFR would open,
+and it names what it could not map rather than counting it as agreement. Point it
+at a seed, or let it find every ROM under Archipelago's output directory:
+
+```
+python3 tools/check_logic.py
+```
+
+One rule that reads like a mistake and is not: the `hwyOrdeals,ship,canal,canoe`
+alternatives on Gaia, Lefein, Mirage Tower and Sky Palace. Those four sit on a
+continent with no dock tile anywhere on it, so a ship cannot land there and FFR's
+vanilla table says plainly `{MapLocation.Gaia, MapChange.Airship}`. The canoe is
+what makes them reachable: it can be taken from the ship straight into a river
+mouth, and there is exactly one river touching that continent, at overworld
+`(134, 33)`. Highway to Ordeals and Gaia Mountain Pass then move you around
+*inside* it -- neither is what gets you on.
+
+So the reachability question for that continent is "does a river touch both the
+ocean and this landmass", not "is there a dock". Walking the map to confirm also
+needs the coast tiles (`0x06-0x08`, `0x16`, `0x18`, `0x26-0x28`) treated as
+shoreline the ship enters *and* you can walk; making them purely land cuts the
+ship off from the river mouth, and making them purely water severs the path up
+the pass. Either way you get a false negative and four correct rules look like
+false greens.
+
+## What you need to work on it
+
+- **Lua 5.4+** for the script tests. `tests/run.sh` needs nothing else — no ROM,
+  no emulator, no PopTracker.
+- **Python 3** for everything in `tools/`. No third-party packages: the map
+  renderer, the font reader and the flag decoder are all standard library.
+- **A Final Fantasy cartridge** for the tools that read one. Point `FF1_ROM` at
+  it to run the full tool test suite:
+
+      FF1_ROM="/path/to/Final Fantasy (USA).nes" ./tools/tests/run.sh
+
+  Tests that need a cartridge **skip** rather than fail without it, so a bare
+  `./tools/tests/run.sh` still passes and still checks less than you think. Any
+  Final Fantasy image works, since the seed-specific layouts are synthesised —
+  but a real FFR seed exercises strictly more.
+
 ## Tests
 
 ```
 tests/run.sh         13 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   8 Python suites for the cartridge-reading tools. Tests that
-                     need a cartridge skip unless FF1_ROM points at one.
+tools/tests/run.sh   12 Python suites for the cartridge-reading tools. Tests
+                     that need a cartridge skip unless FF1_ROM points at one.
+                     One slow guard opts in separately with FF1_SLOW=1.
 ```
 
 Both are fast and neither needs a network. Run them before believing anything.
 
 ## Where the docs are
 
-```
-README.md              using the pack
-STATUS.md              the working log — what was built, and why
-docs/ARCHITECTURE.md   this file
-docs/NOVERWORLD.md     what the No-Overworld mode actually is
-docs/ROADMAP.md        what is next, in order
-docs/ISSUES.md         known defects and open questions
-docs/IDEAS.md          unscoped, with the facts already attached
-```
+[`docs/README.md`](README.md) indexes them and says which page holds what.
+`../README.md` is the one for using the pack rather than working on it.
