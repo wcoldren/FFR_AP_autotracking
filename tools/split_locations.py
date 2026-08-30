@@ -33,15 +33,27 @@ def lenient(path):
     return json.loads(re.sub(r",(\s*[}\]])", r"\1", open(path).read()))
 
 
-def load_mapping():
+def load_mapping(limit=512):
+    """{AP id: (location path, hosted item)} out of location_mapping.lua.
+
+    `limit` caps the ids read. The default keeps chests only, which is what
+    splitting a grouped section is about; regen_maps passes None because it
+    also needs the NPC rows above 512 -- Nerrick, the Smith and Sarda are the
+    three dungeon markers that are not a chest.
+    """
     ids = {}
     for line in open(MAP):
         # the pack is not uniformly spaced: at least one row reads
         # {"@..." ,"earth"}, with the space before the comma
         m = re.match(r'\s*\[(\d+)\] = \{"([^"]+)"\s*(?:,\s*"([^"]+)")?\s*\}', line)
-        if m and int(m.group(1)) < 512:
+        if m and (limit is None or int(m.group(1)) < limit):
             ids[int(m.group(1))] = (m.group(2), m.group(3))
     return ids
+
+
+def leaf_of(path):
+    """The location name an "@Some Location/Section" path points at."""
+    return path.lstrip("@").rsplit("/", 1)[0]
 
 
 def node_label(parent, section):

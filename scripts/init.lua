@@ -8,9 +8,11 @@ Tracker:AddItems("items/hosted_items.json")
 Tracker:AddItems("items/flags.json")
 Tracker:AddItems("items/shards.json")
 
--- NOverworld replaces the overworld art only. It still needs the 53 dungeon
--- maps, or the per-chest markers in locations/overworld.json have nowhere to
--- draw; NOverworldMaps.json is loaded second so its "incentives" entry wins.
+-- NOverworld needs the 53 dungeon maps too, or its per-chest markers have
+-- nowhere to draw; NOverworldMaps.json is loaded second so its entries win.
+-- In the shipped pack that is one row, the overworld art. Once regen_maps.py
+-- has drawn a No-Overworld cartridge it is every dungeon map as well, which is
+-- what keeps that seed's extra staircases off a standard tracker.
 if Tracker.ActiveVariantUID == "7NOverworld" or Tracker.ActiveVariantUID == "8shardHuntNOverworld" then
   Tracker:AddMaps("maps/maps.json")
   Tracker:AddMaps("maps/NOverworldMaps.json")
@@ -22,10 +24,18 @@ ScriptHost:LoadScript("scripts/logic.lua")
 
 -- locations/NOverworld/locations.json was loaded here and has never existed --
 -- not in the tree and not in any commit -- so both NOverworld variants loaded
--- no dungeon locations at all and nothing could clear. The dungeon tree is the
--- same either way; only the incentive pins differ.
+-- no dungeon locations at all and nothing could clear. AddLocations on a
+-- missing file says nothing, which is how that survived; the slot is filled
+-- properly now.
+--
+-- The two trees hold the same locations and differ only in where the dungeon
+-- markers sit. They have to be separate files because the art is: a
+-- No-Overworld cartridge and a standard one disagree about 34 to 39 of the 61
+-- maps, so tools/regen_maps.py renders and crops a set for each, and a crop
+-- box that differs is a pixel coordinate that differs. Without the split the
+-- No-Overworld variants would draw standard markers on No-Overworld art.
 if Tracker.ActiveVariantUID == "7NOverworld" or Tracker.ActiveVariantUID == "8shardHuntNOverworld" then
-    Tracker:AddLocations("locations/overworld.json")
+    Tracker:AddLocations("locations/NOverworld/overworld.json")
     Tracker:AddLocations("locations/NOverworld/incentives.json")
 else
     Tracker:AddLocations("locations/overworld.json")

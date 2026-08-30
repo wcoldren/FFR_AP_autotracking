@@ -38,19 +38,42 @@ for _, file in ipairs({ "maps/maps.json", "maps/NOverworldMaps.json" }) do
   end
 end
 
+-- Every location file the pack loads. The two NOverworld trees were outside
+-- this test until now, which mattered once the No-Overworld variants stopped
+-- sharing the standard tree: their dungeon markers sit on their own art, at
+-- their own crop, so nothing else would notice one drifting off the edge.
+local LOCATION_FILES = {
+  "locations/overworld.json",
+  "locations/incentives.json",
+  "locations/NOverworld/overworld.json",
+  "locations/NOverworld/incentives.json",
+}
+
 -- every marker in every location file
 local markers = {}
+local into = markers
 local function walk(nodes)
   for _, n in ipairs(nodes) do
     for _, ml in ipairs(n.map_locations or {}) do
-      markers[#markers + 1] = { name = n.name, map = ml.map, x = ml.x, y = ml.y }
+      into[#into + 1] = { name = n.name, map = ml.map, x = ml.x, y = ml.y }
     end
     walk(n.children or {})
   end
 end
+for _, file in ipairs(LOCATION_FILES) do
+  walk(json.load(PACK .. "/" .. file))
+end
+
+-- The counting checks below -- sixteen Ice Cave chests, seven in Cardia Forest
+-- -- are about what the tree contains, not about how many copies of it the
+-- pack loads. They run on the standard tree alone; check 6 is what says the
+-- No-Overworld tree holds the same locations, so checking one is enough.
+local stdMarkers = {}
+into = stdMarkers
 for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json" }) do
   walk(json.load(PACK .. "/" .. file))
 end
+into = markers
 print(string.format("ok   %d markers across %d maps", #markers, (function()
   local n = 0; for _ in pairs(maps) do n = n + 1 end; return n
 end)()))
@@ -103,7 +126,7 @@ local function checkSections(nodes)
     checkSections(n.children or {})
   end
 end
-for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json" }) do
+for _, file in ipairs(LOCATION_FILES) do
   checkSections(json.load(PACK .. "/" .. file))
 end
 if sectionless == 0 then print("ok   every marker's location has sections to show") end
@@ -118,7 +141,7 @@ local function indexSections(nodes)
     indexSections(n.children or {})
   end
 end
-for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json" }) do
+for _, file in ipairs(LOCATION_FILES) do
   indexSections(json.load(PACK .. "/" .. file))
 end
 local badRef = 0
@@ -133,7 +156,7 @@ local function checkRefs(nodes)
     checkRefs(n.children or {})
   end
 end
-for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json" }) do
+for _, file in ipairs(LOCATION_FILES) do
   checkRefs(json.load(PACK .. "/" .. file))
 end
 if badRef == 0 then print("ok   every section ref resolves") end
@@ -298,7 +321,7 @@ end
 
 -- 5. the Ice Cave pilot: sixteen per-chest markers, on the three ice floors
 local ice, iceMaps = 0, {}
-for _, m in ipairs(markers) do
+for _, m in ipairs(stdMarkers) do
   if m.name:match("^Ice Cave ") then
     ice = ice + 1
     iceMaps[m.map] = (iceMaps[m.map] or 0) + 1
@@ -348,6 +371,60 @@ end
 for map in pairs(iceMaps) do
   if map ~= "iceB1" and map ~= "iceB2" and map ~= "iceB3" then
     fails("Ice Cave marker on unexpected map " .. map)
+  end
+end
+
+-- 6. the two dungeon trees hold the same locations.
+--
+-- locations/NOverworld/overworld.json exists because the art does: a
+-- No-Overworld cartridge and a standard one disagree about 34 to 39 of the 61
+-- maps, so regen_maps.py crops a set for each and the same tile lands on a
+-- different pixel in each. Everything except those pixels has to stay in step
+-- -- the same locations, the same sections, the same access rules -- or a
+-- No-Overworld player is tracking a different game. Two files that are meant
+-- to agree and are never compared is how the pack ended up loading a dungeon
+-- tree that did not exist at all.
+do
+  local function shape(nodes, path, out)
+    for _, n in ipairs(nodes) do
+      local here = path .. "/" .. (n.name or "?")
+      local secs = {}
+      for _, sec in ipairs(n.sections or {}) do
+        secs[#secs + 1] = (sec.name or "") .. "|" .. (sec.ref or "") .. "|" ..
+          tostring(sec.item_count) .. "|" .. (sec.hosted_item or "") .. "|" ..
+          table.concat(sec.access_rules or {}, ",")
+      end
+      -- map names, not pixels: which map a marker is on must match, where on
+      -- it must not, because that is the whole difference between the two.
+      local onmaps = {}
+      for _, ml in ipairs(n.map_locations or {}) do onmaps[#onmaps + 1] = ml.map end
+      out[here] = table.concat(secs, ";") .. " @ " .. table.concat(onmaps, ",")
+      shape(n.children or {}, here, out)
+    end
+    return out
+  end
+  local a = shape(json.load(PACK .. "/locations/overworld.json"), "", {})
+  local b = shape(json.load(PACK .. "/locations/NOverworld/overworld.json"), "", {})
+  local drift, n = 0, 0
+  for k, v in pairs(a) do
+    n = n + 1
+    if b[k] == nil then
+      fails("NOverworld tree is missing " .. k)
+      drift = drift + 1
+    elseif b[k] ~= v then
+      fails(string.format("%s differs between the trees:\n       std %s\n       nov %s",
+                          k, v, b[k]))
+      drift = drift + 1
+    end
+  end
+  for k in pairs(b) do
+    if a[k] == nil then
+      fails("NOverworld tree has an extra " .. k)
+      drift = drift + 1
+    end
+  end
+  if drift == 0 then
+    print(string.format("ok   both dungeon trees hold the same %d locations", n))
   end
 end
 

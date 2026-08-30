@@ -11,26 +11,40 @@ render_maps.py draws the seed's own maps out of the ROM. What it cannot do on
 its own is put them in front of PopTracker, because swapping the art is not a
 file copy:
 
-  * the 51 shipped images are composites at 51 different sizes, each with a
-    hand-solved offset in tools/map_calibration.json;
-  * the pixel coordinates of all 254 dungeon markers in locations/*.json were
-    computed from those offsets, so new art with old coordinates puts every
-    marker somewhere other than its chest;
+  * every marker is a pixel in one particular image, and the rendered images
+    are cropped to what each map uses, so none of the shipped coordinates
+    survive the swap;
   * ten of the 61 maps -- the eight towns, Coneria Castle 2F and Bahamut's Lair
     B2 -- have no image in the pack at all, so they have no maps.json entry and
-    no tab.
+    no tab;
+  * and the art is a property of one cartridge. A No-Overworld seed and a
+    standard one disagree about 34 to 39 of the 61 maps, so a single set of
+    images cannot serve both variants.
 
 This does all of it as one piece, and writes none of it into the repo. Output
 goes to PopTracker's user-override tree, which Pack::ReadFile consults ahead of
 the pack for every file it loads, images included (pack.cpp:226-243, and
 getImage at :445 goes through the same call). So the checkout keeps shipping the
-screenshots, ROM-derived art never lands in git, and removing the override
+hand-drawn maps, ROM-derived art never lands in git, and removing the override
 directory puts everything back.
 
     tools/regen_maps.py FFR_seed.nes
 
+The cartridge's own GameMode decides which set its art joins -- images/maps/std
+or images/maps/nov -- and the two live side by side, each with its own
+maps.json index and its own copy of the dungeon location tree. Render one of
+each and a standard tracker and a No-Overworld one each show their own maps.
+Render neither and the pack's hand-drawn art is still there.
+
+Markers are built forward, from the cartridge's own chest tiles and the pack's
+NPC table, rather than moved from where the hand-drawn art put them. That is
+what lets a map with no hand-solved calibration entry carry markers at all --
+sixteen maps had none -- and it means a seed that moves a chest moves its
+marker. On an ordinary seed the ToFR shuffle puts five chests on a second floor
+apiece, and those floors now have pins where they never had any.
+
 Re-running is cheap: it hashes the ROM and its own inputs, and if nothing moved
-it does no work at all. When the ROM does change, only the maps whose pixels
+it does no work at all. When the ROM does change, only the files whose bytes
 actually differ get rewritten -- two seeds of the same mode share most of their
 art, and No-Overworld rolls only the Gaia gateway and the Waterfall stairs.
 
@@ -58,10 +72,19 @@ import extract_chests
 import make_markers
 import pngio
 import render_maps
+import split_locations
 
 TILE_PX = render_maps.TILE_PX
 CACHE_NAME = ".regen_cache.json"
-CACHE_VERSION = 1
+CACHE_VERSION = 2
+
+# Which set of art a cartridge belongs in. A No-Overworld seed and a standard
+# one disagree about 34 to 39 of the 61 maps -- it seals every town's outer wall
+# and stamps 75 new staircases -- so one tree of art cannot serve both, and the
+# tree used to hold whichever was rendered last whatever variant you opened.
+# Two standard seeds still differ on 2 to 7 maps (the Ordeals floor shuffle, the
+# ToFR shuffle, Gaia), so this is the dominant axis and not the only one.
+MODE_DIRS = {"std": "standard", "nov": "No-Overworld"}
 
 # Everything whose content decides what gets written. A change to any of them
 # invalidates the cache the same way a new cartridge does.
@@ -78,8 +101,11 @@ INPUT_FILES = [
     "maps/maps.json",
     "layouts/shared.json",
     "locations/overworld.json",
+    "locations/NOverworld/overworld.json",
     "locations/incentives.json",
     "locations/NOverworld/incentives.json",
+    "maps/NOverworldMaps.json",
+    "scripts/autotracking/location_mapping.lua",
 ]
 
 # Every map this redraws. A marker on one of these needs a calibration entry
@@ -136,59 +162,83 @@ def inputs_fingerprint():
 
 # ---------------------------------------------------------------- calibration
 
-def rendered_calibration():
-    """The calibration the rendered art needs: none, expressed as a file.
+def crop_boxes(rom):
+    """{map name: (c0, c1, r0, r1)} -- what each rendered image covers.
 
-    Every image is 64 tiles at TILE_PX, so tile n starts at pixel TILE_PX * n
-    with no offset and no per-region special case. make_markers reads this the
-    same way it reads the hand-solved one.
+    Cropping is what turns a tab from a postage stamp in an empty field into
+    the map: a mean 48% of the grid survives, and Mirage Tower 1F goes from a
+    33x33 corner of 64x64 to filling its frame. See render_maps.content_box for
+    where the box comes from and why the hand-drawn art is what says it is
+    right.
+    """
+    return {name: render_maps.content_box(render_maps.map_tiles(rom, map_id))
+            for map_id, name in render_maps.MAP_FILES.items()}
+
+
+def legend_rows(rom, boxes=None):
+    """{map name: rows of backdrop reserved below it for a Map Key}."""
+    letters = render_maps.trap_letters(rom)
+    out = {}
+    for map_id, name in render_maps.MAP_FILES.items():
+        used = render_maps.map_trap_letters(
+            rom, map_id, render_maps.map_tiles(rom, map_id), letters)
+        out[name] = render_maps.legend_rows_for(len(set(used.values())))
+    return out
+
+
+def rendered_calibration(rom, boxes):
+    """The calibration the rendered art needs, as a map_calibration.json.
+
+    Uncropped this was nothing at all -- every image 64 tiles at TILE_PX, tile
+    n at pixel TILE_PX * n. Cropped it is one number per axis per map: the box
+    the render starts at. Still one region, still no per-region special case,
+    and still derived rather than eyeballed, which is the difference that
+    matters -- the hand-solved offsets in tools/map_calibration.json are what
+    a marker can drift away from.
+
+    The Map Key band hangs below the map, so it does not enter here.
     """
     return {
         name: {
             "rom_map_id": map_id,
             "tile_px": TILE_PX,
-            "regions": [{"offset_x": 0, "offset_y": 0}],
+            "regions": [{"offset_x": -boxes[name][0] * TILE_PX,
+                         "offset_y": -boxes[name][2] * TILE_PX}],
         }
         for map_id, name in render_maps.MAP_FILES.items()
     }
 
 
-def tile_of(entry, x, y):
-    """Invert make_markers.build: pixel back to the ROM tile that produced it.
-
-    A candidate region has to divide evenly and land in bounds, and it also has
-    to be the region make_markers.region_for would have picked for that tile --
-    the first whose bounds hold it. Two regions cropped from the same 16 px
-    source grid divide identically, and without the second test the earlier one
-    would answer for a tile that belongs to the later. A marker no region
-    explains is one this cannot move, which is reported rather than guessed at.
-    """
-    tp = entry["tile_px"]
-    half = tp // 2
-    for i, r in enumerate(entry["regions"]):
-        dx, dy = x - r["offset_x"] - half, y - r["offset_y"] - half
-        if dx < 0 or dy < 0 or dx % tp or dy % tp:
-            continue
-        col, row = dx // tp, dy // tp
-        if not in_region(r, col, row):
-            continue
-        if next(j for j, o in enumerate(entry["regions"])
-                if in_region(o, col, row)) != i:
-            continue
-        return col, row
-    return None
-
-
-def in_region(r, col, row):
-    """make_markers.region_for's bounds test, which this has to agree with."""
-    rlo, rhi = r.get("rows", (0, 63))
-    clo, chi = r.get("cols", (0, 63))
-    return rlo <= row <= rhi and clo <= col <= chi
-
-
 # ------------------------------------------------------------------- contents
 
-def build_images(rom, graph=None, only=None):
+def mode_of(rom, path, override=None):
+    """'std' or 'nov' -- which set of art this cartridge belongs in.
+
+    Read from the cartridge's own GameMode rather than asked of the user, and
+    an answer this does not understand stops the run instead of guessing. The
+    cost of guessing is silent: art filed under the wrong mode looks completely
+    normal and is wrong about every staircase.
+
+    A vanilla cartridge carries no FFR flag block at all, so it has no mode to
+    read; --mode is for that case.
+    """
+    if override:
+        return override
+    mode, why = entrance_graph.game_mode(entrance_graph.Rom.of(rom, path))
+    if mode == entrance_graph.GAME_MODE_NOVERWORLD:
+        return "nov"
+    if mode == 0:
+        return "std"
+    if mode is None:
+        sys.exit(f"cannot read this cartridge's GameMode ({why}), so there is "
+                 "no way to know which set of art it belongs in. Pass "
+                 "--mode std or --mode nov to say.")
+    sys.exit(f"GameMode {mode} is neither standard (0) nor No-Overworld "
+             f"({entrance_graph.GAME_MODE_NOVERWORLD}); pass --mode to say "
+             "which set of art it belongs in.")
+
+
+def build_images(rom, mode, boxes, rows, graph=None, only=None):
     """-> {relpath: (w, h, rgb)} for all 61 maps, rooms drawn open.
 
     Unroofed, because a tracker map is read rather than walked. In the game a
@@ -203,75 +253,158 @@ def build_images(rom, graph=None, only=None):
     """
     out = {}
     for map_id, name in render_maps.MAP_FILES.items():
-        out[f"images/maps/{name}.png"] = render_maps.render(
-            rom, map_id, unroof=True, graph=graph, only=only)
+        out[f"images/maps/{mode}/{name}.png"] = render_maps.render(
+            rom, map_id, unroof=True, graph=graph, only=only,
+            crop=boxes[name], legend_rows=rows[name])
     return out
 
 
-def build_maps_json():
-    """The pack's maps.json with every rendered map in it.
+def build_maps_json(have):
+    """The pack's maps.json, pointed at the standard set of rendered art.
 
     The overworld and incentive entries keep the pack's own art and sizes --
-    this changes the dungeon maps and nothing else. Rendered maps are all
-    1024x1024, so one location size fits all of them.
+    this changes the dungeon maps and nothing else. location_size is in image
+    pixels and a tile is still 16 of them however the image is cropped, so one
+    size still fits all of them.
+
+    With no standard set rendered yet, the pack's own hand-drawn art is left
+    exactly where it is and no new names are added: a tab pointing at an image
+    that is not there is worse than no tab.
     """
     entries = lenient(os.path.join(PACK, "maps", "maps.json"))
+    if "std" not in have:
+        return entries
     by_name = {e["name"]: e for e in entries}
     order = [e["name"] for e in entries]
     for name in render_maps.MAP_FILES.values():
         e = by_name.setdefault(name, {"name": name})
         if name not in order:
             order.append(name)
-        e["img"] = f"images/maps/{name}.png"
+        e["img"] = f"images/maps/std/{name}.png"
         e.setdefault("location_size", 24)
         e.setdefault("location_border_thickness", 3)
     return [by_name[n] for n in order]
 
 
-def remap_locations(old_cal, path):
-    """-> (new document, moved, unmoved, unexplained, uncalibrated).
+def build_noverworld_maps_json(have):
+    """NOverworldMaps.json, which the No-Overworld variants load second.
 
-    Every marker on a map this redraws is moved from its old pixel to the one
-    the rendered art puts that tile at. Markers on the overworld and incentive
-    maps are left alone: their art does not change.
+    scripts/init.lua loads maps.json and then this, and PopTracker lets the
+    later entry win -- which is how one "incentives" row already swaps the
+    overworld art for those two variants. The same mechanism at full size gives
+    them their own 61 dungeon maps, so a No-Overworld seed's extra staircases
+    stop appearing on a standard tracker and the reverse.
 
-    A marker on a map that is redrawn but has no calibration entry can be
-    neither moved nor left: the art under it changes and its pixel does not, so
-    it would end up pointing at whatever the new art happens to have there. Only
-    a map this does not redraw is safely unmoved, so the rest are reported.
+    When no No-Overworld set has been rendered, this puts back the pack's own
+    hand-drawn art for every map that has some, rather than leaving those
+    variants looking at the standard cartridge's art. The nine maps the pack
+    has no art for -- the towns, Coneria Castle 2F, Bahamut's Lair B2 -- have
+    nothing to put back, so they keep whatever maps.json gave them.
+    """
+    entries = lenient(os.path.join(PACK, "maps", "NOverworldMaps.json"))
+    by_name = {e["name"]: e for e in entries}
+    order = [e["name"] for e in entries]
+    shipped = {e["name"]: e for e in lenient(os.path.join(PACK, "maps", "maps.json"))}
+    for name in render_maps.MAP_FILES.values():
+        if "nov" not in have and name not in shipped:
+            continue
+        e = by_name.setdefault(name, {"name": name})
+        if name not in order:
+            order.append(name)
+        e["img"] = (f"images/maps/nov/{name}.png" if "nov" in have
+                    else shipped[name]["img"])
+        e.setdefault("location_size", 24)
+        e.setdefault("location_border_thickness", 3)
+    return [by_name[n] for n in order]
+
+
+def marker_tiles(rom):
+    """{location name: [(map_id, col, row)]} for every marker on a dungeon map.
+
+    Forward, out of the cartridge, rather than by inverting the pixel the
+    hand-drawn art happened to put a marker at. That inversion is what made
+    tools/map_calibration.json a dependency of redrawing at all, and with it
+    the two things that have blocked this work: the sixteen maps nobody ever
+    solved an offset for, and the composites whose image holds a different set
+    of tiles than the rom_map_id on its entry names. Neither can matter to a
+    marker whose position was never a pixel in the first place.
+
+    The join is scripts/autotracking/location_mapping.lua, which names an AP id
+    for every tracked location: below 512 an id is a chest (chest index is
+    id - 256, FF1Lib/Items.cs) and above it an NPC, whose tile comes from
+    npc_positions.json. All 254 dungeon markers in the shipped tree resolve
+    through it, and every one of them agrees with tools/marker_positions.json
+    today, which is what says the join is the right one.
+
+    Chest tiles come from the cartridge, so a seed that moves one moves its
+    marker with it. NPC tiles do not: FFR randomizes what an NPC gives you,
+    not where it stands (see extract_npcs.py).
+    """
+    ids = split_locations.load_mapping(limit=None)
+    chests, _ = extract_chests.extract(rom)
+    with open(os.path.join(HERE, "npc_positions.json")) as f:
+        npcs = json.load(f)
+
+    out = {}
+    for ap, (path, hosted) in sorted(ids.items()):
+        places = chests.get(ap - 256) if ap < 512 else npcs.get(hosted)
+        if not places:
+            continue
+        out.setdefault(split_locations.leaf_of(path), []).extend(
+            (q["map_id"], q["tile_col"], q["tile_row"]) for q in places)
+    return out
+
+
+def place_locations(cal, tiles_by_name, path):
+    """-> (new document, placed, unmoved, unplaceable).
+
+    Every marker on a map this redraws is rebuilt from the tile its chest or
+    NPC actually sits on. Markers on the overworld and the incentive sheet are
+    left exactly as they are: that art does not change.
+
+    A location that carries a dungeon marker and resolves to no tile cannot be
+    placed and is reported rather than dropped -- a marker that quietly
+    disappears is worse than one that stops the run.
     """
     doc = lenient(os.path.join(PACK, path))
-    moved = unmoved = 0
-    unexplained = []
-    uncalibrated = []
+    by_rom = {}
+    for name, entry in cal.items():
+        by_rom.setdefault(entry["rom_map_id"], []).append((name, entry))
+    placed = unmoved = 0
+    unplaceable = []
+
+    def pixels(map_id, col, row):
+        for name, entry in by_rom.get(map_id, []):
+            region = make_markers.region_for(entry, col, row)
+            if region is None:
+                continue
+            half = entry["tile_px"] // 2
+            return {"map": name,
+                    "x": region["offset_x"] + col * entry["tile_px"] + half,
+                    "y": region["offset_y"] + row * entry["tile_px"] + half}
+        return None
 
     def walk(nodes):
-        nonlocal moved, unmoved
+        nonlocal placed, unmoved
         for n in nodes:
             if not isinstance(n, dict):
                 continue
-            for ml in n.get("map_locations") or []:
-                entry = old_cal.get(ml.get("map"))
-                if entry is None:
-                    if ml.get("map") in REDRAWN:
-                        uncalibrated.append((n.get("name"), ml.get("map"),
-                                             ml["x"], ml["y"]))
-                    else:
-                        unmoved += 1
-                    continue
-                tile = tile_of(entry, ml["x"], ml["y"])
-                if tile is None:
-                    unexplained.append((n.get("name"), ml.get("map"),
-                                        ml["x"], ml["y"]))
-                    continue
-                col, row = tile
-                ml["x"] = col * TILE_PX + TILE_PX // 2
-                ml["y"] = row * TILE_PX + TILE_PX // 2
-                moved += 1
+            marks = n.get("map_locations") or []
+            keep = [ml for ml in marks if ml.get("map") not in REDRAWN]
+            unmoved += len(keep)
+            if len(keep) != len(marks):
+                name = n.get("name")
+                fresh = [pixels(*t) for t in tiles_by_name.get(name, ())]
+                if not fresh or None in fresh:
+                    unplaceable.append((name, marks[0].get("map"),
+                                        marks[0].get("x"), marks[0].get("y")))
+                else:
+                    n["map_locations"] = keep + fresh
+                    placed += len(fresh)
             walk(n.get("children") or [])
 
     walk(doc)
-    return doc, moved, unmoved, unexplained, uncalibrated
+    return doc, placed, unmoved, unplaceable
 
 
 def map_block(content):
@@ -336,12 +469,25 @@ def build_layouts():
 # ---------------------------------------------------------------------- cache
 
 def load_cache(out_dir):
+    """-> (cache for this version or None, cache from an older version or None).
+
+    An override written by an older version of this tool is not just useless,
+    it is actively wrong: its files sit at paths nothing here writes any more,
+    so nothing overwrites them and PopTracker goes on reading them. The v1
+    layout put all 61 images at images/maps/<name>.png and had no
+    locations/NOverworld/overworld.json at all, so after the split the
+    No-Overworld variants fell back to the pack's own hand-art coordinates and
+    drew every box off its chest. Returning the old cache is what lets those
+    files be cleared rather than left behind.
+    """
     try:
         with open(os.path.join(out_dir, CACHE_NAME)) as f:
             cache = json.load(f)
     except (OSError, ValueError):
-        return None
-    return cache if cache.get("version") == CACHE_VERSION else None
+        return None, None
+    if cache.get("version") == CACHE_VERSION:
+        return cache, None
+    return None, cache
 
 
 def outputs_intact(out_dir, cache):
@@ -402,6 +548,9 @@ def main():
     ap.add_argument("rom")
     ap.add_argument("-o", "--out", help="override directory "
                                         "(default: ~/PopTracker/user-override/<uid>)")
+    ap.add_argument("--mode", choices=tuple(MODE_DIRS),
+                    help="file the art as std or nov rather than reading the "
+                         "cartridge's GameMode (a vanilla image has none)")
     ap.add_argument("--npcs", choices=("none", "gates", "all"), default="none",
                     help="draw map objects on the art: none (default), just "
                          "the No-Overworld gate NPCs, or every NPC")
@@ -430,24 +579,38 @@ def main():
     if rom[:4] != b"NES\x1a":
         sys.exit("not an iNES ROM")
 
+    mode = mode_of(rom, args.rom, args.mode)
+    print(f"this cartridge is a {MODE_DIRS[mode]} seed; its art goes in "
+          f"images/maps/{mode}/")
+
     rom_sha = sha(rom)
     inputs_sha = inputs_fingerprint()
-    cache = load_cache(out_dir)
+    cache, stale = load_cache(out_dir)
+    if stale:
+        print(f"this override was written by an older version of this tool "
+              f"(cache v{stale.get('version')}); its files are at paths nothing "
+              "writes any more and will be cleared")
+    # One slot per mode, so rendering a No-Overworld cartridge does not throw
+    # away the standard set. `outputs` spans both, because the two index files
+    # and the layouts are shared and either run rewrites them.
+    was = (cache or {}).get("modes", {}).get(mode, {})
     if (not args.force and cache
-            and cache.get("rom") == rom_sha
+            and was.get("rom") == rom_sha
             and cache.get("inputs") == inputs_sha
-            and cache.get("npcs", "none") == args.npcs
+            and was.get("npcs", "none") == args.npcs
             and outputs_intact(out_dir, cache)):
         print(f"up to date: {len(cache['outputs'])} files in {out_dir}")
         print("nothing to do (--force to regenerate anyway)")
         return 0
 
-    if cache and cache.get("rom") != rom_sha:
-        print("cartridge changed since the last run")
+    if was and was.get("rom") != rom_sha:
+        print(f"the {MODE_DIRS[mode]} cartridge changed since the last run")
+    elif cache and not was:
+        print(f"no {MODE_DIRS[mode]} art has been rendered here yet")
     elif cache and cache.get("inputs") != inputs_sha:
         print("the pack or these tools changed since the last run")
-    elif cache and cache.get("npcs", "none") != args.npcs:
-        print(f"--npcs changed from {cache.get('npcs', 'none')} to {args.npcs} "
+    elif was and was.get("npcs", "none") != args.npcs:
+        print(f"--npcs changed from {was.get('npcs', 'none')} to {args.npcs} "
               "since the last run")
 
     bank = extract_chests.standard_map_bank(rom)
@@ -470,66 +633,101 @@ def main():
             drawn = sum(len(graph.objects(m)) for m in render_maps.MAP_FILES)
             print(f"drawing all {drawn} map objects")
 
+    # The crop box is the one number both halves of this depend on: the art is
+    # drawn from it and every marker's pixel is measured from it. Computed once,
+    # here, and handed to both -- two calls that could drift apart is the shape
+    # of bug that puts a box next to its chest instead of on it.
+    boxes = crop_boxes(rom)
+    rows = legend_rows(rom)
+
     files = {}
 
-    # 1. the art
-    for rel, (w, h, rgb) in build_images(rom, graph, only).items():
+    # 1. the art, cropped to what each map actually uses and filed by mode
+    art = build_images(rom, mode, boxes, rows, graph, only)
+    sizes = {name: ((boxes[name][1] - boxes[name][0] + 1) * TILE_PX,
+                    (boxes[name][3] - boxes[name][2] + 1 + rows[name]) * TILE_PX)
+             for name in render_maps.MAP_FILES.values()}
+    mismatched = [(name, art[f"images/maps/{mode}/{name}.png"][:2], sizes[name])
+                  for name in render_maps.MAP_FILES.values()
+                  if art[f"images/maps/{mode}/{name}.png"][:2] != sizes[name]]
+    if mismatched:
+        # If the renderer ever starts padding, centring or scaling differently,
+        # this is where it shows up -- before the markers are written, rather
+        # than as boxes sitting off their chests in PopTracker.
+        print("\nFAILED: the art is not the size the marker coordinates assume. "
+              "The renderer and the crop box have gone out of step:")
+        for name, got, want in mismatched[:10]:
+            print(f"  {name}: image is {got[0]}x{got[1]}, markers are placed "
+                  f"for {want[0]}x{want[1]}")
+        print("\nnothing was written.")
+        return 1
+    for rel, (w, h, rgb) in art.items():
         files[rel] = encode(w, h, rgb)
 
-    # 2. the markers, moved onto it
-    old_cal = {k: v for k, v in
-               lenient(os.path.join(PACK, "tools", "map_calibration.json")).items()
-               if not k.startswith("_")}
-    moved = unmoved = 0
-    problems = []
-    uncalibrated = []
-    for rel in ("locations/overworld.json", "locations/incentives.json",
-                "locations/NOverworld/incentives.json"):
-        doc, m, u, bad, uncal = remap_locations(old_cal, rel)
+    # 2. the markers, built from the cartridge onto it
+    cal = rendered_calibration(rom, boxes)
+    tiles_by_name = marker_tiles(rom)
+    dungeon_locations = ("locations/overworld.json" if mode == "std"
+                         else "locations/NOverworld/overworld.json")
+    placed = unmoved = 0
+    unplaceable = []
+    for rel in (dungeon_locations,
+                "locations/incentives.json" if mode == "std"
+                else "locations/NOverworld/incentives.json"):
+        doc, pl, un, bad = place_locations(cal, tiles_by_name, rel)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
-        moved += m
-        unmoved += u
-        problems += bad
-        uncalibrated += uncal
+        placed += pl
+        unmoved += un
+        unplaceable += bad
 
-    # A marker that moved has to land on the tile its chest -- or its NPC -- is
-    # actually on. The ROM's own answer for both is on disk, so this compares
-    # against it rather than trusting the arithmetic.
-    #
-    # The NPC half is vanilla-derived on purpose (see extract_npcs.py): FFR
-    # randomizes what an NPC gives you, not where it stands. So it is read from
-    # npc_positions.json rather than off this cartridge.
-    cal = rendered_calibration()
-    chests, _ = extract_chests.extract(rom)
+    # 3. the crop has to have cut nothing off. This is the guard on the whole
+    # step: the box comes from one flood, and the way a flood goes wrong is by
+    # reaching somewhere it should not, which shows up here as a chest or a
+    # staircase or a tracked NPC outside the frame.
     with open(os.path.join(HERE, "npc_positions.json")) as f:
-        npcs = json.load(f)
-    placed = set()
-    # build() keys its output by int, so the NPCs go in renumbered -- what is
-    # wanted here is the set of pixels, not which NPC is at which.
-    npc_places = {str(i): v for i, v in enumerate(npcs.values())}
-    for group in (make_markers.build({str(k): v for k, v in chests.items()}, cal),
-                  make_markers.build(npc_places, cal)):
-        placed |= {(m["map"], m["x"], m["y"])
-                   for marks in group.values() for m in marks}
-    stray = []
-    unmovable = {(m, x, y) for _, m, x, y in problems}
-    for rel in ("locations/overworld.json",):
-        doc = json.loads(files[rel])
+        npc_cells = {}
+        for name, places in json.load(f).items():
+            for q in places:
+                npc_cells.setdefault(q["map_id"], []).append(
+                    (f"npc {name}", q["tile_col"], q["tile_row"]))
+    cut = []
+    box_graph = graph or entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
+    for map_id, name in render_maps.MAP_FILES.items():
+        cut += [(f"{what} on {name}", name, cell[0], cell[1])
+                for what, cell in render_maps.crop_violations(
+                    rom, map_id, render_maps.map_tiles(rom, map_id),
+                    boxes[name], box_graph, npc_cells.get(map_id, ()))]
 
+    # And every marker has to land inside the image it names, with room for the
+    # 24px box PopTracker draws around it -- tests/test_maps.lua checks exactly
+    # this for the shipped art, and the crop is what could newly break it.
+    stray = []
+    for rel in (dungeon_locations,):
         def walk(nodes):
             for n in nodes:
                 if not isinstance(n, dict):
                     continue
                 for ml in n.get("map_locations") or []:
-                    if ml.get("map") in old_cal \
-                            and (ml["map"], ml["x"], ml["y"]) not in unmovable \
-                            and (ml["map"], ml["x"], ml["y"]) not in placed:
+                    if ml.get("map") not in sizes:
+                        continue
+                    w, h = sizes[ml["map"]]
+                    half = ml.get("size", 24) // 2
+                    if not (half <= ml["x"] <= w - half
+                            and half <= ml["y"] <= h - half):
                         stray.append((n.get("name"), ml["map"], ml["x"], ml["y"]))
                 walk(n.get("children") or [])
-        walk(doc)
+        walk(json.loads(files[rel]))
 
-    # 3. the maps and tabs the new art needs
-    files["maps/maps.json"] = (json.dumps(build_maps_json(), indent=4) + "\n").encode()
+    # 4. the maps and tabs the new art needs. Both index files are rebuilt from
+    # whichever mode sets are actually on disk, so a mode never rendered here
+    # falls back to the pack's own art rather than to the other mode's.
+    have = {mode}
+    for other in MODE_DIRS:
+        if other != mode and os.path.isdir(os.path.join(out_dir, "images", "maps", other)):
+            have.add(other)
+    files["maps/maps.json"] = (json.dumps(build_maps_json(have), indent=4) + "\n").encode()
+    files["maps/NOverworldMaps.json"] = (
+        json.dumps(build_noverworld_maps_json(have), indent=4) + "\n").encode()
     files["layouts/shared.json"] = (json.dumps(build_layouts(), indent=4) + "\n").encode()
 
     def report(what, rows):
@@ -539,36 +737,70 @@ def main():
         if len(rows) > 10:
             print(f"  ... and {len(rows) - 10} more")
 
-    if problems:
-        report("markers sit on no calibrated tile, so there is no tile to put "
-               "them back on in the rendered art", problems)
-    if uncalibrated:
-        report("markers are on maps this redraws, but tools/map_calibration.json "
-               "has no entry to move them by", uncalibrated)
+    if unplaceable:
+        report("locations carry a marker on a redrawn map but resolve to no "
+               "tile, so there is nothing to place them from", unplaceable)
+    if cut:
+        report("things the crop would cut off the edge of their map", cut)
     if stray:
-        report("moved markers land on neither a chest tile nor an NPC tile",
-               stray)
-    if problems or uncalibrated or stray:
+        report("markers land outside the image they name", stray)
+    if unplaceable or cut or stray:
         print("\nnothing was written.")
         return 1
+
+    # Clear an older layout's files before writing, so nothing is left behind
+    # for PopTracker to keep reading. Only files this tool recorded writing are
+    # touched -- never anything the user put there.
+    removed = []
+    for rel in sorted((stale or {}).get("outputs", {})):
+        if rel in files:
+            continue
+        path = os.path.join(out_dir, rel)
+        if os.path.exists(path):
+            removed.append(rel)
+            if not args.dry_run:
+                os.remove(path)
 
     changed = [rel for rel in sorted(files)
                if write_if_changed(out_dir, rel, files[rel], args.dry_run)]
 
     if not args.dry_run:
+        modes = dict((cache or {}).get("modes", {}))
+        modes[mode] = {"rom": rom_sha, "npcs": args.npcs}
+        outputs = dict((cache or {}).get("outputs", {}))
+        outputs.update({rel: sha(data) for rel, data in files.items()})
         with open(os.path.join(out_dir, CACHE_NAME), "w") as f:
-            json.dump({"version": CACHE_VERSION, "rom": rom_sha,
-                       "inputs": inputs_sha, "npcs": args.npcs,
-                       "outputs": {rel: sha(data)
-                                   for rel, data in sorted(files.items())}},
-                      f, indent=1)
+            json.dump({"version": CACHE_VERSION, "inputs": inputs_sha,
+                       "modes": modes,
+                       "outputs": dict(sorted(outputs.items()))}, f, indent=1)
 
     verb = "would write" if args.dry_run else "wrote"
     print(f"\n{verb} {len(changed)} of {len(files)} files to {out_dir}")
-    print(f"  {moved} markers moved onto the rendered art, every one on the "
-          "chest or NPC tile the ROM puts it on")
+    if removed:
+        print(f"  {'would remove' if args.dry_run else 'removed'} "
+              f"{len(removed)} left by the older layout")
+    print(f"  {placed} markers built from the cartridge onto the {MODE_DIRS[mode]} "
+          "art, each on the chest or NPC tile the ROM puts it on")
     print(f"  {unmoved} left alone (the overworld and incentive maps are not "
           "redrawn, so their markers keep the pack's pixels)")
+    kept = sum((b[1] - b[0] + 1) * (b[3] - b[2] + 1) for b in boxes.values())
+    print(f"  cropped to a mean {kept / len(boxes) / 4096 * 100:.0f}% of the "
+          f"64x64 grid; {sum(1 for r in rows.values() if r)} maps reserve a "
+          "Map Key band")
+    # Say what each tracker variant will actually open, because "which art am I
+    # looking at" is otherwise a question you can only answer by recognising a
+    # staircase. A mode with no set here falls back to the pack's hand-drawn
+    # art, which is easy to mistake for the tool having done nothing.
+    print("  what each variant will show:")
+    for m, variants in (("std", "Standard / Shard Hunt Map Tracker"),
+                        ("nov", "NOverworld / NOverworld Shard Hunt Map Tracker")):
+        if m in have:
+            print(f"    {variants}: images/maps/{m}/, drawn from a "
+                  f"{MODE_DIRS[m]} cartridge")
+        else:
+            print(f"    {variants}: the pack's hand-drawn art -- no "
+                  f"{MODE_DIRS[m]} cartridge has been rendered here. Run this "
+                  f"on one to fill it in.")
     if changed and len(changed) < len(files):
         print("  changed: " + ", ".join(changed[:8])
               + (" ..." if len(changed) > 8 else ""))
