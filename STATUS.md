@@ -429,9 +429,9 @@ Asked per tile, `key` alone opens 610. `reachable_tiles` is the same fixed point
 an item that opens nothing alone can still be half of a pair. 1024 walks, about
 70 seconds.
 
-What seed `F258553F` derives, over 246 locations:
+What seed `F258553F` derives, over all 249 locations, none refusing:
 
-    164  free          34  cube          28  key          11  rod          9  canoe
+    167  free          34  cube          28  key          11  rod          9  canoe
 
 Every rule is a single item. No conjunction appears anywhere, which is worth
 knowing before building machinery to express one.
@@ -451,28 +451,42 @@ knowing before building machinery to express one.
   eight NPCs went down the chest path. `test_noverworld_rules.py` asserts the
   count is exactly eight.
 
-### Three chests that nothing can reach
+### Three chests, and the edge the walk would not cross
 
-Found while checking the three locations the derivation could not resolve:
-`Sea Shrine Mermaids 4`, `Mermaids 5` and `Sea Incentive`, all on SeaShrineB1
-at (25-27, 4).
+The derivation could not resolve three locations: `Sea Shrine Mermaids 4`,
+`Mermaids 5` and `Sea Incentive`, all on SeaShrineB1 at (25-27, 4). They sat
+against an 85-tile pocket, and three independent checks agreed it was sealed --
+the whole boundary unwalkable holding every item, no teleport tile inside it,
+and of every teleport on the cartridge arriving on that floor exactly one, from
+SeaShrineB2 to (12, 26), well outside. Ten of the twelve Mermaid chests were
+fine, which made a sealed pocket look like a cartridge quirk rather than a bug.
 
-They sit against an **85-tile pocket that is walled off on every edge**, holding
-every item in the game. Checked three ways rather than assumed: the pocket's
-whole boundary is unwalkable with all ten items in hand, no teleport tile stands
-inside it, and of every teleport on the cartridge that arrives on SeaShrineB1
-there is exactly one -- from SeaShrineB2 to (12, 26), outside the pocket. Ten of
-the twelve Mermaid chests are reachable; these three are not.
+All three checks were answering the wrong question. **A standard map is a
+torus.** A play observation said the vanilla route is to leave by the top left
+and come back in at the top right, and the engine agrees in its own comment:
+`SMMove_Right` adds one to `sm_scroll_x` and masks `AND #$3F` -- "and wrap at 64
+tiles" (`bank_0F.asm:3070`) -- with the other three directions doing the same on
+their axis. `floor_walk` and `reachable_teleports` stopped at 0 and 63.
 
-Whether that is the cartridge or a gap in the walk is **open**. The walk models
-locked doors, rod plates and the gate NPCs, so if it is a gap it is a mechanic
-nobody here has named yet. `tools/check_logic.py` is what settles it: FFR wrote
-its own reachability down in the spoiler, and if FFR thinks those three are
-reachable then the walk is missing something.
+Fixed 2026-08-30. SeaShrineB1 goes 526 reachable tiles to **611**, exactly the
+85 the pocket held; the derivation goes from 246 resolved with 3 refusing to
+**249 with none**. Across the cartridge it is +141 tiles, so the pocket is most
+of what was missing but not all.
 
-Until then the tool reports them and emits no rule, and the locations keep the
-rules they already have. A location silently losing its rule is worse than one
-keeping a wrong rule, because the first kind cannot be seen on the board.
+What makes this worth keeping is how well it hid. Wrapping adds tiles rather
+than maps, so the all-items oracle still said 54 of 61 before and after -- the
+cheapest and most trusted check in the tree could not see it, and neither could
+any of the eight tool suites. Nothing errored. Every number was internally
+consistent. It took someone who had walked the room.
+
+That is the fourth time here that a complete, confident, wrong answer survived
+because nothing asked the engine: the map bank, the talk table, the chest tile,
+and now the map edge. The pattern is the same every time -- a plausible answer
+from the wrong source outlives a check that never runs, and the fix is always
+one line of assembly that was there all along.
+
+`test_noverworld_rules.py` asserts the three chests directly, so the bounded
+walk cannot come back quietly.
 
 ## Ideas from playing on the rendered maps
 
