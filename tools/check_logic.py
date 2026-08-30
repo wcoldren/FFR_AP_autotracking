@@ -22,6 +22,20 @@ green, the dangerous kind) and one that holds a location closed FFR would open.
 
 What it cannot map, it says so about. A quiet "no divergences" over half the
 locations would be worse than useless.
+
+With --derived it checks the rules tools/noverworld_rules.py derives from a
+No-Overworld cartridge instead of the pack's own, so the derivation can be
+verified before it is wired into anything:
+
+    python3 tools/check_logic.py seed.nes --derived rules.json \
+        --ap-rules seed.yaml --ff1-world .../vendor/Archipelago/worlds/ff1
+
+That mode prints every population as a number and reconciles them, because a run
+that compared twelve locations must not read like one that compared two hundred.
+The derivation varies only the ten items that gate a tile; FFR also requires
+Oxyale, the Ruby and five others, so those are granted for free rather than
+skipped -- FFR then reads as permissively as it can, and a divergence that
+survives cannot be blamed on the vocabulary gap.
 """
 
 import argparse
@@ -40,6 +54,14 @@ import ffr_flags  # noqa: E402
 
 LOCATION_FILES = ["locations/overworld.json", "locations/incentives.json"]
 
+# The No-Overworld variants' own trees. overworld.json is byte-identical to the
+# standard one today and only incentives.json differs, so selecting this pair
+# changes nothing for the 249 derived sections -- but the mode's whole point is
+# that its tree will diverge, and a switch that is a no-op today is not dead
+# code, it is the switch that stops being a no-op on the first real edit.
+NOVERWORLD_FILES = ["locations/NOverworld/overworld.json",
+                    "locations/NOverworld/incentives.json"]
+
 # FFR's item vocabulary against the pack's codes.
 #
 # Floater is the one that is not a rename. FFR's Floater is the item in your
@@ -55,8 +77,24 @@ FFR_ITEMS = {
     "Crystal": "crystal", "Herb": "herb", "Tnt": "tnt", "Adamant": "adamant",
     "Slab": "slab", "Bottle": "bottle", "Chime": "chime", "Cube": "cube",
     "Oxyale": "oxyale", "Rod": "rod", "Lute": "lute", "Tail": "tail",
-    "Shard": "shards",
+    "Shard": "shards", "Orbs": "orbs",
 }
+
+# What FFR's *Archipelago exporter* prints for two requirements on a
+# No-Overworld seed (FF1Lib/archipelago/Archipelago.cs:311-314). It is not the
+# item-screen rename: MetroidVaniaMap.cs renames MARK to the Earth Orb, while
+# the exporter independently spells the Canoe requirement "Mark". Both are real
+# and they disagree, so this alias follows the exporter and nothing else.
+# Measured on a GameMode-2 export: 159 uses of Mark, 212 of Sigil, and no use of
+# Canoe or Floater anywhere. The spoiler .txt does not rename (ExtSpoiler.cs),
+# so this applies to the Archipelago source only.
+NOVERWORLD_ALIASES = {"Mark": "Canoe", "Sigil": "Floater"}
+
+# What tools/noverworld_rules.py actually varies -- entrance_graph.ITEM_NAMES,
+# the items that gate a tile. Held here rather than imported so this tool does
+# not need the cartridge reader just to name the set.
+SWEPT_ITEMS = {"key", "crown", "cube", "orbs", "rod", "lute",
+               "tnt", "floater", "canoe", "chime"}
 
 # Vehicles and items FFR can hand you at the start. Its own logic stops
 # mentioning them once they are free, and the pack picks them up from cart RAM
@@ -108,7 +146,7 @@ FFR_SOURCES = {
 
 # ----------------------------------------------------------------- pack rules
 
-def load_pack_rules(pack=PACK):
+def load_pack_rules(pack=PACK, files=None):
     """{section path: [rule list, ...]} -- the chain of access_rules that has to
     hold, outermost first. A location's rules gate everything under it, so a
     section is reachable when every list in its chain is satisfied."""
@@ -136,7 +174,7 @@ def load_pack_rules(pack=PACK):
                 }
             walk(node.get("children", []), here, sub)
 
-    for rel in LOCATION_FILES:
+    for rel in (files or LOCATION_FILES):
         with open(os.path.join(pack, rel)) as handle:
             walk(json.load(handle), [], [])
     return sections
@@ -160,6 +198,69 @@ def find_hosted(sections, code, incentive):
     hits = [k for k in sections
             if sections[k]["hosted"] == code and k.startswith("I: ") == incentive]
     return hits[0] if len(hits) == 1 else None
+
+
+def load_derived_rules(path, sections):
+    """noverworld_rules.py's output as {section path: chain}, plus what it could
+    not place.
+
+    The derived file keys on a *node* name; `sections` keys on the full
+    `Area/Node/Section` path, and a chest's section is generically called
+    "Chest". So the join is on the second-to-last component, not on a path
+    suffix -- `find_section` matches suffixes and resolves 0 of 241 chest names.
+
+    A node may host more than one section (`Coneria Castle` does). The derived
+    rule is a statement about the tiles beside one map cell, which is equally
+    true of every section that node hosts, so it attaches to all of them.
+    Attaching to the first would leave the rest on a stale overworld rule
+    silently. The fan-out is reported because no derived name triggers it today,
+    which means the branch is untested by data.
+
+    Returns (chains, report). Nothing is ever dropped quietly: a name that
+    resolves to nothing, or to more than one node, lands in `report` and the
+    caller fails the run over it.
+    """
+    with open(path) as handle:
+        blob = json.load(handle)
+    rules, unreachable = blob["rules"], blob.get("unreachable", [])
+
+    by_name = {}
+    for full in sections:
+        parts = full.split("/")
+        if len(parts) >= 2:
+            by_name.setdefault(parts[-2], []).append(full)
+
+    chains, report = {}, {"fanned": [], "ambiguous": [], "unmatched": [],
+                          "unreachable": list(unreachable), "names": len(rules)}
+    for name, sets in sorted(rules.items()):
+        where = by_name.get(name)
+        if not where:
+            report["unmatched"].append(name)
+            continue
+        nodes = {"/".join(f.split("/")[:-1]) for f in where}
+        if len(nodes) > 1:
+            report["ambiguous"].append((name, sorted(nodes)))
+            continue
+        if len(where) > 1:
+            report["fanned"].append((name, len(where)))
+        for full in where:
+            chains[full] = as_chain(sets)
+    return chains, report
+
+
+def as_chain(sets):
+    """A derived or-of-ands as a chain `satisfied()` can evaluate.
+
+    "Free" is the trap. The obvious spelling of an empty requirement is
+    `",".join([])` -> `[[""]]`, and that evaluates to **False**: `"".split(",")`
+    is `[""]`, and `""` is never in `provided`. Every one of the 167 free
+    locations would report as stricter than FFR, and the run would look like the
+    derivation had failed catastrophically rather than like the adapter had. An
+    empty requirement is an empty chain -- `satisfied` skips it and returns True.
+    """
+    if any(not s for s in sets):
+        return []
+    return [[",".join(s) for s in sets]]
 
 
 AIRSHIP_SECTION = "Ryukahn Desert/Floater Turn In"
@@ -412,6 +513,24 @@ def parse_ap_rules(path):
     with this seed's flags and handed to Archipelago verbatim -- worlds/ff1 has
     no rules of its own, it just evaluates what it was given."""
     text = open(path, errors="replace").read()
+
+    # FFR's own export, straight off the randomizer, is pretty-printed JSON with
+    # the payload under the game name (Archipelago.cs:187-211, serialized
+    # Formatting.Indented). The line-oriented scan below finds `"rules": {` on
+    # its own line, takes the empty remainder, and returns {} -- which
+    # check_seed then skips in silence, so the ground truth is invisible and the
+    # run reports on whatever else it found. Try structured parsing first.
+    try:
+        blob = json.loads(text)
+    except ValueError:
+        pass
+    else:
+        for scope in (blob, *(v for v in blob.values() if isinstance(v, dict))):
+            rules = scope.get("rules") if isinstance(scope, dict) else None
+            if isinstance(rules, dict) and rules:
+                return rules
+
+    # Archipelago's own yaml and spoiler print it as a Python dict on one line.
     m = re.search(r'^\s*"?rules"?:\s*(.*)$', text, re.M)
     if not m:
         return {}
@@ -419,6 +538,31 @@ def parse_ap_rules(path):
     if body in ("", "{}"):
         return {}
     return parse_bracket_dict(body.lstrip("{").rstrip("}"))
+
+
+def alias_noverworld(rules):
+    """Rewrite FFR's No-Overworld requirement spellings back to item names.
+
+    Returns (rules, count). Left alone these corrupt the comparison in both
+    directions at once: `item_requirements` filters on `in FFR_ITEMS` and drops
+    "Sigil" from its clause, making FFR read weaker than it is, while
+    `compare`'s ffr_ok keeps "Mark" as a literal that is never in `held`, making
+    FFR read permanently closed.
+    """
+    out, n = {}, 0
+    for name, clauses in rules.items():
+        new = []
+        for clause in clauses:
+            terms = []
+            for term in clause:
+                if term in NOVERWORLD_ALIASES:
+                    n += 1
+                    terms.append(NOVERWORLD_ALIASES[term])
+                else:
+                    terms.append(term)
+            new.append(terms)
+        out[name] = new
+    return out, n
 
 
 def ap_location_paths(pack=PACK, ff1=None):
@@ -440,12 +584,21 @@ def ap_location_paths(pack=PACK, ff1=None):
 
 # ------------------------------------------------------------------ compare
 
-def compare(chain, truth, pinned, reqs=None, raise_chain=()):
+def compare(chain, truth, pinned, reqs=None, raise_chain=(), assume=()):
     """Truth-table both expressions over the items they mention.
 
     Returns (verdict, witness) where verdict is "match", "permissive",
     "strict" or "both", and witness is an item set they disagree on.
+
+    `assume` is granted to *both* sides and dropped from the variables. It
+    exists for the items a derived rule set cannot express -- Oxyale, the Ruby,
+    the Slab -- so that FFR reads as permissively as it possibly can and a
+    surviving divergence cannot be blamed on the vocabulary gap. Pinning them
+    only into `pinned` does not do this: `pinned` reaches the pack side alone,
+    while `ffr_ok` reads `held`, so the item goes on being varied and FFR goes on
+    requiring it.
     """
+    assume = set(assume)
     items = set()
     for clause in truth:
         for name in clause:
@@ -456,13 +609,13 @@ def compare(chain, truth, pinned, reqs=None, raise_chain=()):
             items.add(code)
         elif code == "airship":
             items.add("floater")   # it is floater plus reaching the desert
-    items = sorted(items)
+    items = sorted(items - assume)
 
     reverse = {v: k for k, v in FFR_ITEMS.items()}
     vocabulary = set(items)
     permissive, strict = None, None
     for bits in itertools.product((False, True), repeat=len(items)):
-        held = {c for c, on in zip(items, bits) if on}
+        held = {c for c, on in zip(items, bits) if on} | assume
         if not achievable(held, vocabulary, reqs):
             continue
         provided = with_airship(pinned | held, raise_chain)
@@ -470,9 +623,9 @@ def compare(chain, truth, pinned, reqs=None, raise_chain=()):
         ffr_ok = any(all(FFR_ITEMS.get(n, n) in held for n in clause)
                      for clause in truth)
         if pack_ok and not ffr_ok and permissive is None:
-            permissive = sorted(reverse.get(c, c) for c in held)
+            permissive = sorted(reverse.get(c, c) for c in held - assume)
         if ffr_ok and not pack_ok and strict is None:
-            strict = sorted(reverse.get(c, c) for c in held)
+            strict = sorted(reverse.get(c, c) for c in held - assume)
 
     # `is not None` rather than truthiness: the witness for a rule that opens
     # with nothing at all is the empty set, and that is the worst case, not a
@@ -496,7 +649,8 @@ def show_chain(chain):
 
 # --------------------------------------------------------------------- main
 
-def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False):
+def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False,
+               derived=None, derived_report=None, ap_rules_path=None):
     with open(rom_path, "rb") as handle:
         rom = handle.read()
     try:
@@ -505,13 +659,32 @@ def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False):
         print("  cannot read this ROM: %s" % err)
         return 0, 0
     pinned = flag_codes(flags)
-    raise_chain = airship_chain(sections)
+    noverworld = flags.get("GameMode") == 2
+
+    # In derived mode the airship code cannot arise: a derived chain's terms are
+    # exactly entrance_graph.ITEM_NAMES, which has no `airship`, and the mode has
+    # no overworld, no desert and no flight to raise one over. Synthesising it
+    # from the pack's stale overworld rule would be the one place a
+    # No-Overworld answer still depended on overworld geography. AIRSHIP_SECTION
+    # does resolve in the NOverworld tree today only because that tree is a copy
+    # of the standard one; leaving the call in would turn the first honest edit
+    # of it into a crash.
+    raise_chain = () if derived else airship_chain(sections)
 
     spoiler = os.path.join(os.path.dirname(rom_path),
                            "Spoiler_%s_%s.txt" % (info["Seed"],
                                                   os.path.basename(rom_path).split("_")[-1][:-4]))
+    # FF1R writes the spoiler as <rom stem>.txt (FF1R/Commands/Generate.cs), not
+    # under the web download's name, so a locally generated seed has its spoiler
+    # sitting right there under a name this would not have looked for.
+    if not os.path.exists(spoiler):
+        beside = os.path.splitext(rom_path)[0] + ".txt"
+        if os.path.exists(beside):
+            spoiler = beside
+
     checks = []
     reqs = {}
+    unnamed_rows = 0
 
     if os.path.exists(spoiler):
         rows = parse_ffr_spoiler(spoiler)
@@ -519,7 +692,12 @@ def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False):
         for row in rows:
             code = FFR_SOURCES.get(row["source"])
             if code is None:
-                checks.append((row["source"], None, row["rules"], "no pack section known"))
+                # FFR_SOURCES covers the key-item sources. With the Archipelago
+                # pool flags on, the spoiler's first table also lists every
+                # pooled chest, whose Source strings it does not name -- and the
+                # Archipelago export covers those anyway. Count them apart from
+                # a real gap.
+                unnamed_rows += 1
                 continue
             path = find_hosted(sections, code, incentive=False)
             if path is None:
@@ -531,18 +709,31 @@ def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False):
         print("  no FFR spoiler next to the ROM (%s)" % os.path.basename(spoiler))
 
     here = os.path.dirname(rom_path)
-    ap_files = (sorted(glob.glob(os.path.join(here, "*.yaml")))
-                + sorted(glob.glob(os.path.join(here, "*_Spoiler.txt"))))
-    # The yaml FFR hands you for an Archipelago run keeps the seed in its name
-    # and normally lives in Players/, not next to the ROM.
-    if players_dir:
-        ap_files += sorted(glob.glob(os.path.join(os.path.expanduser(players_dir),
-                                                  "**", "*%s*.yaml" % info["Seed"]),
-                                     recursive=True))
+    if ap_rules_path:
+        ap_files = [os.path.expanduser(ap_rules_path)]
+    else:
+        ap_files = (sorted(glob.glob(os.path.join(here, "*.yaml")))
+                    + sorted(glob.glob(os.path.join(here, "*_Spoiler.txt"))))
+        # The yaml FFR hands you for an Archipelago run keeps the seed in its name
+        # and normally lives in Players/, not next to the ROM.
+        if players_dir:
+            ap_files += sorted(glob.glob(os.path.join(os.path.expanduser(players_dir),
+                                                      "**", "*%s*.yaml" % info["Seed"]),
+                                         recursive=True))
     for ap_file in ap_files:
         ap_rules = parse_ap_rules(ap_file)
         if not ap_rules:
+            # Saying so matters: an unreadable export used to be skipped in
+            # silence, which reads exactly like a seed that had no export.
+            print("  no rules could be read from %s" % os.path.basename(ap_file))
             continue
+        if noverworld:
+            ap_rules, renamed = alias_noverworld(ap_rules)
+            print("  %s: %d locations, aliased %d Mark/Sigil terms to Canoe/Floater"
+                  % (os.path.basename(ap_file), len(ap_rules), renamed))
+            if not renamed:
+                print("        no Mark or Sigil in a GameMode 2 export -- FFR's"
+                      " exporter changed, check Archipelago.cs:311-314")
         found = ap_item_requirements(ap_file, ap_rules)
         if found:
             reqs = found
@@ -565,28 +756,88 @@ def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False):
     missing = [v for v in ("ship", "canal", "canoe", "floater")
                if v not in reqs and v not in pinned]
     trustworthy = not missing
+    if derived:
+        # The gate exists to suppress one artefact: quantifying over vehicle
+        # combinations no player can be in, which arises because the pack
+        # synthesises an `airship` code the seed's own logic never mentions. A
+        # derived chain and an FFR clause are two or-of-ands over the same item
+        # names with nothing synthesised on either side, so achievability
+        # pruning can only hide real disagreements. Dropping it is strictly
+        # conservative -- but measured on both cartridges, none of the four
+        # vehicles is ever in `pinned`, so leaving the gate in place would make
+        # every derived run print its findings and then report zero.
+        reqs, trustworthy, missing = {}, True, []
+        print("  achievability pruning off: both sides are or-of-ands over the"
+              " same item codes, so every subset is a fair test")
     if missing:
         print("  where %s were placed is not recorded for this seed, so what"
               " follows over-reports and is not counted" % ", ".join(missing))
 
     # Grouped, because one wrong rule on a dungeon shows up once per chest
     # under it and a hundred identical lines hide how few problems there are.
+    # The spoiler .txt and the Archipelago export describe the same seed, so a
+    # key-item location arrives from both. Identical claims are one check, not
+    # two -- left alone they double every divergence's "at" list and inflate the
+    # comparison count. A location where the two sources *disagree* survives as
+    # two checks, which is the case worth seeing.
+    seen_claims = set()
+    deduped, doubled = [], 0
+    for label, path, truth, why in checks:
+        key = (path, repr(truth))
+        if why is None and key in seen_claims:
+            doubled += 1
+            continue
+        seen_claims.add(key)
+        deduped.append((label, path, truth, why))
+    checks = deduped
+
     groups, order, witnesses, waived = {}, [], {}, {}
     unmapped, agree = 0, 0
+    no_derived, offvocab = [], []
     for label, path, truth, why in checks:
         if why:
             unmapped += 1
             if verbose:
                 print("  --   %-40s %s" % (label, why))
             continue
-        chain = sections[path]["chain"]
-        verdict, witness = compare(chain, truth, pinned, reqs, raise_chain)
+        offv = set()
+        if derived is not None:
+            chain = derived.get(path)
+            if chain is None:
+                # FFR has a rule here and the derivation placed nothing. Not a
+                # divergence -- a hole in noverworld_rules.placements().
+                no_derived.append((label, path))
+                continue
+            # The derivation varies exactly entrance_graph.ITEM_NAMES, the items
+            # that gate a *tile*. FFR's model also carries requirements that are
+            # game rules rather than tile blockers -- Oxyale to breathe, the Ruby
+            # for Titan, the Slab for the translation.
+            #
+            # Skipping those locations was the first thing tried and it is too
+            # blunt: FFR's rule is an OR, so `[[Chime,Oxyale,Sigil],[Mark]]` has
+            # a clause entirely inside the swept vocabulary and is perfectly
+            # comparable. Instead, hand the player every off-vocabulary item for
+            # free. That makes FFR's side as permissive as it can possibly be,
+            # so a location that still comes out permissive is over-reach the
+            # vocabulary gap cannot explain -- and one that comes out strict
+            # would be a walk that closes what FFR opens even then.
+            offv = {FFR_ITEMS.get(t, t) for clause in truth for t in clause
+                    if FFR_ITEMS.get(t, t) not in SWEPT_ITEMS}
+            if offv:
+                offvocab.append((label, path, truth))
+            here_pinned = pinned | offv
+        else:
+            chain = sections[path]["chain"]
+            here_pinned = pinned
+        verdict, witness = compare(chain, truth, here_pinned, reqs, raise_chain, offv)
         if verdict == "match":
             agree += 1
             if verbose:
                 print("  ok   %-40s %s" % (label, show_rules(truth)))
             continue
-        reason = WAIVED.get((path, verdict))
+        # The waivers are statements about hand-written pack rules and have no
+        # standing over a derived one.
+        reason = None if derived is not None else WAIVED.get((path, verdict))
         if reason:
             waived.setdefault(reason, []).append(label)
             continue
@@ -620,12 +871,54 @@ def check_seed(rom_path, sections, ap_paths, players_dir=None, verbose=False):
                                 else " (and %d more)" % (len(where) - 1)))
         print("        waived: %s" % reason)
 
+    divergent = sum(len(g) for g in groups.values())
+    if derived is not None:
+        # Every population named as a number. A run that compared 12 locations
+        # must not be able to read like one that compared 240.
+        print("  derived rules        %4d   (%d unreachable, kept their old rules)"
+              % (derived_report["names"], len(derived_report["unreachable"])))
+        print("    resolved           %4d   (%d fanned, %d ambiguous, %d unmatched)"
+              % (len(derived), len(derived_report["fanned"]),
+                 len(derived_report["ambiguous"]), len(derived_report["unmatched"])))
+        print("  FFR rules joined     %4d   (%d could not be mapped,"
+              " %d duplicate claims collapsed)"
+              % (len(checks) - unmapped, unmapped, doubled))
+        if unnamed_rows:
+            print("    spoiler rows with no FFR_SOURCES entry %4d  (the"
+                  " Archipelago export covers these)" % unnamed_rows)
+        print("  compared             %4d   %d agree, %d divergent in %d shapes"
+              % (agree + divergent, agree, divergent, len(groups)))
+        print("    of those, %d had an off-vocabulary item granted free so the"
+              " vocabulary gap could not explain a divergence" % len(offvocab))
+        print("  not compared:")
+        print("    no derived rule    %4d   FFR has a rule, placements() found"
+              " no tile" % len(no_derived))
+        if offvocab:
+            seen = {}
+            for label, _, truth in offvocab:
+                for clause in truth:
+                    for t in clause:
+                        if FFR_ITEMS.get(t, t) not in SWEPT_ITEMS:
+                            seen.setdefault(t, []).append(label)
+            print("    off-vocabulary items: %s"
+                  % ", ".join("%s x%d" % (t, len(v))
+                              for t, v in sorted(seen.items(), key=lambda kv: -len(kv[1]))))
+        for label, path in no_derived:
+            print("      no derived rule: %s" % path)
+        for name in derived_report["unmatched"]:
+            print("      unmatched derived name: %s" % name)
+        for name, where in derived_report["ambiguous"]:
+            print("      ambiguous derived name: %s -> %s" % (name, ", ".join(where)))
+        for name, n in derived_report["fanned"]:
+            print("      fanned to %d sections: %s" % (n, name))
+        broken = len(derived_report["ambiguous"]) + len(derived_report["unmatched"])
+        return divergent + broken, unmapped
+
     print("  %d checked, %d agree, %d distinct divergences over %d locations,"
           " %d could not be mapped%s"
-          % (agree + sum(len(g) for g in groups.values())
-             + sum(len(w) for w in waived.values()),
+          % (agree + divergent + sum(len(w) for w in waived.values()),
              agree + sum(len(w) for w in waived.values()), len(groups),
-             sum(len(g) for g in groups.values()), unmapped,
+             divergent, unmapped,
              "" if trustworthy else " -- NOT COUNTED"))
     return (len(groups) if trustworthy else 0), unmapped
 
@@ -643,6 +936,12 @@ def main():
                     help="path to worlds/ff1, for the AP location id table")
     ap.add_argument("-v", "--verbose", action="store_true",
                     help="also list the checks that agree and the ones skipped")
+    ap.add_argument("--derived", default=None,
+                    help="check this rules JSON (tools/noverworld_rules.py -o) "
+                         "instead of the pack's own access_rules")
+    ap.add_argument("--ap-rules", default=None,
+                    help="the Archipelago export to read FFR's rules from, "
+                         "instead of globbing beside the ROM")
     args = ap.parse_args()
 
     roms = [os.path.expanduser(r) for r in args.rom]
@@ -652,15 +951,20 @@ def main():
     if not roms:
         raise SystemExit("no ROMs found")
 
-    sections = load_pack_rules()
+    sections = load_pack_rules(files=NOVERWORLD_FILES if args.derived else None)
     ap_paths = ap_location_paths(ff1=args.ff1_world)
     if not ap_paths:
         print("(no worlds/ff1 found -- Archipelago rules will be skipped)\n")
 
+    derived = report = None
+    if args.derived:
+        derived, report = load_derived_rules(args.derived, sections)
+
     total, unmapped = 0, 0
     for rom in roms:
         print(os.path.basename(rom))
-        d, u = check_seed(rom, sections, ap_paths, args.players_dir, args.verbose)
+        d, u = check_seed(rom, sections, ap_paths, args.players_dir, args.verbose,
+                          derived, report, args.ap_rules)
         total += d
         unmapped += u
         print("")
