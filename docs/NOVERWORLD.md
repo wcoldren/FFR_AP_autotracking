@@ -54,10 +54,25 @@ deliberately misleading.
 CROWN and KEY gate tiles as usual. Ship and bridge are free.
 
 **Two items are renamed, and only two** (`:844`): `ItemsText[Floater] = "SIGIL"`
-and `ItemsText[EarthOrb] = "MARK"`. So SIGIL is the Floater — but **MARK is the
-Earth Orb, not the Canoe.** The Canoe NPCs' dialogue talks about "Lukahn's mark"
-and that is flavour; the item their routine checks is the Canoe. This was
-recorded backwards for a while, so it is worth stating plainly.
+and `ItemsText[EarthOrb] = "MARK"`.
+
+There are two different things called MARK here and they are not the same item.
+Say which namespace before answering, or the answer flips:
+
+| | SIGIL | MARK |
+|---|---|---|
+| **the game's item screen** (`ItemsText`, `:844`) | Floater | **Earth Orb** |
+| **the AP exporter's item name**, which is where the pack's `sigil` / `mark` codes come from | Floater | **Canoe** (`$6012`) |
+
+So on the screen the player is reading, MARK is the Earth Orb. In the tracker's
+codes — `scripts/autotracking/item_mapping.lua` and the `mark` RAM rule in
+`ram_mapping.lua` — `mark` is the Canoe, because the pack follows the exporter's
+names and the Earth Orb keeps its own `earthorb` code and its own box. The
+Canoe NPCs' dialogue talks about "Lukahn's mark", which is flavour on both
+readings; the item their routine checks is the Canoe.
+
+This has been recorded backwards twice, in both directions, which is why it is
+a table rather than a sentence.
 
 None of this is a new tracker code. The pack already tracks every one of these
 items — the mode needs new topology, not new codes.
