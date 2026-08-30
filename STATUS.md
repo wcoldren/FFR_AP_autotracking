@@ -1211,7 +1211,12 @@ disjoint components out separately instead of framing their union.
 fixed-formation trap tiles (`TP_SPEC_BATTLE`, byte 1 not the random marker) over
 all eight tilesets in order and label them A, B, C. On a *vanilla* cartridge
 that reproduces the shipped art exactly -- `earthB1` comes out `{G,H,I}` and
-`volcB4` `{M,N}`, and `volcB1`'s bare `A` correctly is not a trap letter. 23 of
+`volcB4` `{M,N}`, and `volcB1`'s bare `A` correctly is not a trap letter.
+(**Historical.** That agreement is what pinned the enumeration base, and it did
+its job; the scheme it verified is being replaced, because numbering by
+`(tileset, tile)` gives one formation two labels -- see above. The base it
+established is unaffected: what changes is the key, not where the tiles are read
+from.) 23 of
 61 maps use one and no map uses more than four, so the band below the map is
 small and bounded. Which branch decides byte 1 is read rather than assumed:
 `SMMove_Battle`'s `BPL` sits at 0x0DC5 in the fixed bank, `$10` on a vanilla
@@ -1584,6 +1589,70 @@ the derivation collapsing. And `trustworthy` demands vehicle placements that are
 in `pinned` on neither cartridge, so a derived run would have printed its
 findings and then reported zero divergences. Both are asserted in
 `tools/tests/test_check_logic.py`.
+
+## Seven crops, two causes, and a letter that means two things
+
+Seven maps were flagged by eye as badly cropped. Measured over all 61 maps of the
+std and nov oracle cartridges, they are **two mechanisms, and the fix count is
+two rather than seven**.
+
+**The seam.** A standard map wraps at 64 tiles -- `AND #$3F`, which
+`entrance_graph.floor_walk` has modelled all along -- and `render_maps.content_box`
+does not. It takes an axis-aligned bounding box in un-rotated coordinates, so a
+map whose content straddles column 0 or row 0 gets framed across the void between
+its halves:
+
+    con_castle      64x35 -> 31x35   content cols 62-63 + 0-26, 35 blank between
+    crescent_lake   52x64 -> 53x43   content rows 58-63 + 0-34
+    melmond         45x64 -> 45x46   content rows 51-63 + 0-30
+    elf_castle      28x64 -> 29x35   content row 63 + 0-31, wrapped by one row
+
+**Both cartridges give identical numbers**, which is the useful part: the wrap is
+a property of the map and not of the seed, so the No-Overworld audit that looked
+like it might be needed is not. Two of the by-eye guesses were backwards --
+Melmond was called plain over-crop and is a wrap; Sea Shrine B1 was called a wrap
+and has no empty column anywhere.
+
+That retracts a cause, not a number. `docs/ISSUES.md` attributed `con_castle`'s
+35 blank columns to "stray detached tiles out near the boundary"; the 35 is
+right and the tiles are not it. The original diagnosis survives for the residue
+-- `onrac`, `lefein` and `seaB1` really are held open by a one-to-three-cell
+sliver spanning the full width, and `iceB2`, `iceB3` and `sky4F` are multi-lobe
+maps where rotating would put the left half on the right. Those six go to the
+insets idea, which predicted them.
+
+**The letters mean two things at once.** `trap_letters()` numbers by
+`(tileset, tile)` enumeration order rather than by the formation the tile spawns.
+Two consequences, and the second is the one that matters:
+
+- 38 distinct labels on the std cartridge, so everything past index 25 becomes
+  AA..AL. Seven maps carry a two-character label; `tofrChaos` reads AG AH AI AJ
+  across eight tiles in a row. That is the clutter that got noticed.
+- **Three formations are drawn under two different letters each.** On std,
+  formation `$10` is G on `earthB1` and W on `marshB3`; `$1C` is AA and AG; `$4A`
+  is V and X. Same on nov, three again. So the label does not identify the
+  encounter, which is what a label on a fixed-formation tile is for.
+
+The second was not what anyone was looking for. It surfaced only because the
+question asked was whether the same enemies on two maps *should* share a mark --
+the answer being yes, and the measurement then showing that today they sometimes
+do not. The reflex fix, re-lettering per map, would have entrenched it.
+
+Keying the mark to the formation closes both. **32 formations actually stand on a
+map** (31 on nov), against 35 single glyphs available in `0-9A-Z` once `O` is
+dropped -- and `O` is dropped because `tools/font.py` already asserts that `0` and
+`O` are the same glyph in the cartridge's font, which is exactly the kind of trap
+that alphabet would otherwise have walked into.
+
+Two recorded claims do not survive this and are updated rather than left:
+`test_crop.py:179` and `:195` assert `volcB4` is `{M,N}` on named tiles, and the
+"reproduces the shipped art exactly" finding below.
+
+**Linked chests, measured while the chest data was open.** Six chest indices sit
+on more than one tile on std and **fourteen on nov** -- Short ToFR duplicates
+indices onto `tofrChaos`. Four same-map groups on both (`25`, `26` on `marshB2`,
+`29` on `marshB3`, `101` on `volcB4`); two cross-map on std against ten on nov.
+Seed-dependent, so any annotation derives per cartridge.
 
 ## Four names that have drifted off what they describe
 
