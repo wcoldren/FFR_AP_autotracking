@@ -17,37 +17,29 @@ Nothing here is urgent unless it says so.
   This is the largest live defect in the pack. See `docs/NOVERWORLD.md` and
   `docs/ROADMAP.md`.
 
-- **NPC rewards that must be traded for carry no requirement.** The derivation
-  asks whether the party can stand beside an NPC, which is not the same question
-  as whether they can obtain what it holds. Nerrick wants the TNT and Astos the
-  Crown before either hands anything over; both derive as free. These are the
-  only two locations where the derived rules still disagree with FFR
-  (216 of 218 agree), and both are the same mechanism.
-
-  Nerrick is closable with what is already read: `Talk_Nerrick` is one of the
-  four routines `entrance_graph.gate_objects()` recovers, so the item is on hand
-  and only needs ANDing into that section's own rule. Astos is not — his Crown
-  requirement lives in a vanilla talk routine nothing here reads yet, so closing
-  it means reading the talk table's item checks off the cartridge rather than
-  adding a case. Worth doing together with the six unplaced NPCs below, as one
-  pass over NPC locations, rather than special-casing the one whose data happens
-  to be loaded.
-
-- **Six locations FFR pools have no derived rule at all.**
-  `noverworld_rules.placements()` resolves no tile for `Coneria Castle/King`,
-  `Coneria Castle/Sara`, `Crescent Lake/Sages`, `Elf Castle/Elf Prince`,
-  `Waterfall/Robot` and `Lefein/Incentive` — all NPCs. Wired today they would
-  fall through to the pack's stale overworld rules.
-
-- **The derivation cannot express seven of FFR's requirement items.** It varies
+- **The sweep still cannot express the items that are game rules.** It varies
   `entrance_graph.ITEM_NAMES`, the ten items that gate a *tile*. FFR's model also
-  carries `Oxyale`, `Ruby`, `Slab`, `Herb`, `Adamant`, `Bottle` and `Crystal`,
-  which are game rules rather than tile blockers — 121 uses of Oxyale and 30 of
-  the Ruby on the reference seed. `check_logic --derived` grants those to both
-  sides rather than skipping the location, so FFR reads as permissively as it
-  can and a surviving divergence cannot be blamed on the gap. That is a fair
-  test, not a fix: a derived rule set can never state an Oxyale requirement, so
-  those 154 locations are verified only up to the swept vocabulary.
+  carries `Oxyale`, `Ruby`, `Slab`, `Herb`, `Adamant`, `Bottle` and `Crystal`.
+  Half of that gap is closed: where one of them is a *trade*,
+  `entrance_graph.talk_item_requirements()` reads it off the talk table and the
+  rule states it — Astos's Crown, Nerrick's TNT, the Smith's Adamant, Matoya's
+  Crystal. What stays out of reach is those items used as access rules
+  elsewhere: Oxyale is "you can breathe underwater", and the oracle cartridge
+  carries 129 uses of it and 32 of the Ruby. `check_logic --derived` grants them
+  to both sides rather than skipping the location, so FFR reads as permissively
+  as it can and a surviving divergence cannot be blamed on the gap. That is a
+  fair test, not a fix.
+
+- **Map markers still come from the vanilla NPC table.**
+  `regen_maps.place_locations()` reads `tools/npc_positions.json`, which is the
+  vanilla table; the derivation stopped doing that and reads the cartridge.
+  Measured, FFR moves people: Titan by (60,8,7) → (60,4,8) on an ordinary seed,
+  Nerrick by (19,16,45) → (19,15,47) on a No-Overworld one. So a No-Overworld
+  regen draws Nerrick's pin one column and two rows off the sprite it is meant
+  to sit on. Titan has no pin, so he costs nothing today. Switching the pins to
+  the cartridge would also hand pins to the six NPCs that just gained locations,
+  which is a decision about the location tree rather than a bug fix, so the two
+  want doing together.
 
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so a
   Locations-grid cell needs a new hosted toggle under a different code. It would

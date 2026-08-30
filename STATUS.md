@@ -488,6 +488,101 @@ one line of assembly that was there all along.
 `test_noverworld_rules.py` asserts the three chests directly, so the bounded
 walk cannot come back quietly.
 
+## The NPCs the walk could reach and could not rob
+
+Written 2026-08-30. The derivation now agrees with FFR on every comparable
+location: **226 of 226**, up from 216 of 218, with nothing left unresolved.
+
+Two defects, and they turned out to share a join.
+
+**Six locations FFR pools had no derived rule at all** -- Coneria Castle's King
+and Sara, Crescent Lake's Sages, the Elf Prince, Waterfall's Robot and Lefein.
+The reason was dull once looked at: `extract_npcs.WANTED` listed fourteen object
+ids and none of those six. Ask the object table for their ids and every one is
+there, on both seeds, standing on the map its location node is named for. The
+ids are AP location id minus 512, which is how FF1Lib numbers an NPC location --
+worth leaning on, because the disassembly does not name four of them at all
+($01, $0F, $11, $15), the same gap `NPC_IDS` already carries for the Elf Doctor.
+$0F is not placed on a vanilla cartridge; FFR is what puts a Lefein object on a
+map.
+
+**And the positions came off the wrong cartridge.** `npc_positions.json`
+reproduces the vanilla ROM exactly, and `extract_npcs.py` said so on the grounds
+that FFR randomizes what an NPC gives you and not where it stands. Measured, that
+is false:
+
+    titan     vanilla (60,8,7)    both FFR seeds (60,4,8)
+    nerrick   vanilla (19,16,45)  the No-Overworld seed (19,15,47)
+
+So No-Overworld rules were being derived from vanilla tiles. Fifth time in this
+file: a plausible source, a confident answer, nothing asking the cartridge. The
+walk now reads the seed. `npc_positions.json` stays as the vanilla reference and
+the test asserts the two disagree wherever the cartridge moves someone -- an
+assertion that would have failed the moment the claim did.
+
+### The trade is data, not a talk routine to disassemble
+
+This document expected Astos to be the hard half: `docs/ISSUES.md` said his Crown
+requirement "lives in a vanilla talk routine nothing here reads yet", so closing
+it meant reading item checks out of assembly. That was the wrong guess about
+where the answer lives.
+
+FFR keeps it as data. `NPCs.cs` rebuilds the talk table as $D0 six-byte records
+-- three dialogue ids, the item given, the item **required**, a battle id -- and
+moves them into the bank it moved the jump table to. The requirement byte is an
+offset into the `items` array in save RAM, so 2 is the Crown.
+
+**The byte alone is not the answer, and the Elf Prince is why.** His byte reads
+5, the Mystic Key, and that is the item he *gives*; his script never looks at it.
+A reader that trusted the table would have gated the key on holding the key --
+another complete, confident, wrong answer, and this one was sitting right next to
+the two the reader was written for.
+
+So an object is read as gated only where two sources agree. Either its routine
+indexes the byte itself,
+
+    LDX tmp+4 / BEQ / LDA items,X          A6 74 / F0 05 / BD 20 60
+
+which is FFR's generic trade routine and covers the Elf Doctor, Astos, the Smith,
+Matoya and Dr Unne; or the routine loads that exact item's address directly and
+the byte names the same item, which is Nerrick and Titan. `MetroidVaniaMap.cs`
+leaves Nerrick the older routine, so he hardcodes the TNT where the others index.
+
+Seven objects, identical on all three FFR cartridges here, standard and
+No-Overworld alike, with the Elf Prince correctly among the two whose byte is set
+and unread. A stock image has four-byte records and no requirement byte at all,
+and the reader returns None there rather than reading six-byte records out of
+wherever $BA00 lands. `--trades` reports it; `--self-check` cross-checks it
+against `gate_objects`, which reads the same table for a different reason.
+
+### What it measured
+
+On a 4.9.2 oracle cartridge built for the purpose, with `Spoilers`,
+`Archipelago` and the four pool flags on:
+
+    derived rules       254   (was 249)   0 unreachable
+    compared            226   (was 218)   226 agree, 0 divergent
+    no derived rule       0   (was 6)
+
+and the standard-mode baseline that validates the whole harness is unmoved at
+**225 checked, 225 agree, 0 divergences**. The derivation's two pinned numbers
+did not move either -- 54 of 61 maps with every item, 22 empty-handed -- which is
+what says the trades add a requirement without disturbing the walk.
+
+The rules gained `tnt` for Nerrick, `crown` for Astos, `adamant` for the Smith
+and `crystal` for Matoya. The last two are worth noticing: adamant and crystal
+are outside the ten items the sweep varies, so this is the first thing in the
+tree that can state a requirement the sweep cannot express. What is still out of
+reach is those same items used as access rules rather than trades -- 129 uses of
+Oxyale on that cartridge, 32 of the Ruby.
+
+A trade ANDs into every alternative rather than adding one. A node hosting more
+than one NPC where any of them trades exits rather than gating the others on an
+item they never asked for: rules are per location and `check_logic` fans them to
+the sections, so there is no way to say it for one section only. Nothing in the
+tree does that today -- Coneria Castle holds the King and Sara and neither
+trades.
+
 ## Ideas from playing on the rendered maps
 
 Moved to `docs/IDEAS.md` -- towns as rooms, following the party into a

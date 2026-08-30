@@ -56,10 +56,20 @@ flagset that is the eight-tile Coneria Castle platform, holding one door.
 Empty-handed reach drops from 45 maps to 22; with every item it stays 54 of 61,
 which is the invariant `docs/NOVERWORLD.md` says gates must not move.
 
-After the fix: **216 of 218 agree, 2 divergent.** The two are Nerrick and Astos,
+After the fix: **216 of 218 agree, 2 divergent.** The two were Nerrick and Astos,
 who want the TNT and the Crown handed over before they give anything — a trade,
-not a tile. See `docs/ISSUES.md`; that and the six unplaced NPCs are one
-remaining pass over NPC locations, and the wiring below should wait for it.
+not a tile.
+
+**Both are closed, and the six unplaced NPCs with them.** The trade is data on
+the cartridge: FFR's talk records carry a requirement byte, and
+`entrance_graph.talk_item_requirements()` reads it for the objects whose script
+is shown to consult it. The six were never placed because `extract_npcs.WANTED`
+had not been asked for their object ids; while fixing that, positions moved to
+being read off the seed rather than out of the vanilla snapshot, which FFR moves.
+
+Re-run on a freshly built 4.9.2 oracle cartridge: **226 comparable, 226 agree, 0
+divergent**, no location left without a derived rule. The count rises from 218
+because the six now resolve.
 
 The same run on a standard cartridge, against the pack's existing hand-written
 rules, is the baseline to protect: **225 checked, 225 agree, 0 divergences**, and
@@ -72,6 +82,19 @@ match (the schema in `tools/ffr_flags/schemas/4-9-2.json` records that SHA and
 the decoder refuses on mismatch), then generate from a flags JSON with
 `Spoilers`, `Archipelago` and the four Archipelago pool flags on — the pool flags
 are what take FFR's `rules:` from the key items alone up to 225 locations.
+
+Two things that cost time rebuilding this on 2026-08-30, worth having written
+down. **4.9.2's CLI cannot write the Archipelago export** — `--ap-export` is a
+later addition, and only the web UI downloaded the export at that release. The
+spoiler it does write carries no `rules:` section, so `check_logic` has nothing
+to compare against. Ten lines in the local worktree's `FF1R/Commands/Generate.cs`,
+copied from how the current fork does it, write `Utilities.ArchipelagoCache`
+beside the ROM; it is a local build, so nothing needs committing anywhere. And
+the projects target `net6.0`, which a modern SDK will not run without
+`DOTNET_ROLL_FORWARD=LatestMajor`. `-j <flags.json>` takes a preset-shaped file,
+which is what the `FF1Blazorizer/wwwroot/presets/` files already are; `-p` looks
+in the user settings directory instead and will not find a path.
+
 Regenerating the reference seed from its own on-cart flag string reproduces its
 flag string exactly and its logic exactly — same 32365 teleport tiles, same 157
 staircases, same gates — while differing in 25540 bytes of CHR, credits and
