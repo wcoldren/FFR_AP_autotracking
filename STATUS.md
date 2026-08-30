@@ -400,6 +400,80 @@ Open questions before any of it: does the logic need a No-Overworld branch (the
 75-link table is fixed, so it *can* be modelled), and should the variant be
 auto-selected from `GameMode` rather than picked by hand.
 
+## The No-Overworld rules, derived rather than substituted
+
+Written 2026-08-30. `tools/noverworld_rules.py` reads a cartridge and emits the
+access rules a No-Overworld seed actually has.
+
+**The plan this replaced was wrong, and measuring is what said so.** The
+intended fix was a substitution: make `ship` and `bridge` read as free in the
+mode and leave the rules otherwise alone, so one rule set could serve both
+variants. Then the cartridge was asked. **45 of 61 maps are reachable
+empty-handed** on seed `F258553F`, and the Canoe adds two. The mode's gating is
+per floor, not per vehicle. A substitution can delete false reds and cannot add
+a single true one, so it would have traded one wrong board for a differently
+wrong board.
+
+**Tiles, not maps, and that is the whole tool.** `reachable_maps` answers "can
+you enter this floor". A gate NPC or a locked door cuts a floor in half -- you
+walk into Castle Ordeals 1F freely and the half holding the chests is behind a
+SIGIL barrier. Asked per map, four of the ten key items look irrelevant:
+
+    floater  crown  chime  tnt      change no map's reachability at all
+
+Asked per tile, `key` alone opens 610. `reachable_tiles` is the same fixed point
+`reachable_maps` runs, keeping the floor walk instead of discarding it.
+
+**Minimal sets over the whole lattice, not one probe per item.** `floater` and
+`crown` each open zero tiles on their own, so a per-item probe would drop both;
+an item that opens nothing alone can still be half of a pair. 1024 walks, about
+70 seconds.
+
+What seed `F258553F` derives, over 246 locations:
+
+    164  free          34  cube          28  key          11  rod          9  canoe
+
+Every rule is a single item. No conjunction appears anywhere, which is worth
+knowing before building machinery to express one.
+
+**Two bugs, both the same shape as the bank bug: a confident wrong answer.**
+
+- *A chest is never stood on.* `walkable()` returns False for
+  `TP_SPEC_TREASURE` because the engine does -- you open a chest by bumping it
+  from the side, like talking to an NPC. The first version asked whether the
+  party could occupy the chest's own tile, which is never true, and reported
+  241 of 249 locations unreachable on a cartridge where most of the board is
+  open from the start. It did not crash and every number it printed was
+  internally consistent.
+- *The kind cannot be guessed from the name.* `marker_tiles` is keyed by node
+  name (`Dwarf Cave Smith`) and `npc_positions.json` by item code (`smith`), and
+  nothing maps one to the other. Mangling the name matched none of them, so all
+  eight NPCs went down the chest path. `test_noverworld_rules.py` asserts the
+  count is exactly eight.
+
+### Three chests that nothing can reach
+
+Found while checking the three locations the derivation could not resolve:
+`Sea Shrine Mermaids 4`, `Mermaids 5` and `Sea Incentive`, all on SeaShrineB1
+at (25-27, 4).
+
+They sit against an **85-tile pocket that is walled off on every edge**, holding
+every item in the game. Checked three ways rather than assumed: the pocket's
+whole boundary is unwalkable with all ten items in hand, no teleport tile stands
+inside it, and of every teleport on the cartridge that arrives on SeaShrineB1
+there is exactly one -- from SeaShrineB2 to (12, 26), outside the pocket. Ten of
+the twelve Mermaid chests are reachable; these three are not.
+
+Whether that is the cartridge or a gap in the walk is **open**. The walk models
+locked doors, rod plates and the gate NPCs, so if it is a gap it is a mechanic
+nobody here has named yet. `tools/check_logic.py` is what settles it: FFR wrote
+its own reachability down in the spoiler, and if FFR thinks those three are
+reachable then the walk is missing something.
+
+Until then the tool reports them and emits no rule, and the locations keep the
+rules they already have. A location silently losing its rule is worse than one
+keeping a wrong rule, because the first kind cannot be seen on the board.
+
 ## Ideas from playing on the rendered maps
 
 Moved to `docs/IDEAS.md` -- towns as rooms, following the party into a

@@ -70,6 +70,16 @@ Nothing here is urgent unless it says so.
   one the room work landed on: ask what a region is connected to, not what its
   tiles look like. Insets would also dissolve it.
 
+- **Three Sea Shrine chests are sealed on a No-Overworld cartridge.**
+  `Sea Shrine Mermaids 4`, `Mermaids 5` and `Sea Incentive` sit against an
+  85-tile pocket on SeaShrineB1 that is walled off on every edge holding every
+  item, with no teleport inside it and only one arrival onto that floor
+  (SeaShrineB2 to (12, 26), outside the pocket). Ten of the twelve Mermaid
+  chests are fine. Either the cartridge really does seal them or the walk is
+  missing a mechanic; `tools/check_logic.py` against FFR's own spoiler settles
+  which. `tools/noverworld_rules.py` emits no rule for them rather than
+  guessing. See STATUS.md, "Three chests that nothing can reach".
+
 ## Open questions
 
 - **`smith $6209` reads `0x05` and `fairy $6213` reads `0x04`** on a live seed —
