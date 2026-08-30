@@ -280,6 +280,30 @@ on `FF1_SLOW=1`; it passed on the `nov` cartridge over all 4096 subsets on
 It does not move the exponent, and did not have to. The outer loop is still 2^n,
 but the sweep went from 1024 subsets in about 85 seconds to 4096 in about 57 --
 which is what made the SubEngineer and Titan rows affordable in the same commit.
+
+That comparison is across two runs and folds the memo together with the
+vocabulary widening, so this entry's own "no speedup is quoted here" is answered
+properly by an A/B on one build instead. Measured on `nov` 2026-08-30, same
+gates and same twelve items either way, the memo switched off by the `NoMemo`
+subclass `tools/tests/test_memo_walk.py` already carries:
+
+    memoized     14.0 ms/subset      57.2s for 4096   (the real sweep, timed)
+    unmemoized   77.5 ms/subset     ~318s for 4096   (projected from 120)
+
+**About 5.5x.** Projecting the unmemoized side is fair because it has no
+cross-subset reuse by construction, and the rate holds across sample sizes --
+79.1 ms at 40 subsets, 77.5 at 120. It also brackets the old pre-memo run from
+the other side: 85 seconds for 1024 is 83 ms/subset, so the walk was costing
+what it costs unmemoized now and the memo is doing essentially all of the
+difference.
+
+Within a single subset the memo is only about 4x -- 18.8 ms against 79.1 on a
+40-subset sample, which is the reuse inside one `reachable_tiles` fixed point.
+The rest comes from the cache saturating across the sweep: 38 of `nov`'s 61
+floors consult no item at all, so they are walked once for all 4096 subsets
+rather than 4096 times, and the whole lattice only ever produces about 188
+distinct walks.
+
 The five further items -- the Slab, the Herb, the Adamant, the Bottle and the
 Crystal -- are trades rather than tiles, so they want the solver below rather
 than more headroom. It was seven before this commit; Oxyale and the Ruby were

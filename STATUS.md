@@ -1709,6 +1709,17 @@ floors on vanilla consult no item at all and are walked once for the whole
 sweep. The filed design memoized only `floor_walk`; `reachable_tiles` calls both,
 so that would have been half a memo.
 
+Those two numbers are different runs, though, and the honest measurement is an
+A/B on one build: memo off, `nov` costs 77.5 ms a subset against 14.0 with it,
+so the sweep would be about 318 seconds rather than 57. **About 5.5x**, and the
+old pre-memo rate -- 85 seconds for 1024, so 83 ms a subset -- lands on the
+unmemoized side of that, which is what says the memo is doing the difference
+rather than the vocabulary change. Only about 4x of it is reuse inside a single
+`reachable_tiles` fixed point; the rest is the cache saturating across the
+sweep, since the whole lattice produces about 188 distinct walks. Method is in
+`docs/IDEAS.md`, and the switch is the `NoMemo` subclass in
+`tools/tests/test_memo_walk.py`.
+
 The key is the whole risk -- one that omits an item the walk consults hands back
 another subset's reachability with nothing failing -- so `test_memo_walk.py`
 guards it twice. The cheap guard runs every time and is still exhaustive: a walk
