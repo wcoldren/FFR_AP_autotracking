@@ -29,6 +29,7 @@ hand-drawn maps, ROM-derived art never lands in git, and removing the override
 directory puts everything back.
 
     tools/regen_maps.py FFR_seed.nes
+    tools/regen_maps.py --verify        # is the installed override current?
 
 The cartridge's own GameMode decides which set its art joins -- images/maps/std
 or images/maps/nov -- and the two live side by side, each with its own
@@ -43,6 +44,13 @@ no hand-solved calibration entry carry markers at all -- sixteen maps had none
 ordinary seed the ToFR shuffle puts five chests on a second floor apiece, and
 those floors now have pins where they never had any; on a No-Overworld one FFR
 moves Nerrick two rows, and his pin goes with him.
+
+An override outlives the checkout that wrote it, and that is the sharp edge
+here: PopTracker serves it ahead of the pack, so an edit to
+`layouts/shared.json` or a location file has no effect at all until the regen is
+re-run, and a layout key the override predates draws an empty group with no
+warning anywhere. `--verify` answers that in milliseconds without a cartridge;
+`docs/ISSUES.md` has the case that prompted it.
 
 Re-running is cheap: it hashes the ROM and its own inputs, and if nothing moved
 it does no work at all. When the ROM does change, only the files whose bytes
@@ -626,6 +634,70 @@ def outputs_intact(out_dir, cache):
     return True
 
 
+def verify(out_dir):
+    """-> 0 if the installed override still matches this checkout, 1 if not.
+
+    The half of the stale-override problem that fails quietly is the layout
+    one. `Pack::ReadFile` serves the override ahead of the checkout, and
+    `Tracker::getLayout` answers an unknown key with `blankLayoutNode`
+    (tracker.cpp:791-794) and no warning -- so a `{"type": "layout", "key":
+    ...}` added to the repo while an older override is installed renders an
+    empty group. Nothing in the tracker says a word. Adding
+    `shared_display_grid` to layouts/shared.json did exactly that on
+    2026-08-30.
+
+    The comparison it needs was already sitting in the cache: `inputs` is a
+    sha256 over INPUT_FILES, which lists layouts/shared.json and all four
+    location files, so it already moves on precisely that edit. This is the
+    thing that reads it. No cartridge and no rendering -- it hashes the
+    checkout's own files and reads the cache -- so it costs milliseconds where
+    a regen costs about six seconds per cartridge.
+
+    Not in either test suite, on purpose: both are documented as needing
+    nothing outside the checkout, and this asks about the machine's PopTracker
+    install. A developer with a stale override would get a red suite for
+    something no commit can fix. docs/ISSUES.md says when to run it.
+
+    Silent on a machine with no override, because that is not a stale one: the
+    pack ships its hand-drawn art and the tracker is right to serve it.
+    """
+    if not os.path.isdir(out_dir):
+        print(f"no override installed at {out_dir}; the pack's own art is what "
+              "the tracker will serve")
+        return 0
+    cache, stale = load_cache(out_dir)
+    if stale:
+        print(f"{out_dir} was written by an older version of this tool "
+              f"(cache v{stale.get('version')}) -- re-run without --verify")
+        return 1
+    if not cache:
+        print(f"{out_dir} exists but holds no {CACHE_NAME}; nothing here can "
+              "say what it was built from")
+        return 1
+
+    inputs_sha = inputs_fingerprint()
+    bad = [MODE_DIRS[m] for m, was in sorted(cache.get("modes", {}).items())
+           if was.get("inputs") != inputs_sha]
+    if bad:
+        print("the pack changed since this override was written, so the "
+              "tracker is serving the older copy of every file in INPUT_FILES "
+              "-- layouts included, where a key it predates renders an empty "
+              "group with no warning")
+        for name in bad:
+            print(f"  stale: {name}")
+    if not outputs_intact(out_dir, cache):
+        print("and files the last run wrote have been changed or removed")
+        bad = bad or ["outputs"]
+    if bad:
+        print("re-run tools/regen_maps.py <cartridge> once per affected mode, "
+              "or --clean to drop the override entirely")
+        return 1
+    modes, outs = len(cache.get("modes", {})), len(cache["outputs"])
+    print(f"{out_dir} is current with this checkout "
+          f"({modes} mode(s), {outs} files)")
+    return 0
+
+
 # ----------------------------------------------------------------------- main
 
 def write_if_changed(out_dir, rel, data, dry_run):
@@ -665,7 +737,8 @@ def main():
     ap = argparse.ArgumentParser(
         description="Redraw the pack's dungeon maps from a cartridge, into "
                     "PopTracker's user-override tree.")
-    ap.add_argument("rom")
+    ap.add_argument("rom", nargs="?", help="the cartridge to draw from; not "
+                                          "needed by --verify or --clean")
     ap.add_argument("-o", "--out", help="override directory "
                                         "(default: ~/PopTracker/user-override/<uid>)")
     ap.add_argument("--mode", choices=tuple(MODE_DIRS),
@@ -687,6 +760,9 @@ def main():
                     help="say what would change, write nothing")
     ap.add_argument("--clean", action="store_true",
                     help="remove the override directory and exit")
+    ap.add_argument("--verify", action="store_true",
+                    help="exit 1 if the installed override predates this "
+                         "checkout; reads no cartridge and draws nothing")
     args = ap.parse_args()
 
     out_dir = args.out or default_out()
@@ -700,6 +776,12 @@ def main():
             shutil.rmtree(out_dir)
             print(f"removed {out_dir}")
         return 0
+
+    if args.verify:
+        return verify(out_dir)
+
+    if not args.rom:
+        ap.error("a cartridge is required unless --verify or --clean")
 
     with open(args.rom, "rb") as f:
         rom = f.read()

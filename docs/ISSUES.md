@@ -253,15 +253,33 @@ Nothing here is urgent unless it says so.
 
   This is **not** the cartridge mismatch `docs/IDEAS.md` describes under "Notice
   when the drawn maps are for a different cartridge". There the ROM differs;
-  here the ROM is identical and the *pack* moved on. The detection is the same
-  shape and mostly already built: `.regen_cache.json` stores `inputs`, a sha256
-  over `INPUT_FILES` (`regen_maps.py:99-112`), which lists `layouts/shared.json`
-  and all four location files -- so the fingerprint already moves on exactly
-  this edit. Nothing compares it at load.
+  here the ROM is identical and the *pack* moved on.
 
-  Workaround until then: re-run `tools/regen_maps.py` after touching any file in
-  `INPUT_FILES`, once per mode, or `--clean` the override. A regen takes about
-  six seconds per cartridge.
+  **Detected on demand since 2026-08-30**, by the comparison that was already
+  sitting in the cache: `.regen_cache.json` stores `inputs`, a sha256 over
+  `INPUT_FILES` (`regen_maps.py:99-112`), which lists `layouts/shared.json` and
+  all four location files, so the fingerprint moves on exactly this edit.
+  `tools/regen_maps.py --verify` reads it -- no cartridge, no rendering, a few
+  milliseconds against a regen's six seconds per cartridge -- and exits 1 naming
+  the stale modes. It is silent where no override is installed, because that is
+  not a stale one.
+
+      tools/regen_maps.py --verify
+
+  Deliberately **not** in `tools/tests/run.sh`. Both suites are documented as
+  needing nothing outside the checkout, and this answers a question about the
+  machine's PopTracker install rather than about the code: a developer with a
+  stale override would get a red suite for something no commit can fix. Run it
+  when the tracker looks wrong, and after touching anything in `INPUT_FILES`.
+
+  Still open: nothing checks at *tracker load*, which is the moment it matters,
+  and the pack's Lua cannot -- PopTracker exposes no layout query and no file
+  read, so the pack cannot see either the override's `shared.json` or the cache.
+  Closing it properly is a PopTracker change, a warning from `getLayout` on the
+  key it could not find.
+
+  Workaround for the remaining gap: re-run `tools/regen_maps.py` after touching
+  any file in `INPUT_FILES`, once per mode, or `--clean` the override.
 
 ## Open questions
 

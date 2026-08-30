@@ -27,9 +27,26 @@ screenshot: `src/ui/mapwidget.cpp:32` is `checkable -> blue` and `:58` is
 actually paints.
 
 Only the "on" images are drawn. PopTracker greys a toggle's image itself when
-it is off (`disabled_image_filter`, 0% saturation and 67% brightness), which is
-what most of the pack's toggles rely on. If a greyed one reads badly, adding a
-`noXxx.png` alongside is a one-line change to the item.
+it is off, which is what most of the pack's toggles rely on. Read the filter off
+this pack rather than off the default: `settings.json` sets
+`disabled_image_filter` to `grayscale, dim`, so the off state is an average
+greyscale at full value followed by a flat halving (`imagefilter.cpp:66-81`,
+where `dim` is `setBrightness(surf, 0.5)`). PopTracker's own default is `grey`,
+which is the same greyscale taken at two thirds -- brighter than what this pack
+actually shows, so sizing the shapes against it would flatter them.
+
+What the halving does to the four constants below:
+
+    GROUND    24/24/28   ->  12
+    GLYPH     188        ->  94
+    CHECKABLE blue       ->  61
+    PRIORITY  gold       ->  78
+
+The glyph shapes hold up at 94 on 12. The gold ring does not fare as well: 78
+against a 94 glyph on a 12 ground is a ring that has stopped being gold and is
+barely separable from the square it encircles, so `showIncentiveRings` is the
+one of the four most likely to want a drawn `noXxx.png` rather than the filter.
+Adding one is a one-line change to the item.
 
     python3 tools/make_toggle_icons.py            # write images/flags/*.png
     python3 tools/make_toggle_icons.py --check    # exit 1 if any differ

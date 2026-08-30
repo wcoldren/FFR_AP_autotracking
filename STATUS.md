@@ -80,6 +80,10 @@ root `README.md` is the whole story.
 - `tests/run.sh` — 13 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
   — the cartridge-reading tools' own tests, Python and nothing else; the ones
   that need a cartridge skip unless `FF1_ROM` points at one.
+- `tools/regen_maps.py --verify` — not part of either suite, because it asks
+  about this machine's PopTracker install rather than about the code. Run it
+  when the tracker looks wrong: it says whether the installed override predates
+  the checkout, which is a failure with no visible symptom. `docs/ISSUES.md`.
 
 ## Read the maps from the bank FFR actually puts them in
 
@@ -1757,8 +1761,8 @@ right on both worlds, and only the reason it gave was wrong on one.
 ## What the review of the object-gate branch found
 
 Written 2026-08-30. A full review of `trunk..object-gates` returned four
-findings. All four held up against the files and all four are fixed rather than waived. Two were real,
-one was latent, one was arithmetic in a doc.
+findings. All four held up against the files and all four are fixed rather
+than waived. Two were real, one was latent, one was arithmetic in a doc.
 
 **The gate reader could name an item the sweep never varies.**
 `object_gate_items()` returns whatever the cartridge names, and `ITEM_RAM` has
@@ -1796,6 +1800,51 @@ is a property with the same setter now.
 
 **And `docs/IDEAS.md` said "seven further items" over a list of five.** Seven
 was the count before this commit, when Oxyale and the Ruby were still in it.
+
+## What the review of the visibility-toggle branch found
+
+Written 2026-08-30. A full review of `trunk...visibility-toggles` returned six
+findings, all low. All six held up against the files and all six are fixed
+rather than waived. None was a correctness bug in the Lua or the layouts; the
+review checked the load-bearing citations against the vendored PopTracker and
+the doc greps against the pack, and those held.
+
+**The icons were sized against the wrong greyscale.** `make_toggle_icons.py`
+draws only the "on" image and lets PopTracker grey the off state, and its
+docstring described that filter as 0% saturation and 67% brightness -- which is
+PopTracker's *default* `grey`. This pack overrides it: `settings.json` sets
+`disabled_image_filter` to `grayscale, dim`, and `dim` is a flat halving
+(`imagefilter.cpp:78-81`), applied after a greyscale taken at full value rather
+than at two thirds. So the off state is a third darker than the docstring's
+model. Measured through the real filter: GROUND 24/24/28 -> 12, GLYPH 188 -> 94,
+blue -> 61, gold -> 78. The glyph shapes hold at 94 on 12; the gold ring at 78
+against a 94 glyph has stopped being gold, which makes `showIncentiveRings` the
+one of the four most likely to need a drawn "off" image. Written down in the
+docstring rather than acted on, because that is a look-at-it decision.
+
+**The writer had a `--check` mode and nothing ran it.** Editing `GLYPH` or a
+shape function left the committed PNGs stale with both suites green -- the
+mirror of the rule this repo states elsewhere, that a check which cannot fail is
+worth nothing. `tools/tests/test_toggle_icons.py` runs it now, and carries a
+second guard for the three icons that were shipped with no item, no layout cell
+and no Lua naming them: they are drawn ahead of the pins they switch, so the
+test holds that list and fails both if one is wired up without leaving it and if
+a fourth goes unreferenced. Both directions were demonstrated before the test
+was kept, and so was a deleted image.
+
+**The stale-override trap this branch filed had no detection.** Fixed with
+`regen_maps.py --verify`, which reads the `inputs` fingerprint already in
+`.regen_cache.json` -- no cartridge, no rendering, milliseconds. It found this
+machine's override stale on its first run. Deliberately not in either suite:
+that would make a red suite out of a fact about the developer's PopTracker
+install. What stays open is detection at tracker load, which the pack cannot do
+-- PopTracker's Lua has no layout query and no file read -- so it wants a
+`getLayout` warning upstream. `docs/ISSUES.md` and `docs/IDEAS.md` both say so.
+
+The two smallest: `wantRings()`'s comment described the three pin toggles as
+rules that exist, and `restrict_visibility_rules` appears nowhere under
+`locations/`; and three doc lines had been left at 102, 110 and 113 characters
+after text was removed without re-wrapping.
 
 ## Four names that have drifted off what they describe
 

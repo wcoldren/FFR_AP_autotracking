@@ -188,8 +188,9 @@ green; std 225/225 and shard 229/229 unmoved throughout, including across the
 gate branch below.
 
 **The review gate is closed.** A full review of `trunk...noverworld-logic`
-returned seven findings, all of which held up against the files. All seven were fixed rather than waived; each
-has its own commit message. Two were more than tidying:
+returned seven findings, all of which held up against the files. All seven
+were fixed rather than waived; each has its own commit message. Two were more
+than tidying:
 
 - The mode guards had landed on `locations/incentives.json` alone, which the two
   NoMap variants load, while the two *map* variants load
@@ -244,8 +245,8 @@ size. Filed in `docs/ISSUES.md`, and it is an argument for the solver in
 `docs/IDEAS.md` rather than for a patch.
 
 **The review gate is closed on this branch too.** A full review of
-`trunk..object-gates` returned four findings, all of which held up. All four are fixed rather than waived, in one
-commit. Two were more than tidying:
+`trunk..object-gates` returned four findings, all of which held up. All four
+are fixed rather than waived, in one commit. Two were more than tidying:
 
 - `object_gate_items()` could name any of `ITEM_RAM`'s seventeen items while the
   sweep varies twelve, so a reassigned routine would have blocked its chokepoint
@@ -262,6 +263,30 @@ The two smaller ones: the walk memo was invalidated by `gated_objects` but not b
 further items" over a list of five. All figures unmoved -- `nov --derived`
 226/225/1 with 5 granted, `nov` 226/220, std 225/225, shard 229/229 -- and the
 `FF1_SLOW` full-lattice guard re-passed on `nov`, 4096 of 4096.
+
+**`visibility-toggles` -- six commits, on `trunk...visibility-toggles`.** The
+gold-ring switch, the four drawn icons, the "Pins" group in the four map
+trackers, and three doc corrections. `show_gold_rings` is the only one of the
+four toggles built; the other three icons are drawn ahead of the pins they
+switch and `tools/tests/test_toggle_icons.py` holds the list of which.
+
+**The review gate is closed on this branch too.** A full review of
+`trunk...visibility-toggles` returned six findings, all low, all held up against
+the files, and all six are fixed rather than waived, in one commit. None was a
+correctness bug in the Lua or the layouts. The two worth reading:
+
+- The icon writer had a `--check` mode and nothing ran it, and its docstring
+  sized the off state against PopTracker's *default* greyscale rather than the
+  one this pack sets. `settings.json` says `grayscale, dim`, which is a flat
+  halving on top: the gold ring greys to 78 against a 94 glyph, a third darker
+  than the docstring's model and the reason `showIncentiveRings` is the one most
+  likely to want a drawn "off" image. `--check` runs in the suite now, alongside
+  an audit that fails if an icon is wired up without leaving the staged list.
+- The stale-override trap the branch itself filed had no detection. It has one
+  now -- `regen_maps.py --verify`, reading the `inputs` fingerprint that was
+  already in the cache, no cartridge and no rendering. What stays open is that
+  nothing can fire at tracker load, which is a PopTracker change.
+  `docs/ISSUES.md` says so.
 
 **Next branch: make the rendered maps legible.** Three changes that share
 one regen, because each moves the `inputs` or `marker` fingerprint in

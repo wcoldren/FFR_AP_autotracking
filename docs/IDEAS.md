@@ -145,10 +145,11 @@ images otherwise" is not work; only the trigger is.
 is what this entry was raised about; the *pack* can also change under a fixed
 cartridge, and that is the case that has actually bitten. `INPUT_FILES`
 (`regen_maps.py:99-112`) lists `layouts/shared.json` and the four location files,
-so the `inputs` fingerprint already moves the moment one is edited -- a check
-that compares it costs nothing beyond the ROM check and catches a failure with
-no visible symptom at all. See `docs/ISSUES.md`, "A stale override silently
-shadows pack edits".
+so the `inputs` fingerprint already moves the moment one is edited. That half is
+done: `regen_maps.py --verify` compares it, reads no cartridge and exits 1
+naming the stale modes. What it cannot do is fire at the moment it matters,
+which is tracker load -- see below, and `docs/ISSUES.md`, "A stale override
+silently shadows pack edits".
 
 **The pack cannot be the trigger.** PopTracker's Lua exposes `Tracker` (items,
 locations, maps, layouts, `ProviderCountForCode`, `FindObjectForCode`, `UiHint`,
