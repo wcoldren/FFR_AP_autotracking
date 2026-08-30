@@ -342,8 +342,11 @@ def stands_on_map(rom, map_id, col, row, cache=None):
     renderer draws (and the crop keeps in frame) but which no party can walk
     up to. A marker there would be a pin in the void.
 
-    One object out of the fifteen the pack tracks fails this, and it is that
-    one; the other fourteen are all inside their map's content.
+    One NPC placement out of the fifteen the pack tracks fails this, and it is
+    that one; the other fourteen are all inside their map's content. The NPCs
+    are only where the evidence comes from, though -- marker_tiles asks this of
+    every placement it resolves, chests included, which is why marker_tiles
+    reports what it dropped rather than just dropping it.
 
     `cache` is {map_id: outside cells}, passed in rather than kept here: the
     answer is a property of one cartridge, and a cache that outlived the `rom`
@@ -359,7 +362,7 @@ def stands_on_map(rom, map_id, col, row, cache=None):
     return (col, row) not in cache[map_id]
 
 
-def marker_tiles(rom, locations):
+def marker_tiles(rom, locations, dropped=None):
     """{location name: [(map_id, col, row)]} for every marker on a dungeon map.
 
     Forward, out of the cartridge, rather than by inverting the pixel the
@@ -387,6 +390,14 @@ def marker_tiles(rom, locations):
     Chest tiles come from the cartridge, so a seed that moves one moves its
     marker with it. NPC tiles do not: FFR randomizes what an NPC gives you,
     not where it stands (see extract_npcs.py).
+
+    `dropped`, if given, collects (name, kind, map_id, col, row) for every
+    placement stands_on_map rejected. Filtering silently would be a marker that
+    quietly disappears, which place_locations already refuses to do: a node
+    resolving to several tiles -- the Marsh Cave and ToFR floors, Ordeals
+    Chests 2 -- stays placeable after losing one, so the loss reaches nothing
+    downstream that could notice it. The caller decides what to make of each
+    kind; today exactly one NPC placement is rejected and no chest is.
     """
     ids = split_locations.load_mapping(limit=512)
     chests, _ = extract_chests.extract(rom)
@@ -396,16 +407,18 @@ def marker_tiles(rom, locations):
     out = {}
     outside = {}
 
-    def add(name, places):
-        out.setdefault(name, []).extend(
-            (q["map_id"], q["tile_col"], q["tile_row"]) for q in places
-            if stands_on_map(rom, q["map_id"], q["tile_col"], q["tile_row"],
-                             outside))
+    def add(name, kind, places):
+        for q in places:
+            cell = (q["map_id"], q["tile_col"], q["tile_row"])
+            if stands_on_map(rom, *cell, cache=outside):
+                out.setdefault(name, []).append(cell)
+            elif dropped is not None:
+                dropped.append((name, kind) + cell)
 
     for ap, (path, _) in sorted(ids.items()):
         places = chests.get(ap - 256)
         if places:
-            add(split_locations.leaf_of(path), places)
+            add(split_locations.leaf_of(path), "chest", places)
 
     def walk(nodes):
         for n in nodes:
@@ -414,7 +427,7 @@ def marker_tiles(rom, locations):
             for sec in n.get("sections") or []:
                 places = npcs.get(sec.get("hosted_item"))
                 if places:
-                    add(n.get("name"), places)
+                    add(n.get("name"), "NPC", places)
             walk(n.get("children") or [])
 
     walk(lenient(os.path.join(PACK, locations)))
@@ -780,7 +793,8 @@ def main():
     cal = rendered_calibration(rom, boxes)
     dungeon_locations = ("locations/overworld.json" if mode == "std"
                          else "locations/NOverworld/overworld.json")
-    tiles_by_name = marker_tiles(rom, dungeon_locations)
+    dropped = []
+    tiles_by_name = marker_tiles(rom, dungeon_locations, dropped)
     # Which tiles end up under a sprite, so a pin landing on one can be drawn
     # as a diamond instead of a square that hides it. Empty when --npcs none,
     # which is why nothing changes shape unless sprites are actually drawn.
@@ -862,14 +876,25 @@ def main():
         if len(rows) > 10:
             print(f"  ... and {len(rows) - 10} more")
 
+    # A chest the party cannot stand on is a real AP location, and either
+    # answer is wrong on its own: a pin in the void, or a check missing from
+    # the tracker. Neither is this tool's call to make quietly, so it stops.
+    voided = [(f"chest {name}", render_maps.MAP_FILES.get(map_id, map_id),
+               f"tile {col}", row)
+              for name, kind, map_id, col, row in dropped if kind == "chest"]
+
     if unplaceable:
         report("locations carry a marker on a redrawn map but resolve to no "
                "tile, so there is nothing to place them from", unplaceable)
+    if voided:
+        report("chests sit on a cell the edge flood reaches, so they are "
+               "backdrop rather than map and there is nowhere to pin them",
+               voided)
     if cut:
         report("things the crop would cut off the edge of their map", cut)
     if stray:
         report("markers land outside the image they name", stray)
-    if unplaceable or cut or stray:
+    if unplaceable or voided or cut or stray:
         print("\nnothing was written.")
         return 1
 
@@ -910,6 +935,13 @@ def main():
           "art, each on the chest or NPC tile the ROM puts it on")
     print(f"  {unmoved} left alone (the overworld and incentive maps are not "
           "redrawn, so their markers keep the pack's pixels)")
+    # Expected -- the Ice Cave B1 fairy is a copy of the Gaia object in the
+    # black outside the cave -- but said out loud, so a second one appearing
+    # is a number that changed rather than a pin nobody missed.
+    for name, kind, map_id, col, row in dropped:
+        print(f"  {name}'s {kind} placement on "
+              f"{render_maps.MAP_FILES.get(map_id, map_id)} at {col},{row} is "
+              "outside the map's content and gets no pin")
     if graph is not None:
         # Counted rather than eyeballed: a square pin is opaque and exactly one
         # tile, so every one of these would have hidden the sprite it sits on.
