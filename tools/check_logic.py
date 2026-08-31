@@ -117,6 +117,7 @@ FREE_FLAGS = {
 # has to answer them the same way scripts/logic.lua does.
 LUA_RULES = {
     "$noSardasForest": lambda flags: flags.get("MapSardasForest") is not True,
+    "$noShipDrydock": lambda flags: flags.get("ShipDrydock") is not True,
     # The mode guards. One set of rules serves both modes by carrying both
     # modes' alternatives and letting these two decide which are live, so for
     # any one seed exactly one of them is pinned and the other mode's

@@ -20,13 +20,18 @@ rolled with the flag on** so `check_logic --ap-rules` grades the branch. A rule
 without its oracle seed is a hand transcription, which is what section 5 is
 meant to end.
 
-- **The six flags with no code.** `MapAirshipHike`, `MapCardiaLandBridge`,
-  `ShipDrydock`, `ToFRMode`, `ChaosRush`, `ExitToFR`. Two to verify before
-  deciding: `IsFloaterRemoved`, `ShuffleObjectiveNPCs`. `NoTail` was the
-  seventh and is done. It also qualified the rule above: its oracle seed
-  proved the flag rewrites no exported rule at all, so the seed graded the
-  branch by showing there was nothing there to grade. The code was still
-  needed — a `check_logic` pass is not evidence a pack-only cell is honest.
+- **The five flags with no code.** `MapAirshipHike`, `MapCardiaLandBridge`,
+  `ToFRMode`, `ChaosRush`, `ExitToFR`. Two to verify before deciding:
+  `IsFloaterRemoved`, `ShuffleObjectiveNPCs`. `NoTail` and `ShipDrydock` are
+  done, and between them they mark out both ends of the rule above. `NoTail`'s
+  oracle seed proved the flag rewrites no exported rule at all, so the seed
+  graded the branch by showing there was nothing there to grade — the code was
+  still needed, because a `check_logic` pass is not evidence a pack-only cell is
+  honest. `ShipDrydock` is the other end: it rewrites 51 exported rules and the
+  pack was showing 53 locations green that FFR calls unreachable, so its
+  cartridge graded the branch outright, 170 of 223 before and 223 of 223 after.
+  Both are in `docs/FLAG_COVERAGE.md`; the two cartridges that isolate the
+  second are in `docs/ORACLE.md`.
 - **Gaia.** The two tabs disagree about how to reach it (`ISSUES.md`). One is
   wrong; the oracle says which.
 - **The Cardia roll.** The gateway permutation is rolled per seed and reaches

@@ -35,6 +35,7 @@ local TOGGLES = {
   { ffr = "MapHighwayToOrdeals",     code = "hwyOrdeals" },
   { ffr = "MapRiverToMelmond",       code = "melmondRiver" },
   { ffr = "MapSardasForest",         code = "sardasForest" },
+  { ffr = "ShipDrydock",             code = "shipDrydock" },
   { ffr = "EarlyKing",               code = "earlyKing" },
   { ffr = "EarlySarda",              code = "earlySarda" },
   { ffr = "EarlySage",               code = "earlySage" },

@@ -29,6 +29,29 @@ function noSardasForest()
   return 1
 end
 
+-- Whether the Ship is worth anything on this seed.
+--
+-- FFR's "Ship Drydock" (ShipDrydock) moves every ship spawn to the Gaia
+-- drydock -- MapExchange/ShipLocations.cs:52-60 rewrites all of them, and
+-- OverworldMapEdits.cs:535-549 lays the dock tiles there. So the Ship launches
+-- on the far eastern coast, which is behind the Canoe or the airship already,
+-- and it opens nothing they did not. FFR's own logic agrees: on a drydock seed
+-- 51 of the rules it exports lose their Ship alternative and not one gains
+-- anything (docs/ORACLE.md, "The second corpus: 4.9.7").
+--
+-- Every alternative in the trees that names `ship` carries this call, so on a
+-- drydock seed they all fall out and the Canoe and airship routes are what is
+-- left. That is deliberately the strict direction: if some flag combination did
+-- leave the drydocked Ship useful somewhere, the pack shows a red check that is
+-- reachable rather than a green one that is not.
+function noShipDrydock()
+  local flag = Tracker:FindObjectForCode("shipDrydock")
+  if flag and flag.Active then
+    return 0
+  end
+  return 1
+end
+
 -- Shard hunt: the goal is a count of shards rather than four lit orbs.
 --
 -- The variants are named in manifest.json, and the UID carries a leading digit

@@ -281,6 +281,19 @@ byCode["sardasForest"].Active = false
 check("clear: the airship lands", noSardasForest(), 1)
 
 ------------------------------------------------------------------
+print("\n-- Ship Drydock")
+--
+-- The flag moves every ship spawn to the Gaia drydock, which sits behind the
+-- Canoe already, so the Ship stops opening anything. Same shape of question as
+-- Sarda's Forest and the same reason it cannot live in access_rules.
+------------------------------------------------------------------
+
+byCode["shipDrydock"].Active = true
+check("drydocked: the Ship opens nothing", noShipDrydock(), 0)
+byCode["shipDrydock"].Active = false
+check("ordinary: the Ship sails", noShipDrydock(), 1)
+
+------------------------------------------------------------------
 print("\n-- shard hunt")
 --
 -- A second real fixture: FFR_CB6414F9_NXBGBhKK.nes, the 4.9.7 shard-hunt seed
@@ -422,6 +435,82 @@ check("applied the NoTail cartridge", applyFFRFlags(NOTAIL_RECORD), true)
 check("  noTail is set", byCode["noTail"].Active, true)
 check("applied a NoTail-off cartridge", applyFFRFlags(SHARD_RECORD), true)
 check("  noTail is cleared again", byCode["noTail"].Active, false)
+
+
+------------------------------------------------------------------
+print("\n-- ShipDrydock, off the pair of oracle cartridges that isolate it")
+------------------------------------------------------------------
+-- Unlike NoTail, this flag really does rewrite the rules FFR exports: 51 of
+-- them lose their Ship alternative between these two cartridges and not one
+-- gains anything, so check_logic on seeds/ff1/oracle-4.9.7/drydock497 is the
+-- gate that matters -- 170 of 223 agreeing before the guard went in, 223 of 223
+-- after. What is checked here is the wiring underneath it: that the flag
+-- decodes, that the toggle tracks it in both directions, and that no
+-- alternative names the Ship without asking.
+--
+-- The two flag strings are the 4.9.7 pair at seed 3B7E1C8A. They are the same
+-- preset with one value flipped, so they differ only where ShipDrydock is.
+local DRYDOCK_FLAGS = "omlInJg6XzA6ypn7hzElNF7feiRqCHN1fiyoFizlFcDuXxehujG-vKfclxv-8HQG57wxyvAys-E7mP"
+    .. "MchXTUEJF9lu3nwFr7KOXbK9XmXUsGsOzVZziqYGv7eLzCNOX0A0qCgFrFWP5VVE7WVoV-omff9Q8H"
+    .. "yBpYrWYp7tB-1lm86rN9GZM2xdjsmljIdXYCxVNLqv"
+local PLAIN497_FLAGS = "omlInJg6XzAlwLPjeZz.e4gJprxdS0bG639WW9s6EcDuXxehujG-vKfclxv-8HQG57wxyvAys-E7mP"
+    .. "MchXTUEJF9lu3nwFr7KOXbK9XmXUsGsOzVZziqYGv7eLzCNOX0A0qCgFrFWP5VVE7WVoV-omff9Q8H"
+    .. "yBpYrWYp7tB-1lm86rN9GZM2xdjsmljIdXYCxVNLqv"
+
+local fPlain497 = decodeFFRFlags("4-9-7", PLAIN497_FLAGS)
+local fDrydock = decodeFFRFlags("4-9-7", DRYDOCK_FLAGS)
+check("the 4.9.7 baseline cartridge decodes", fPlain497 ~= nil, true)
+check("  and it says ShipDrydock off", fPlain497 and fPlain497.ShipDrydock, false)
+check("the drydock cartridge decodes", fDrydock ~= nil, true)
+check("  and it says ShipDrydock on", fDrydock and fDrydock.ShipDrydock, true)
+
+-- On, then off again: a drydock seed followed by an ordinary one has to give
+-- the Ship back, or every ship route stays shut for the rest of the session.
+check("applied the drydock cartridge", applyFFRFlags("4-9-7|" .. DRYDOCK_FLAGS), true)
+check("  shipDrydock is set", byCode["shipDrydock"].Active, true)
+check("  and the Ship opens nothing", noShipDrydock(), 0)
+check("applied the baseline cartridge", applyFFRFlags("4-9-7|" .. PLAIN497_FLAGS), true)
+check("  shipDrydock is cleared again", byCode["shipDrydock"].Active, false)
+check("  and the Ship sails again", noShipDrydock(), 1)
+
+-- The guard is only worth anything if every alternative carries it. One added
+-- later without it would put back a route FFR has taken away, and nothing else
+-- in either suite would notice.
+local TREES = {
+  "locations/overworld.json", "locations/incentives.json",
+  "locations/NOverworld/overworld.json", "locations/NOverworld/incentives.json",
+}
+
+local function eachRule(node, fn)
+  if type(node) ~= "table" then return end
+  for _, alt in ipairs(node.access_rules or {}) do fn(alt) end
+  for _, child in ipairs(node.children or {}) do eachRule(child, fn) end
+  if node[1] ~= nil then
+    for _, child in ipairs(node) do eachRule(child, fn) end
+  end
+end
+
+local guarded, bare = 0, {}
+for _, file in ipairs(TREES) do
+  local fh = io.open(PACK .. "/" .. file)
+  local tree = json.decode(fh:read("*a"))
+  fh:close()
+  eachRule(tree, function(alt)
+    local namesShip, guardedHere = false, false
+    for raw in tostring(alt):gmatch("[^,]+") do
+      local term = raw:match("^%s*(.-)%s*$")
+      if term == "ship" then namesShip = true end
+      if term == "$noShipDrydock" then guardedHere = true end
+    end
+    if namesShip then
+      if guardedHere then guarded = guarded + 1 else bare[#bare + 1] = alt end
+    end
+  end)
+end
+
+check("alternatives naming the Ship", guarded, 121)
+check("  none of them unguarded", #bare, 0)
+for _, alt in ipairs(bare) do print("     unguarded: " .. alt) end
 
 
 print("")

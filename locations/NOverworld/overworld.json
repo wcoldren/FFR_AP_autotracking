@@ -607,7 +607,7 @@
                 "name": "Dwarf Cave",
                 "access_rules": [
                     "$standardWorld,openProgression",
-                    "$standardWorld,ship",
+                    "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
                     "$standardWorld,extendedOpen",
                     "$noOverworld"
@@ -960,7 +960,7 @@
                 "name": "North West Castle",
                 "access_rules": [
                     "$standardWorld,openProgression,canoe",
-                    "$standardWorld,ship",
+                    "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
                     "$standardWorld,extendedOpen",
                     "$noOverworld"
@@ -1082,7 +1082,7 @@
                 "name": "Matoya's Cave",
                 "access_rules": [
                     "$standardWorld,bridge",
-                    "$standardWorld,ship",
+                    "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
                     "$standardWorld,extendedOpen,canoe",
                     "$standardWorld,openProgression,canoe",
@@ -1197,7 +1197,7 @@
                 "name": "Elf Castle",
                 "access_rules": [
                     "$standardWorld,openProgression,canoe",
-                    "$standardWorld,ship",
+                    "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
                     "$standardWorld,extendedOpen",
                     "$noOverworld"
@@ -1347,7 +1347,7 @@
                 "name": "Pravoka",
                 "access_rules": [
                     "$standardWorld,bridge",
-                    "$standardWorld,ship",
+                    "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
                     "$standardWorld,extendedOpen,canoe",
                     "$standardWorld,openProgression,canoe",
@@ -1374,7 +1374,7 @@
                 "name": "Marsh Cave",
                 "access_rules": [
                     "$standardWorld,openProgression,canoe",
-                    "$standardWorld,ship",
+                    "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
                     "$standardWorld,extendedOpen",
                     "$noOverworld"
@@ -1788,7 +1788,7 @@
                 "access_rules": [
                     "$standardWorld,$noSardasForest,airship",
                     "$standardWorld,ruby,airship",
-                    "$standardWorld,ruby,ship,canal",
+                    "$standardWorld,$noShipDrydock,ruby,ship,canal",
                     "$standardWorld,melmondRiver,canoe,ruby",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,ruby",
@@ -1827,7 +1827,7 @@
                 "name": "Titan's Trove",
                 "access_rules": [
                     "$standardWorld,ruby,airship",
-                    "$standardWorld,ruby,ship,canal",
+                    "$standardWorld,$noShipDrydock,ruby,ship,canal",
                     "$standardWorld,melmondRiver,canoe,ruby",
                     "$noOverworld,ruby"
                 ],
@@ -1948,7 +1948,7 @@
                 "name": "Earth Cave",
                 "access_rules": [
                     "$standardWorld,airship",
-                    "$standardWorld,ship,canal",
+                    "$standardWorld,$noShipDrydock,ship,canal",
                     "$standardWorld,melmondRiver,canoe",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,ruby",
@@ -2601,7 +2601,7 @@
             {
                 "name": "Melmond",
                 "access_rules": [
-                    "$standardWorld,ship,canal,slab",
+                    "$standardWorld,$noShipDrydock,ship,canal,slab",
                     "$standardWorld,airship,slab",
                     "$standardWorld,melmondRiver,canoe,slab",
                     "$noOverworld,slab"
@@ -2631,9 +2631,9 @@
                 "access_rules": [
                     "$standardWorld,airship",
                     "$standardWorld,openProgression,canoe",
-                    "$standardWorld,ship,canal",
+                    "$standardWorld,$noShipDrydock,ship,canal",
                     "$standardWorld,extendedOpen,canoe",
-                    "$standardWorld,ship,canoe",
+                    "$standardWorld,$noShipDrydock,ship,canoe",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,ruby",
                     "$noOverworld,tnt"
@@ -2661,7 +2661,7 @@
                 "name": "Ice Cave",
                 "access_rules": [
                     "$standardWorld,airship",
-                    "$standardWorld,ship,canoe",
+                    "$standardWorld,$noShipDrydock,ship,canoe",
                     "$standardWorld,bridge,canoe",
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,extendedOpen,canoe",
@@ -3087,7 +3087,7 @@
                     "$standardWorld,airship",
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,extendedOpen,canoe",
-                    "$standardWorld,ship,canoe",
+                    "$standardWorld,$noShipDrydock,ship,canoe",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,chime,$hasFloater,oxyale"
                 ],
@@ -3978,9 +3978,9 @@
                 "name": "Ryukahn Desert",
                 "access_rules": [
                     "$standardWorld,canoe,openProgression",
-                    "$standardWorld,ship,canoe",
+                    "$standardWorld,$noShipDrydock,ship,canoe",
                     "$standardWorld,canoe,extendedOpen",
-                    "$standardWorld,luffyDock,ship,canal"
+                    "$standardWorld,$noShipDrydock,luffyDock,ship,canal"
                 ],
                 "sections": [
                     {
@@ -4009,7 +4009,7 @@
                 "name": "Bahamut's Cave",
                 "access_rules": [
                     "$standardWorld,airship",
-                    "$standardWorld,cardiaDock,ship,canal",
+                    "$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
                     "$noOverworld,$hasFloater"
                 ],
                 "sections": [
@@ -4443,7 +4443,7 @@
                 "name": "Ordeals",
                 "access_rules": [
                     "$standardWorld,airship,canoe",
-                    "$standardWorld,ship,canal,canoe",
+                    "$standardWorld,$noShipDrydock,ship,canal,canoe",
                     "$standardWorld,lefeinBridge,hwyOrdeals,bridge,canoe",
                     "$noOverworld,$hasCanoe"
                 ],
@@ -4709,10 +4709,10 @@
                 "name": "Lefein",
                 "access_rules": [
                     "$standardWorld,airship",
-                    "$standardWorld,lefeinRiver,canoe,ship,canal",
+                    "$standardWorld,$noShipDrydock,lefeinRiver,canoe,ship,canal",
                     "$standardWorld,lefeinBridge,bridge",
-                    "$standardWorld,hwyOrdeals,ship,canal,canoe",
-                    "$standardWorld,northernDocks,ship,canal,hwyOrdeals",
+                    "$standardWorld,$noShipDrydock,hwyOrdeals,ship,canal,canoe",
+                    "$standardWorld,$noShipDrydock,northernDocks,ship,canal,hwyOrdeals",
                     "$noOverworld,$hasCanoe,$hasFloater",
                     "$noOverworld,$hasFloater,ruby",
                     "$noOverworld,$hasFloater,tnt"
@@ -4740,9 +4740,9 @@
                 "name": "Gaia",
                 "access_rules": [
                     "$standardWorld,airship",
-                    "$standardWorld,gaiaMountain,ship,canoe,lefeinRiver,canal",
-                    "$standardWorld,gaiaMountain,northernDocks,ship,canal",
-                    "$standardWorld,gaiaMountain,hwyOrdeals,ship,canal,canoe",
+                    "$standardWorld,$noShipDrydock,gaiaMountain,ship,canoe,lefeinRiver,canal",
+                    "$standardWorld,$noShipDrydock,gaiaMountain,northernDocks,ship,canal",
+                    "$standardWorld,$noShipDrydock,gaiaMountain,hwyOrdeals,ship,canal,canoe",
                     "$standardWorld,lefeinBridge,gaiaMountain,bridge",
                     "$noOverworld,$hasFloater"
                 ],
@@ -4768,9 +4768,9 @@
                 "name": "Mirage Tower",
                 "access_rules": [
                     "$standardWorld,airship,chime",
-                    "$standardWorld,northernDocks,chime,ship,canal",
+                    "$standardWorld,$noShipDrydock,northernDocks,chime,ship,canal",
                     "$standardWorld,lefeinBridge,bridge,hwyOrdeals,chime",
-                    "$standardWorld,hwyOrdeals,ship,canoe,canal,chime",
+                    "$standardWorld,$noShipDrydock,hwyOrdeals,ship,canoe,canal,chime",
                     "$noOverworld,$hasCanoe,$hasFloater,oxyale",
                     "$noOverworld,chime,$hasFloater"
                 ],
@@ -5240,9 +5240,9 @@
                 "name": "Sky Palace",
                 "access_rules": [
                     "$standardWorld,airship,chime,cube",
-                    "$standardWorld,northernDocks,chime,ship,canal,cube",
+                    "$standardWorld,$noShipDrydock,northernDocks,chime,ship,canal,cube",
                     "$standardWorld,lefeinBridge,bridge,hwyOrdeals,chime,cube",
-                    "$standardWorld,hwyOrdeals,ship,canal,canoe,chime,cube",
+                    "$standardWorld,$noShipDrydock,hwyOrdeals,ship,canal,canoe,chime,cube",
                     "$noOverworld,$hasCanoe,$hasFloater,cube,oxyale",
                     "$noOverworld,$hasFloater,chime,cube"
                 ],
@@ -6124,7 +6124,7 @@
                 "name": "Waterfall",
                 "access_rules": [
                     "$standardWorld,airship,canoe",
-                    "$standardWorld,northernDocks,ship,canal,canoe",
+                    "$standardWorld,$noShipDrydock,northernDocks,ship,canal,canoe",
                     "$noOverworld,$hasFloater"
                 ],
                 "sections": [
@@ -6308,8 +6308,8 @@
                 "name": "Sea Shrine",
                 "access_rules": [
                     "$standardWorld,airship,canoe,oxyale",
-                    "$standardWorld,northernDocks,ship,canal,oxyale",
-                    "$standardWorld,northernDocks,airBoat,airship,ship,oxyale",
+                    "$standardWorld,$noShipDrydock,northernDocks,ship,canal,oxyale",
+                    "$standardWorld,$noShipDrydock,northernDocks,airBoat,airship,ship,oxyale",
                     "$noOverworld,$hasCanoe,$hasFloater,oxyale",
                     "$noOverworld,chime,$hasFloater"
                 ],

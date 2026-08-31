@@ -122,6 +122,12 @@
         "codes" : "sardasForest"
     },
     {
+        "name" : "Ship Drydock",
+        "type" : "toggle",
+        "img" : "images/items/ship.png",
+        "codes" : "shipDrydock"
+    },
+    {
         "name": "NPCs are Incentive",
         "type": "toggle",
         "img": "images/locations/king.png",

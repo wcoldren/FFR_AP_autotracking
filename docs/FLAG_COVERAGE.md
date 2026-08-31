@@ -102,7 +102,7 @@ Desert`. A Desert seed is warned about, but by `flag_mapping.lua:264`
 | `MapSardasForest` | `sardasForest` | code |
 | `MapAirshipHike` | — | **missing**; 4.9.7+ only (also read by `EntrancesFloorsShuffle.cs`) |
 | `MapCardiaLandBridge` | — | **missing**; 4.9.7+ only |
-| `ShipDrydock` | — | **missing**; 4.9.7+ only. Measured: 52 exported rules change and the pack over-reports 53 locations (`docs/ORACLE.md`). `Tracker.cs` reads it, so FFR thinks a tracker needs it |
+| `ShipDrydock` | `shipDrydock`, through `$noShipDrydock` | code — 4.9.7+ only. Every alternative naming `ship` carries the guard, because a drydocked Ship opens nothing (`docs/ORACLE.md`) |
 | `DisableOWMapModifications` | — | n/a (meta: disables all of the above) |
 
 The last three arrive after 4.9.2 — `git grep` finds no mention of any of them
@@ -154,21 +154,20 @@ Reachability flags with no pack code today:
 
 1. `MapAirshipHike`
 2. `MapCardiaLandBridge`
-3. `ShipDrydock`
-4. `ToFRMode`
-5. `ChaosRush`
-6. `ExitToFR`
+3. `ToFRMode`
+4. `ChaosRush`
+5. `ExitToFR`
 
-`NoTail` was the seventh and is **done** — see the row in section B. Closing it
-turned up the rule this page now applies throughout: **a flag being declared in
-`IVictoryConditionFlags` does not mean `SanityCheckerV2` reads it.** Section A'
-is what running that grep over the rest produced, and it moved seven rows out of
-section A.
+`NoTail` and `ShipDrydock` were on this list and are **done** — see their rows
+in section B. `NoTail` turned up the rule this page now applies throughout: **a
+flag being declared in `IVictoryConditionFlags` does not mean `SanityCheckerV2`
+reads it.** Section A' is what running that grep over the rest produced, and it
+moved seven rows out of section A.
 
-Each of the six wants a `TOGGLES`/`PROGRESSIVES` row in `flag_mapping.lua`, a
+Each of the five wants a `TOGGLES`/`PROGRESSIVES` row in `flag_mapping.lua`, a
 code in `items/flags.json`, the affected `access_rules` alternatives, and one
 oracle seed rolled with the flag on so `check_logic` grades the branch. That is
-six codes, not twenty-five, and none is a redesign.
+five codes, not twenty-five, and none is a redesign.
 
 **Rolling the seed can also show the branch is ungradeable, and that is a
 result.** `NoTail`'s cartridge proved the flag rewrites no rule FFR hands
@@ -197,14 +196,15 @@ rather than by accident: an unchanged rule set graded against itself.
 So the oracle-seed-per-branch step was never one more 4.9.2 cartridge for any of
 the six.
 
-**The 4.9.7 corpus exists now** and closes the first half: `std497` and
-`drydock497`, one seed apart by a single flag value, at
-`seeds/ff1/oracle-4.9.7/`. `ShipDrydock` turns out to have the export footprint
-`NoTail` did not — it rewrites 52 of the 207 rules the two exports share, always
-by taking the `Ship` alternative away, and the pack over-reports 53 locations as
-reachable on such a seed today. `MapAirshipHike` and `MapCardiaLandBridge` are
-rollable there too and have not been measured yet. Figures, mechanism and the
-build deltas are in `docs/ORACLE.md`, "The second corpus: 4.9.7".
+**The 4.9.7 corpus closed the first half.** `std497` and `drydock497`, one seed
+apart by a single flag value, at `seeds/ff1/oracle-4.9.7/`. `ShipDrydock` turned
+out to have the export footprint `NoTail` did not — it rewrites 52 of the 207
+rules the two exports share, always by taking the `Ship` alternative away, and
+the pack was over-reporting 53 locations as reachable on such a seed. It has a
+code now, graded on that cartridge: 170 of 223 agreeing before, 223 of 223
+after. `MapAirshipHike` and `MapCardiaLandBridge` are rollable there too and
+have not been measured yet. Figures, mechanism and the build deltas are in
+`docs/ORACLE.md`, "The second corpus: 4.9.7".
 
 The three ToFR flags still want something other than the export;
 `tools/tofr_diff.py` is the tool that covers ToFR by comparison instead.

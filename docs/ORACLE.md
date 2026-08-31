@@ -229,7 +229,7 @@ Last run 2026-08-31.
 | Check | Result |
 |---|---|
 | `std497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
-| `drydock497`, pack rules vs FFR | **223 checked, 170 agree, 11 distinct divergences over 53 locations** |
+| `drydock497`, pack rules vs FFR | **223 checked, 223 agree, 0 divergences** — it was 170 agree, 11 divergences over 53 locations before the `shipDrydock` code |
 | `std497` vs `drydock497`, exported rules | **207 locations in both exports, 52 rules differ; 51 lose a `Ship` alternative and not one gains anything** |
 
 `std497`'s 226/226 is `std`'s 225/225 one version later, and it is the row that
@@ -240,13 +240,13 @@ pack's hand-written standard rules hold there unchanged. Protect it the same way
 building this corpus.** `NoTail` rewrote no rule FFR hands Archipelago, so its
 cartridge graded an unchanged rule set against itself. `ShipDrydock` rewrites 52
 of the 207 rules the two exports share, and every one of the changes is a route
-being taken away. The pack has no code for the flag, so it goes on offering the
-Ship route: 53 locations show reachable that FFR says are not, across Elf Castle,
-Marsh Cave, Earth Cave, the Castle of Ordeals, Astos, the Canoe Sage and the Elf
-Prince. A check shown green that is not reachable is the failure mode the pack
-cares most about, so this is a real defect with a measurement attached, and the
-gate for the eventual `shipDrydock` code is this cartridge rather than a pack
-test.
+being taken away. Before the pack had a code for the flag it went on offering the
+Ship route: 53 locations showed reachable that FFR says are not, across Elf
+Castle, Marsh Cave, Earth Cave, the Castle of Ordeals, Astos, the Canoe Sage and
+the Elf Prince. A check shown green that is not reachable is the failure mode the
+pack cares most about, so this cartridge is the gate the `shipDrydock` code was
+written against rather than a pack test, and the 170-of-223 to 223-of-223 move on
+it is what says the guard bites.
 
 **What the flag does**, read off the code rather than inferred from the diff:
 `MapExchange/ShipLocations.cs:52-60` moves *every* ship spawn to the Gaia
@@ -260,6 +260,17 @@ not recorded for this seed" caveat and are marked NOT COUNTED. That is the norma
 condition for these cartridges -- the 4.9.2 runs behind the 225/225 and 229/229
 figures print it too -- and the export diff above is the independent reading that
 the 53 are not an artefact of it.
+
+### Checking the 4.9.7 pair
+
+    O7=<corpus>/oracle-4.9.7
+    python3 tools/check_logic.py $O7/std497/std497.nes \
+        --ap-rules $O7/std497/std497.yaml --ff1-world $W
+    python3 tools/check_logic.py $O7/drydock497/drydock497.nes \
+        --ap-rules $O7/drydock497/drydock497.yaml --ff1-world $W
+
+No `--derived` on either: the sweep derives No-Overworld rules and both of these
+are standard seeds.
 
 ### Rebuilding the 4.9.7 pair
 
