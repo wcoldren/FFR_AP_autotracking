@@ -307,13 +307,29 @@ def build_images(rom, mode, crops_, rows, graph=None, only=None,
     return out
 
 
-# A chest occupies exactly one tile, and a tile is TILE_PX pixels, so a box of
-# TILE_PX outlines the tile the chest is on and nothing more. The pack's own 24
-# comes from the hand-drawn art, where it reads fine because those images are
-# shown at roughly their drawn size; cropped renders are a third of the area
-# they were, so PopTracker scales them up and a box scales with them. Same
-# fraction of a tile, twice the pixels on screen.
-MARKER_SIZE = render_maps.TILE_PX
+# A chest occupies exactly one tile, so the marker is sized to a tile -- but to
+# the *inside* of one, a pixel short on each edge, and the pixel is the whole
+# point. At exactly TILE_PX a box has no gap to the box beside it: Waterfall's
+# six chests stand in a row and drew as one green bar with dividers in it
+# rather than as six markers, which is the opposite of what a marker is for.
+# Dwarf Cave, Coneria Castle, Ordeals 3F and the Sea Shrine all carry runs like
+# it. A pixel of the map showing between two boxes is what separates them.
+#
+# The same pixel separates a box from a trap mark, which since the marks were
+# keyed to the formation is one glyph filling one tile. Outline and glyph
+# touching at the tile edge read as one object.
+#
+# The old rationale for TILE_PX was that the box should outline the chest's
+# tile "and nothing more". That still holds and is what rules out going
+# further: rendered at 12, the border cuts into the chest sprite it is meant to
+# be outlining. 14 is one tile less a pixel a side -- the smallest change that
+# buys the gap, and the largest that still leaves the chest whole.
+#
+# The pack's own 24 comes from the hand-drawn art, where it reads fine because
+# those images are shown at roughly their drawn size; cropped renders are a
+# third of the area they were, so PopTracker scales them up and a box scales
+# with them. Same fraction of a tile, twice the pixels on screen.
+MARKER_SIZE = render_maps.TILE_PX - 2
 MARKER_BORDER = 2
 
 
@@ -783,7 +799,8 @@ def main():
     ap.add_argument("--marker-size", type=int, default=MARKER_SIZE,
                     metavar="PX",
                     help=f"marker box on a rendered map, in image pixels "
-                         f"(default {MARKER_SIZE}, one tile; the pack's "
+                         f"(default {MARKER_SIZE}, a tile less a pixel a side "
+                         "so adjacent markers do not merge; the pack's "
                          "hand-drawn art uses 24)")
     ap.add_argument("--marker-border", type=int, default=MARKER_BORDER,
                     metavar="PX", help=f"its border (default {MARKER_BORDER})")
