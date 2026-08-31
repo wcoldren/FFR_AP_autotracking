@@ -109,6 +109,8 @@ INPUT_FILES = [
     "tools/extract_npcs.py",
     "tools/make_markers.py",
     "tools/pin_visibility.py",
+    "tools/incentive_slots.py",
+    "tools/split_locations.py",
     "tools/pngio.py",
     "tools/map_calibration.json",
     "maps/maps.json",
