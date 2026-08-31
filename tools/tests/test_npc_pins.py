@@ -183,7 +183,13 @@ def main():
 
     # One flood for both passes; the calibration is a property of the cartridge
     # and the crop, not of which location tree names the markers.
-    cal = rg.rendered_calibration(rom, rg.crops(rom))
+    npc_cells = {}
+    for name, places in extract_npcs.extract(rom).items():
+        for q in places:
+            npc_cells.setdefault(q["map_id"], []).append(
+                (f"npc {name}", q["tile_col"], q["tile_row"]))
+    graph = entrance_graph.Graph(entrance_graph.Rom.of(rom, path))
+    cal = rg.rendered_calibration(rom, rg.crops(rom, graph, npc_cells))
 
     for rel in LOCATIONS:
         tag = "nov" if "NOverworld" in rel else "std"

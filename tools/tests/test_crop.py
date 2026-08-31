@@ -105,7 +105,9 @@ def main():
     cut, kept, whole = [], 0, 0
     for map_id in range(rm.MAP_COUNT):
         tiles = rm.map_tiles(rom, map_id)
-        crop = crops[rm.MAP_FILES[map_id]] = rm.content_crop(tiles)
+        keep = [cell for _, cell in rm.protected_cells(
+            rom, map_id, tiles, graph, npcs.get(map_id, ()))]
+        crop = crops[rm.MAP_FILES[map_id]] = rm.content_crop(tiles, keep=keep)
         cut += [(rm.MAP_FILES[map_id], what, cell) for what, cell in
                 rm.crop_violations(rom, map_id, tiles, crop, graph,
                                    npcs.get(map_id, ()))]
@@ -144,18 +146,17 @@ def main():
     with open(os.path.join(TOOLS, "map_calibration.json")) as f:
         cal = {k: v for k, v in json.load(f).items() if not k.startswith("_")}
     # Matoya's Cave carries four cells of tile $0B at (20-23,13), detached, out
-    # in the void with nothing near them. They are in the vanilla map data and
-    # survive on an ordinary seed; only No-Overworld's map rebuild removes them.
-    # They stretch the box seven columns past where DarkmoonEX cropped.
+    # in the void with nothing near them, and they used to stretch the box seven
+    # columns past where DarkmoonEX cropped. That was written down here as an
+    # accepted mistake, because neither walkability nor size separates the speck
+    # from Ice Cave B3's genuine 41-cell second lobe.
     #
-    # No filter is added for it, on purpose. The speck is fully walkable while
-    # sky4F's six real 88-cell platforms are not walkable at all, and the speck
-    # is 4 cells where iceB3's genuine second region is 41 -- so neither
-    # walkability nor size separates junk from content here. Inventing a third
-    # proxy is exactly how the room-floor rule went wrong twice. Seven columns
-    # of extra backdrop on one map is the cheaper mistake, and this is the note
-    # saying so rather than a silent tolerance.
-    allowed = {"matoya"}
+    # The speck rule separates them on a third question -- does the map point at
+    # anything there -- and the seven columns are gone: Matoya boxes 18 wide
+    # where it boxed 25, which is DarkmoonEX's crop. So the exemption is gone
+    # too, and Matoya is asserted like the rest. A tolerance that turns into a
+    # passing check is the best evidence the rule is the right one.
+    allowed = set()
     drift = []
     for name in ART_AGREES:
         drawn = art_box(name, cal[name])
@@ -167,6 +168,35 @@ def main():
             drift.append((name, crops[name].box, drawn, off))
     check("the derived box sits within a tile of the one DarkmoonEX drew",
           drift, [])
+
+    # The speck rule, and the band its bound sits in. Dropping a region is only
+    # safe while "speck" and "small region of a real map" stay far apart; if a
+    # cartridge ever puts one near MAX_SPECK this has started guessing, and the
+    # gap check is what says so instead of letting it.
+    dropped_sizes, kept_sizes = [], []
+    for map_id in range(rm.MAP_COUNT):
+        tiles = rm.map_tiles(rom, map_id)
+        keep = {cell for _, cell in rm.protected_cells(
+            rom, map_id, tiles, graph, npcs.get(map_id, ()))}
+        content = rm.content_cells(tiles)
+        comps = rm.components(content)
+        _, dropped = rm.drop_specks(content, keep)
+        dropped_sizes += [len(c) for c in dropped]
+        kept_sizes += [len(c) for c in comps[1:]
+                       if c not in dropped and not (c & keep)]
+    biggest, smallest = max(dropped_sizes, default=0), min(kept_sizes, default=10**9)
+    print(f"     ({len(dropped_sizes)} specks dropped, largest {biggest}; "
+          f"smallest region kept with nothing on it {smallest})")
+    check("every dropped speck is well under the bound", biggest < rm.MAX_SPECK, True)
+    check("and every region kept is well over it", smallest > rm.MAX_SPECK, True)
+    check("so the bound sits in an empty band, not on a real value",
+          smallest - biggest > rm.MAX_SPECK, True)
+
+    # The largest region is never a speck, so no map can be dropped to nothing.
+    tiny = [rm.MAP_FILES[m] for m in range(rm.MAP_COUNT)
+            if not rm.content_cells(rm.map_tiles(rom, m))
+            or not rm.drop_specks(rm.content_cells(rm.map_tiles(rom, m)))[0]]
+    check("no map is dropped to nothing", tiny, [])
     check("tofrAir lands on it exactly", crops["tofrAir"].box,
           art_box("tofrAir", cal["tofrAir"]))
     check("and none of the maps it is measured on slid",

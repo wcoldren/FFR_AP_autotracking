@@ -177,7 +177,7 @@ def inputs_fingerprint():
 
 # ---------------------------------------------------------------- calibration
 
-def crops(rom):
+def crops(rom, graph, npc_cells=None):
     """{map name: render_maps.Crop} -- what each rendered image covers.
 
     Cropping is what turns a tab from a postage stamp in an empty field into
@@ -186,8 +186,13 @@ def crops(rom):
     for where the box comes from, why the hand-drawn art is what says it is
     right, and what the slide on a map drawn across the join is for.
     """
-    return {name: render_maps.content_crop(render_maps.map_tiles(rom, map_id))
-            for map_id, name in render_maps.MAP_FILES.items()}
+    out = {}
+    for map_id, name in render_maps.MAP_FILES.items():
+        tiles = render_maps.map_tiles(rom, map_id)
+        keep = [cell for _, cell in render_maps.protected_cells(
+            rom, map_id, tiles, graph, (npc_cells or {}).get(map_id, ()))]
+        out[name] = render_maps.content_crop(tiles, keep=keep)
+    return out
 
 
 def legend_rows(rom, crops_=None):
@@ -914,11 +919,21 @@ def main():
             drawn = sum(len(graph.objects(m)) for m in render_maps.MAP_FILES)
             print(f"drawing all {drawn} map objects")
 
+    # What the crop must not lose. Built before the crop rather than after it,
+    # because the crop now reads it too: content_crop drops a speck only when
+    # nothing here stands on it. The guard below re-reads the same set.
+    npc_cells = {}
+    for name, places in extract_npcs.extract(rom).items():
+        for q in places:
+            npc_cells.setdefault(q["map_id"], []).append(
+                (f"npc {name}", q["tile_col"], q["tile_row"]))
+    box_graph = graph or entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
+
     # The crop box is the one number both halves of this depend on: the art is
     # drawn from it and every marker's pixel is measured from it. Computed once,
     # here, and handed to both -- two calls that could drift apart is the shape
     # of bug that puts a box next to its chest instead of on it.
-    crops_ = crops(rom)
+    crops_ = crops(rom, box_graph, npc_cells)
     rows = legend_rows(rom)
 
     files = {}
@@ -991,13 +1006,7 @@ def main():
     # step: the box comes from one flood, and the way a flood goes wrong is by
     # reaching somewhere it should not, which shows up here as a chest or a
     # staircase or a tracked NPC outside the frame.
-    npc_cells = {}
-    for name, places in extract_npcs.extract(rom).items():
-        for q in places:
-            npc_cells.setdefault(q["map_id"], []).append(
-                (f"npc {name}", q["tile_col"], q["tile_row"]))
     cut = []
-    box_graph = graph or entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
     for map_id, name in render_maps.MAP_FILES.items():
         cut += [(f"{what} on {name}", name, cell[0], cell[1])
                 for what, cell in render_maps.crop_violations(

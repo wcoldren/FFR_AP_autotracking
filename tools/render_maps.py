@@ -548,7 +548,64 @@ class Crop(NamedTuple):
 WHOLE = Crop((0, MAP_DIM - 1, 0, MAP_DIM - 1))
 
 
-def content_crop(tiles, pad=CROP_PAD):
+# A speck is a run of content the flood could not reach, holding nothing the
+# map points at, far enough from the map to hold the frame open on its own.
+# Lefein has seven of them at one cell each, fifteen rows below the town, and
+# they cost seventeen rows of empty frame; Melmond has a one-column stalk that
+# holds the top open the same way.
+#
+# Two tests, and the pairing is the point. Size alone was tried and rejected --
+# Matoya's four-cell speck against Ice Cave B3's genuine 41-cell second lobe --
+# and so was walkability. What separates them here is **what the map points
+# at**: a region carrying a chest, a staircase, an exit or a tracked NPC is
+# content by definition, whatever its size, and is kept. The size bound then
+# only has to separate specks from regions that are merely large and empty.
+#
+# Measured over both duck cartridges and both oracle cartridges, that band is
+# wide: the largest droppable region is 19 cells and the smallest kept one is
+# 58. The bound sits in the empty middle, and tools/tests/test_crop.py asserts
+# the band *stays* empty -- a cartridge that puts a region near the bound is
+# one where this rule has started guessing, and the test says so rather than
+# letting it guess.
+MAX_SPECK = 32
+
+
+def components(cells):
+    """`cells` split into 4-connected regions, largest first."""
+    remaining, out = set(cells), []
+    while remaining:
+        seed = remaining.pop()
+        comp, q = {seed}, deque([seed])
+        while q:
+            col, row = q.popleft()
+            for dc, dr in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                n = (col + dc, row + dr)
+                if n in remaining:
+                    remaining.discard(n)
+                    comp.add(n)
+                    q.append(n)
+        out.append(comp)
+    return sorted(out, key=len, reverse=True)
+
+
+def drop_specks(content, keep=(), limit=MAX_SPECK):
+    """(kept cells, dropped regions) -- content minus the specks.
+
+    The largest region is never dropped, so a map cannot crop to nothing here
+    however small it is: Bahamut's lair is six columns wide and stays.
+    """
+    comps = components(content)
+    if not comps:
+        return content, []
+    keep = set(keep)
+    dropped = [c for c in comps[1:] if len(c) <= limit and not (c & keep)]
+    if not dropped:
+        return content, []
+    gone = set().union(*dropped)
+    return {c for c in content if c not in gone}, dropped
+
+
+def content_crop(tiles, pad=CROP_PAD, keep=()):
     """The part of the grid worth drawing, as a Crop.
 
     The bounding box of everything the edge flood could not reach, measured
@@ -559,10 +616,18 @@ def content_crop(tiles, pad=CROP_PAD):
 
     A map whose content reaches every edge comes back as the whole grid --
     Waterfall very nearly does. That is the honest answer, not a failure.
+
+    `keep` is the cells the crop must not lose -- protected_cells' second
+    element, which regen and the tests already build for crop_violations. It is
+    what stops a speck-shaped region that happens to hold a chest from being
+    dropped. Defaulting it to empty is safe rather than convenient: the guard
+    runs on every regen and every test, so a caller that forgets to pass it is
+    caught by the same check that catches a bad flood.
     """
     content = content_cells(tiles)
     if not content:
         return WHOLE
+    content, _ = drop_specks(content, keep)
     sx = _axis_shift({c for c, _ in content}, pad)
     sy = _axis_shift({r for _, r in content}, pad)
     cols = [(c + sx) % MAP_DIM for c, _ in content]
@@ -590,23 +655,33 @@ def crop_violations(rom, map_id, tiles, crop, graph, extra=()):
         Cave B1 fairy stands on a cell the flood reaches, so it is exactly the
         kind of thing a bad box would lose.
     """
+    return [(what, cell) for what, cell in protected_cells(
+        rom, map_id, tiles, graph, extra) if not crop.holds(*cell)]
+
+
+def protected_cells(rom, map_id, tiles, graph, extra=()):
+    """[(what, (col, row))] the crop is not allowed to lose, whatever it does.
+
+    One list, two readers. crop_violations reports the ones a box left outside
+    the frame; content_crop refuses to discard a region that holds any of them.
+    Having them derive the set separately is how a rule that drops a speck and
+    a guard that checks for specks come to disagree about what a speck is.
+    """
     tileset = rom[TILESET_LUT + map_id]
     prop = TILESET_PROP + tileset * PROP_STRIDE
-    bad = []
+    out = []
     chest_tiles = {t for t in range(TILES_PER_SET)
                    if (rom[prop + t * 2] & entrance_graph.TP_SPEC_MASK)
                    == entrance_graph.TP_SPEC_TREASURE}
     for i, t in enumerate(tiles):
-        cell = (i % MAP_DIM, i // MAP_DIM)
-        if (t & 0x7F) in chest_tiles and not crop.holds(*cell):
-            bad.append(("chest", cell))
+        if (t & 0x7F) in chest_tiles:
+            out.append(("chest", (i % MAP_DIM, i // MAP_DIM)))
     for x, y, kind, _ in graph.teleports(map_id):
-        if kind != entrance_graph.TP_TELE_WARP and not crop.holds(x, y):
-            bad.append((f"teleport ${kind:02X}", (x, y)))
+        if kind != entrance_graph.TP_TELE_WARP:
+            out.append((f"teleport ${kind:02X}", (x, y)))
     for what, col, row in extra:
-        if not crop.holds(col, row):
-            bad.append((what, (col, row)))
-    return bad
+        out.append((what, (col, row)))
+    return out
 
 
 def cropped_objects(map_id, crop, graph):
@@ -1002,7 +1077,9 @@ def self_check(rom, path):
     parked = []
     for map_id in range(MAP_COUNT):
         tiles = map_tiles(rom, map_id)
-        crop = content_crop(tiles)
+        crop = content_crop(tiles, keep=[
+            cell for _, cell in protected_cells(
+                rom, map_id, tiles, graph, npcs.get(map_id, ()))])
         kept += crop.size[0] * crop.size[1]
         for what, cell in crop_violations(rom, map_id, tiles, crop, graph,
                                           npcs.get(map_id, ())):
