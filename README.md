@@ -195,6 +195,26 @@ written into the pack: it all goes to PopTracker's user-override directory, and
 
     tools/regen_maps.py ~/Downloads/FFR_yourseed.nes
 
+The overworld is redrawn too, and it is the map the flags actually move. The
+drydock, the northern docks, Sarda's forest, the Gaia pass, the Lefein bridge
+and river, the highway to Ordeals, the Melmond river and Cardia's land bridge
+are all edits to it; an overworld-exchange seed replaces the continents
+outright, and a No-Overworld one erases every town and castle off the map. The
+shipped drawing shows none of that, because it is a drawing of the vanilla map.
+
+Its pins move with it, onto the door the cartridge puts each place on rather
+than the pixel the drawing had. That is more accurate than it sounds: the
+drawing is not a scaled map, and the shipped pins sit up to eleven tiles from
+the tile they name.
+
+One thing the drawing has that a render does not is its single annotation --
+the caravan, marked so you know the shop-item check exists at all. That
+information survives the swap as a pin rather than as a label: the caravan is
+the one place on the overworld that is a shop rather than a door, the cartridge
+says which tile it is on, and `I: Shop Item` is placed there. A No-Overworld
+seed has no caravan and no airship desert, and those two pins are dropped and
+named in the run's output rather than left pointing at open sea.
+
 ## Under the hood
 
 Everything above is what the pack does. How it is built, what it models, how its

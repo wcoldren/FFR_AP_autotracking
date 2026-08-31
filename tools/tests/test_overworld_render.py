@@ -11,9 +11,9 @@ is one of those:
     palette block -- four separate reads, and a wrong base for any of them
     breaks the correspondence long before it looks wrong to a person.
   * the doors the tile properties name have to be the doors the teleport
-    tables name. `render_overworld.entrances` reads property byte 1 in bank
+    tables name. `entrance_graph.door_positions` reads property byte 1 in bank
     $00; `entrance_graph.Graph.starts` reads lut_EntrTele_Map in bank $0F.
-    Neither knows about the other.
+    Neither reading knows about the other.
   * FF1Lib's own tile constants say what tile $17 and $21 are for. A render
     that draws OCEAN green passes every structural check and is still wrong.
 
@@ -115,8 +115,9 @@ def main():
           [f"${t:02X}" for t in land if family(mean(art[t])) == "blue"], [])
 
     print("\n-- the doors, against the teleport tables in another bank")
-    doors = ro.entrances(rom)
-    graph = entrance_graph.Graph(entrance_graph.Rom(path))
+    reader = entrance_graph.Rom(path)
+    doors = entrance_graph.door_positions(reader)
+    graph = entrance_graph.Graph(reader)
     named = {door for door, _, _ in graph.starts()}
     check("the tile properties name doors", len(doors) > 0, True)
     # A door the teleport table admits but no tile carries is exactly what

@@ -87,12 +87,14 @@ OW_CHR_LEN = 0x1000
 # The vehicle bits, for --audit. overworld_reach.py has the reasoning.
 FOOT, CANOE, SHIP = 0x01, 0x02, 0x04
 
-# Property byte 1, bank_0F.asm:1071: "bit 7 set if teleport, with low bits
-# determining teleport ID". Byte 0's top two bits are a different thing --
-# Constants.inc:332-339, the chime/caravan/floater specials -- and the caravan
-# is read from there rather than from a tile id, because a tile id is FFR's to
-# move and the property is the game's own test (bank_0F.asm:1164).
-OW_TELEPORT = 0x80
+# Byte 0's top two bits: the chime/caravan/floater specials. The caravan is read
+# from here rather than from a tile id, because a tile id is FFR's to move and
+# the property is the game's own test (bank_0F.asm:1164).
+#
+# The *doors* are the other half of the same table -- byte 1, bit 7 -- and are
+# entrance_graph.door_positions', which was here first and gets the mask right:
+# the game clears bit 6 as well (bank_0F.asm:396, `AND #$3F`), because bit 6 is
+# the battle bit and not part of the id.
 OWTP_SPEC_MASK = 0xC0
 OWTP_SPEC_CARAVAN = 0x80
 
@@ -124,22 +126,6 @@ def cells_where(rom, want):
             if t in ids:
                 out.setdefault(t, []).append((x, y))
     return out
-
-
-def entrances(rom):
-    """{entrance id -> [(x, y)]}: where each overworld door stands.
-
-    entrance_graph.Graph.starts() answers the other half of the same question
-    -- which map a door leads to, and where in it you arrive -- and reads the
-    teleport tables to do it. This is the overworld side, and there is nowhere
-    else to get it: the tile is what the door *is*, and a big entrance covers
-    several tiles (Coneria Castle is six).
-    """
-    p = props(rom)
-    out = {}
-    for t, cells in cells_where(rom, lambda p0, p1: p1 & OW_TELEPORT).items():
-        out.setdefault(p[t * 2 + 1] & 0x7F, []).extend(cells)
-    return {k: sorted(v) for k, v in out.items()}
 
 
 def caravan(rom):
@@ -273,7 +259,8 @@ def main():
         ok = audit(rom)
         sys.exit(0 if ok else 1)
     if args.places:
-        doors = entrances(rom)
+        import entrance_graph
+        doors = entrance_graph.door_positions(entrance_graph.Rom.of(rom, args.rom))
         print(f"{len(doors)} overworld doors")
         for eid in sorted(doors):
             cells = doors[eid]

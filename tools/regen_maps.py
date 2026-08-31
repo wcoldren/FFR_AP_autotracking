@@ -80,9 +80,11 @@ import entrance_graph
 import extract_chests
 import extract_npcs
 import make_markers
+import overworld_pins
 import pin_visibility
 import pngio
 import render_maps
+import render_overworld
 import split_locations
 import sprites
 
@@ -103,6 +105,8 @@ MODE_DIRS = {"std": "standard", "nov": "No-Overworld"}
 INPUT_FILES = [
     "tools/regen_maps.py",
     "tools/render_maps.py",
+    "tools/render_overworld.py",
+    "tools/overworld_pins.py",
     "tools/sprites.py",
     "tools/entrance_graph.py",
     "tools/extract_chests.py",
@@ -127,6 +131,13 @@ INPUT_FILES = [
 # to be moved; a marker on anything else -- the overworld, the incentive sheet --
 # sits on art this does not touch.
 REDRAWN = set(render_maps.MAP_FILES.values())
+
+# The two map names whose art is the overworld render. They are deliberately
+# not in REDRAWN: place_locations rebuilds a pin from the chest tile it stands
+# on, and an overworld pin stands on a door rather than a chest -- so those are
+# left for overworld_pins, which asks a different question. The shipped pack
+# points both at one drawing.
+OVERWORLD_MAPS = ["overworld", "incentives"]
 
 # The two maps the pack draws as one composite each. Rendered separately they
 # are two images, so the tab that held one now holds both side by side --
@@ -317,6 +328,11 @@ def build_images(rom, mode, crops_, rows, graph=None, only=None,
         out[f"images/maps/{mode}/{name}.png"] = render_maps.render(
             rom, map_id, unroof=True, graph=graph, only=only,
             crop=crops_[name], legend_rows=rows[name], marks=marks)
+    # And the overworld, which is not one of the 61 and is drawn by its own
+    # tool: a different bank, a different tileset and no crop. It is the map
+    # every overworld flag edits and the one the pack has only ever shown a
+    # vanilla drawing of.
+    out[f"images/maps/{mode}/overworld.png"] = render_overworld.render(rom)
     return out
 
 
@@ -363,11 +379,16 @@ def build_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
         return entries
     by_name = {e["name"]: e for e in entries}
     order = [e["name"] for e in entries]
-    for name in render_maps.MAP_FILES.values():
+    # The overworld and the incentive sheet are the same image in the shipped
+    # pack -- one drawing, two sets of pins -- so both rows follow it onto the
+    # render. Their markers are a tile like every other rendered map's, not the
+    # 80 the drawing wanted.
+    for name in list(render_maps.MAP_FILES.values()) + OVERWORLD_MAPS:
         e = by_name.setdefault(name, {"name": name})
         if name not in order:
             order.append(name)
-        e["img"] = f"images/maps/std/{name}.png"
+        art = "overworld" if name in OVERWORLD_MAPS else name
+        e["img"] = f"images/maps/std/{art}.png"
         e["location_size"] = size
         e["location_border_thickness"] = border
     return [by_name[n] for n in order]
@@ -404,6 +425,19 @@ def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
         # scaled up by the crop.
         e["location_size"] = size if "nov" in have else 24
         e["location_border_thickness"] = border if "nov" in have else 3
+    # The overworld, and only the overworld. These variants already point
+    # `incentives` at nooverworldmap.jpg, which is a purpose-drawn sheet with
+    # its own pin layout rather than the overworld with different pins on it,
+    # so it is not the overworld's to replace. The overworld row is: a
+    # No-Overworld cartridge has every town and castle erased off its map, and
+    # what those 29 pins have been standing on is a drawing of the vanilla one.
+    if "nov" in have:
+        e = by_name.setdefault("overworld", {"name": "overworld"})
+        if "overworld" not in order:
+            order.append("overworld")
+        e["img"] = "images/maps/nov/overworld.png"
+        e["location_size"] = size
+        e["location_border_thickness"] = border
     return [by_name[n] for n in order]
 
 
@@ -959,6 +993,16 @@ def main():
                   f"for {want[0]}x{want[1]}")
         print("\nnothing was written.")
         return 1
+    ow_art = art[f"images/maps/{mode}/overworld.png"]
+    ow_want = render_overworld.OW_DIM * render_overworld.TILE_PX
+    if ow_art[:2] != (ow_want, ow_want):
+        # Same guard the 61 get, for the same reason: the pins are placed at
+        # tile * 16 and nothing downstream would notice if the art stopped
+        # being that.
+        print(f"\nFAILED: the overworld render is {ow_art[0]}x{ow_art[1]}, but "
+              f"its markers are placed for {ow_want}x{ow_want}.")
+        print("\nnothing was written.")
+        return 1
     for rel, (w, h, rgb) in art.items():
         files[rel] = encode(w, h, rgb)
 
@@ -985,6 +1029,17 @@ def main():
     # `I: Shop Item` is already a node name in both documents. If a board node
     # ever resolved to a tile under a name the sheet also uses, the sheet's
     # node would silently gain a dungeon-map pin on art it does not show.
+    # The overworld pins, which stand on doors rather than on chests and so are
+    # a different question from the dungeon ones. Resolved once, here, and the
+    # incentive sheet mirrors the board: the two trees are built name for name.
+    ow_reader = entrance_graph.Rom.of(rom, args.rom)
+    ow_graph = graph or entrance_graph.Graph(ow_reader)
+    board_doc = lenient(os.path.join(PACK, dungeon_locations))
+    ow_placed, ow_unplaced, ow_anchors = overworld_pins.resolve(
+        rom, ow_reader, ow_graph, board_doc, tiles_by_name)
+    ow_mirror = overworld_pins.mirror_of(board_doc, ow_placed)
+    ow_moved, ow_dropped = 0, []
+
     for rel, tiles in ((dungeon_locations, tiles_by_name),
                        (incentive_locations, {})):
         doc, pl, un, bad, shade = place_locations(cal, tiles, rel,
@@ -996,6 +1051,19 @@ def main():
         # exactly the seeds an override exists for. Stamping rather than
         # preserving is also what gives the pins this cartridge newly places --
         # Astos, Matoya, Bikke, the Fairy, Bahamut -- their rule on arrival.
+        # Then the overworld half, onto the same document. On a No-Overworld
+        # cartridge only the overworld map moves: those variants already point
+        # `incentives` at a purpose-drawn sheet of their own.
+        ow_maps = (OVERWORLD_MAPS if mode == "std" else ["overworld"])
+        if rel is incentive_locations and mode == "std":
+            placed_here, un_here, _ = overworld_pins.resolve(
+                rom, ow_reader, ow_graph, doc, tiles_by_name, mirror=ow_mirror)
+            ow_unplaced += un_here
+        else:
+            placed_here = ow_placed
+        moved, drops = overworld_pins.restamp(doc, placed_here, tuple(ow_maps))
+        ow_moved += moved
+        ow_dropped += drops
         pin_visibility.stamp(doc)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
         placed += pl
@@ -1148,8 +1216,33 @@ def main():
               f"{len(removed)} left by the older layout")
     print(f"  {placed} markers built from the cartridge onto the {MODE_DIRS[mode]} "
           "art, each on the chest or NPC tile the ROM puts it on")
-    print(f"  {unmoved} left alone (the overworld and incentive maps are not "
-          "redrawn, so their markers keep the pack's pixels)")
+    # The overworld pins pass through place_locations untouched and are then
+    # moved by the step below, so they are not "left alone" any more -- the
+    # count has to come out of this one or the two lines double-count them.
+    print(f"  {unmoved - ow_moved - len(ow_dropped)} left alone (markers on "
+          "art this run does not redraw)")
+    print(f"  {ow_moved} overworld markers moved onto the door the cartridge "
+          "puts each place on, rather than the pixel the drawing had")
+    shared = {}
+    for name, where in ow_anchors.items():
+        shared.setdefault(where, []).append(name)
+    stacked = {w: ns for w, ns in shared.items() if len(ns) > 1}
+    if stacked:
+        # Not a defect: on a No-Overworld cartridge nine stub doors carry every
+        # place there is, so several pins really do share one. Said out loud
+        # because the pins are then drawn in a column above the door they share,
+        # and that column is this tool's tidying rather than the cartridge's
+        # answer.
+        n = sum(len(ns) for ns in stacked.values())
+        print(f"  {n} of them share {len(stacked)} door(s), so they stack north "
+              "of it to stay clickable:")
+        for where, names in sorted(stacked.items()):
+            print(f"    {where}: {', '.join(sorted(names))}")
+    for name, why in ow_unplaced:
+        print(f"  {name} could not be placed on the overworld: {why}")
+    for name, which in ow_dropped:
+        print(f"  {name}'s {which} marker was dropped -- nothing on this "
+              "cartridge's overworld to point at")
     # Expected -- the Ice Cave B1 fairy is a copy of the Gaia object in the
     # black outside the cave -- but said out loud, so a second one appearing
     # is a number that changed rather than a pin nobody missed.
