@@ -280,7 +280,7 @@ further items" over a list of five. All figures unmoved -- `nov --derived`
 226/225/1 with 5 granted, `nov` 226/220, std 225/225, shard 229/229 -- and the
 `FF1_SLOW` full-lattice guard re-passed on `nov`, 4096 of 4096.
 
-**`visibility-toggles` -- six commits, on `trunk...visibility-toggles`.** The
+**`visibility-toggles` -- merged to `trunk`.** Sixteen commits in the end. The
 gold-ring switch, the four drawn icons, the "Pins" group in the four map
 trackers, and three doc corrections. `show_gold_rings` is the only one of the
 four toggles built; the other three icons are drawn ahead of the pins they
@@ -304,59 +304,68 @@ correctness bug in the Lua or the layouts. The two worth reading:
   nothing can fire at tracker load, which is a PopTracker change.
   `docs/ISSUES.md` says so.
 
-**Next branch: make the rendered maps legible.** Three changes that share
-one regen, because each moves the `inputs` or `marker` fingerprint in
-`.regen_cache.json` and a single run picks up all of them. All measured
-2026-08-30 on the std and nov oracle cartridges, which agree, so there is no
-separate No-Overworld pass here.
+**`map-legibility` -- four commits off `trunk`, landed, not merged.** Three
+changes sharing one regen, because each moves the `inputs` or `marker`
+fingerprint in `.regen_cache.json` and a single run picks up all of them. All
+measured on the std and nov oracle cartridges, which agree, so there was no
+separate No-Overworld pass.
 
-- **Rotate before boxing, and treat it as a contract change.** A standard map
-  wraps at 64 tiles and `render_maps.content_box` does not, so four maps are
-  framed across the void between their two halves: `con_castle` 64x35 -> 31x35,
-  `crescent_lake` 52x64 -> 53x43, `melmond` 45x64 -> 45x46, `elf_castle` 28x64 ->
-  29x35. The box is not a render detail -- it is computed once
-  (`regen_maps.py:177`), handed both to the render (`:262`) and to marker
-  placement, and asserted from the other side by `tools/tests/test_crop.py`. So
-  pick the representation up front rather than discovering it: **rotate the grid
-  first and keep the box axis-aligned in rotated coordinates**, a `(shift_x,
-  shift_y)` pair alongside an ordinary `(c0, c1, r0, r1)`. Every consumer goes on
-  receiving a plain box; only the tile-to-pixel mapping gains the modular shift.
+- **Rotate before boxing, treated as a contract change.** A standard map wraps
+  at 64 tiles and the box did not, so maps were framed across the void between
+  their halves. `content_box` is gone; `content_crop` returns a `Crop` -- a
+  plain `(c0, c1, r0, r1)` box plus a `(shift_x, shift_y)` pair -- and
+  `Crop.place` is now the only tile-to-pixel arithmetic in the tree.
 
-  **The hand art confirms this for `elf_castle` and does not settle
-  `con_castle`.** Checked 2026-08-30 against the shipped images: DarkmoonEX's
-  Elf Castle is 34.2 x 34.2 tiles with **no flat row band anywhere**, against the
-  tool's current 28x64 and the rotated 29x35 -- he drew the wrapped row at the
-  top and cropped to the same height the rotation derives. Coneria Castle is a
-  different story: 67.1 x 37.8 tiles, wider than the 64-tile grid, with a single
-  4.6-tile flat band and no 35-column void, so that image is a composition rather
-  than the raw grid and cannot referee the rotation. `crescent_lake` and
-  `melmond` have no calibration entry, so there is nothing to check them
-  against.
-- **Trap marks keyed to the formation id**, closing the defect in
-  `docs/ISSUES.md` where the same enemies carry two different letters, and
-  killing every two-character label with it. 32 formations stand on a map (31 on
-  nov) against 35 single glyphs in `0-9A-Z` minus `O` -- `O` because
-  `tools/font.py` asserts it and `0` are the same glyph in the cartridge's font.
-  Assert the ceiling: a cartridge past 35 falls back to two characters rather
-  than silently reusing a mark.
-- **The marker default, 16px -> 14px, conditionally.** `MARKER_SIZE = TILE_PX`
-  carries a written rationale (`regen_maps.py:265-273`) -- the box outlines the
-  tile the chest stands on and nothing more -- so the number does not move on its
-  own. It moves with a rewritten rationale in the same commit, or it does not
-  move. The argument to test: once a trap mark is one glyph and therefore exactly
-  one tile, a marker box *inside* a tile is what separates outline from glyph.
-  Render one map both ways and look. A recorded decline is a valid outcome.
+  **Five maps, not the four this section predicted.** `con_castle` 64x35 ->
+  31x35, `crescent_lake` 52x64 -> 52x43, `melmond` 45x64 -> 45x46, `elf_castle`
+  28x64 -> 28x35, and `sky4F` 64x64 -> 60x59. The two widths this page gave as
+  53 and 29 were a padding artefact of the estimate and are 52 and 28 measured.
 
-Two claims this branch invalidates, and must update rather than leave standing:
-`test_crop.py:179` and `:195` assert `volcB4`'s letters are `{M,N}` and land on
-named tiles (updated to the new scheme, not waived -- the per-tile half exists
-because a sorted-set comparison hides a mis-assignment), and `STATUS.md:1213`
-records that the enumeration "reproduces the shipped art exactly", which becomes
-historical with a line saying what replaced it.
+  `sky4F` came from the residue list in `docs/ISSUES.md`, against that entry's
+  own prediction that rotating it would put the left half on the right. Rendered
+  both ways it is a regular 4x4 tiling of identical rooms -- re-phasing it
+  cannot swap anything distinguishable, and the un-slid frame *cut four of the
+  sixteen rooms in half* against three edges. `iceB2` and `iceB3` stay in the
+  residue and the rule leaves them alone on its own, because their content never
+  reaches the join.
 
-Acceptance beyond the suites: `test_crop.py` gains an explicit wrapped case, it
-has none today; and the four seam maps pass `crop_violations` with their markers
-landing on their chests.
+  The slide is a jump rather than an offset, so `rendered_calibration` emits one
+  region per straight run -- two for one slid axis, four for `sky4F`. The format
+  already carried per-region `cols` and `rows`. A map that did not slide is
+  emitted exactly as before, so no marker on the other 56 moved.
+
+  **The hand art confirmed this for `elf_castle` and did not settle
+  `con_castle`**, as this section expected; neither is in the set the crop test
+  measures against the art, and a check that none of that set slid is asserted
+  now.
+- **Trap marks keyed to the formation id.** `trap_marks()` keys to the
+  formation and `standing_formations()` hands marks out only to formations a
+  map actually places -- that second filter is what keeps a mark to one glyph.
+  32 formations stand on a map on vanilla, std and nov2, 31 on nov and shard,
+  against 35 marks. Every mark is a single glyph on all five, no formation
+  carries two and no mark stands for two. The two-character fallback is written
+  and unreached. `seaB4` reads `0 1 Y Z` where it read `AB AC AD AE`.
+
+  It costs the exact agreement with the shipped art, **by one place, and the
+  place is named**: DarkmoonEX counted formation `$00`, five fixed tileset
+  entries no map places, so his `earthB1` `{G,H,I}` is this scheme's `{F,G,H}`.
+  The test asserts the shift and its cause rather than pinning the output.
+- **The marker default, 16px -> 14px.** Moved, with the rationale rewritten in
+  the same commit. What decided it was rendering rather than arguing: Waterfall
+  has six chests on six tiles in a row, and at exactly `TILE_PX` their boxes
+  share edges and draw as one green bar with dividers rather than six markers.
+  At 12 the border cuts into the chest sprite, so 14 is the smallest change that
+  buys the gap and the largest that leaves the chest whole.
+
+Both claims this branch invalidated are updated rather than left: `test_crop.py`
+asserts the new scheme with its cause, and the `STATUS.md` "reproduces the
+shipped art exactly" finding says what replaced it and by how much.
+
+Acceptance, met: `test_crop.py` has the wrapped case it lacked (`con_castle`
+beside `mirage1F`, compared tile by tile over the whole frame rather than
+sampled); all five seam maps pass `crop_violations`; and a scratch regen of both
+cartridges puts every seam map's chest markers on their chests with no strays.
+Both suites green on the vanilla, std and nov cartridges.
 
 **Branch after that: the stale-override warning**, per "Notice when the drawn
 maps are for a different cartridge" in `docs/IDEAS.md`. Separate because it
