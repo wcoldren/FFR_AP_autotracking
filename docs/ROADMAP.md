@@ -397,6 +397,53 @@ cartridges puts every seam map's chest markers on their chests with no strays.
 Both suites green on the vanilla, std and nov cartridges, and `test_crop.py`'s
 band check green on all five (vanilla, both duck, both oracle).
 
+**The review gate is closed on this branch too.** A full review of
+`trunk...map-legibility` returned eight findings, all of which held up against
+the cartridges, and all eight are fixed rather than waived. **None was a
+correctness bug**: the slide, the calibration regions and the marker placement
+were verified region by region against `Crop.place` over all 64x64 cells on all
+61 maps of five cartridges. What the review found was drift -- rationale that
+had stopped being true, and one check that could not fail. The three worth
+reading:
+
+- **`test_crop.py`'s "no formation carries two marks" could not fail for any
+  cartridge or any labelling, including the broken one.** `trap_marks` builds
+  `{key: mark[fixed[key]]}` from a per-formation dict, so the singleton it
+  asserted is true by construction. It re-reads byte 1 off the tileset property
+  table now and puts the question to the *maps* -- two tiles that spawn the same
+  fight carry the same mark, wherever they stand -- plus a check that at least
+  one fight stands on two maps, so the assertion has something to compare.
+  Demonstrated against the old `(tileset, tile)` keying, per the working rule:
+  it reports 2 fights carrying two marks (`$4A` W/AI, `$1C` X/Y) where the old
+  check reported nothing.
+- **`_axis_shift`'s docstring gave a measurably false reason for its join
+  guard** -- "where the content is already contiguous the widest run is the one
+  the box drops anyway". `iceB3`'s widest gap is 18 columns in its interior, so
+  a forced slide takes its box from 62 columns to 48, and `iceB2`'s from 62 to
+  58. Both are still declined, and still should be: they are the multi-lobe maps
+  in `docs/ISSUES.md` where re-phasing moves the left lobe to the right. The
+  behaviour was right and the stated reason was not, so the reason is rewritten.
+- **`cropped_objects` was never called on the regen path**, only from
+  `--self-check`. With `--npcs` now defaulting to `all` and `drop_specks` newly
+  able to discard a whole region, a regen could omit a drawn sprite in silence.
+  The regen reports it now -- as a note rather than fatal, because one of them
+  is real. Measured on all five cartridges: the only object outside its crop is
+  `marshB1`'s parked spare bat, which is there on vanilla too.
+
+The rest were measurement drift, each corrected against the cartridges rather
+than adjusted by eye: the mean kept area is **46%**, not the 48% three prose
+copies still carried; `--self-check` printed `len(marks)` under the label
+"fixed-formation trap tiles" and so reported 35 where vanilla has 43 (it names
+all three numbers now -- 43 tiles, 35 marked, 32 standing formations);
+`trap_marks`'s docstring claimed the cartridge falls back to two-character
+labels past 35 formations, where `_label` is per index and the first 26 stay
+single letters; a comment lost its reason to the letters-to-marks rename; and
+`docs/IDEAS.md` still named `trap_letters()` / `map_trap_letters()` as the
+mechanism a future boss annotation would build on, both gone in this branch.
+
+Re-verified after the fixes: both suites green on vanilla and all four oracle
+cartridges, `test_crop.py` green on five, and `--self-check` passing on five.
+
 **Branch after that: the stale-override warning**, per "Notice when the drawn
 maps are for a different cartridge" in `docs/IDEAS.md`. Separate because it
 touches the bridge and the pack rather than the tools, and is worth nothing

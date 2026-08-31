@@ -256,15 +256,50 @@ def main():
     # the formation keying closes: keyed by (tileset, tile), the same enemies
     # were G on earthB1 and W on marshB3, so a mark said nothing about which
     # fight was on the tile.
-    fixed = rm.fixed_formations(rom)
-    by_formation, by_mark = {}, {}
-    for key, mark in marks.items():
-        by_formation.setdefault(fixed[key], set()).add(mark)
-        by_mark.setdefault(mark, set()).add(fixed[key])
-    check("no formation carries two marks",
-          {f"${f:02X}": sorted(v) for f, v in by_formation.items() if len(v) > 1}, {})
-    check("no mark stands for two formations",
-          {m: sorted(v) for m, v in by_mark.items() if len(v) > 1}, {})
+    #
+    # Grouping trap_marks' own dict by formation would not catch that, or
+    # anything else. It is built {key: mark[fixed[key]]} from a per-formation
+    # dict, so a formation carries one mark by construction and a mark stands
+    # for one formation because TRAP_MARKS is asserted duplicate-free -- both
+    # halves pass for every cartridge and every labelling, including the broken
+    # one. So byte 1 is re-read here, off the tileset property table, and the
+    # question is put to the *maps*: two tiles that spawn the same fight, on
+    # whatever maps they stand on, have to carry the same mark.
+    inverted = rm.battle_byte_inverted(rom)
+    seen = {}                              # formation -> {mark: {map names}}
+    for map_id, name in rm.MAP_FILES.items():
+        tiles = rm.map_tiles(rom, map_id)
+        base = rm.TILESET_PROP + rom[rm.TILESET_LUT + map_id] * rm.PROP_STRIDE
+        for (col, row), mark in rm.map_trap_marks(
+                rom, map_id, tiles, marks).items():
+            tile = tiles[row * rm.MAP_DIM + col] & 0x7F
+            b1 = rom[base + tile * 2 + 1]
+            random = (b1 == 0) if inverted else bool(b1 & 0x80)
+            if random:                     # a marked tile that fights randomly
+                seen.setdefault("random", {}).setdefault(mark, set()).add(name)
+                continue
+            seen.setdefault(b1, {}).setdefault(mark, set()).add(name)
+    check("no marked tile spawns a random encounter",
+          sorted(seen.get("random", {})), [])
+    check("no fight carries two marks across the maps it stands on",
+          {f"${f:02X}": {m: sorted(v) for m, v in d.items()}
+           for f, d in seen.items() if len(d) > 1}, {})
+    per_mark = {}
+    for f, d in seen.items():
+        for m in d:
+            per_mark.setdefault(m, set()).add(f)
+    check("no mark stands for two fights",
+          {m: sorted(f"${f:02X}" for f in v)
+           for m, v in per_mark.items() if len(v) > 1}, {})
+
+    # And the check above has something to compare, which is the part that
+    # makes it able to fail: at least one fight has to stand on more than one
+    # map. On a cartridge where none did, the two checks would be vacuous
+    # again and this says so instead of letting them pass quietly.
+    spread = max(len(set().union(*d.values())) for d in seen.values())
+    check("at least one fight stands on two maps, so the check can fail",
+          spread > 1, True)
+    print(f"     (the widest-spread fight stands on {spread} maps)")
 
     # And every mark is a single glyph, which is what lets it sit on the tile
     # it marks rather than spilling across its neighbour. The fallback to

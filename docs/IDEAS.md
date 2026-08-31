@@ -216,9 +216,11 @@ one label, and neither needs new ROM reading:
   deliberately unpinned. What is missing is a location node for a pin to belong
   to.
 - **The refights and traps are `TP_SPEC_BATTLE` tiles.**
-  `render_maps.trap_letters()` already reads byte 1 of each — the formation id,
-  which is *which boss spawns* — and then discards it in favour of a positional
-  letter. Naming the boss is reading a field the code already has in hand.
+  `render_maps.fixed_formations()` already reads byte 1 of each — the formation
+  id, which is *which boss spawns* — and `trap_marks()` then spends it on a
+  mark rather than a name. Naming the boss is reading a field the code already
+  has in hand, and since the marks became formation-keyed the mapping from mark
+  to fight is one-to-one, so a Map Key row could carry the name directly.
 
 Placement would reuse `regen_maps.place_locations()`, which builds a pin from a
 tile: hand it more tiles and it emits more pins. A boss tile is not walkable, so
@@ -244,10 +246,17 @@ tiles outright (`TempleOfFiends.cs:92-97`), and `TwoPaths` shuffles which floor
 each staircase leads to.
 
 So any boss annotation has to read the cartridge, never a vanilla table. The
-good news is that the existing mechanism already does: `trap_letters()` and
-`map_trap_letters()` enumerate fixed-formation tiles off the tileset property
-tables, so they are mode-correct by construction. The thing to avoid is
-hardcoding a floor list or a tile position from vanilla.
+good news is that the existing mechanism already does: `fixed_formations()`
+enumerates fixed-formation tiles off the tileset property tables and
+`map_trap_marks()` asks one map which of them it places, so both are
+mode-correct by construction. The thing to avoid is hardcoding a floor list or a
+tile position from vanilla.
+
+Note the keying changed under this idea and in its favour. These used to be
+`trap_letters()` / `map_trap_letters()`, keyed `(tileset, tile)`, which drew the
+same fight as two different letters on two maps — useless for naming a boss.
+They are keyed to the formation now, so a mark identifies a fight rather than a
+position.
 
 The blocker is unchanged and is in `docs/ISSUES.md`: none of them writes a flag,
 so every such box is manual-click forever. Worth deciding whether that is

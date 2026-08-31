@@ -18,7 +18,7 @@ tools/map_calibration.json; those offsets stay where they are and keep serving
 that art. Dropping these renders on top of it is a job for tools/regen_maps.py,
 which rebuilds the markers from the cartridge rather than moving the old ones.
 
-Cropping is what makes a tab readable. A mean 48% of the grid survives it, and
+Cropping is what makes a tab readable. A mean 46% of the grid survives it, and
 the box lands within a tile of the one DarkmoonEX drew on 22 of the 30 maps
 where both exist -- which is the reason to trust it, since the rule is the
 border tile and a flood and knows nothing about the art.
@@ -397,7 +397,7 @@ def hidden_cells(rom, map_id, tiles, art=None, open_art=None):
 # map_calibration.json covers, the box below lands within one tile of the box
 # DarkmoonEX drew on about 25 of them and exactly on tofrAir. That agreement
 # was not tuned for: the rule is the border tile and a flood inward, and the
-# numbers came out where the art already was. Mean kept area is 48% of the
+# numbers came out where the art already was. Mean kept area is 46% of the
 # grid.
 
 
@@ -481,10 +481,23 @@ def _axis_shift(occupied, pad):
     """How far to slide one axis so its widest empty run falls off the end.
 
     Zero unless the content actually crosses the join -- index 0 and index 63
-    both in use, with something free between them. That test is what keeps this
-    off the maps that do not need it: where the content is already contiguous
-    the widest run is the one the box drops anyway, and sliding it would move
-    every marker on the map to buy nothing.
+    both in use, with something free between them.
+
+    That test is narrower than "slide whenever it would help", and deliberately
+    so. It is **not** true that a contiguous map has nothing to gain: iceB3's
+    widest gap is 18 columns in its *interior*, so a forced slide would take its
+    box from 62 columns to 48, and iceB2's from 62 to 58. Both are declined, and
+    both should be -- they are the multi-lobe maps in docs/ISSUES.md, where
+    re-phasing moves the left lobe to the right of the right one and costs more
+    legibility than the columns are worth. Laying their lobes out separately is
+    the fix, and it is a different idea.
+
+    What the join test buys is that the slide only fires where the box is
+    otherwise forced to span the void, which is the case it was written for and
+    the only one where a re-phased image is unambiguously better. The cost of
+    firing it anywhere else is a moved image and a multi-region calibration, so
+    the bar is a box that cannot be measured at all rather than a box that could
+    be smaller.
     """
     if len(occupied) in (0, MAP_DIM):
         return 0
@@ -792,8 +805,9 @@ def _label(n):
 # occupy exactly the tile it marks. `O` is left out because it and `0` are the
 # same glyph in this font -- tools/font.py asserts precisely that -- so a key
 # offering both would ask the reader to tell apart two identical drawings.
-# Marks first: the shipped art's marks are marks, and 25 of them covers
-# most of a cartridge on its own.
+# Letters before digits, because the shipped art numbers its fights with
+# letters and 25 of them covers most of a cartridge on its own; the digits are
+# the tail that takes a busy one to 35.
 TRAP_MARKS = "ABCDEFGHIJKLMNPQRSTUVWXYZ0123456789"
 
 assert len(set(TRAP_MARKS)) == len(TRAP_MARKS) == 35
@@ -851,10 +865,19 @@ def standing_formations(rom, fixed=None):
 def trap_marks(rom):
     """{(tileset, tile): mark} -- one mark per formation, not one per tile.
 
-    Past what the font can draw as single glyphs the whole cartridge falls back
-    to two-character labels rather than reusing a mark: a repeated mark is a
-    map that lies about which fight is on the tile, and that is worse than a
-    label too wide to sit on one. No measured cartridge reaches it.
+    Past what the font can draw as single glyphs the labelling switches to
+    _label, rather than reusing a mark: a repeated mark is a map that lies about
+    which fight is on the tile, and that is worse than a label too wide to sit
+    on one. No measured cartridge reaches it -- 32 formations stand on a map on
+    vanilla, std and nov2, 31 on nov and shard, against 35 marks.
+
+    Note what the fallback actually does, because it is not "the cartridge
+    switches to two-character labels". _label is per index: the first 26
+    formations still come out as single letters -- including `O`, which
+    TRAP_MARKS excludes on purpose because the font draws it and `0` the same
+    -- and only the 27th onward is two characters. So a cartridge that trips
+    this loses the O/0 guarantee across the board and gains width on the tail
+    only. Widening TRAP_MARKS would be the better answer if one ever does.
     """
     fixed = fixed_formations(rom)
     order = standing_formations(rom, fixed)
@@ -1115,7 +1138,10 @@ def self_check(rom, path):
     marks = trap_marks(rom)
     used = sum(1 for m in range(MAP_COUNT)
                if map_trap_marks(rom, m, map_tiles(rom, m), marks))
-    print(f"{len(marks)} fixed-formation trap tiles, used on {used} maps; "
+    fixed = fixed_formations(rom)
+    print(f"{len(fixed)} fixed-formation trap tiles, {len(marks)} of them marked "
+          f"across {len(standing_formations(rom, fixed))} standing formations, "
+          f"used on {used} maps; "
           f"SMMove_Battle byte 1 is "
           f"{'FFR (b1 == 0 is random)' if battle_byte_inverted(rom) else 'vanilla (b1 & $80 is random)'}")
     if bad:

@@ -181,7 +181,7 @@ def crops(rom, graph, npc_cells=None):
     """{map name: render_maps.Crop} -- what each rendered image covers.
 
     Cropping is what turns a tab from a postage stamp in an empty field into
-    the map: a mean 48% of the grid survives, and Mirage Tower 1F goes from a
+    the map: a mean 46% of the grid survives, and Mirage Tower 1F goes from a
     33x33 corner of 64x64 to filling its frame. See render_maps.content_crop
     for where the box comes from, why the hand-drawn art is what says it is
     right, and what the slide on a map drawn across the join is for.
@@ -1014,6 +1014,21 @@ def main():
                     rom, map_id, render_maps.map_tiles(rom, map_id),
                     crops_[name], box_graph, npc_cells.get(map_id, ()))]
 
+    # crop_violations covers what the pack points at -- chests, teleports,
+    # tracked NPCs. It does not cover what the renderer *draws*: with --npcs
+    # defaulting to all, a map object standing outside the frame is a sprite
+    # that silently does not appear, and drop_specks discarding a whole region
+    # is a new way for that to happen. Reported rather than fatal, because one
+    # of them is real: marshB1's spare bat is parked out of bounds on a vanilla
+    # cartridge too. Anything else here wants looking at, and until now the
+    # regen was the one path that never asked.
+    outside = []
+    if args.npcs != "none":
+        for map_id, name in render_maps.MAP_FILES.items():
+            outside += [(f"object {oid} on {name}", name, cell[0], cell[1])
+                        for oid, cell in render_maps.cropped_objects(
+                            map_id, crops_[name], box_graph)]
+
     # And every marker has to land inside the image it names, with room for the
     # 24px box PopTracker draws around it -- tests/test_maps.lua checks exactly
     # this for the shipped art, and the crop is what could newly break it.
@@ -1087,6 +1102,13 @@ def main():
         report("things the crop would cut off the edge of their map", cut)
     if stray:
         report("markers land outside the image they name", stray)
+    if outside:
+        print(f"\nnote: {len(outside)} map objects fall outside their crop, so "
+              "they are not drawn (marshB1's spare bat is the known one):")
+        for name, m, x, y in outside[:10]:
+            print(f"  {name} at {x},{y}")
+        if len(outside) > 10:
+            print(f"  ... and {len(outside) - 10} more")
     if unplaceable or voided or cut or stray:
         print("\nnothing was written.")
         return 1
