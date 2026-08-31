@@ -106,6 +106,36 @@ over it. Seeds from an FFR version the pack has no schema for keep the manual
 grid, and say so rather than guessing. `tools/ffr_flags/` has the offline version
 of the same decoder, and the details.
 
+## It checks the drawn maps against the cartridge
+
+If you have run `tools/regen_maps.py`, the map tabs are showing art drawn off
+one particular seed, and PopTracker serves that ahead of the pack's own
+hand-drawn maps. Read under a different seed it looks completely normal and is
+wrong about every staircase.
+
+The bridge compares the two and lights the warning triangle at the end of the
+key-item grid when they disagree; click it for what the art was drawn for and
+what is in the emulator, or read the same line in the Script Window. It stays
+quiet whenever it cannot tell -- no regenerated art installed, a cartridge with
+no FFR flag record, art drawn before the tools recorded what they were drawing
+from.
+
+If your override predates the triangle, the triangle is not there. PopTracker
+serves the override's `layouts/shared.json` ahead of this checkout's, and the
+cell the light sits in was added here -- an override written before it renders
+an empty group and says nothing, the same shadowing that hid
+`shared_display_grid` on 2026-08-30. `tools/regen_maps.py --verify` names it in
+milliseconds without reading a cartridge; the fix is to re-run the tool once
+per mode you have art for. Worth checking before concluding the light is
+broken, because everyone who can see a stale-art warning has an override
+installed by definition.
+
+Archipelago cannot answer this one: like the flag string, it only exists on the
+cartridge, so an AP-only session leaves the light dark.
+
+Regenerating is still a manual step, and picking the new art up still needs
+PopTracker restarted: it loads its images once, at load.
+
 ## The board follows the game rather than accumulating
 
 Loading an older save un-marks the chests it had not opened and walks items back

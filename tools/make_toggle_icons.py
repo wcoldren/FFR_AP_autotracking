@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Draw the four pin-toggle icons.
+"""Draw the four pin-toggle icons, and the one warning light that shares their
+style.
 
 These are display controls, not seed flags, and they have to look like it. The
 flags grid is full of cartridge sprites -- a king, a chest, a dock -- so an icon
@@ -48,6 +49,16 @@ barely separable from the square it encircles, so `showIncentiveRings` is the
 one of the four most likely to want a drawn `noXxx.png` rather than the filter.
 Adding one is a one-line change to the item.
 
+**The fifth icon is not a toggle.** `artStale` is a warning light -- the drawn
+maps are another cartridge's -- so it belongs to `flagsUnread.png`'s family
+rather than to the four above, and it is drawn here because that is where the
+canvas and the house style live. Its amber is sampled from `flagsUnread.png`
+(222/168/46, with the exclamation cut out in 60/44/10) for the same reason the
+rest of the palette is sampled: two warning lights side by side in the same grid
+that disagreed about their amber would look like a mistake. The glyph pairs that
+triangle with three marker boxes, which is the vocabulary the toggles above
+already use for "the pins on the art".
+
     python3 tools/make_toggle_icons.py            # write images/flags/*.png
     python3 tools/make_toggle_icons.py --check    # exit 1 if any differ
 """
@@ -71,6 +82,13 @@ GLYPH = (188, 188, 188)
 # PopTracker's own, so the icon matches the board: src/ui/mapwidget.cpp:32 and :58.
 CHECKABLE = (0x30, 0x40, 0xFF)
 PRIORITY = (0xFF, 0xD7, 0x00)
+
+# The warning family, sampled from images/flags/flagsUnread.png. Its ground is
+# 26/26/30 rather than autoTab's 24/24/28, and the warning light drawn below
+# uses the ground it is sitting next to.
+WARN_GROUND = (26, 26, 30)
+AMBER = (222, 168, 46)
+AMBER_CUT = (60, 44, 10)
 
 
 class Canvas:
@@ -164,11 +182,38 @@ def incentive_rings():
     return c
 
 
+def art_stale():
+    """The warning triangle over three marker boxes: the art is another seed's.
+
+    Not a toggle. Same 32x32 ground and border as the four above, same amber as
+    flagsUnread.png, and the boxes are the marker shape the toggles use -- so
+    what it says is "a warning, about the pins on the map art", in the pack's
+    own vocabulary rather than in a new one.
+    """
+    c = Canvas(fill=WARN_GROUND)
+    c.border()
+    apex_y, base_y, cx = 4, 19, 16
+    for y in range(apex_y, base_y + 1):
+        half = (y - apex_y) * 9 // (base_y - apex_y)
+        for x in range(cx - half, cx + half + 1):
+            c.set(x, y, AMBER)
+    # The exclamation, cut out of the triangle rather than drawn over it.
+    for y in range(9, 15):
+        for x in (cx - 1, cx):
+            c.set(x, y, AMBER_CUT)
+    for x in (cx - 1, cx):
+        c.set(x, 17, AMBER_CUT)
+    for x in (9, 16, 23):
+        c.square(x, 26, 2, GLYPH)
+    return c
+
+
 ICONS = {
     "showChestPins": chest_pins,
     "showNpcPins": npc_pins,
     "showSkippedPins": skipped_pins,
     "showIncentiveRings": incentive_rings,
+    "artStale": art_stale,
 }
 
 
@@ -198,7 +243,7 @@ def main(argv=None):
     if args.check and bad:
         return 1
     if args.check:
-        print("all four icons match")
+        print("all %d icons match" % len(ICONS))
     return 0
 
 

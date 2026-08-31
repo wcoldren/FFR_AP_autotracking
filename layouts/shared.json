@@ -19,28 +19,27 @@
                     "rod",
                     "oxyale",
                     "chime",
-                    "cube"
+                    "cube",
+                    "bridge",
+                    "ship"
                 ],
                 [
-                    "bridge",
-                    "ship",
                     "canal",
                     "canoe",
-                    "floater"
-                ],
-                [
+                    "floater",
                     "adamant",
                     "tnt",
                     "crown",
-                    "crystal",
-                    "herb"
+                    "crystal"
                 ],
                 [
+                    "herb",
                     "ruby",
                     "tail",
                     "slab",
                     "bottle",
-                    "flagsUnread"
+                    "flagsUnread",
+                    "artStale"
                 ]
             ]
         }
@@ -65,9 +64,7 @@
                     "rod",
                     "oxyale",
                     "chime",
-                    "cube"
-                ],
-                [
+                    "cube",
                     "mark",
                     "sigil"
                 ],
@@ -83,7 +80,8 @@
                     "tail",
                     "slab",
                     "bottle",
-                    "flagsUnread"
+                    "flagsUnread",
+                    "artStale"
                 ]
             ]
         }
@@ -101,30 +99,28 @@
                     "sara",
                     "bikke",
                     "nerrick",
-                    "smith"
+                    "smith",
+                    "astos",
+                    "sarda"
                 ],
                 [
-                    "astos",
-                    "sarda",
                     "sages",
                     "matoya",
-                    "elfprince"
+                    "elfprince",
+                    "fairy",
+                    "lefein",
+                    "robot"
                 ],
                 [
                     "marsh",
                     "marshLocked",
-                    "fairy",
-                    "lefein",
-                    "coneriaLocked"
-                ],
-                [
-                    "robot",
+                    "coneriaLocked",
                     "iceCave",
                     "ordeals",
-                    "titansTrove",
-                    "cardiaIncentive"
+                    "titansTrove"
                 ],
                 [
+                    "cardiaIncentive",
                     "shopItem",
                     "earth",
                     "volcano",
@@ -223,7 +219,9 @@
             "rows": [
                 [
                     "npcsAreIncentive",
-                    "fetchQuestsAreIncentive"
+                    "fetchQuestsAreIncentive",
+                    "coneriaLockedIsIncentive",
+                    "marshLockedIsIncentive"
                 ],
                 [
                     "iceCaveIsIncentive",
@@ -238,11 +236,7 @@
                     "skyIsIncentive"
                 ],
                 [
-                    "coneriaLockedIsIncentive",
-                    "marshLockedIsIncentive",
-                    "cardiaIsIncentive"
-                ],
-                [
+                    "cardiaIsIncentive",
                     "loose",
                     "dud",
                     "resync"

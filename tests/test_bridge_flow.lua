@@ -31,10 +31,12 @@ ROM_INFO = { name = "seedA.nes", path = "/roms/seedA.nes", fileSha1Hash = "sha-A
 PRGROM = {}
 
 -- Write "FFRInfo|...|Flags: <flags>|Version: <version>" where FF1Lib puts it.
-function putFlagRecord(version, flags)
+-- The seed defaults, because only the art check reads it.
+function putFlagRecord(version, flags, seed)
   PRGROM = {}
   if not version then return end
-  local record = "FFRInfo|Seed: DEADBEEF|OW Seed: none|Res. Pack Hash: none|Flags: "
+  local record = "FFRInfo|Seed: " .. (seed or "DEADBEEF")
+      .. "|OW Seed: none|Res. Pack Hash: none|Flags: "
       .. flags .. "|Version: " .. version .. "\0"
   for i = 1, #record do
     PRGROM[0x7BE00 + i - 1] = record:byte(i)
@@ -103,6 +105,16 @@ io = setmetatable({
     }
   end,
 }, { __index = realIo })
+
+-- The environment, hermetically. The art check resolves PopTracker's override
+-- directory from FFR_ART_DIR or HOME, and a test that fell through to the real
+-- environment would read whatever art the machine running it happens to have
+-- installed -- passing or failing on a file no one in the repo can see.
+ENV = {}
+local realOs = os
+os = setmetatable({
+  getenv = function(name) return ENV[name] end,
+}, { __index = realOs })
 
 -- Server-socket bookkeeping, for the bind-retry and shutdown cases.
 local bindFails = false
@@ -539,6 +551,120 @@ frames(12)
 local blob = table.concat(textFrames(allSent()))
 check("no record reads as empty", blob:find('"ff1/flags","value":""', 1, true) ~= nil, true)
 check("a non-FFR cart still scans", blob:find('"ff1/mem"', 1, true) ~= nil, true)
+
+------------------------------------------------------------------
+-- 20. ff1/art. tools/regen_maps.py draws 61 maps off a cartridge into
+--     PopTracker's user-override tree, and PopTracker serves that tree ahead of
+--     the pack's own art. Drawn from one seed and read under another it looks
+--     completely normal and is wrong about every staircase. The pack cannot
+--     notice -- its Lua has no io -- so the bridge compares the stamp
+--     regen_maps leaves behind against the cartridge in the slot.
+--
+--     The failure that matters is not a missed warning: it is a warning that
+--     fires on art that is perfectly current, because a light that cries wolf
+--     stops being read. So most of what is below is the silences.
+------------------------------------------------------------------
+local STAMP = "/roms/override/.regen_stamp"
+ENV.FFR_ART_DIR = "/roms/override"
+
+local function stamp(...)
+  FILES[STAMP] = table.concat({
+    "# a comment line, which the reader has to skip",
+    ...
+  }, "\n") .. "\n"
+end
+
+local function artOf(blob)
+  return blob:match('"ff1/art","value":"([^"]*)"')
+end
+
+-- ff1/art is diffed like every other var, so a verdict that has not changed is
+-- not resent: a frame with no ff1/art in it means "same as last time", not
+-- "nothing". Reading it as nothing would make every silence pass whatever the
+-- bridge decided, which is the one thing this section is for.
+local artSeen = ""
+local function artNow(blob)
+  artSeen = artOf(blob) or artSeen
+  return artSeen
+end
+
+-- The cartridge every check below is holding.
+local CART_FLAGS = "omlInJg6XzAlwLPjeZz"
+ROM_INFO = { name = "art1.nes", path = "/roms/art1.nes", fileSha1Hash = "sha-art1" }
+putFlagRecord("4-9-7", CART_FLAGS, "3B7E1C8A")
+
+-- a. No override installed at all. The pack is serving its own hand-drawn art,
+--    which never claims to be a seed's, so there is nothing to warn about.
+FILES[STAMP] = nil
+frames(12)
+check("no override says nothing", artNow(table.concat(textFrames(allSent()))), "")
+
+-- b. The art was drawn from this very cartridge.
+ROM_INFO = { name = "art2.nes", path = "/roms/art2.nes", fileSha1Hash = "sha-art2" }
+stamp("std sha-whatever 4-9-7|3B7E1C8A|" .. CART_FLAGS,
+      "nov sha-other 4-9-2|F2585541|omlY4TDJ0W")
+frames(12)
+check("art drawn from this cartridge says nothing",
+  artNow(table.concat(textFrames(allSent()))), "")
+
+-- c. Every line is another cartridge's. This is the one warning.
+ROM_INFO = { name = "art3.nes", path = "/roms/art3.nes", fileSha1Hash = "sha-art3" }
+stamp("std sha-x 4-9-2|C189A0F0|omlInPoZ8ae",
+      "nov sha-y 4-9-2|F2585541|omlY4TDJ0W")
+frames(12)
+local why = artNow(table.concat(textFrames(allSent())))
+check("art from another cartridge warns", why ~= "" and why ~= nil, true)
+check("  and names what the art is for", (why or ""):find("C189A0F0", 1, true) ~= nil, true)
+check("  and what the cartridge is", (why or ""):find("3B7E1C8A", 1, true) ~= nil, true)
+check("  without spending the whole flag string",
+  #(why or "") < 200, true)
+
+-- d. Mesen's own hash agreeing is enough on its own. It is never used to
+--    disagree -- what fileSha1Hash covers is the emulator's business -- so this
+--    line has to silence a stamp whose FFRInfo fields all point elsewhere.
+ROM_INFO = { name = "art4.nes", path = "/roms/art4.nes", fileSha1Hash = "sha-art4" }
+stamp("std sha-art4 4-9-2|C189A0F0|omlInPoZ8ae")
+frames(12)
+check("a matching sha1 silences a mismatched record",
+  artNow(table.concat(textFrames(allSent()))), "")
+
+-- e. One mode's art predates the stamp. It could be this cartridge's and
+--    nothing here can rule that out, so the file cannot answer -- and half an
+--    answer must not be spent as a whole one.
+ROM_INFO = { name = "art5.nes", path = "/roms/art5.nes", fileSha1Hash = "sha-art5" }
+stamp("std sha-x 4-9-2|C189A0F0|omlInPoZ8ae", "nov unknown unknown")
+frames(12)
+check("an unrecorded mode makes the file unable to answer",
+  artNow(table.concat(textFrames(allSent()))), "")
+
+-- f. A cartridge with no FFRInfo record has nothing to compare, and the sha1
+--    is Mesen's rather than something this can compute.
+ROM_INFO = { name = "art6.nes", path = "/roms/art6.nes", fileSha1Hash = "sha-art6" }
+putFlagRecord(nil)
+stamp("std sha-x 4-9-2|C189A0F0|omlInPoZ8ae")
+frames(12)
+check("a cartridge with no record says nothing",
+  artNow(table.concat(textFrames(allSent()))), "")
+
+-- g. A stamp written by a newer tool, or a corrupted one: no line matches the
+--    pattern, so there is nothing known to compare and nothing to say.
+ROM_INFO = { name = "art7.nes", path = "/roms/art7.nes", fileSha1Hash = "sha-art7" }
+putFlagRecord("4-9-7", CART_FLAGS, "3B7E1C8A")
+FILES[STAMP] = "# only comments\nstd,sha-x,4-9-2|C189A0F0|omlInPoZ8ae\n"
+frames(12)
+check("an unparseable stamp says nothing",
+  artNow(table.concat(textFrames(allSent()))), "")
+
+-- h. And it is read once per cartridge, not once per scan.
+ROM_INFO = { name = "art8.nes", path = "/roms/art8.nes", fileSha1Hash = "sha-art8" }
+stamp("std sha-x 4-9-2|C189A0F0|omlInPoZ8ae")
+frames(12)
+check("the warning goes out once", artOf(table.concat(textFrames(allSent()))) ~= nil, true)
+frames(12)
+check("and is not resent while the cartridge sits still",
+  table.concat(textFrames(allSent())):find('"ff1/art"', 1, true) == nil, true)
+
+ENV.FFR_ART_DIR = nil
 
 ------------------------------------------------------------------
 -- The run clock.

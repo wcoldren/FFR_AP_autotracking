@@ -166,7 +166,7 @@ end
 --     here, so it is the set the pack actually loads and a new layout is
 --     covered without a second edit. LuaItems are listed by hand because they
 --     are created in Lua at load and cannot be read out of items/*.json.
-local LUA_ITEM_CODES = { resync = true, flagsUnread = true }
+local LUA_ITEM_CODES = { resync = true, flagsUnread = true, artStale = true }
 local layoutFiles, layoutSeen = {}, {}
 do
   local f = assert(io.open(PACK .. "/scripts/init.lua"))

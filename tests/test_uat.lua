@@ -157,11 +157,12 @@ check("ff1/goal going false releases it", UAT_CHECKED[766], nil)
 -- ff1/rom: the signal that says "different cartridge". Without it the pack's
 -- raise-only halves carried a finished seed into the next one.
 ------------------------------------------------------------------
-local function romStore(ready, mem, rom)
+local function romStore(ready, mem, rom, art)
   return { ReadVariable = function(self,name)
     if name=="ff1/ready" then return ready end
     if name=="ff1/mem" then return mem end
     if name=="ff1/rom" then return rom end
+    if name=="ff1/art" then return art end
   end }
 end
 
@@ -349,10 +350,12 @@ check("and the feed's own code is still up", objects[bikke].Active, true)
 -- stable LuaItem ids the fallback is the sequential item id, so an item added
 -- in front of these renumbers the Resync button and the ROM memo and the memo
 -- comes back attached to the wrong thing. Pin it.
-check("three lua items", #luaItems, 3)
+check("four lua items", #luaItems, 4)
 check("resync is first", luaItems[1].Name, "Resync tracker")
 check("the rom memo is second", luaItems[2].Name, "FFR ROM id")
 check("the unread light is third", luaItems[3].Name, "FFR flags unread")
+check("the stale-art light is fourth", luaItems[4].Name,
+  "Drawn maps are another cartridge's")
 
 local light = Tracker:FindObjectForCode("flagsUnread")
 check("the light is reachable by its code", light == luaItems[3], true)
@@ -396,6 +399,35 @@ memo.LoadFunc(memo, saved)
 check("a restart brings the record back", FFR_FLAGS_SOURCE, "4-9-2|somebadstring")
 check("and re-lights the light", light.Icon, "images/flags/flagsUnread.png")
 check("with the reason it had", FLAGS_UNREAD_WHY, "no schema for FFR 4-9-2")
+
+------------------------------------------------------------------
+-- The stale-art light
+------------------------------------------------------------------
+-- Driven straight off ff1/art rather than latched, so what is worth pinning is
+-- that every shape of that variable lands the right way round -- and above all
+-- that the ordinary case, a bridge with nothing to report, leaves the board
+-- alone. A warning light that is on when nothing is wrong is worse than no
+-- light: it is the one people learn to ignore.
+local artLight = Tracker:FindObjectForCode("artStale")
+check("the art light is reachable by its code", artLight == luaItems[4], true)
+check("it starts dark", artLight.Icon, nil)
+
+local WHY = "the drawn maps are another cartridge's: std 4-9-2|C189A0F0"
+captured.cb(romStore(true, blank(), "romArt", WHY))
+check("a mismatch lights it", artLight.Icon, "images/flags/artStale.png")
+check("and it remembers why", ART_STALE_WHY, WHY)
+
+-- "" is the bridge saying it compared and found nothing wrong, or that it could
+-- not tell. Both are the same to the board: no warning.
+captured.cb(romStore(true, blank(), "romArt", ""))
+check("an empty verdict clears it", artLight.Icon, nil)
+check("and forgets the reason", ART_STALE_WHY, nil)
+
+-- An Archipelago-only session has no bridge, so the variable never arrives.
+-- That is not a verdict either.
+captured.cb(romStore(true, blank(), "romArt", WHY))
+captured.cb(romStore(true, blank(), "romArt", nil))
+check("no bridge means no warning", artLight.Icon, nil)
 
 -- A cartridge that was read fine saves no verdict, and must not acquire one.
 setFlagsUnread(nil)

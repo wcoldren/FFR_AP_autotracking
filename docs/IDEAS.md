@@ -242,6 +242,16 @@ something cheap to compare. The FFR seed string and flag string are already read
 on both sides, so writing those into `.regen_cache.json` alongside the sha is the
 enabling change.
 
+**Built 2026-08-31, and that last paragraph was half right.** The comparator is
+the seed and flag string, as proposed -- but not written into
+`.regen_cache.json`, because the reader has no JSON parser either. It goes in
+`.regen_stamp`, one line per mode. And "the bridge has no sha256" skipped a
+step: the bridge has a *sha1*, `emu.getRomInfo().fileSha1Hash`, which it already
+spends as the cartridge id. What that hash covers is not written down anywhere
+here, so the stamp records the file's sha1 and the bridge lets it agree but
+never disagree; `bridge/probe_rom_id.lua` is the measurement that would settle
+it. Detail in `STATUS.md`, "The art on disk now says what it was drawn for".
+
 ## Bosses and trap tiles
 
 The four fiends and the ToFR refights have no pins. Two separate problems wearing

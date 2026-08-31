@@ -215,6 +215,70 @@ function setFlagsUnread(why)
   end
 end
 
+-- The other warning light: the map tabs are showing art drawn off a different
+-- cartridge. tools/regen_maps.py renders 61 maps into PopTracker's
+-- user-override tree and PopTracker serves that ahead of the pack's own art, so
+-- art from the last seed under this seed's pins looks entirely normal and is
+-- wrong about every staircase.
+--
+-- Nothing here can work that out. This Lua has no io and no os, so the pack
+-- cannot read the override it is being served from; the bridge does the
+-- comparison and sends the verdict as ff1/art. Which means this light is
+-- bridge-only by construction -- an Archipelago-only session never learns
+-- anything about the art on disk, the same way it never learns the flag string.
+--
+-- Fourth of the four LuaItems in this file, and last for the reason the third
+-- one gives: append, never insert.
+local artStaleItem = nil
+ART_STALE_WHY = ART_STALE_WHY or nil
+
+local function makeArtStaleLight()
+  if type(ScriptHost.CreateLuaItem) ~= "function" then
+    return
+  end
+  local ok, item = pcall(function() return ScriptHost:CreateLuaItem() end)
+  if not ok or not item then
+    print("uat: could not create the stale-art light")
+    return
+  end
+  item.Name = "Drawn maps are another cartridge's"
+  item.Icon = nil
+  item.CanProvideCodeFunc = function(_, code)
+    return code == "artStale"
+  end
+  item.OnLeftClickFunc = function()
+    if ART_STALE_WHY then
+      print("maps: " .. ART_STALE_WHY .. " -- re-run tools/regen_maps.py on "
+        .. "this cartridge and restart PopTracker, or --clean it to go back to "
+        .. "the pack's hand-drawn art")
+    else
+      print("maps: nothing says the drawn maps are another cartridge's")
+    end
+  end
+  artStaleItem = item
+end
+makeArtStaleLight()
+
+-- why = nil clears the light, exactly as setFlagsUnread does. Driven straight
+-- off the variable every update rather than latched: the bridge computes it per
+-- cartridge and republishes on a swap, so the store always holds the verdict
+-- for the cartridge in the slot and there is no separate state to keep in step.
+function setArtStale(why)
+  if why == "" then
+    why = nil
+  end
+  ART_STALE_WHY = why
+  if not artStaleItem then
+    return
+  end
+  local ok, err = pcall(function()
+    artStaleItem.Icon = why and "images/flags/artStale.png" or nil
+  end)
+  if not ok then
+    print("uat: cannot set the stale-art light -- " .. tostring(err))
+  end
+end
+
 -- "" means the emulator would not tell us, which is not the same as a change.
 local function checkRom(store)
   local rom = store:ReadVariable("ff1/rom")
@@ -233,6 +297,13 @@ local function checkRom(store)
     -- from the last cartridge describes a cartridge that is no longer in the
     -- slot.
     setFlagsUnread(nil)
+    -- And the stale-art verdict, for the same reason. ff1/art is computed per
+    -- cartridge and republished on a swap, so the frame below normally carries
+    -- the new one -- but a frame that carries ff1/rom and not ff1/art would
+    -- leave the triangle lit against a cartridge the verdict was never
+    -- computed for, and the light is meant to be read the moment a seed is
+    -- loaded.
+    setArtStale(nil)
     resetForNewGame()
   elseif ROM_ID == nil then
     -- No memo to compare against: a first run, or a save written before the memo
@@ -257,6 +328,13 @@ function onFF1Flags(store)
   if applyFFRFlags then
     applyFFRFlags(store:ReadVariable("ff1/flags"))
   end
+
+  -- Ahead of the ready gate for the third time, and for the same reason: which
+  -- cartridge the art on disk was drawn for is a fact about the installation,
+  -- not about how far into the seed you are. It is also the moment it is worth
+  -- knowing -- before you have read anything off a map.
+  local art = store:ReadVariable("ff1/art")
+  setArtStale(type(art) == "string" and art or nil)
 
   -- The bridge only claims ready once a save is actually loaded, which keeps
   -- a reset or the character-creation screen from reading as a wipe.
@@ -326,4 +404,5 @@ end
 -- order is not defined, and reading both out of one store removes any chance of
 -- decoding the new cartridge's flags against the old cartridge's identity.
 ScriptHost:AddVariableWatch("ff1mem",
-  {"ff1/mem", "ff1/ready", "ff1/rom", "ff1/flags", "ff1/goal"}, onFF1Flags)
+  {"ff1/mem", "ff1/ready", "ff1/rom", "ff1/flags", "ff1/goal", "ff1/art"},
+  onFF1Flags)

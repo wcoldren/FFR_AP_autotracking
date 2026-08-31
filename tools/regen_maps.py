@@ -92,6 +92,27 @@ TILE_PX = render_maps.TILE_PX
 CACHE_NAME = ".regen_cache.json"
 CACHE_VERSION = 2
 
+# The same identity, written where an emulator can read it. The cache says what
+# each mode's art was drawn from in sha256, which is the right answer for this
+# tool and useless at the one place the question actually gets asked: Mesen's
+# Lua, which has neither a sha256 nor a JSON parser. So the stamp is a second
+# file, line-oriented and readable with a single pattern match, carrying the two
+# identities the emulator can produce for the cartridge in its slot.
+#
+# Two rather than one because they fail differently. The sha1 is exact and tells
+# a person nothing; the FFRInfo line is what makes a mismatch legible -- "this
+# art was drawn for seed 3B7E1C8A" -- and it is the half that survives a file
+# whose header the emulator has parsed off. Neither leaks anything: the bridge
+# already puts both on the wire as `ff1/rom` and `ff1/flags`.
+STAMP_NAME = ".regen_stamp"
+
+# A mode whose cache entry predates the stamp has no identity to write. It says
+# so rather than being left out, because a reader that finds no line for a
+# cartridge cannot tell "the art is for another seed" from "the art might be
+# yours and this file cannot say" -- and warning on the second is a false alarm
+# on art that is perfectly current.
+STAMP_UNKNOWN = "unknown"
+
 # Which set of art a cartridge belongs in. A No-Overworld seed and a standard
 # one disagree about 34 to 39 of the 61 maps -- it seals every town's outer wall
 # and stamps 75 new staircases -- so one tree of art cannot serve both, and the
@@ -159,6 +180,82 @@ TOWN_TABS = [
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def cartridge_id(rom, path):
+    """What an emulator will be able to say about this cartridge.
+
+    The sha1 of the whole file, iNES header included, because that is what
+    Mesen's `emu.getRomInfo().fileSha1Hash` hands over -- and the FFRInfo record
+    as "<version>|<seed>|<flags>", which is the same record the bridge already
+    reads two thirds of for the flag grid.
+
+    The seed on its own is not an identity and must not be used as one: the
+    three 4.9.7 oracle cartridges all carry seed 3B7E1C8A and differ only in
+    their flags.
+    """
+    info = entrance_graph.ffr_info(entrance_graph.Rom.of(rom, path)) or {}
+    ffr = STAMP_UNKNOWN
+    if info.get("Version") and info.get("Seed") and info.get("Flags"):
+        ffr = "%s|%s|%s" % (info["Version"], info["Seed"], info["Flags"])
+    return {"sha1": hashlib.sha1(rom).hexdigest(), "ffr": ffr}
+
+
+def stamp_text(modes):
+    """The stamp file's whole content, from the cache's per-mode records.
+
+    Written from the cache rather than from the run, so regenerating one mode
+    does not drop the other mode's line -- the same reason `outputs` spans both.
+    """
+    lines = [
+        "# What each mode's art was drawn for. Written by tools/regen_maps.py",
+        "# beside " + CACHE_NAME + ", for readers with no JSON parser.",
+        "#",
+        "#   <mode> <sha1 of the .nes> <ffr version>|<seed>|<flags>",
+        "#",
+        "# " + STAMP_UNKNOWN + " means this mode's art predates the stamp. That is",
+        "# not a mismatch: it is this file being unable to say.",
+    ]
+    for mode in sorted(modes):
+        was = modes[mode]
+        lines.append("%s %s %s" % (mode, was.get("sha1", STAMP_UNKNOWN),
+                                   was.get("ffr", STAMP_UNKNOWN)))
+    return "\n".join(lines) + "\n"
+
+
+def write_stamp(out_dir, modes):
+    """-> "missing", "differs", or None when the stamp is already right.
+
+    "missing" and "differs" are told apart because the caller says which
+    happened, and a stamp that is merely out of date -- hand-edited, or written
+    in an older format -- is not the same event as one that was deleted.
+
+    Never fatal. The stamp records what the art was drawn for; it is not one of
+    the drawings. An override directory that has gone read-only, or been
+    removed under a running tool, should not turn a run that had nothing else
+    to do into a traceback.
+    """
+    text = stamp_text(modes)
+    path = os.path.join(out_dir, STAMP_NAME)
+    try:
+        with open(path) as f:
+            existing = f.read()
+    except OSError:
+        existing = None
+    if existing == text:
+        return None
+    try:
+        with open(path, "w") as f:
+            f.write(text)
+    except OSError as e:
+        print(f"cannot write {STAMP_NAME}: {e}")
+        return None
+    return "missing" if existing is None else "differs"
+
+
+def write_cache(out_dir, cache):
+    with open(os.path.join(out_dir, CACHE_NAME), "w") as f:
+        json.dump(cache, f, indent=1)
 
 
 def pack_uid():
@@ -937,6 +1034,7 @@ def main():
           f"images/maps/{mode}/")
 
     rom_sha = sha(rom)
+    ident = cartridge_id(rom, args.rom)
     inputs_sha = inputs_fingerprint()
     cache, stale = load_cache(out_dir)
     if stale:
@@ -961,6 +1059,34 @@ def main():
             and was.get("marker") == [args.marker_size, args.marker_border]
             and outputs_intact(out_dir, cache)):
         print(f"up to date: {len(cache['outputs'])} files in {out_dir}")
+        # Art drawn before the stamp existed has no identity in its cache slot,
+        # and a slot with none writes a line of `unknown`. readArt treats one
+        # unknown line as "cannot tell" for the whole installation, so a mode
+        # nobody has redrawn since silences the check for the mode they use --
+        # and the only way out would be --force on a cartridge the tool has
+        # just said it has nothing to do for.
+        #
+        # It does not have to be. `was["rom"] == rom_sha` above is proof that
+        # the cartridge in hand is the one this mode's art was drawn from, so
+        # `ident` is that mode's identity and can be filled in without
+        # redrawing anything.
+        if not was.get("sha1") or not was.get("ffr"):
+            cache["modes"][mode] = {**was, **ident}
+            verb = "would record" if args.dry_run else "recorded"
+            print(f"{verb} what the {MODE_DIRS[mode]} art was drawn for "
+                  "(it was rendered before this tool wrote that down)")
+            if not args.dry_run:
+                write_cache(out_dir, cache)
+        # The stamp is not in `outputs`, so outputs_intact() above does not
+        # notice it missing. Deleting it by hand would otherwise leave it gone
+        # until the next --force, which is a long time to be unable to answer
+        # the question it exists for.
+        if not args.dry_run:
+            wrote = write_stamp(out_dir, cache["modes"])
+            if wrote == "missing":
+                print(f"rewrote the missing {STAMP_NAME}")
+            elif wrote == "differs":
+                print(f"brought {STAMP_NAME} up to date")
         print("nothing to do (--force to regenerate anyway)")
         return 0
 
@@ -1344,13 +1470,14 @@ def main():
         modes = dict((cache or {}).get("modes", {}))
         modes[mode] = {"rom": rom_sha, "npcs": args.npcs,
                        "inputs": inputs_sha,
-                       "marker": [args.marker_size, args.marker_border]}
+                       "marker": [args.marker_size, args.marker_border],
+                       **ident}
         outputs = dict((cache or {}).get("outputs", {}))
         outputs.update({rel: sha(data) for rel, data in files.items()})
-        with open(os.path.join(out_dir, CACHE_NAME), "w") as f:
-            json.dump({"version": CACHE_VERSION, "inputs": inputs_sha,
-                       "modes": modes,
-                       "outputs": dict(sorted(outputs.items()))}, f, indent=1)
+        write_cache(out_dir, {"version": CACHE_VERSION, "inputs": inputs_sha,
+                              "modes": modes,
+                              "outputs": dict(sorted(outputs.items()))})
+        write_stamp(out_dir, modes)
 
     verb = "would write" if args.dry_run else "wrote"
     print(f"\n{verb} {len(changed)} of {len(files)} files to {out_dir}")

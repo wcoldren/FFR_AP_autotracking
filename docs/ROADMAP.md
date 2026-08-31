@@ -65,8 +65,11 @@ share work with section 1, which is why they come second and not later.
 
 - **Notice when the drawn maps are for another cartridge.** A regenerated set
   from the last seed under this seed's pins is worse than the hand art. The
-  bridge can detect it (`IDEAS.md`, "Notice when the drawn maps…"); build
-  detection first, execution second.
+  detection half landed 2026-08-31 (`STATUS.md`, "The art on disk now says what
+  it was drawn for"): `regen_maps.py` writes `.regen_stamp`, the bridge compares
+  it against the cartridge and publishes `ff1/art`, and the `artStale` light
+  says so on the board. Left: the execution half, which no longer gates on a
+  measurement now that `os.execute` is known to run and detach.
 - **Follow the party into towns and rooms.** Auto-tab exists; extend it to the
   No-Overworld towns and to the room-level zoom.
 - **`hide unreachable locations` swallows skipped slots.** Decide whether

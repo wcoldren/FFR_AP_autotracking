@@ -1421,6 +1421,77 @@ fingerprint, so that mode reads as stale and redraws once, which is the right
 answer for it.
 
 
+## The art on disk now says what it was drawn for
+
+Built 2026-08-31, the detection half of "notice when the drawn maps are for
+another cartridge". `regen_maps.py` renders 61 maps off one seed into
+PopTracker's `user-override/` tree and PopTracker serves that tree ahead of the
+pack's own art, so art rendered from one cartridge and read under another looks
+entirely normal and is wrong about every staircase -- worse than the hand art,
+which at least never claims to be a seed's.
+
+Nothing in the tracker can notice. PopTracker's Lua has no `io` and no `os`, so
+the pack cannot read the override it is being served from. The bridge can, and
+is already holding the cartridge, so the comparison lands there.
+
+**What the cache could not do, and why the file is new.** `.regen_cache.json`
+already records a sha256 per mode, which is the right identity for the tool and
+unusable by the only reader that matters: Mesen's Lua has neither a sha256 nor a
+JSON parser. So the regen writes a second file, `.regen_stamp`, line-oriented
+and readable with one pattern match, carrying two identities per mode -- the
+sha1 of the `.nes` and the FFRInfo record as `<version>|<seed>|<flags>`.
+
+**The seed is not an identity, and the flag string nearly is.** The three 4.9.7
+oracle cartridges all carry seed `3B7E1C8A` and differ only in their flags, so
+anything keyed on the seed calls them one cartridge. The flag string ends in the
+FFR build sha, so all three fields matching means the same generator on the same
+settings, which is the same bytes.
+
+**The sha1 is only ever allowed to agree.** `docs/IDEAS.md` said "the bridge has
+no sha256, so the cache has to record something cheap", which was true and
+skipped a step: the bridge does have a hash, `emu.getRomInfo().fileSha1Hash`,
+which `readRom()` already spends as the cartridge id. What it covers -- the file
+on disk, or the banks with the iNES header parsed off -- is not written down
+anywhere here, and `bridge/probe_rom_id.lua` is the measurement that would say.
+Until it is run, a sha1 match silences the check and a sha1 mismatch means
+nothing, so a wrong guess about what it covers costs nothing. The sha1 the
+stamp records is of the whole file, header included, and was checked against
+`shasum -a 1` on both oracle modes.
+
+**Most of the work is the silences.** The failure that ends a warning light is
+not a missed warning but one that fires on art that is current, so four
+different states report "nothing to say": no override installed, no stamp in it,
+a cartridge with no FFRInfo record, and a mode whose art predates the stamp.
+That last one is the interesting case -- the unrecorded mode could be this
+cartridge's and nothing can rule it out, so one `unknown` line makes the whole
+file unable to answer rather than letting the recorded modes speak for it.
+
+`tests/test_bridge_flow.lua` section 20 drives all of it through a simulated
+connection; four of its five silences were confirmed to fail when the guards are
+removed. `tools/tests/test_regen_stamp.py` holds the format, including the
+pattern the bridge matches with, written in the test the way Lua spells it.
+
+**The light.** `artStale` is the fourth LuaItem in `uat.lua` and sits beside
+`flagsUnread` at the end of the key-item grid, which makes that last row six
+wide where the others are five -- deliberate, and the thing to change first if
+it reads badly. Clicking it prints what the art was drawn for and what to do
+about it. `images/flags/artStale.png` is drawn by `make_toggle_icons.py`, which
+now writes five icons: a warning triangle in `flagsUnread.png`'s own amber over
+three marker boxes, so it says "a warning, about the pins on the map art" in
+shapes the pack already uses. It is bridge-only by construction -- an
+Archipelago session never learns anything about the art on disk, the same way it
+never learns the flag string.
+
+Note that adding the cell edits `layouts/shared.json`, which is in
+`INPUT_FILES`. An override written before this serves the old layout and the
+cell will not be on the board at all -- `tools/regen_maps.py --verify` says so,
+and the fix is a regen per mode.
+
+**What is not built.** The execution half: nothing fires a regen. And the
+restart is still irreducible -- PopTracker loads pack images at load time, so no
+amount of detecting or regenerating removes it.
+
+
 ## Known wrong
 
 Moved to `docs/ISSUES.md`, with the open questions.

@@ -494,8 +494,8 @@ local INFO_MSG =
   '[{"cmd":"Info","protocol":0,"name":"FF1R Mesen Bridge","version":"1.0.0"}]'
 
 -- Last state actually put on the wire, for diffing.
-local sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags =
-    nil, nil, nil, nil, nil, nil
+local sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt =
+    nil, nil, nil, nil, nil, nil, nil
 
 local function varMem(mem)
   local parts = {}
@@ -522,7 +522,7 @@ local function varStr(name, value)
   return '{"cmd":"Var","name":"' .. name .. '","value":"' .. escaped .. '"}'
 end
 
-local function sendState(mem, ready, goal, map, rom, flags, force)
+local function sendState(mem, ready, goal, map, rom, flags, art, force)
   local msgs = {}
   if force or mem ~= sentMem then
     msgs[#msgs + 1] = varMem(mem)
@@ -548,12 +548,17 @@ local function sendState(mem, ready, goal, map, rom, flags, force)
   if force or flags ~= sentFlags then
     msgs[#msgs + 1] = varStr("ff1/flags", flags)
   end
+  -- And on the same terms again: which cartridge the art on disk was drawn for
+  -- is a fact about the installation, not about the save.
+  if force or art ~= sentArt then
+    msgs[#msgs + 1] = varStr("ff1/art", art)
+  end
   if #msgs == 0 then
     return
   end
   if send(wsEncodeText("[" .. table.concat(msgs, ",") .. "]")) then
-    sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags =
-        mem, ready, goal, map, rom, flags
+    sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt =
+        mem, ready, goal, map, rom, flags, art
   end
 end
 
@@ -574,6 +579,10 @@ local lastGoal = false
 local lastMap = MAP_OVERWORLD
 local lastRom = ""
 local lastFlags = ""
+-- Why the drawn maps are not this cartridge's, or "". Kept beside lastFlags
+-- because it describes the cartridge rather than the save, and goes out on the
+-- same terms.
+local lastArt = ""
 
 -- Which cartridge is in the slot. The pack uses this to notice that it is
 -- looking at a different game and drop the previous one's board -- without it,
@@ -602,12 +611,18 @@ end
 -- drops the memo.
 local flagsFor, flagsValue = nil, ""
 local flagsWarned = false
+-- The cartridge's full FFRInfo identity, and the two fields of it worth saying
+-- out loud. Set by readFlags alongside flagsValue and memoised with it.
+local ffrValue, ffrSeed, ffrVersion = "", "", ""
 
 local function readFlags(rom)
   if flagsFor == rom then
     return flagsValue
   end
   flagsFor, flagsValue = rom, ""
+  -- Cleared on the same statement, so every early return below leaves the
+  -- identity empty rather than the previous cartridge's.
+  ffrValue, ffrSeed, ffrVersion = "", "", ""
 
   if not EMU.readRom then
     return flagsValue
@@ -639,8 +654,125 @@ local function readFlags(rom)
   end
 
   flagsValue = version .. "|" .. flags
-  EMU.log("seed flags: FFR " .. version .. ", " .. #flags .. " characters")
+  -- The same record's Seed field, which the flag grid has no use for and the
+  -- art check does. Kept beside flagsValue rather than folded into it: the pack
+  -- parses ff1/flags as "<version>|<flags>" and a third field would break it.
+  --
+  -- The seed on its own is not an identity -- the three 4.9.7 oracle cartridges
+  -- all carry seed 3B7E1C8A and differ only in flags -- so what gets compared
+  -- is all three fields. The flag string ends in the FFR build sha, so three
+  -- matching fields mean the same generator run on the same settings, which is
+  -- the same bytes.
+  local seed = record:match("|Seed: ([^|]+)") or "?"
+  ffrValue = version .. "|" .. seed .. "|" .. flags
+  ffrSeed, ffrVersion = seed, version
+  EMU.log("seed flags: FFR " .. version .. ", seed " .. seed .. ", "
+          .. #flags .. " characters")
   return flagsValue
+end
+
+------------------------------------------------------------------
+-- Are the drawn maps this cartridge's?
+--
+-- tools/regen_maps.py renders 61 maps off a cartridge into PopTracker's
+-- user-override tree, and PopTracker serves that tree ahead of the pack's own
+-- hand-drawn art. Rendered from one seed and read under another, the art looks
+-- entirely normal and is wrong about every staircase -- which is worse than the
+-- hand art, because the hand art at least never claims to be this seed's.
+--
+-- Nothing in the tracker can notice: PopTracker's Lua has no io and no os, so
+-- the pack cannot read the override it is being served from. The bridge can,
+-- and it is already holding the cartridge, so the comparison lands here.
+--
+-- What it reads is .regen_stamp, written beside .regen_cache.json for this
+-- reader specifically: the cache records a sha256 and is JSON, and there is
+-- neither a sha256 nor a JSON parser in here.
+------------------------------------------------------------------
+
+local PACK_UID = "ff1_rando_ap"          -- manifest.json, package_uid
+local STAMP_NAME = ".regen_stamp"
+local ART_DIR_ENV = "FFR_ART_DIR"        -- for a PopTracker installed elsewhere
+
+-- ~/PopTracker/user-override/<uid>/, the same default regen_maps.py --out has.
+local function stampPath()
+  if type(os) ~= "table" or type(os.getenv) ~= "function" then
+    return nil
+  end
+  local override = os.getenv(ART_DIR_ENV)
+  if override and override ~= "" then
+    return override .. "/" .. STAMP_NAME
+  end
+  local home = os.getenv("HOME") or os.getenv("USERPROFILE")
+  if not home or home == "" then
+    return nil
+  end
+  return home .. "/PopTracker/user-override/" .. PACK_UID .. "/" .. STAMP_NAME
+end
+
+-- Why the art on disk is not this cartridge's, or "" when there is nothing to
+-- say. "Nothing to say" covers four different silences and they are all
+-- deliberate: no override installed, no stamp in it, a cartridge with no
+-- FFRInfo record to compare, and art whose own identity was never recorded.
+-- Each of those is a question this cannot answer, and answering "stale" to a
+-- question you cannot answer is how a warning light stops being read.
+--
+-- Memoised on the cartridge, like the flags: a regen while the emulator is
+-- running is not something to poll for, because picking the new art up needs
+-- PopTracker restarted anyway.
+local artFor, artValue = nil, ""
+
+local function readArt(rom)
+  if artFor == rom then
+    return artValue
+  end
+  artFor, artValue = rom, ""
+
+  local path = stampPath()
+  if not path or not EMU.readFile then
+    return artValue
+  end
+  local ok, text = pcall(EMU.readFile, path)
+  if not ok or type(text) ~= "string" then
+    return artValue         -- no override installed: the pack's own art, which
+  end                       -- is always honest about not being a seed's
+
+  readFlags(rom)            -- fills ffrValue for this cartridge, or leaves it ""
+
+  local known, unknown = {}, 0
+  for line in text:gmatch("[^\r\n]+") do
+    if line:sub(1, 1) ~= "#" then
+      local mode, sha1, ffr = line:match("^(%S+) (%S+) (%S+)$")
+      if mode then
+        -- A sha1 match silences and never warns. Mesen's fileSha1Hash is the
+        -- cartridge id readRom() already publishes, but what it covers -- the
+        -- .nes file, or the banks with the iNES header parsed off -- is the
+        -- emulator's business and not written down anywhere here. Used only to
+        -- agree, a wrong guess about that costs nothing; used to disagree it
+        -- would warn on every seed.
+        if sha1 == rom or (ffrValue ~= "" and ffr == ffrValue) then
+          return artValue
+        end
+        if ffr == "unknown" then
+          unknown = unknown + 1
+        else
+          known[#known + 1] = mode .. " " .. (ffr:match("^([^|]*|[^|]*)") or ffr)
+        end
+      end
+    end
+  end
+
+  -- A mode whose art predates the stamp could be this cartridge's -- nothing
+  -- here can rule it out, and the matching line above is the only thing that
+  -- could have. So one unrecorded mode makes the whole file unable to answer,
+  -- rather than making the recorded modes speak for it.
+  if ffrValue == "" or unknown > 0 or #known == 0 then
+    return artValue
+  end
+
+  artValue = "the drawn maps are another cartridge's: " .. table.concat(known, ", ")
+             .. " -- this one is " .. ffrVersion .. "|" .. ffrSeed
+  EMU.log(artValue)
+  return artValue
 end
 
 local function readMem()
@@ -1165,10 +1297,11 @@ local function scan()
   local mem = readMem()
   lastRom = readRom()
   lastFlags = readFlags(lastRom)
+  lastArt = readArt(lastRom)
 
   if not inGame(mem) or looksUninitialised(mem) then
     invalidate()
-    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags)
+    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags, lastArt)
     return
   end
 
@@ -1183,7 +1316,7 @@ local function scan()
   end
 
   if not isReady() then
-    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags)
+    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags, lastArt)
     return
   end
 
@@ -1191,7 +1324,7 @@ local function scan()
   lastGoal = goalReached(at(mem, FLAGS_OFF + GOAL_BYTE))
   lastMap = readMap()
   noteRunProgress(lastRom, lastGoal)
-  sendState(lastMem, true, lastGoal, lastMap, lastRom, lastFlags)
+  sendState(lastMem, true, lastGoal, lastMap, lastRom, lastFlags, lastArt)
 end
 
 ------------------------------------------------------------------
@@ -1224,12 +1357,13 @@ local function handleHandshake()
   end
 
   handshaked = true
-  sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags =
-      nil, nil, nil, nil, nil, nil
+  sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt =
+      nil, nil, nil, nil, nil, nil, nil
   -- A client can connect and Sync before the first scan tick, and the very
   -- first thing it needs is which cartridge this is.
   lastRom = readRom()
   lastFlags = readFlags(lastRom)
+  lastArt = readArt(lastRom)
   EMU.log("PopTracker connected")
   EMU.notify("PopTracker connected")
   send(wsEncodeText(INFO_MSG))
@@ -1254,7 +1388,8 @@ local function handleFrames()
       -- is correct for it, so match on the name rather than carrying a JSON
       -- parser for one string.
       if payload:find('"Sync"', 1, true) then
-        sendState(lastMem, isReady(), lastGoal, lastMap, lastRom, lastFlags, true)
+        sendState(lastMem, isReady(), lastGoal, lastMap, lastRom, lastFlags,
+                  lastArt, true)
       end
     end
   end
