@@ -366,7 +366,7 @@ flag layout it produces is upstream's.
   assignment commented out -- and `SCMap.cs:214` gates it on TNT for every mode.
   So a standard cartridge's router walks through Nerrick too. Changing that
   moves standard-mode answers and belongs in its own pass.
-- **Mode detection already works and drives nothing.** `flag_mapping.lua:246`
+- **Mode detection already works and drives nothing.** `flag_mapping.lua:393`
   reads `GameMode` and prints a warning.
 
 ### The shape of the fix, not yet a plan

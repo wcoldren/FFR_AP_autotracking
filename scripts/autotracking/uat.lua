@@ -216,7 +216,7 @@ local function checkRom(store)
   if ROM_ID ~= nil and rom ~= ROM_ID then
     print("uat: different ROM -- dropping the previous game's board")
     -- The flag record goes too. applyFFRFlags short-circuits on an unchanged
-    -- string (flag_mapping.lua:201), so two seeds rolled on the same flags would
+    -- string (flag_mapping.lua:347), so two seeds rolled on the same flags would
     -- otherwise carry the previous one's hand-corrected grid into the new game.
     FFR_FLAGS_SOURCE = nil
     -- With it the verdict on that record. ff1/rom and ff1/flags normally arrive

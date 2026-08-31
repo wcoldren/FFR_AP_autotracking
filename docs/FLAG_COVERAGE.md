@@ -80,7 +80,7 @@ which of those it is decides whether the pack needs a code.
 Standard, DeepDungeon, NoOverworld -- at 4.9.2 and 4.9.7 alike, and there is no
 mode 3. Desert is `OwMapExchanges.Desert`, index 3 of a different enum, and
 `FlagsCompute.cs:78` composes the two: `GameMode == Standard && OwMapExchange ==
-Desert`. A Desert seed is warned about, but by `flag_mapping.lua:264`
+Desert`. A Desert seed is warned about, but by `flag_mapping.lua:410`
 (`OwMapExchange ~= 0`), not by the `GameMode ~= 0` line above it.
 
 ## B. Reach the checker through ROM edits — must be pack codes

@@ -28,7 +28,7 @@ so `["^$incentiveSlot|X"]` comes out as parent AND X either way.
 
 One flag is deliberately left hiding. `BahamutHoard` is stage 2 of the
 cardiaIsIncentive progressive and it stands for MapDragonsHoard -- a map edit,
-not an incentive category (scripts/autotracking/flag_mapping.lua:74-83). With it
+not an incentive category (scripts/autotracking/flag_mapping.lua:103-121). With it
 off those chests are not in the cartridge at all, so a blue "there is a check
 here" pin would be a lie rather than a demotion.
 

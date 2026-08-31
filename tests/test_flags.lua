@@ -38,6 +38,22 @@ local function check(label, got, want)
   if not ok then print(string.format("     wanted %s", tostring(want))) end
 end
 
+-- What the pack printed while `fn` ran. Half of what this file is checking is
+-- a line the player is meant to read -- a flag the cartridge could not answer
+-- for is only "left as it was" if the log says which one.
+local function capture(fn)
+  local said, realPrint = {}, print
+  print = function(...)
+    local parts = {}
+    for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
+    said[#said + 1] = table.concat(parts, " ")
+  end
+  local ok, err = pcall(fn)
+  print = realPrint
+  if not ok then error(err, 0) end
+  return table.concat(said, "\n")
+end
+
 ------------------------------------------------------------------
 print("-- decode")
 ------------------------------------------------------------------
@@ -157,16 +173,18 @@ byCode["cardiaDock"].Active = false
 check("re-applying the same record does nothing", applyFFRFlags(RECORD), false)
 check("the override survived", byCode["cardiaDock"].Active, false)
 
-check("an empty record does nothing", applyFFRFlags(""), false)
-check("a malformed record does nothing", applyFFRFlags("nonsense"), false)
+-- Neither is applied. What they do to the grid instead is two blocks down.
+check("an empty record applies nothing", applyFFRFlags(""), false)
+check("a malformed record applies nothing", applyFFRFlags("nonsense"), false)
 
 ------------------------------------------------------------------
 print("\n-- a cartridge with no flag record still says so")
 --
 -- The bridge publishes "" for a cartridge it could not get a record out of --
--- not an FFR ROM, a PRG it could not read, a build with no FFRInfo. That is the
--- commonest way the grid ends up showing init.lua's defaults while the board
--- asserts them as this seed's settings, so it is exactly what the light is for.
+-- not an FFR ROM, a PRG it could not read, a build with no FFRInfo. The grid
+-- goes back to the defaults there (the block after next), and the defaults are
+-- a guess: nothing on the board distinguishes a setting read off the cartridge
+-- from one nobody has answered for, which is what the light is for.
 -- Nothing publishing the variable at all is a different thing: an Archipelago
 -- session, where the defaults are what the player is meant to start from.
 ------------------------------------------------------------------
@@ -199,6 +217,100 @@ check("having said so", lit, 1)
 setFlagsUnread = nil
 
 ------------------------------------------------------------------
+print("\n-- the defaults, which are now written down once")
+--
+-- scripts/init.lua used to hold its own copy of these and set them by hand.
+-- They live on the TOGGLES and PROGRESSIVES tables now, because the same set
+-- has to be put *back* when a cartridge cannot be read, and two copies would
+-- drift. This is the check that the surviving copy still says what the board
+-- has started every session on since the pack shipped.
+------------------------------------------------------------------
+
+local DEFAULTS = {
+  northernDocks = false, luffyDock = false, cardiaDock = false,
+  lefeinRiver = false, lefeinBridge = false, gaiaMountain = false,
+  hwyOrdeals = false, melmondRiver = false, sardasForest = false,
+  shipDrydock = false, noTail = false,
+  earlyKing = true, earlySarda = true, earlySage = true, earlyOrdeals = true,
+  npcsAreIncentive = true, fetchQuestsAreIncentive = true,
+  iceCaveIsIncentive = true, ordealsIsIncentive = true, marshIsIncentive = true,
+  marshLockedIsIncentive = false, titansTroveIsIncentive = false,
+  earthIsIncentive = true, volcanoIsIncentive = false, skyIsIncentive = true,
+  seaIsIncentive = true, coneriaLockedIsIncentive = true,
+}
+local STAGE_DEFAULTS = { progressionFlag = 1, airBoat = 0, cardiaIsIncentive = 0 }
+
+-- Every cell moved off its default first, so a reset that does nothing fails.
+for code, want in pairs(DEFAULTS) do byCode[code].Active = not want end
+for code, want in pairs(STAGE_DEFAULTS) do
+  byCode[code].Active = true
+  byCode[code].CurrentStage = want == 1 and 2 or 1
+end
+resetFlagsToDefaults()
+
+local wrong = {}
+for code, want in pairs(DEFAULTS) do
+  if byCode[code].Active ~= want then wrong[#wrong + 1] = code end
+end
+for code, want in pairs(STAGE_DEFAULTS) do
+  if byCode[code].CurrentStage ~= want then wrong[#wrong + 1] = code end
+end
+table.sort(wrong)
+check("every flag cell is back on its default", table.concat(wrong, ", "), "")
+
+-- The shard count is the one default that is not the board's everywhere: only
+-- the shard-hunt variants show it, and only there does the goal read it.
+Tracker.ActiveVariantUID = "6shardHunt"
+byCode["shardsRequired"].CurrentStage = 3
+resetFlagsToDefaults()
+check("a shard variant is back on 24 shards",
+      byCode["shardsRequired"].CurrentStage + 16, 24)
+Tracker.ActiveVariantUID = "5standard"
+byCode["shardsRequired"].CurrentStage = 3
+resetFlagsToDefaults()
+check("and a standard one is left alone", byCode["shardsRequired"].CurrentStage, 3)
+
+------------------------------------------------------------------
+print("\n-- a cartridge that cannot be read puts the grid back")
+--
+-- The flag grid outlives a cartridge swap: resetForNewGame clears what the RAM
+-- feed owns and deliberately not this. So a cartridge whose settings cannot be
+-- read has to put the defaults back itself, or the previous seed's answers go
+-- on being asserted about a seed that never had them, with only the unread
+-- light to say otherwise. That is the hole the absent-flag branch closes for a
+-- version swap, in the case where there is nothing to decode at all.
+--
+-- All three ways of failing to read one are the same hole: no record, a record
+-- that is not "<version>|<flags>", and one that is but will not decode.
+------------------------------------------------------------------
+
+for _, unreadable in ipairs({ "", "junk", "4-9-7|not-a-real-flagstring" }) do
+  FFR_FLAGS_SOURCE = nil
+  capture(function() applyFFRFlags(RECORD) end)
+  check("a cartridge that reads, first", byCode["sardasForest"].Active, true)
+  byCode["volcanoIsIncentive"].Active = true    -- and a click of the player's own
+
+  FFR_FLAGS_SOURCE = nil
+  local applied
+  local said = capture(function() applied = applyFFRFlags(unreadable) end)
+  check(string.format("then %q is not applied", unreadable), applied, false)
+  check("  the seed's settings are gone", byCode["sardasForest"].Active, false)
+  check("  the defaults are back", byCode["skyIsIncentive"].Active, true)
+  check("  including the progressive", byCode["progressionFlag"].CurrentStage, 1)
+  check("  and the click on top of them", byCode["volcanoIsIncentive"].Active, false)
+  check("  nothing claims to know the settings", FFR_FLAGS, nil)
+  check("  and the log says so", said:find("back to defaults", 1, true) ~= nil, true)
+
+  -- Once, not on every scan: the same unreadable record has to be a no-op the
+  -- second time, or the reset would sit on top of the grid the player is now
+  -- setting by hand.
+  byCode["sardasForest"].Active = true
+  said = capture(function() applyFFRFlags(unreadable) end)
+  check("  the same record again does nothing", byCode["sardasForest"].Active, true)
+  check("  and says nothing", said, "")
+end
+
+------------------------------------------------------------------
 print("\n-- a flag left random is not a flag turned off")
 --
 -- FFR's tri-states can be left for the generator to roll, and the flag string
@@ -217,6 +329,58 @@ check("a random flag that was on stays on", byCode["gaiaMountain"].Active, true)
 check("a random flag that was off stays off", byCode["lefeinBridge"].Active, false)
 check("a known flag next to it still applies", byCode["hwyOrdeals"].Active, false)
 
+-- The progressives are the half of this that was missed. Every source flag
+-- behind them is a tri-state too -- MapOpenProgression, its Extended, AirBoat,
+-- MapDragonsHoard, IncentivizeCardia -- and each stage function tested `== true`
+-- and read a rolled flag as off. So a seed with AirBoat left on random cleared
+-- the cell the player had set by hand, and the "left as they were" line, which
+-- is the only place the pack admits it does not know, never mentioned it.
+byCode["airBoat"].Active = true
+byCode["airBoat"].CurrentStage = 1
+partial.AirBoat = nil
+local rolled = capture(function() applyFFRFlagsToBoard(partial, "4-9-7") end)
+check("a rolled AirBoat leaves the cell alone", byCode["airBoat"].CurrentStage, 1)
+check("  and is named in the log", rolled:find("AirBoat", 1, true) ~= nil, true)
+
+-- Rolled means unknown, not unanswerable: a source flag the stage does not
+-- depend on is not an unknown. Extended is only offered when Open Progression
+-- is on, so a rolled Extended on a seed that says Open is off settles at 0.
+local closedOpen = {}
+for k, v in pairs(flags) do closedOpen[k] = v end
+closedOpen.MapOpenProgression = false
+closedOpen.MapOpenProgressionExtended = nil
+byCode["progressionFlag"].Active = true
+byCode["progressionFlag"].CurrentStage = 2
+rolled = capture(function() applyFFRFlagsToBoard(closedOpen, "4-9-7") end)
+check("a rolled Extended under a closed Open is off",
+      byCode["progressionFlag"].CurrentStage, 0)
+check("  so it is not reported as rolled",
+      rolled:find("MapOpenProgressionExtended", 1, true), nil)
+
+-- And with Open itself rolled there is no stage to be had: 0, 1 and 2 are all
+-- still open, so the cell keeps what it had.
+closedOpen.MapOpenProgression = nil
+byCode["progressionFlag"].Active = true
+byCode["progressionFlag"].CurrentStage = 2
+rolled = capture(function() applyFFRFlagsToBoard(closedOpen, "4-9-7") end)
+check("a rolled Open leaves the cell alone", byCode["progressionFlag"].CurrentStage, 2)
+-- The frontier stops this matching MapOpenProgressionExtended, which is a
+-- different flag and is not the one being reported here.
+check("  and is named in the log",
+      rolled:find("MapOpenProgression%f[%A]") ~= nil, true)
+
+-- The Hoard is asked before IncentivizeCardia and wins outright when it is on,
+-- so a rolled Hoard is unknown whichever way the incentive went.
+local hoard = {}
+for k, v in pairs(flags) do hoard[k] = v end
+hoard.MapDragonsHoard = nil
+hoard.IncentivizeCardia = false
+byCode["cardiaIsIncentive"].Active = true
+byCode["cardiaIsIncentive"].CurrentStage = 2
+rolled = capture(function() applyFFRFlagsToBoard(hoard, "4-9-7") end)
+check("a rolled Hoard leaves the cell alone", byCode["cardiaIsIncentive"].CurrentStage, 2)
+check("  and is named in the log", rolled:find("MapDragonsHoard", 1, true) ~= nil, true)
+
 ------------------------------------------------------------------
 print("\n-- the goal, once the seed has been read")
 --
@@ -226,6 +390,13 @@ print("\n-- the goal, once the seed has been read")
 ------------------------------------------------------------------
 
 dofile(PACK .. "/scripts/logic.lua")
+
+-- Said here rather than inherited from whichever record was applied last: the
+-- blocks above deliberately end with a cartridge that could not be read, which
+-- leaves FFR_FLAGS nil. A copy, because this block moves OrbsRequiredMode and
+-- the fixture is read again below.
+FFR_FLAGS = {}
+for k, v in pairs(flags) do FFR_FLAGS[k] = v end
 
 local function lightOrbs(n)
   local orbs = { "earthorb", "fireorb", "waterorb", "airorb" }
@@ -353,16 +524,10 @@ end
 -- that can notice, so it has to say so.
 local SHARD_RECORD = "4-9-7|" .. SHARD_FLAGS
 local function applyCapturing(record)
-  local said, realPrint = {}, print
-  print = function(...)
-    local parts = {}
-    for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
-    said[#said + 1] = table.concat(parts, " ")
-  end
-  FFR_FLAGS_SOURCE = nil            -- applyFFRFlags skips a record it just read
-  applyFFRFlags(record)
-  print = realPrint
-  return table.concat(said, "\n")
+  return capture(function()
+    FFR_FLAGS_SOURCE = nil          -- applyFFRFlags skips a record it just read
+    applyFFRFlags(record)
+  end)
 end
 
 Tracker.ActiveVariantUID = "5standard"
@@ -540,8 +705,13 @@ for _, file in ipairs(TREES) do
   end)
 end
 
-check("alternatives naming the Ship", guarded, 121)
+-- A floor rather than the count. `#bare == 0` is the invariant; 121 is only
+-- evidence that the walk still reaches the alternatives it is meant to check,
+-- and an exact match would fail on a legitimate new one that carries the guard
+-- -- which is the canary this file's own comment warns against planting.
+check("the walk still reaches the Ship alternatives", guarded >= 121, true)
 check("  none of them unguarded", #bare, 0)
+print(string.format("     %d alternatives name the Ship, all guarded", guarded))
 for _, alt in ipairs(bare) do print("     unguarded: " .. alt) end
 
 

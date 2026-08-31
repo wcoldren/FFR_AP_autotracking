@@ -81,35 +81,22 @@ else
   Tracker:AddLayouts("layouts/standard/standard_broadcast.json")
 end
 
--- Default Flags
-local progressionFlag = Tracker:FindObjectForCode("progressionFlag")
-progressionFlag.CurrentStage = 1
-local npcsIncentive = Tracker:FindObjectForCode("npcsAreIncentive")
-npcsIncentive.Active = true
-local fetchQuestsIncentive = Tracker:FindObjectForCode("fetchQuestsAreIncentive")
-fetchQuestsIncentive.Active = true
-local iceIncentive = Tracker:FindObjectForCode("iceCaveIsIncentive")
-iceIncentive.Active = true
-local ordealsIncentive = Tracker:FindObjectForCode("ordealsIsIncentive")
-ordealsIncentive.Active = true
-local marshIncentive = Tracker:FindObjectForCode("marshIsIncentive")
-marshIncentive.Active = true
-local earthIncentive = Tracker:FindObjectForCode("earthIsIncentive")
-earthIncentive.Active = true
-local seaIncentive = Tracker:FindObjectForCode("seaIsIncentive")
-seaIncentive.Active = true
-local skyIncentive = Tracker:FindObjectForCode("skyIsIncentive")
-skyIncentive.Active = true
-local coneriaLockedIncentive = Tracker:FindObjectForCode("coneriaLockedIsIncentive")
-coneriaLockedIncentive.Active = true
-local earlyKing = Tracker:FindObjectForCode("earlyKing")
-earlyKing.Active = true
-local earlySarda = Tracker:FindObjectForCode("earlySarda")
-earlySarda.Active = true
-local earlySage = Tracker:FindObjectForCode("earlySage")
-earlySage.Active = true
-local earlyOrdeals = Tracker:FindObjectForCode("earlyOrdeals")
-earlyOrdeals.Active = true
+-- Default Flags.
+--
+-- The values are the `default` fields on the tables in
+-- scripts/autotracking/flag_mapping.lua rather than a second copy here,
+-- because the same set has to be *restorable*: a cartridge whose settings
+-- cannot be read has to put the grid back, or it goes on showing the previous
+-- seed's answers. Two lists would drift, and the one that drifted would be the
+-- one nobody looks at.
+--
+-- Loaded here rather than with the autotracking scripts below for that reason
+-- -- these defaults are the board's, not the feed's, and a host too old for
+-- autotracking still needs them. It defines functions and touches nothing at
+-- load time.
+ScriptHost:LoadScript("scripts/autotracking/flag_mapping.lua")
+resetFlagsToDefaults()
+
 -- The map tab follows the player by default; click it off when you would
 -- rather stay on the floor you are reading.
 local tabSwitch = Tracker:FindObjectForCode("tab_switch")
@@ -131,7 +118,7 @@ if PopVersion and PopVersion>="0.18.0" then
     -- Archipelago sends no slot data for Final Fantasy.
     ScriptHost:LoadScript("scripts/flags/schemas.lua")
     ScriptHost:LoadScript("scripts/autotracking/flags_decode.lua")
-    ScriptHost:LoadScript("scripts/autotracking/flag_mapping.lua")
+    -- flag_mapping.lua is already loaded, above, for the defaults.
     ScriptHost:LoadScript("scripts/autotracking/uat.lua")
   end
 end

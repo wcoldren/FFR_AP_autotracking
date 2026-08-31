@@ -25,6 +25,11 @@ FFR_FLAGS = FFR_FLAGS or nil
 -- mistaken for a new one and does not stamp over a deliberate override.
 FFR_FLAGS_SOURCE = FFR_FLAGS_SOURCE or nil
 
+-- `default` is the cell the board starts on, and the one resetFlagsToDefaults
+-- puts it back to; absent means off. scripts/init.lua applies these rather than
+-- writing its own copy, because the same set has to be restorable when a
+-- cartridge turns up whose settings cannot be read -- two lists would drift,
+-- and the one that drifted would be the one nobody looks at.
 local TOGGLES = {
   { ffr = "MapOpenProgressionDocks", code = "northernDocks" },
   { ffr = "MapAirshipDock",          code = "luffyDock" },
@@ -36,42 +41,64 @@ local TOGGLES = {
   { ffr = "MapRiverToMelmond",       code = "melmondRiver" },
   { ffr = "MapSardasForest",         code = "sardasForest" },
   { ffr = "ShipDrydock",             code = "shipDrydock" },
-  { ffr = "EarlyKing",               code = "earlyKing" },
-  { ffr = "EarlySarda",              code = "earlySarda" },
-  { ffr = "EarlySage",               code = "earlySage" },
-  { ffr = "EarlyOrdeals",            code = "earlyOrdeals" },
+  { ffr = "EarlyKing",               code = "earlyKing", default = true },
+  { ffr = "EarlySarda",              code = "earlySarda", default = true },
+  { ffr = "EarlySage",               code = "earlySage", default = true },
+  { ffr = "EarlyOrdeals",            code = "earlyOrdeals", default = true },
   { ffr = "NoTail",                  code = "noTail" },
-  { ffr = "IncentivizeFreeNPCs",     code = "npcsAreIncentive" },
-  { ffr = "IncentivizeFetchNPCs",    code = "fetchQuestsAreIncentive" },
-  { ffr = "IncentivizeIceCave",      code = "iceCaveIsIncentive" },
-  { ffr = "IncentivizeOrdeals",      code = "ordealsIsIncentive" },
-  { ffr = "IncentivizeMarsh",        code = "marshIsIncentive" },
+  { ffr = "IncentivizeFreeNPCs",     code = "npcsAreIncentive", default = true },
+  { ffr = "IncentivizeFetchNPCs",    code = "fetchQuestsAreIncentive", default = true },
+  { ffr = "IncentivizeIceCave",      code = "iceCaveIsIncentive", default = true },
+  { ffr = "IncentivizeOrdeals",      code = "ordealsIsIncentive", default = true },
+  { ffr = "IncentivizeMarsh",        code = "marshIsIncentive", default = true },
   { ffr = "IncentivizeMarshKeyLocked", code = "marshLockedIsIncentive" },
   { ffr = "IncentivizeTitansTrove",  code = "titansTroveIsIncentive" },
-  { ffr = "IncentivizeEarth",        code = "earthIsIncentive" },
+  { ffr = "IncentivizeEarth",        code = "earthIsIncentive", default = true },
   { ffr = "IncentivizeVolcano",      code = "volcanoIsIncentive" },
-  { ffr = "IncentivizeSkyPalace",    code = "skyIsIncentive" },
-  { ffr = "IncentivizeSeaShrine",    code = "seaIsIncentive" },
-  { ffr = "IncentivizeConeria",      code = "coneriaLockedIsIncentive" },
+  { ffr = "IncentivizeSkyPalace",    code = "skyIsIncentive", default = true },
+  { ffr = "IncentivizeSeaShrine",    code = "seaIsIncentive", default = true },
+  { ffr = "IncentivizeConeria",      code = "coneriaLockedIsIncentive", default = true },
 }
 
 -- Progressive items, where the stage is a count of settings rather than one
 -- boolean. Stage 0 is off; PopTracker's Lua-visible CurrentStage sits one above
 -- the stages[] index whenever allow_disabled holds, which it does here.
+--
+-- Every source flag here is a tri-state, so each can come back "the generator
+-- rolled it" the way a toggle can, and each has to be left alone rather than
+-- read as off when it does. `stage` takes a reader rather than the flag table
+-- for that: `get(name)` gives the value, or nil for one that was rolled, and a
+-- nil that decides the stage is returned as `nil, "<the flag to report>"`. A
+-- rolled flag the stage does not depend on is not an unknown -- Extended is
+-- only asked once Open Progression says yes -- so the questions are asked in
+-- order rather than all at once.
+--
+-- Reading a rolled flag as off is what this file did until 2026-08-31, which
+-- meant a seed with AirBoat left on random silently cleared a cell the player
+-- had set by hand, and said nothing in the "left as they were" line.
 local PROGRESSIVES = {
   {
     code = "progressionFlag",
+    default = 1,
     -- Extended Open Progression is only offered when Open Progression is on,
     -- and stage 2 inherits stage 1's codes, so extendedOpen implies
     -- openProgression the way the rules already assume.
-    stage = function(flags)
-      if flags.MapOpenProgression ~= true then return 0 end
-      return flags.MapOpenProgressionExtended == true and 2 or 1
+    stage = function(get)
+      local open = get("MapOpenProgression")
+      if open == nil then return nil, "MapOpenProgression" end
+      if open ~= true then return 0 end
+      local extended = get("MapOpenProgressionExtended")
+      if extended == nil then return nil, "MapOpenProgressionExtended" end
+      return extended == true and 2 or 1
     end,
   },
   {
     code = "airBoat",
-    stage = function(flags) return flags.AirBoat == true and 1 or 0 end,
+    stage = function(get)
+      local airBoat = get("AirBoat")
+      if airBoat == nil then return nil, "AirBoat" end
+      return airBoat == true and 1 or 0
+    end,
   },
   {
     code = "cardiaIsIncentive",
@@ -79,9 +106,17 @@ local PROGRESSIVES = {
     -- category, so it comes from a different flag than stage 1. Stage 2
     -- inherits stage 1's code, so a hoard seed also reads as Cardia-incentive;
     -- that only affects which pins are drawn, never what is reachable.
-    stage = function(flags)
-      if flags.MapDragonsHoard == true then return 2 end
-      return flags.IncentivizeCardia == true and 1 or 0
+    --
+    -- The Hoard is asked first and a rolled one is unknown either way: it wins
+    -- outright when it is on, so no value of IncentivizeCardia settles the
+    -- stage without it.
+    stage = function(get)
+      local hoard = get("MapDragonsHoard")
+      if hoard == nil then return nil, "MapDragonsHoard" end
+      if hoard == true then return 2 end
+      local cardia = get("IncentivizeCardia")
+      if cardia == nil then return nil, "IncentivizeCardia" end
+      return cardia == true and 1 or 0
     end,
   },
 }
@@ -94,10 +129,10 @@ local PROGRESSIVES = {
 --
 -- Shards Required counts from sixteen, one stage per shard, and is not an
 -- allow_disabled progressive, so its stage is the stages[] index rather than
--- one above it: stage 8 is the 24 that init.lua starts every shard-hunt
--- variant on. That sixteen is the same one hasEnoughShards adds back in
--- scripts/logic.lua.
+-- one above it: stage 8 is the 24 the board starts every shard-hunt variant on.
+-- That sixteen is the same one hasEnoughShards adds back in scripts/logic.lua.
 local SHARD_COUNTS = { [0] = 16, [1] = 20, [2] = 24, [3] = 28, [4] = 32, [5] = 36 }
+local SHARD_DEFAULT = 24
 
 -- A setting by FFR's name, falling back to `default` when no seed has been read
 -- or the flag was rolled at generation. Logic that depends on a setting with no
@@ -149,6 +184,40 @@ local function setShardsRequired(count)
   return true
 end
 
+-- Put the flag grid back where the board starts.
+--
+-- scripts/init.lua calls this to set the defaults in the first place, so this
+-- file is the only place they are written down.
+--
+-- The other caller is applyFFRFlags, on a cartridge whose settings could not be
+-- read at all. The grid outlives a cartridge swap -- resetForNewGame clears
+-- what the RAM feed owns and deliberately not this -- so without a reset the
+-- previous seed's answers go on being asserted about a seed that never had
+-- them, with only the unread light to say otherwise. That is the same hole the
+-- absent-flag branch below closes for a version swap, in the case where there
+-- is nothing to decode at all.
+--
+-- It costs the player's own clicks, which is the right trade only because it
+-- happens once per record rather than once per scan: every caller records
+-- FFR_FLAGS_SOURCE, so the next scan of the same unreadable cartridge changes
+-- nothing and a grid set by hand afterwards stands.
+function resetFlagsToDefaults()
+  for _, entry in ipairs(TOGGLES) do
+    setToggle(entry.code, entry.default == true)
+  end
+  for _, entry in ipairs(PROGRESSIVES) do
+    setStage(entry.code, entry.default or 0)
+  end
+  -- Only the shard-hunt variants have a count to start: on the others the goal
+  -- never reads it and the board does not show it.
+  if Tracker.ActiveVariantUID:find("shardHunt") then
+    setShardsRequired(SHARD_DEFAULT)
+  end
+  -- And the decoded set with them, or logic reading a setting with no cell on
+  -- the board would still be answering out of the last cartridge.
+  FFR_FLAGS = nil
+end
+
 -- Only on a shard hunt. Every seed carries a ShardCount, orb goals included,
 -- so applying it unconditionally would move a number the player can see for a
 -- goal that never reads it.
@@ -172,6 +241,11 @@ end
 -- `schema_4-9-2.lua` carries neither `ShipDrydock` nor `MapSardasForest`,
 -- because 4.9.2 has neither flag, and a build with no drydock cannot have
 -- drydocked the ship.
+--
+-- Both loops make the distinction, toggles and progressives alike. The
+-- progressives are the half that was missed: their five source flags are all
+-- tristates too, and reading a rolled one as off cleared a cell the player had
+-- set by hand.
 --
 -- Telling them apart matters because the toggles survive a cartridge swap --
 -- `resetForNewGame` clears what the RAM feed owns, not the flag grid. Treating
@@ -200,20 +274,46 @@ function applyFFRFlagsToBoard(flags, version)
   local applied, random, absent = 0, {}, {}
   local names = schemaNames(version)
 
+  -- One flag, with the two kinds of nil told apart:
+  --   value, nil       the string says so
+  --   false, "absent"  this build has no such flag, so it cannot be on
+  --   nil,   "rolled"  the generator rolled it and the string does not say
+  local function readFlag(name)
+    local value = flags[name]
+    if value ~= nil then return value end
+    if names ~= nil and not names[name] then return false, "absent" end
+    return nil, "rolled"
+  end
+
   for _, entry in ipairs(TOGGLES) do
-    local value = flags[entry.ffr]
-    if value ~= nil then
-      if setToggle(entry.code, value) then applied = applied + 1 end
-    elseif names ~= nil and not names[entry.ffr] then
-      absent[#absent + 1] = entry.ffr
-      if setToggle(entry.code, false) then applied = applied + 1 end
-    else
+    local value, why = readFlag(entry.ffr)
+    if why == "rolled" then
       random[#random + 1] = entry.ffr
+    else
+      if why == "absent" then absent[#absent + 1] = entry.ffr end
+      -- An absent flag is switched off, but it is not a setting this build has,
+      -- so it is not counted as one applied -- the `absent` line below is what
+      -- reports it, and counting it there as well made the two disagree.
+      if setToggle(entry.code, value) and why == nil then applied = applied + 1 end
     end
   end
 
+  -- The reader the stage functions take. Same three-way answer, minus the
+  -- toggles' bookkeeping: an absent source flag reads as off, and is reported
+  -- on the same line the toggles use. No shipped schema is missing one of these
+  -- five -- 4.9.2 and 4.9.7 both carry all of them -- so that branch is here to
+  -- keep a future schema from reopening what the absent-flag branch just shut,
+  -- not because it fires today.
+  local function get(name)
+    local value, why = readFlag(name)
+    if why == "absent" then absent[#absent + 1] = name end
+    return value
+  end
   for _, entry in ipairs(PROGRESSIVES) do
-    if setStage(entry.code, entry.stage(flags)) then
+    local stage, rolled = entry.stage(get)
+    if stage == nil then
+      random[#random + 1] = rolled
+    elseif setStage(entry.code, stage) then
       applied = applied + 1
     end
   end
@@ -250,13 +350,15 @@ function applyFFRFlags(record)
   -- "" is different: the bridge is attached and told us it got nothing out of
   -- the cartridge -- not an FFR ROM, a PRG it could not read, or a build with no
   -- FFRInfo record (bridge/ffr_uat_bridge.lua:606). That is the commonest way
-  -- the grid ends up asserting settings this seed never had, so it is exactly
-  -- what the light is for. Recorded as the source so it is said once, not on
-  -- every scan.
+  -- the grid ends up asserting settings this seed never had, so it is what both
+  -- the light and the reset are for: the previous cartridge's answers go, and
+  -- what is left is a board that says it does not know. Recorded as the source
+  -- so that is done once, not on every scan.
   if record == "" then
     FFR_FLAGS_SOURCE = record
-    print("flags: this cartridge carries no flag record -- the grid is showing "
-          .. "defaults and your own clicks")
+    print("flags: this cartridge carries no flag record -- the flag grid is "
+          .. "back to defaults, set it by hand")
+    resetFlagsToDefaults()
     if setFlagsUnread then
       setFlagsUnread("this cartridge carries no flag record")
     end
@@ -265,17 +367,20 @@ function applyFFRFlags(record)
 
   local version, flagstring = record:match("^([^|]+)|(.+)$")
   if not version then
-    print("flags: cannot read " .. string.format("%q", record))
+    print("flags: cannot read " .. string.format("%q", record)
+          .. " -- the flag grid is back to defaults")
+    resetFlagsToDefaults()
     if setFlagsUnread then setFlagsUnread("the cartridge's flag record is malformed") end
+    FFR_FLAGS_SOURCE = record   -- said once, and reset once, not every scan
     return false
   end
 
   local flags, err = decodeFFRFlags(version, flagstring)
   if not flags then
-    print("flags: " .. err .. " -- leaving the flag grid alone")
-    -- Say it on the board too. The grid keeps showing defaults, and a player
-    -- who missed this line has no way to tell those from the seed's own
-    -- settings.
+    print("flags: " .. err .. " -- the flag grid is back to defaults")
+    resetFlagsToDefaults()
+    -- Say it on the board too. Defaults are a guess, and a player who missed
+    -- this line has no way to tell them from the seed's own settings.
     if setFlagsUnread then setFlagsUnread(err) end
     FFR_FLAGS_SOURCE = record   -- do not retry the same bad string every scan
     return false

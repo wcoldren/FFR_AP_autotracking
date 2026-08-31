@@ -349,6 +349,16 @@ Nothing here is urgent unless it says so.
   Workaround for the remaining gap: re-run `tools/regen_maps.py` after touching
   any file in `INPUT_FILES`, once per mode, or `--clean` the override.
 
+  **The `ShipDrydock` work is one of those changes, and it is the worst shape
+  of one.** It edits `layouts/shared.json` and all four location files, every
+  one of them in `INPUT_FILES`. On an override written before it the tracker
+  serves the older copies, so the `shipDrydock` and `noTail` cells are not on
+  the board and no alternative carries the guard -- a seed with the flag on
+  goes on showing 53 locations green that FFR calls unreachable, which is
+  exactly the state the branch exists to end, on a board that otherwise looks
+  correct. Re-run the regen once per mode before reading anything off it;
+  `tools/regen_maps.py --verify` says whether an installed override is stale.
+
 - **`I: Shop Item` carries no rule at all, and nothing has ever compared it.**
   The pin is `Onrac Continent/I: Shop Item`, and its `access_rules` are empty at
   both node and section level while `Onrac Continent` is an organisational node
