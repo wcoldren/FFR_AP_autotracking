@@ -550,9 +550,8 @@ WHOLE = Crop((0, MAP_DIM - 1, 0, MAP_DIM - 1))
 
 # A speck is a run of content the flood could not reach, holding nothing the
 # map points at, far enough from the map to hold the frame open on its own.
-# Lefein has seven of them at one cell each, fifteen rows below the town, and
-# they cost seventeen rows of empty frame; Melmond has a one-column stalk that
-# holds the top open the same way.
+# Lefein has five of them at one cell each, fifteen rows below the town, and
+# they cost seventeen rows of empty frame.
 #
 # Two tests, and the pairing is the point. Size alone was tried and rejected --
 # Matoya's four-cell speck against Ice Cave B3's genuine 41-cell second lobe --
@@ -561,17 +560,37 @@ WHOLE = Crop((0, MAP_DIM - 1, 0, MAP_DIM - 1))
 # content by definition, whatever its size, and is kept. The size bound then
 # only has to separate specks from regions that are merely large and empty.
 #
-# Measured over both duck cartridges and both oracle cartridges, that band is
-# wide: the largest droppable region is 19 cells and the smallest kept one is
-# 58. The bound sits in the empty middle, and tools/tests/test_crop.py asserts
-# the band *stays* empty -- a cartridge that puts a region near the bound is
-# one where this rule has started guessing, and the test says so rather than
-# letting it guess.
+# Measured over vanilla, both duck cartridges and both oracle cartridges, that
+# band is wide: the largest droppable region is 19 cells and the smallest kept
+# one is 88. The bound sits in the empty middle, and tools/tests/test_crop.py
+# asserts the band *stays* empty -- a cartridge that puts a region near the
+# bound is one where this rule has started guessing, and the test says so
+# rather than letting it guess.
+#
+# Both numbers moved once components() learned the grid wraps, and in the safe
+# direction: the flat flood was splitting wrapped regions and offering their
+# smaller halves here as droppable, which is what dragged the kept floor down
+# to 58. Melmond's "one-column stalk" was one of them -- a 13-cell road that
+# is torus-adjacent to the town and was never a speck at all.
 MAX_SPECK = 32
 
 
 def components(cells):
-    """`cells` split into 4-connected regions, largest first."""
+    """`cells` split into 4-connected regions, largest first.
+
+    **Connectivity wraps**, because the grid is a torus -- which is the same
+    fact _axis_shift exists for. A map that runs off the right edge continues
+    at column 0, and a region straddling that join is one region, not two.
+
+    Flooding this flat was a real defect rather than a nicety. It splits a
+    wrapped region in two, and the smaller half then looks exactly like a
+    speck to drop_specks and is thrown away: on vanilla sky4F -- a 4x4 tiling
+    of sixteen 88-cell rooms -- seven rooms were being shaved to 80 cells and
+    the eight 8-cell strips discarded, and melmond lost its 13-cell road and
+    elf_castle its 5-cell approach the same way. None of it trips
+    crop_violations, because nothing the map points at stands on those cells.
+    The cut only shows in the image.
+    """
     remaining, out = set(cells), []
     while remaining:
         seed = remaining.pop()
@@ -579,7 +598,7 @@ def components(cells):
         while q:
             col, row = q.popleft()
             for dc, dr in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                n = (col + dc, row + dr)
+                n = ((col + dc) % MAP_DIM, (row + dr) % MAP_DIM)
                 if n in remaining:
                     remaining.discard(n)
                     comp.add(n)
@@ -1143,9 +1162,21 @@ def main():
     if args.map is not None and args.map not in MAP_FILES:
         sys.exit(f"no such standard map: {args.map} (0-{MAP_COUNT - 1})")
     graph = None
-    if args.objects:
+    if args.objects or args.crop:
         import entrance_graph                                       # noqa: E402
         graph = entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
+
+    # --crop has to frame the map the way regen_maps.crops() and self_check()
+    # do, which means passing the same `keep`: a chest or exit standing in a
+    # small component is content, and without this the CLI would drop it and
+    # draw a tighter box than the art the pack actually ships. It costs the
+    # graph, so --crop now builds one whether or not --objects asked for it.
+    cli_npcs = {}
+    if args.crop:
+        for nm, places in extract_npcs.extract(rom).items():
+            for q in places:
+                cli_npcs.setdefault(q["map_id"], []).append(
+                    (f"npc {nm}", q["tile_col"], q["tile_row"]))
 
     marks = trap_marks(rom) if args.crop else None
     ids = [args.map] if args.map is not None else range(MAP_COUNT)
@@ -1155,7 +1186,9 @@ def main():
         rows = None
         if args.crop:
             tiles = map_tiles(rom, map_id)
-            crop = content_crop(tiles)
+            crop = content_crop(tiles, keep=[
+                cell for _, cell in protected_cells(
+                    rom, map_id, tiles, graph, cli_npcs.get(map_id, ()))])
             rows = legend_rows_for(
                 len(set(map_trap_marks(rom, map_id, tiles, marks).values())))
         w, h, rgb = render(rom, map_id, args.inside, args.unroof, graph,

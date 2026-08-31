@@ -190,7 +190,7 @@ Nothing here is urgent unless it says so.
   |---|---|---|---|
   | `con_castle` | 64x35 | 31x35 | cols 62-63 + 0-26; the 35 blank columns are 27-61 |
   | `crescent_lake` | 52x64 | 52x43 | rows 58-63 + 0-34 |
-  | `melmond` | 45x64 | 45x46 | rows 51-63 + 0-30 |
+  | `melmond` | 45x64 | 45x44 | rows 51-63 + 0-30 |
   | `elf_castle` | 28x64 | 28x35 | row 63 + 0-31 — wrapped by a single row |
   | `sky4F` | 64x64 | 60x59 | a 4x4 tiling of rooms, straddling both axes |
 
@@ -203,8 +203,19 @@ Nothing here is urgent unless it says so.
   backwards: the map is a regular 4x4 tiling of identical rooms, so re-phasing
   it cannot swap anything distinguishable, and the un-slid frame *cuts four of
   the sixteen rooms in half* against the top, left and bottom edges. Every room
-  is whole after the slide. The prediction was made from the gap list rather
-  than from the image.
+  is whole after the slide -- checked as a count rather than by eye: sixteen
+  torus-connected regions of 88 cells, all sixteen entirely inside the box. The
+  prediction was made from the gap list rather than from the image.
+
+  **The slide was switched off again for a fortnight, by the speck rule, and
+  the table above went stale with it.** `components()` flooded without
+  wrapping, so a region straddling the join split in two and the smaller half
+  was dropped as a speck; dropping it removed index 0 or 63 from `occupied`,
+  the join test stopped firing, and `melmond`, `elf_castle` and `sky4F` all
+  fell back to shift `(0, 0)`. `sky4F` was then clipping *seven* of sixteen
+  rooms -- worse than the four this entry set out to fix. Neither suite
+  noticed, because nothing the map points at stands on the shaved strips.
+  Fixed by wrapping the flood; the rows above are measured against that.
 
   **The residue, which is the original diagnosis and still stands.** `onrac`,
   `lefein` and `seaB1` have **no empty column at all** — a sliver of one to three

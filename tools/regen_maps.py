@@ -235,7 +235,8 @@ def rendered_calibration(rom, crops_):
     It is no longer always one region. A map drawn across the grid's join is
     boxed after a slide (render_maps.content_crop), and the slide is a jump
     rather than an offset, so such a map comes back as two regions per slid
-    axis -- four if it slid on both, which none of the measured cartridges do.
+    axis -- four if it slid on both, which `sky4F` does on every cartridge
+    measured, it being a 4x4 tiling that wraps on each axis.
     That is the whole cost of the rotation on this side: the file format
     already carried per-region `cols` and `rows` bounds and nothing else
     changes. Maps that did not slide are emitted exactly as they were, one

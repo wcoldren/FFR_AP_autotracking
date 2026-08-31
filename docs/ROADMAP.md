@@ -304,11 +304,12 @@ correctness bug in the Lua or the layouts. The two worth reading:
   nothing can fire at tracker load, which is a PopTracker change.
   `docs/ISSUES.md` says so.
 
-**`map-legibility` -- four commits off `trunk`, landed, not merged.** Three
+**`map-legibility` -- eight commits off `trunk`, landed, not merged.** Several
 changes sharing one regen, because each moves the `inputs` or `marker`
 fingerprint in `.regen_cache.json` and a single run picks up all of them. All
 measured on the std and nov oracle cartridges, which agree, so there was no
-separate No-Overworld pass.
+separate No-Overworld pass -- with the standing caution that the *speck* rule
+does not measure identically on the two, even where the box does.
 
 - **Rotate before boxing, treated as a contract change.** A standard map wraps
   at 64 tiles and the box did not, so maps were framed across the void between
@@ -320,6 +321,7 @@ separate No-Overworld pass.
   31x35, `crescent_lake` 52x64 -> 52x43, `melmond` 45x64 -> 45x46, `elf_castle`
   28x64 -> 28x35, and `sky4F` 64x64 -> 60x59. The two widths this page gave as
   53 and 29 were a padding artefact of the estimate and are 52 and 28 measured.
+  (`melmond` is 45x44 once the speck rule lands and trims its one stray cell.)
 
   `sky4F` came from the residue list in `docs/ISSUES.md`, against that entry's
   own prediction that rotating it would put the left half on the right. Rendered
@@ -330,9 +332,13 @@ separate No-Overworld pass.
   reaches the join.
 
   The slide is a jump rather than an offset, so `rendered_calibration` emits one
-  region per straight run -- two for one slid axis, four for `sky4F`. The format
-  already carried per-region `cols` and `rows`. A map that did not slide is
-  emitted exactly as before, so no marker on the other 56 moved.
+  region per straight run -- two each for the four maps that slide on one axis,
+  four for `sky4F`, which slides on both. The format already carried per-region
+  `cols` and `rows`. A map that did not slide is emitted exactly as before, so
+  no marker on the other 56 moved. Counted after the wrap fix below; while the
+  speck rule was suppressing the slide only two maps slid at all, and the boxes
+  on `melmond`, `lefein`, `elf_castle`, `matoya`, `gaia` and `sky4F` moved with
+  it.
 
   **The hand art confirmed this for `elf_castle` and did not settle
   `con_castle`**, as this section expected; neither is in the set the crop test
@@ -357,6 +363,28 @@ separate No-Overworld pass.
   At 12 the border cuts into the chest sprite, so 14 is the smallest change that
   buys the gap and the largest that leaves the chest whole.
 
+- **The flood learned that the grid wraps, which put the slide back.** Caught by
+  the pre-merge review, not by either suite. `components()` used plain
+  4-connectivity on a torus, so a region straddling the join split in two and
+  `drop_specks` threw the smaller half away as a speck -- and because that
+  removed index 0 or 63 from `occupied`, `_axis_shift`'s join test stopped
+  firing, silently reverting the rotation commit on three of the five seam
+  maps. `sky4F` was clipping seven of sixteen rooms, worse than the four the
+  rotation was written to fix; `melmond` lost a 13-cell road and `elf_castle` a
+  5-cell approach, both torus-adjacent to their towns.
+
+  One line -- flood modulo `MAP_DIM`. Exactly three crops change and all three
+  return to their pre-speck framing: `sky4F` back to `(0,59,0,58)`, `elf_castle`
+  to `(0,27,0,34)`, `melmond` to `(0,44,0,43)`. Verified as a count rather than
+  by eye: sixteen 88-cell rooms on `sky4F`, all sixteen inside the box, and
+  across all 61 maps zero kept cells fall outside their crop.
+
+  It widened the speck band rather than narrowing it, which is the reassuring
+  direction: largest droppable 19, smallest kept **88** against 58 before,
+  measured over vanilla, both duck and both oracle cartridges. The old floor was
+  low precisely because the flat flood was offering split halves as candidates.
+  The `MAX_SPECK` rationale carries the new numbers.
+
 Both claims this branch invalidated are updated rather than left: `test_crop.py`
 asserts the new scheme with its cause, and the `STATUS.md` "reproduces the
 shipped art exactly" finding says what replaced it and by how much.
@@ -365,7 +393,8 @@ Acceptance, met: `test_crop.py` has the wrapped case it lacked (`con_castle`
 beside `mirage1F`, compared tile by tile over the whole frame rather than
 sampled); all five seam maps pass `crop_violations`; and a scratch regen of both
 cartridges puts every seam map's chest markers on their chests with no strays.
-Both suites green on the vanilla, std and nov cartridges.
+Both suites green on the vanilla, std and nov cartridges, and `test_crop.py`'s
+band check green on all five (vanilla, both duck, both oracle).
 
 **Branch after that: the stale-override warning**, per "Notice when the drawn
 maps are for a different cartridge" in `docs/IDEAS.md`. Separate because it
