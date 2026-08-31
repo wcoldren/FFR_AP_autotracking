@@ -123,7 +123,15 @@ local function rememberRomAcrossRestarts()
     -- over a flag the player had corrected by hand -- most likely one FFR
     -- rolled at generation, which is exactly the one the cartridge cannot
     -- answer and the player had to set themselves.
-    if type(data) == "table" and type(data.flags) == "string" and data.flags ~= "" then
+    --
+    -- "" is restored with the rest, and has to be. It is a real record -- the
+    -- bridge attached and got nothing off the cartridge -- and applyFFRFlags
+    -- resets the grid to defaults every time it meets a record it has not
+    -- already put in FFR_FLAGS_SOURCE. Dropping "" here left that variable nil
+    -- on every restart, so the reset fired again each time and a grid set by
+    -- hand on a non-FFR cartridge was wiped on reopening. A source that was
+    -- never read at all is nil, not "", and still fails the type check.
+    if type(data) == "table" and type(data.flags) == "string" then
       FFR_FLAGS_SOURCE = data.flags
       -- And with it the verdict on that record. Restoring the source without
       -- the verdict is the bad case: applyFFRFlags short-circuits on the

@@ -359,6 +359,23 @@ Nothing here is urgent unless it says so.
   correct. Re-run the regen once per mode before reading anything off it;
   `tools/regen_maps.py --verify` says whether an installed override is stale.
 
+- **The No-Overworld variants inherit the standard `overworld` row, and their
+  29 overworld pins are never restamped for it.** `NOverworldMaps.json`
+  overrides only the `incentives` row, so once a standard regen has repointed
+  `maps.json`'s `overworld` row at the render -- the 3568x3632 crop, at
+  `location_size` 92 -- the No-Overworld variants pick that row up too.
+  `locations/NOverworld/overworld.json`'s markers are not restamped to match:
+  `ow_maps` is empty in `nov` mode by design, so those pins keep hand-drawn
+  pixels reaching (2850, 2700), measured against the 3096x3096 drawing.
+
+  **Invisible today, and waived on that basis 2026-08-31** rather than fixed:
+  no No-Overworld layout opens an `overworld` map, so nothing renders the row
+  either mode inherits. It becomes 29 wrong pins the moment one does, or if the
+  standard crop ever tightens below those coordinates. The fix belongs with the
+  amalgamated No-Overworld map in `docs/IDEAS.md` -- that entry owns the
+  surface, and restamping 29 markers against a crop this mode never renders is
+  work with nothing to check it against until there is one.
+
 - **`I: Shop Item` carries no rule at all, and nothing has ever compared it.**
   The pin is `Onrac Continent/I: Shop Item`, and its `access_rules` are empty at
   both node and section level while `Onrac Continent` is an organisational node

@@ -66,6 +66,21 @@ def check(label, got, want):
 
 
 def main():
+    # Pure geometry, so it runs with or without a cartridge -- and the edge it
+    # gets wrong is one no real overworld happens to contain, which is exactly
+    # why it went unnoticed.
+    print("-- stacking against the top edge")
+    top = op.spread({"a": (10, 1), "b": (10, 1), "c": (10, 1)}, 6)
+    check("three pins on one tile become three tiles", len(set(top.values())), 3)
+    # The nudge used to be (y - step) % dim, so a door within a step of row 0
+    # wrapped to y~251. content_box would then stretch the crop to nearly all
+    # 256 rows with the pin at the bottom of the render: a silently wrong map
+    # rather than a reported failure.
+    check("and none of them wrapped to the far south",
+          max(y for _, y in top.values()) < 32, True)
+    check("a pin with room above it still stacks north",
+          op.spread({"a": (10, 40), "b": (10, 40)}, 6)["b"], (10, 34))
+
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):
         print("SKIP  set FF1_ROM to a Final Fantasy cartridge to run this")

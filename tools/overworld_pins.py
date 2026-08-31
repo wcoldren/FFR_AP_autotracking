@@ -293,10 +293,24 @@ def spread(placed, step, dim=256):
     step = max(1, int(step))
     out, taken = {}, {}
     for name, where in placed.items():
-        while where in taken:
-            where = (where[0], (where[1] - step) % dim)
-        taken[where] = name
-        out[name] = where
+        moved = where
+        # North first: there is most room above a door on this art, and the
+        # column then reads as one stack rather than two directions.
+        while moved in taken and moved[1] - step >= 0:
+            moved = (moved[0], moved[1] - step)
+        # The top edge is not a wrap point. This is not a torus -- content_box
+        # clamps to the map -- and a door within a step of row 0 used to wrap to
+        # y~250, which stretched the crop to nearly every row and put the pin at
+        # the far bottom of the render: a silently wrong map rather than a
+        # reported failure. Out of room going north, go south instead.
+        while moved in taken and moved[1] + step < dim:
+            moved = (moved[0], moved[1] + step)
+        if moved in taken:
+            raise ValueError(
+                f"no room to stack {name!r} clear of {taken[moved]!r}: "
+                f"{where} with a {step}-tile step on a {dim}-tile map")
+        taken[moved] = name
+        out[name] = moved
     return out
 
 

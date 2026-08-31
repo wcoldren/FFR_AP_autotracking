@@ -397,13 +397,18 @@ def overworld_marker(width):
 
 
 def build_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER,
-                    ow_size=None, ow_border=None):
+                    ow_size=None, ow_border=None, ow_have=()):
     """The pack's maps.json, pointed at the standard set of rendered art.
 
-    The overworld and incentive entries keep the pack's own art and sizes --
-    this changes the dungeon maps and nothing else. location_size is in image
-    pixels and a tile is still 16 of them however the image is cropped, so one
-    size still fits all of them.
+    The overworld and incentive rows follow the render onto that art too -- one
+    drawing, two sets of pins -- but only when `ow_have` says that mode's
+    overworld.png is really on disk. `have` is read off the directory, and
+    `images/maps/std/` left by a run older than the overworld render is not
+    evidence the image is in it; pointing both rows at a file that is not there
+    is a blank Overworld tab and a blank incentive sheet.
+
+    location_size is in image pixels and a tile is still 16 of them however the
+    image is cropped, so one size still fits every dungeon map.
 
     With no standard set rendered yet, the pack's own hand-drawn art is left
     exactly where it is and no new names are added: a tab pointing at an image
@@ -418,7 +423,10 @@ def build_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER,
     # pack -- one drawing, two sets of pins -- so both rows follow it onto the
     # render. Their markers are a tile like every other rendered map's, not the
     # 80 the drawing wanted.
-    for name in list(render_maps.MAP_FILES.values()) + OVERWORLD_MAPS:
+    names = list(render_maps.MAP_FILES.values())
+    if "std" in ow_have:
+        names += OVERWORLD_MAPS
+    for name in names:
         e = by_name.setdefault(name, {"name": name})
         if name not in order:
             order.append(name)
@@ -429,8 +437,7 @@ def build_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER,
     return [by_name[n] for n in order]
 
 
-def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER,
-                               ow_size=None, ow_border=None):
+def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
     """NOverworldMaps.json, which the No-Overworld variants load second.
 
     scripts/init.lua loads maps.json and then this, and PopTracker lets the
@@ -1022,21 +1029,48 @@ def main():
     ow_reader = entrance_graph.Rom.of(rom, args.rom)
     ow_graph = graph or entrance_graph.Graph(ow_reader)
     board_doc = lenient(os.path.join(PACK, dungeon_locations))
-    ow_placed, ow_unplaced, ow_anchors = overworld_pins.resolve(
-        rom, ow_reader, ow_graph, board_doc, tiles_by_name)
-    # Stack the pins that share a door before the box is measured, so a pin
-    # nudged clear of another is inside the art rather than off the top of it.
-    # The step is a marker's height, and the marker is a fraction of the crop --
-    # which is not known yet, so it is estimated from the anchors' own spread
-    # and the margin absorbs the difference. One pass: the estimate moves the
-    # box by a few tiles at most, and the guard below is what says so.
-    est = overworld_pins.content_box(list(ow_placed.values()))
-    ow_placed = overworld_pins.spread(
-        ow_placed, overworld_pins.marker_tiles(max(est[2], est[3])))
+    if mode == "std":
+        ow_placed, ow_unplaced, ow_anchors = overworld_pins.resolve(
+            rom, ow_reader, ow_graph, board_doc, tiles_by_name)
+        # Stack the pins that share a door before the box is measured, so a pin
+        # nudged clear of another is inside the art rather than off the top of
+        # it. The step is a marker's height and the marker is a fraction of the
+        # crop, so the step depends on the box and the box depends on the step.
+        #
+        # Settle the two against each other rather than estimating once. This
+        # used to take the step from the *unspread* anchors' box, which is never
+        # larger than the spread one -- so the marker actually drawn could come
+        # out bigger than the step that had separated two pins sharing a door,
+        # and the boxes this whole step exists to part would overlap. The
+        # incentive sheet below already sized its step off the final box; this
+        # is the board being given the same treatment.
+        #
+        # It terminates because spread() always works from the unspread
+        # placement, so each pass is decided by its step alone and nothing
+        # compounds; a box that stops growing is the fixed point.
+        ow_box = overworld_pins.content_box(list(ow_placed.values()))
+        for _ in range(8):
+            stacked_ = overworld_pins.spread(
+                ow_placed, overworld_pins.marker_tiles(max(ow_box[2], ow_box[3])))
+            box_ = overworld_pins.content_box(list(stacked_.values()))
+            if box_ == ow_box:
+                ow_placed = stacked_
+                break
+            ow_box = box_
+        else:
+            print("\nFAILED: the overworld crop and the marker size it decides "
+                  "never settled. The pins, the box and the marker are three "
+                  "derivations that have to agree, and they did not.")
+            return 1
+    else:
+        # A No-Overworld cartridge gets no overworld render, so there is nothing
+        # to resolve, stamp or measure. Running the resolve anyway cost a graph
+        # walk and printed failure-shaped lines -- the stacking table, and
+        # "could not be placed on the overworld" -- for placements that were
+        # never going to be attempted.
+        ow_placed, ow_unplaced, ow_anchors = {}, [], {}
+        ow_box = (0, 0, render_overworld.OW_DIM, render_overworld.OW_DIM)
     ow_mirror = overworld_pins.mirror_of(board_doc, ow_placed)
-    ow_box = (overworld_pins.content_box(list(ow_placed.values()))
-              if mode == "std" else (0, 0, render_overworld.OW_DIM,
-                                     render_overworld.OW_DIM))
     ow_moved, ow_dropped = 0, []
     # Which map names this mode's overworld render backs -- none of them off a
     # No-Overworld cartridge, which gets no overworld render and keeps both the
@@ -1231,7 +1265,8 @@ def main():
     files["maps/maps.json"] = (json.dumps(
         build_maps_json(have, args.marker_size, args.marker_border,
                         args.overworld_marker_size or std_size,
-                        args.overworld_marker_border or std_border),
+                        args.overworld_marker_border or std_border,
+                        ow_have=set(ow_px)),
         indent=4) + "\n").encode()
     files["maps/NOverworldMaps.json"] = (json.dumps(
         build_noverworld_maps_json(have, args.marker_size, args.marker_border),

@@ -416,5 +416,35 @@ check("a refused icon write does not escape setFlagsUnread", wrote, true)
 check("and the reason is still recorded", FLAGS_UNREAD_WHY, "a host that refuses the write")
 setFlagsUnread(nil)
 
+------------------------------------------------------------------
+-- The empty flag record has to survive a restart as well.
+--
+-- "" is a real record, not a missing one: the bridge is attached and got
+-- nothing off the cartridge -- not an FFR ROM, a PRG it could not read, or a
+-- build with no FFRInfo. applyFFRFlags resets the grid to defaults for any
+-- record it has not already put in FFR_FLAGS_SOURCE, so a "" dropped by the
+-- autosave means that reset fires again on every launch, and a grid the player
+-- set by hand on a non-FFR cartridge is wiped each time the tracker reopens.
+-- The guard used to be `data.flags ~= ""`, which dropped exactly this case.
+------------------------------------------------------------------
+local memoItem = nil
+for _, it in ipairs(luaItems) do if it.SaveFunc then memoItem = it end end
+
+FFR_FLAGS_SOURCE = ""
+ROM_ID = "romNoRecord"
+local emptyCarried = memoItem.SaveFunc(memoItem)
+check("the empty record reaches the autosave", emptyCarried.flags, "")
+
+FFR_FLAGS_SOURCE = nil
+ROM_ID = nil
+memoItem.LoadFunc(memoItem, emptyCarried)
+check("and comes back, so the reset does not fire twice", FFR_FLAGS_SOURCE, "")
+
+-- A source never read at all is nil, not "", and must stay nil: restoring it as
+-- a string would make the first real record look like an unchanged one.
+FFR_FLAGS_SOURCE = nil
+memoItem.LoadFunc(memoItem, { rom = "romNoRecord" })
+check("a save with no record at all leaves the source nil", FFR_FLAGS_SOURCE, nil)
+
 print(fail==0 and "\nALL PASS" or string.format("\n%d FAILURE(S)",fail))
 os.exit(fail==0 and 0 or 1)
