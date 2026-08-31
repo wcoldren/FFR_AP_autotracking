@@ -32,12 +32,11 @@ sys.path.insert(0, TOOLS)
 
 import make_toggle_icons                                       # noqa: E402
 
-# Drawn ahead of the toggle that will use it. docs/ROADMAP.md "2. Visibility
-# toggles" is the plan; three of the four are built -- `show_gold_rings`, which
-# scripts/incentives.lua says had to be Lua rather than a rule on the pins, and
-# the two kind toggles `showPin` reads. Skipped Incentive Pins is the one left.
-# Take a name off this list in the commit that references it.
-STAGED = {"showSkippedPins"}
+# Icons drawn ahead of the toggles that will use them, and so referenced by
+# nothing. Empty: all four Pins toggles are built. Kept rather than deleted
+# because it is what fails when a fifth icon is drawn and left unwired, and
+# what fails again when one is wired up without being taken off this list.
+STAGED = set()
 
 # Where a reference to an image can live. Searched as text rather than parsed:
 # an "img" in an item, a "map_image" in maps.json and an image built by string

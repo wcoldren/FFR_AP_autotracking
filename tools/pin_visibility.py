@@ -61,17 +61,16 @@ TREES = (
     "locations/NOverworld/incentives.json",
 )
 
-# The kinds that carry a rule today. `slot` joins them the moment
-# items/flags.json defines show_skipped; until then a slot rule would name an
-# item nothing defines, on a sheet where showPin would fail open and draw the
-# pin anyway -- so the rule would be inert, and an inert rule that looks live is
-# worse than none.
+# The kinds that carry a rule. All three, now that items/flags.json defines a
+# toggle for each -- a rule naming an item that does not exist would be inert,
+# because showPin fails open and draws the pin, and an inert rule that looks
+# live is worse than none.
 #
 # One constant rather than two, because tools/regen_maps.py stamps its own
 # output through the same function: a gate the tool honoured and the regen did
 # not would show up as a committed tree and an override that disagree, which is
 # the whole thing this arrangement exists to make impossible.
-ENABLED_KINDS = frozenset({"chest", "npc"})
+ENABLED_KINDS = frozenset({"chest", "npc", "slot"})
 
 FIELD = "restrict_visibility_rules"
 

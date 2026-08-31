@@ -32,13 +32,17 @@ local INCENTIVE_TREES = {
 -- Kinds showPin answers for, and the toggle each reads. Held here rather than
 -- imported, because logic.lua's copy is a local: a rename on one side without
 -- the other is a thing this should notice.
-local KIND_TOGGLE = { chest = "show_chests", npc = "show_npcs" }
+local KIND_TOGGLE = {
+  chest = "show_chests",
+  npc   = "show_npcs",
+  slot  = "show_skipped",
+}
 
--- Drawn, wired to nothing yet. The slot kind and its rules land with the
--- Skipped Incentive Pins toggle; until then a rule naming it would name an item
--- items/flags.json does not define. Both directions fail: a stamped slot rule
--- with no toggle, and a toggle nobody took off this list.
-local PENDING_TOGGLE = { slot = "show_skipped" }
+-- Kinds showPin answers for that nothing stamps yet. Empty, now that all three
+-- are wired; kept because it is the thing that fails in both directions when a
+-- fourth is drawn ahead of its toggle -- a stamped rule with no item, and an
+-- item nobody took off this list.
+local PENDING_TOGGLE = {}
 
 local fail = 0
 local function fails(msg)
@@ -133,12 +137,19 @@ for _, rel in ipairs(DUNGEON_TREES) do
   check(rel .. ": pins with no rule", n.none, 29)
 end
 
+-- The sheets. 17 of 26 std slots and 20 of 28 nov ones can be spoken for by an
+-- incentive flag; the rest hold a section no flag covers, so no rule may claim
+-- to hide them. Nine and eight: the four with no slot at all -- Temple of
+-- Fiends, ToFR, Shop Item, and Ryukahn Desert on the standard sheet -- and the
+-- five orb slots.
+local SHEET_RULED = { ["locations/incentives.json"] = 17,
+                      ["locations/NOverworld/incentives.json"] = 20 }
 for _, rel in ipairs(INCENTIVE_TREES) do
   local ruled = 0
   eachPin(trees[rel], function(_, marker)
     if marker.restrict_visibility_rules then ruled = ruled + 1 end
   end)
-  check(rel .. ": pins with a rule", ruled, 0)
+  check(rel .. ": pins with a rule", ruled, SHEET_RULED[rel])
 end
 
 ------------------------------------------------------------------
@@ -182,7 +193,7 @@ for kind, code in pairs(KIND_TOGGLE) do
     end
   end
 end
-check("pin toggles defined and starting on", wired, 2)
+check("pin toggles defined and starting on", wired, 3)
 
 for kind, code in pairs(PENDING_TOGGLE) do
   if defOf[code] then
@@ -237,12 +248,14 @@ check("npc pins go with the toggle off", showPin("npc"), 0)
 -- draws. The alternative -- a whole tab silently emptied by a typo -- is worse
 -- than a pin that will not switch off.
 check("an unknown kind draws", showPin("nosuchkind"), 1)
-check("an undefined toggle draws", showPin("slot"), 1)
+local realSkipped = byCode.show_skipped
+byCode.show_skipped = nil
+check("an undefined toggle draws", showPin("slot", "npcsAreIncentive"), 1)
+byCode.show_skipped = realSkipped
 
--- The slot kind, complete ahead of the rules that will call it. An
--- incentivized slot is not a skipped one, so the toggle has no say over it.
+-- The slot kind. An incentivized slot is not a skipped one, so the toggle has
+-- no say over it; a slot the seed passed over is, and goes.
 provided = { fetchQuestsAreIncentive = 1 }
-byCode.show_skipped = { }                              -- pretend it exists
 check("an incentivized slot draws with skipped off",
       showPin("slot", "fetchQuestsAreIncentive"), 1)
 check("a skipped slot goes with skipped off",
@@ -250,7 +263,28 @@ check("a skipped slot goes with skipped off",
 provided = { show_skipped = 1 }
 check("a skipped slot draws with skipped on",
       showPin("slot", "npcsAreIncentive"), 1)
-byCode.show_skipped = nil
+
+-- Nor is any slot a skipped one where the chests are the run. Both routes to
+-- that, because they answer from different places and either may be the only
+-- one available: the variant, which is set before the first rule runs, and
+-- maptab.lua's chestsAreChecks(), which needs autotracking to have loaded.
+provided = {}
+Tracker.ActiveVariantUID = "6shardHunt"
+check("a shard hunt keeps its skipped slots", showPin("slot", "npcsAreIncentive"), 1)
+Tracker.ActiveVariantUID = "5standard"
+check("and gives them up again off a shard hunt",
+      showPin("slot", "npcsAreIncentive"), 0)
+
+-- logic.lua loads before autotracking and autotracking may never load, so the
+-- absent case is the normal one and has to be the quiet one.
+check("no chestsAreChecks at all is not an error",
+      showPin("slot", "npcsAreIncentive"), 0)
+chestsAreChecks = function() return true end
+check("a chests-are-checks seed keeps its skipped slots",
+      showPin("slot", "npcsAreIncentive"), 1)
+chestsAreChecks = function() return false end
+check("an ordinary seed does not", showPin("slot", "npcsAreIncentive"), 0)
+chestsAreChecks = nil
 
 ------------------------------------------------------------------
 -- 5. What each toggle is worth, counted through the real showPin.
@@ -302,11 +336,31 @@ for _, rel in ipairs(DUNGEON_TREES) do
   check(rel .. ": drawn, both off", drawn(rel), 29)
 end
 
--- The sheets have no rules yet, so nothing switches them. This is the baseline
--- the Skipped Incentive Pins toggle will be measured against.
-provided = {}
-check(INCENTIVE_TREES[1] .. ": drawn", drawn(INCENTIVE_TREES[1]), 26)
-check(INCENTIVE_TREES[2] .. ": drawn", drawn(INCENTIVE_TREES[2]), 28)
+-- The sheets, on a seed that incentivized nothing -- the worst case, and the
+-- one where the toggle is worth most. Then with the NPC flag set, where the
+-- slots it speaks for stop being skipped ones and come back on their own.
+--
+-- Five come back on each sheet, and they are the same five nodes: Coneria
+-- Castle, Pravoka, Sarda's Cave, Crescent Lake and the Waterfall. The two
+-- sheets disagree about how Coneria Castle is drawn -- the standard one puts
+-- the locked chest in with the King and Sara, so the node carries both flags in
+-- one rule, while the No-Overworld sheet gives the chest a node of its own --
+-- and the counts differ by that one pin rather than by which NPCs are on them.
+-- showPin ORs the flags in a rule, because a pin stands for every section under
+-- it and one live slot is reason enough to draw.
+local SHEET_DRAWN = {
+  ["locations/incentives.json"] = { on = 26, off = 9, npcs = 14 },
+  ["locations/NOverworld/incentives.json"] = { on = 28, off = 8, npcs = 13 },
+}
+for _, rel in ipairs(INCENTIVE_TREES) do
+  local want = SHEET_DRAWN[rel]
+  provided = { show_skipped = 1 }
+  check(rel .. ": drawn, skipped on", drawn(rel), want.on)
+  provided = {}
+  check(rel .. ": drawn, skipped off", drawn(rel), want.off)
+  provided = { npcsAreIncentive = 1 }
+  check(rel .. ": drawn, skipped off, NPCs incentivized", drawn(rel), want.npcs)
+end
 
 if fail > 0 then
   print(string.format("\n%d FAILURES", fail))

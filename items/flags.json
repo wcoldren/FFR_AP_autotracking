@@ -339,6 +339,13 @@
         "initial_active_state" : true
     },
     {
+        "name" : "Skipped Incentive Pins",
+        "type" : "toggle",
+        "img" : "images/flags/showSkippedPins.png",
+        "codes" : "show_skipped",
+        "initial_active_state" : true
+    },
+    {
         "name" : "Incentive Rings",
         "type" : "toggle",
         "img" : "images/flags/showIncentiveRings.png",

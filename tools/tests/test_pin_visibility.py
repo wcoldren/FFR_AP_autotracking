@@ -15,12 +15,11 @@ different question and fails differently:
     unclassified, which stamps no rule and hides nothing. A pin that cannot be
     switched off is a silent failure; the zero below is what says there are
     none.
-  * **the incentive half of the classifier, which has no rules on the board
-    yet.** `flags_of` and the `incentives` dispatch are written ahead of the
-    Skipped Incentive Pins toggle, so nothing else exercises them. The five orb
-    slots are named here rather than counted, because "every section must carry
-    a flag" exists for them specifically: an orb pin that could be switched off
-    would take the four fiends' own chests off the board.
+  * **the incentive half of the classifier.** The five orb slots are named
+    here rather than counted, because "every section must carry a flag" exists
+    for them specifically: an orb pin that could be switched off would take the
+    four fiends' own chests off the board, and a count moving by one is not
+    something anyone would read as that.
 """
 import copy
 import hashlib
@@ -110,16 +109,16 @@ def main():
                 continue
             check(f"{rel}: no flag speaks for {name}",
                   pin_visibility.flags_of(node), None)
-        # And nothing on the sheets carries a rule yet, because `slot` is not
-        # an enabled kind. Both halves are asserted: a rule with the kind still
-        # off, or the kind on with the sheets unstamped, is a drift between the
-        # gate and the trees.
+        # The stamped sheet agrees with the classifier. Both halves are
+        # asserted, so a rule appearing where no flag speaks for one fails, and
+        # so does a kind switched on with the sheets left unstamped -- either
+        # is a drift between the gate and the trees.
         check(f"{rel}: pins carrying a rule", sum(
             1 for n in pinned
             for m in n.get("map_locations") or []
-            if m.get("restrict_visibility_rules")), 0)
-    check("kinds that carry a rule today",
-          sorted(pin_visibility.ENABLED_KINDS), ["chest", "npc"])
+            if m.get("restrict_visibility_rules")), want_ruled)
+    check("kinds that carry a rule",
+          sorted(pin_visibility.ENABLED_KINDS), ["chest", "npc", "slot"])
 
     # 4. stamp() deletes as well as sets.
     #

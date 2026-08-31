@@ -287,6 +287,24 @@ function showPin(kind, ...)
         return 1
       end
     end
+    -- Nor is any slot a skipped one on a run where the chests are the checks.
+    -- "The seed did not incentivize this" means "there is probably nothing good
+    -- here", and that stops being true the moment every chest can hold a shard
+    -- or a key item: the sheet is the board then, not a poster, and a toggle
+    -- that emptied it would take the run off the screen.
+    --
+    -- Two questions, not one. isShardHunt() reads the variant, which is set
+    -- before the first rule is evaluated and is right on an Archipelago-only
+    -- session with no cartridge in sight. chestsAreChecks() is maptab.lua's,
+    -- and answers from the pool Archipelago reported or the cartridge's own
+    -- flags -- neither of which exists until autotracking loads, which it may
+    -- never do. Hence the type check rather than a call.
+    if isShardHunt() then
+      return 1
+    end
+    if type(chestsAreChecks) == "function" and chestsAreChecks() then
+      return 1
+    end
   end
   if toggleOn(code) then
     return 1

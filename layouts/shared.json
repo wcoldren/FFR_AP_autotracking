@@ -203,6 +203,7 @@
                 [
                     "show_chests",
                     "show_npcs",
+                    "show_skipped",
                     "show_gold_rings"
                 ]
             ]

@@ -80,6 +80,20 @@ local function cartridgeChestsAreChecks()
       or ffrFlag("ChestsKeyItems", false) == true
 end
 
+-- Whether the chests are checks this run, on the best evidence there is: what
+-- Archipelago said about the pool if it said anything, and the cartridge's own
+-- flags otherwise. That precedence is not new -- overworldTab() has always read
+-- them in this order -- it just did it inline, where nothing else could reach it.
+--
+-- Global, as this file already does for overworldTab(), because logic.lua's
+-- showPin() needs the same answer: an unincentivized slot stops being a skipped
+-- one when every chest can hold the run. logic.lua loads first and autotracking
+-- may not load at all, so the caller there guards for this being absent.
+function chestsAreChecks()
+  if chestsInPool ~= nil then return chestsInPool end
+  return cartridgeChestsAreChecks()
+end
+
 -- Whether this variant lays out the full overworld map at all.
 --
 -- The NOverworld layouts do not, and cannot usefully: the mode replaces the
@@ -98,10 +112,7 @@ function overworldTab()
   local mode = tabMode()
   if mode == TAB_INCENTIVE then return OVERWORLD_INCENTIVE end
   if mode == TAB_FULL then return OVERWORLD_FULL end
-  if chestsInPool ~= nil then
-    return chestsInPool and OVERWORLD_FULL or OVERWORLD_INCENTIVE
-  end
-  if cartridgeChestsAreChecks() then return OVERWORLD_FULL end
+  if chestsAreChecks() then return OVERWORLD_FULL end
   return OVERWORLD_INCENTIVE
 end
 

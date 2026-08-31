@@ -34,7 +34,10 @@
                     {
                         "map": "incentives",
                         "x": 1840,
-                        "y": 1740
+                        "y": 1740,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|coneriaLockedIsIncentive|npcsAreIncentive"
+                        ]
                     }
                 ]
             },
@@ -110,7 +113,10 @@
                     {
                         "map": "incentives",
                         "x": 1220,
-                        "y": 1730
+                        "y": 1730,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|fetchQuestsAreIncentive"
+                        ]
                     }
                 ]
             },
@@ -136,7 +142,10 @@
                     {
                         "map": "incentives",
                         "x": 1230,
-                        "y": 2070
+                        "y": 2070,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|fetchQuestsAreIncentive"
+                        ]
                     }
                 ]
             },
@@ -164,7 +173,10 @@
                     {
                         "map": "incentives",
                         "x": 2040,
-                        "y": 1240
+                        "y": 1240,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|fetchQuestsAreIncentive"
+                        ]
                     }
                 ]
             },
@@ -190,7 +202,10 @@
                     {
                         "map": "incentives",
                         "x": 1640,
-                        "y": 2500
+                        "y": 2500,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|fetchQuestsAreIncentive"
+                        ]
                     }
                 ]
             },
@@ -218,7 +233,10 @@
                     {
                         "map": "incentives",
                         "x": 2530,
-                        "y": 1650
+                        "y": 1650,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|npcsAreIncentive"
+                        ]
                     }
                 ]
             },
@@ -251,7 +269,10 @@
                     {
                         "map": "incentives",
                         "x": 1230,
-                        "y": 2680
+                        "y": 2680,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|marshIsIncentive|marshLockedIsIncentive"
+                        ]
                     }
                 ]
             }
@@ -286,7 +307,10 @@
                     {
                         "map": "incentives",
                         "x": 370,
-                        "y": 2150
+                        "y": 2150,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|npcsAreIncentive"
+                        ]
                     }
                 ]
             },
@@ -311,7 +335,10 @@
                     {
                         "map": "incentives",
                         "x": 400,
-                        "y": 1950
+                        "y": 1950,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|titansTroveIsIncentive"
+                        ]
                     }
                 ]
             },
@@ -370,7 +397,10 @@
                     {
                         "map": "incentives",
                         "x": 970,
-                        "y": 1750
+                        "y": 1750,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|fetchQuestsAreIncentive"
+                        ]
                     }
                 ]
             }
@@ -406,7 +436,10 @@
                     {
                         "map": "incentives",
                         "x": 2630,
-                        "y": 2450
+                        "y": 2450,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|npcsAreIncentive"
+                        ]
                     }
                 ]
             },
@@ -434,7 +467,10 @@
                     {
                         "map": "incentives",
                         "x": 2380,
-                        "y": 2050
+                        "y": 2050,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|iceCaveIsIncentive"
+                        ]
                     }
                 ]
             },
@@ -553,7 +589,10 @@
                     {
                         "map": "incentives",
                         "x": 1400,
-                        "y": 650
+                        "y": 650,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|cardiaIsIncentive"
+                        ]
                     }
                 ]
             }
@@ -585,7 +624,10 @@
                     {
                         "map": "incentives",
                         "x": 1570,
-                        "y": 380
+                        "y": 380,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|ordealsIsIncentive"
+                        ]
                     }
                 ]
             }
@@ -621,7 +663,10 @@
                     {
                         "map": "incentives",
                         "x": 2850,
-                        "y": 1040
+                        "y": 1040,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|fetchQuestsAreIncentive"
+                        ]
                     }
                 ]
             },
@@ -648,7 +693,10 @@
                     {
                         "map": "incentives",
                         "x": 2650,
-                        "y": 200
+                        "y": 200,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|fetchQuestsAreIncentive"
+                        ]
                     }
                 ]
             },
@@ -710,7 +758,10 @@
                     {
                         "map": "incentives",
                         "x": 700,
-                        "y": 380
+                        "y": 380,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|npcsAreIncentive"
+                        ]
                     }
                 ]
             },
