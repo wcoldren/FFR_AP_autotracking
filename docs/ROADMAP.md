@@ -1,561 +1,128 @@
 # What is next, in order
 
-The No-Overworld map work is the focus. This is what should happen around it, and
-why in this order. `docs/IDEAS.md` holds everything not on this list.
+Forward-only. Finished work lives in `STATUS.md`; defects in `docs/ISSUES.md`;
+unscoped ideas in `docs/IDEAS.md`. This file says what gets built next and why,
+ordered by what a player sees.
 
-The ordering principle: **correctness before art, and infrastructure before the
-features that need it.** A pin in the wrong place is a cosmetic problem; a pin
-coloured green when the check is unreachable is a lie the player acts on.
+The triage rule, from 2026-08-30: **does it change a colour, add a box, or save
+a click?** If yes it is product and goes in sections 1–4. If no it is tooling
+and goes in 5, where it earns its place by keeping 1–4 true.
 
-## 1. The No-Overworld logic branch
+The parity target for every rule is FFR's `SanityCheckerV2` + `SCLogic`, with
+the Archipelago export as the graded truth table. `docs/FLAG_COVERAGE.md` is the
+table of every flag that logic consults and how the pack models it.
 
-The largest live defect in the pack, and the largest player-facing win available.
+## 1. Colours that are wrong on real seeds
 
-`scripts/logic.lua` branches on shard hunt and nothing else, so roughly thirty
-overworld-geography rules still gate No-Overworld seeds — a mode where ship and
-bridge are free and the canoe is not a vehicle at all. Every pin on those two
-variants is coloured by rules that do not describe the seed.
+Each item here is a pin that lies today on a seed someone could roll. Each
+wants: a code, the affected `access_rules` alternatives, and **one oracle seed
+rolled with the flag on** so `check_logic --ap-rules` grades the branch. A rule
+without its oracle seed is a hand transcription, which is what section 5 is
+meant to end.
 
-The research half is already done. The gates are readable off the cartridge, the
-router stops at them, and `entrance_graph.noverworld_gate_items()` derives which
-routine wants which item from the cartridge's own talk table rather than from
-transcription. What is missing is the pack acting on any of it.
+- **The seven flags with no code.** `NoTail`, `MapAirshipHike`,
+  `MapCardiaLandBridge`, `ShipDrydock`, `ToFRMode`, `ChaosRush`, `ExitToFR`.
+  Two to verify before deciding: `IsFloaterRemoved`, `ShuffleObjectiveNPCs`.
+- **Gaia.** The two tabs disagree about how to reach it (`ISSUES.md`). One is
+  wrong; the oracle says which.
+- **The Cardia roll.** The gateway permutation is rolled per seed and reaches
+  neither the flag string nor the spoiler log (`MetroidVaniaMap.cs:726`). The
+  bridge publishes `ff1/gateways` next to `ff1/flags`, the rule reads it. Until
+  then the pack stays deliberately strict there.
+- **Variant from `GameMode`.** A No-Overworld seed loaded into a standard
+  variant colours every pin wrong and only prints a warning. Mode detection
+  exists; act on it, or at least light the grid the way unread flags do.
 
-Shape of the work:
+## 2. Boxes that do not exist
 
-- Add `isNoOverworld()` to `scripts/logic.lua`, matching `Tracker.ActiveVariantUID`
-  the way `isShardHunt()` does — with `:find`, not `==`.
-- **Put the mode difference in Lua, not in a second JSON tree.** Rewrite the
-  geography rules as `$`-prefixed calls, the way `^$incentiveSlot|<flag>` already
-  works, so one set of rules serves both modes. Two trees that must agree and are
-  never compared is exactly how a missing location file survived for weeks.
-- `regen_maps.place_locations()` only rewrites `map_locations` and passes
-  `access_rules` through untouched, so this survives a regen.
-- Extend `tests/test_maps.lua` check 6, which already compares the two trees
-  location by location, to compare access rules too.
+Things a bridge-only player checks that the board has no cell for. Several
+share work with section 1, which is why they come second and not later.
 
-**The oracle has been run, and the derivation has been fixed against it.**
-`tools/check_logic.py --derived` compares the derived rules with FFR's own
-Archipelago export as truth tables. First run: 218 comparable locations, 52
-agree, **166 divergent and every one permissive** — the derivation opening what
-FFR holds closed.
+- **Titan.** Code clash with `ruby` stage 2; needs its own hosted toggle.
+- **The four fiends and the ToFR refights.** Tiles already read off the
+  cartridge (`extract_npcs.WANTED`, `render_maps.fixed_formations()`); missing a
+  location node each. Their placement moves with `ToFRMode`, so build this on
+  the `ToFRMode` rules from section 1.
+- **Unne.** Holds no shuffled item, so a manual cell — decide and do it, or
+  write down that it stays off. Same decision for the other unpinned NPCs.
+- **`shopItem`.** The one Locations-grid cell with no incentive toggle behind it.
+- **The No-Overworld incentive sheet.** Derive the 28 pin positions from the
+  cartridge; the missing Nerrick slot (`ISSUES.md:436`, one slot not two) comes
+  with it.
+- **ToFR rules at all.** The AP export drops ToFR, so nothing grades them.
+  `tofr_diff.py` is the only check; the rules themselves are unwritten.
 
-The cause was one line. `noverworld_rules.reachable_tiles` seeded its walk from
-everything `Graph.starts()` returns, which is a fact about the *table* — the
-entrances that have a tile — not about the player. On this mode that is nine
-separate one-tile islands on the ocean stub. The party starts on exactly one of
-them, and cannot leave it: every pad carries tile property `0x0E`, walkable on
-foot and refused to the canoe, the ship and the airship alike. There is no
-sailing or flying between pads; all travel is the teleporter table, and the
-items that open it are the four gate NPCs standing in corridors.
+## 3. Clicks and confusion
 
-`start_doors()` now reads the party's start off the cartridge (bank `$00:$B010`,
-plus FFR's `+7` scroll offset) and takes the doors on its own landmass, walking
-the overworld with `overworld_reach` rather than assuming. On the reference
-flagset that is the eight-tile Coneria Castle platform, holding one door.
-Empty-handed reach drops from 45 maps to 22; with every item it stays 54 of 61,
-which is the invariant `docs/NOVERWORLD.md` says gates must not move.
+- **Notice when the drawn maps are for another cartridge.** A regenerated set
+  from the last seed under this seed's pins is worse than the hand art. The
+  bridge can detect it (`IDEAS.md`, "Notice when the drawn maps…"); build
+  detection first, execution second.
+- **Follow the party into towns and rooms.** Auto-tab exists; extend it to the
+  No-Overworld towns and to the room-level zoom.
+- **`hide unreachable locations` swallows skipped slots.** Decide whether
+  Inspect should survive it.
+- **What a diamond means.** Settle it and put it in the Map Key.
+- **Stale user-override shadowing pack edits.** Warn once.
 
-After the fix: **216 of 218 agree, 2 divergent.** The two were Nerrick and Astos,
-who want the TNT and the Crown handed over before they give anything — a trade,
-not a tile.
+## 4. Maps
 
-**Both are closed, and the six unplaced NPCs with them.** The trade is data on
-the cartridge: FFR's talk records carry a requirement byte, and
-`entrance_graph.talk_item_requirements()` reads it for the objects whose script
-is shown to consult it. The six were never placed because `extract_npcs.WANTED`
-had not been asked for their object ids; while fixing that, positions moved to
-being read off the seed rather than out of the vanilla snapshot, which FFR moves.
+- **Entrance markers.** On a shuffled seed the hand art's exits are wrong, so
+  these are the top map item for a No-Overworld or entrance-rando player; the
+  design is in `STATUS.md`, "Designed, not started". First increment is the
+  bridge's edge log plus a console print, display half after. Routes need the
+  same log to know which door leads where, which is why this comes first.
+- **Routes on regenerated maps.** The shipped hand art already carries
+  DarkmoonEX's lanes; the regenerated art — the only art a No-Overworld player
+  can trust — has none. Two flavours (shortest, with-loot), one colour per lane
+  across all 61, key in the Map Key band. Baked at render time in `regen_maps`;
+  the PopTracker tab is a static image. Objective function is in `IDEAS.md`.
+- **The No-Overworld map surface.** The connection diagram — a hand-drawn
+  pseudo-overworld with the fixed links as roads. Unchanged from the earlier
+  plan; the topology is measured and stable.
+- **Boss names in the Map Key**, from the formation ids already in hand.
 
-Re-run on a freshly built 4.9.2 oracle cartridge: **226 comparable, 226 agree, 0
-divergent**, no location left without a derived rule. The count rises from 218
-because the six now resolve. (The corpus's derived files were behind that for a
-while, giving 254 derived and 222 compared; they were regenerated on 2026-08-30
-with the widened sweep and now give 255 and 226.)
+## 5. Tooling that keeps 1–4 true
 
-The **pins** read the cartridge too, since 2026-08-30. `marker_tiles` and the
-two crop guards took NPC tiles out of `tools/npc_positions.json`, the vanilla
-snapshot, which drew Nerrick's pin two rows off his sprite on a No-Overworld
-regen. Fourteen NPCs have a pin now rather than eight; the King, Sara, the Elf
-Prince and the Robot each got a location of their own first, because a marker's
-state is ORed over its node's sections and their pins would otherwise have
-reported a dungeon's chests. `npc_positions.json` stays as the vanilla anchor
-`tests/test_maps.lua` reads, having no cartridge of its own.
+- **Port from the export.** A script that reads FFR's Archipelago export and
+  emits the `$`-guarded `access_rules`, replacing hand transcription. One export
+  per FFR version, not per seed. This is the thing that keeps the pack in step
+  when FFR changes.
+- **The flag-coverage test.** The flags the logic consults are a grep over
+  `IVictoryConditionFlags`, `OverworldMap.cs`, `NPCs.cs`, `MetroidVaniaMap.cs`,
+  `TempleOfFiends.cs`. Fail when one appears that is in neither
+  `flag_mapping.lua` nor an explicit not-modelled list.
+- **Pin the FFR revision.** The schemas carry a build SHA; the rules should
+  say which revision they were graded against, and the greps above should run
+  against that revision, vendored or fetched. `FLAG_COVERAGE.md` was compiled
+  against trunk `0f91e97` because the 4-9-7 schema's build SHA `1f31434` was
+  not reachable; re-run its greps once pinned.
+- **More oracle seeds.** Two flagsets is thin for a pack with a dozen
+  flag-driven codes. One per branch claimed in section 1.
+- **Two location trees, one rule set.** `isNoOverworld()` landed; the trees are
+  still byte-identical copies. Either collapse them or make `test_maps.lua`
+  check 6 able to fail (a deliberately diverged fixture). Decide alongside the
+  section 4 map surface, since a differently-cropped No-Overworld dungeon tree
+  is the one reason to keep two.
 
-The same run on a standard cartridge, against the pack's existing hand-written
-rules, is the baseline to protect: **225 checked, 225 agree, 0 divergences**, and
-unpruned — `reqs` was empty, so no achievability pruning hid anything. That is
-also what validates the harness end to end. This must not move.
+## Frozen
 
-Both cartridges are generated locally, with their own ground truth attached.
-**The recipe, the inventory and the recorded numbers now live in
-`docs/ORACLE.md`** rather than here, alongside the corpus they describe: four
-cartridges (standard, No-Overworld, a second No-Overworld seed, shard hunt),
-their flag strings, the `ffr-492-oracle` build tree, and the exact commands.
-Rebuilding is bit-reproducible — regenerating either cartridge from its flags
-preset at its recorded seed gives byte-identical output.
+Stated once so nobody re-derives them.
 
-Three results from that page belong here, because they are what this item rests
-on. The standard baseline is **225 checked, 225 agree**, and it must not move;
-shard hunt has a first measurement too, **229 of 229**. Both are hand-written
-rules graded against an independent export, so both mean what they say.
-
-The No-Overworld numbers said much less until 2026-08-30, and the reason is
-worth keeping. The derived rules reported 222 of 222 agreeing, but **164 of
-those 222 had an off-vocabulary item granted free**, so 58 were actually
-compared; the pack's own rules reported 220 of 226 while having been transcribed
-from the export they were graded against — **63 independently supported, 163
-self-agreeing by construction, 6 deliberately strict**. The honest figure was
-63, and the way to move it was the missing `GATED_OBJECTS` rows rather than more
-seeds.
-
-That is what the SubEngineer and Titan rows did. The grant is down to **5 of
-226**, the derived rules are **226 compared, 225 agree, 1 divergent**, and **215
-of the 226 now rest on two independent readings** — the transcription and a walk
-of the cartridge — against 63 before. Read `docs/ORACLE.md`, "What these figures
-do not cover", before quoting any of it; the one divergence is Lefein, filed in
-`docs/ISSUES.md`.
-
-What the oracle does not cover is ToFR — `Archipelago.cs:93` drops it from the
-AP pool unconditionally. `tools/tofr_diff.py` covers that gap by comparison
-instead: same flags, different seed, report what the shuffle moved.
-
-## 2. Visibility toggles
-
-**Done.** Four toggles in a **Pins** group in the left dock, all defaulting on:
-Chest Pins, NPC Pins, Skipped Incentive Pins and Incentive Rings. `README.md`
-says what a player gets; `docs/ARCHITECTURE.md` under "Rules" says how it works
-and where it deliberately stops.
-
-Two things this section predicted turned out otherwise, and the reasons are
-worth keeping.
-
-**Not two-stage progressives.** The gotcha recorded here was real --
-`inherit_codes` defaults true (`jsonitem.cpp:161`), so a naive two-stage toggle
-never turns off -- but it was the answer to the wrong question.
-`initial_active_state` (`jsonitem.cpp:118-120`) has been in PopTracker since
-0.25.4, well under the pack's floor, and a plain `toggle` that starts on is one
-item rather than two stages.
-
-**Not `visibility_rules`.** The constraint this section set -- that a slot the
-seed did not reserve is drawn blue rather than hidden, and these toggles must
-not quietly re-introduce hiding -- is met by which field the rule is written to
-rather than by care. Per-pin `restrict_visibility_rules` hides one marker and
-leaves the section in the tree, in the counts, and clearable from the location
-list; section-level `visibility_rules` is the one that takes a check off the
-board.
-
-What survives as a rule rather than a plan: **a later feature adds its category
-alongside itself.** That is now a fact about `pin_visibility.kind_of()`, which
-reads `extract_npcs.WANTED` and the sub-512 ids in `location_mapping.lua` rather
-than a list of its own -- so a pin the cartridge learns to place gets a rule with
-no edit to the stamper. Entrance markers will want a `kind` of their own, and the
-place to add it is `rule_for()`.
-
-`layouts/settings_popup.json` -- the gear-button panel -- is still a later pass,
-and four toggles is still not enough to justify it.
-
-## 3. The No-Overworld map surface
-
-The current focus, resumed once the above are in.
-
-- **The connection diagram.** A hand-drawn pseudo-overworld arranging the areas
-  geographically with the fixed links as roads, in the pack's own style. A static
-  map is the right shape because the topology is fixed, and that is measured
-  rather than assumed: three seeds carry 157 links each and differ only in the
-  Gaia gateway and the two Waterfall stairs. Those three gateways want a `?`.
-  Deriving the pin coordinates from the same layout that renders the art is the
-  thing worth insisting on — hand-placed pins are what let the poster's markers
-  drift off its art in the first place.
-- **The 28 incentive pins.** `locations/NOverworld/incentives.json` is still
-  hand-authored against upstream's poster. Derive them from the cartridge.
-
-  **`nerrick`'s poster slot belongs to this item.** The No-Overworld poster is
-  missing exactly one slot and it is that one: a real Archipelago location on
-  this mode -- the export has `ConeriaCastle1 -> DwarfCave -> Nerrick (Tnt)` --
-  which both dungeon trees already carry. Where it sits on a poster with no
-  overworld is the same question as deriving the rest of the pins, which is why
-  it is here and not filed as a bug of its own.
-
-  **`airship` is not the other half of a pair, and the pairing was the error.**
-  It is not a location on any cartridge, standard included: the slot is
-  `I: Ryukahn Desert / I: Floater Turn In`, and `hosted_item: airship` means it
-  hands the tracker a vehicle when checked. On this mode there is no desert and
-  no vehicle, and all 26 of the nov poster's `airship` mentions are already
-  behind `$standardWorld`. Adding a slot for it would hand a seed a vehicle it
-  does not have. `docs/ISSUES.md` has the derivation; do not re-derive this as a
-  missing pair.
-- **Entrance markers.** The data half is done — `entrance_graph.py` reads the whole
-  shuffle. The display half is designed end to end: the bridge watches party
-  position and publishes an edge log, so the pack learns the permutation by
-  observation and reveal-on-visit cannot spoil. The trapezoid shape is reserved
-  for these and does not clash with the diamond. First useful increment is the
-  log plus a console print.
-- **Boss pins**, if the manual-click cost is judged acceptable — see
-  `docs/IDEAS.md` and the open question in `docs/ISSUES.md`.
-
-Entrance markers ship **off** by default and are worth turning on in No-Overworld
-and entrance rando. That is a setting, not a branch, which is why item 2 comes
-first.
+- **`tools/noverworld_rules.py`** is frozen. It did its job — it disproved the
+  substitution plan and gave the No-Overworld rules an independent reading. Its
+  remaining gaps (`docs/ORACLE.md`, the eleven) are properties of the tool, not
+  the pack; the shipped rules are graded against the export, which is the
+  correctness criterion. Keep it runnable; stop closing its gaps.
+- **Compile-from-export** is absorbed into section 5.
+- **Names that have drifted** and **the four `NoMap` variants** stay in
+  `IDEAS.md` until there is a user to ask.
 
 ## Branch queue
 
-Where item 1 actually stands, 2026-08-30, and what comes off it. This is the
-part that goes stale fastest, and `git log trunk..` is what actually says
-where a branch stands.
+Where things stand on the day this was written. `git log trunk..` is what
+actually says where a branch is.
 
-**`noverworld-logic` -- fourteen commits, merged to `trunk`, pushed.** `trunk`
-is level with `origin/trunk` and clean, as of 2026-08-30. The wiring (feed
-split, mode guards, 25 region rules, checker), the record correction, the Black
-Orb gate, the idea below, and five commits answering the review. All suites
-green; std 225/225 and shard 229/229 unmoved throughout, including across the
-gate branch below.
-
-**`visibility-toggles` -- twelve commits off `trunk`, not merged.** The docs
-sweep, the blue paragraph, the icons, the four toggles, `tools/pin_visibility.py`
-and the regen's use of it. Both suites green at each; what each toggle is worth
-is a number in its own commit message and an assertion in `tests/test_pins.lua`.
-A review of the first six is answered in `5ede637`. The five after it -- the
-reformat, the two kind toggles, the regen stamping, the slot toggle and these
-docs -- have not been reviewed, and that gate comes before any merge.
-
-**The review gate is closed.** A full review of `trunk...noverworld-logic`
-returned seven findings, all of which held up against the files. All seven
-were fixed rather than waived; each has its own commit message. Two were more
-than tidying:
-
-- The mode guards had landed on `locations/incentives.json` alone, which the two
-  NoMap variants load, while the two *map* variants load
-  `locations/NOverworld/incentives.json` and kept the poster's old geography.
-  Twenty-two slots disagreed between the two sheets. `test_maps.lua` check 7
-  compares them and had been exempted for exactly that pair.
-- `check_logic --derived` graded standard and shard cartridges against rules
-  keyed to the No-Overworld tree, producing 279 divergences that described
-  nothing. Those cartridges are skipped now.
-
-**Landed: the remaining two object gates, and the sweep that can hold them.**
-One commit, because the parts could not land separately -- a `GATED_OBJECTS` row
-whose item the sweep cannot hold blocks that tile in every subset, and everything
-behind it derives as unreachable rather than gated. What went in:
-
-- SubEngineer `0x10` -> oxyale and Titan `0x14` -> ruby, the last two rows of
-  `Sanity/SCMap.cs:167-186`, read off the cartridge by
-  `entrance_graph.object_gate_items()`. The two differ in what is legible, and
-  the reader follows the cartridge rather than flattening them: Titan's
-  requirement byte is set (`Item.Ruby = 9`) and `talk_item_requirements()`
-  already found it, while SubEngineer's is `0x00`, so his item comes from the
-  routine body -- `AD 30 60`, LDA item_oxyale -- and only when the body names
-  exactly one item address.
-- `entrance_graph.ITEM_NAMES` gained both, taking the sweep to 2^12, and
-  `check_logic.SWEPT_ITEMS` with it, so the two stop being granted free.
-- The memoized floor walk, with the all-subsets equivalence guard, in
-  `tools/tests/test_memo_walk.py`. `reachable_teleports` is memoized alongside
-  `floor_walk`, which the filed design had missed. The sweep went from 1024
-  subsets in ~85s to 4096 in ~57s.
-
-The demonstrations, per the working rule below. On `std`, holding every item but
-the one: SubEngineer closes 32 locations across the five Sea Shrine floors,
-Titan closes the 4 in his tunnel. On `nov` Titan closes the same 4; SubEngineer
-closes nothing at that level, because with everything else in hand the Sea Shrine
-has another way in -- so the demonstration for it is one subset down, holding
-`chime,floater`, where it closes 59 locations across Crescent Lake, the Ice Cave
-and all five Volcano floors. That is FFR's own `(Chime AND Oxyale AND Sigil) OR
-(Mark)` shape, derived rather than transcribed.
-
-The payoff was larger than the estimate. Independent support on `nov` went from
-63 of 226 to **215**, not the ~190 guessed here: the off-vocabulary grant fell
-from 164 to 5, and at every location where the pack's transcribed rule agrees
-with FFR the derived rule now agrees too.
-
-One thing it uncovered rather than caused: **Lefein**, the only `--derived`
-divergence left on either No-Overworld cartridge. The Ruby grant had been hiding
-it. FFR wants `(Tnt OR Ruby OR Canoe) AND Floater AND Slab` and the derivation
-says `floater`, because the Lefein man wants the Slab *translated* and
-`SCLogic.cs:555-557` resolves that to Dr Unne's own reachability -- a requirement
-naming another location, which the item sweep cannot express at any vocabulary
-size. Filed in `docs/ISSUES.md`, and it is an argument for the solver in
-`docs/IDEAS.md` rather than for a patch.
-
-**The review gate is closed on this branch too.** A full review of
-`trunk..object-gates` returned four findings, all of which held up. All four
-are fixed rather than waived, in one commit. Two were more than tidying:
-
-- `object_gate_items()` could name any of `ITEM_RAM`'s seventeen items while the
-  sweep varies twelve, so a reassigned routine would have blocked its chokepoint
-  in every subset -- the exact invariant this branch states on three pages and
-  enforced nowhere. It refuses an off-vocabulary row now, as `black_orb_item()`
-  already refused a shard count.
-- `check_logic.WAIVED`'s Lefein reason was being stated on the two No-Overworld
-  `--ap-rules` runs, where it is false. The waiver's conclusion holds on both
-  worlds and the rationale is rewritten to one that does; clearing the waiver
-  would have reported Lefein as a divergence on every cartridge.
-
-The two smaller ones: the walk memo was invalidated by `gated_objects` but not by
-`grids`, though `floor_items()` reads both, and `docs/IDEAS.md` said "seven
-further items" over a list of five. All figures unmoved -- `nov --derived`
-226/225/1 with 5 granted, `nov` 226/220, std 225/225, shard 229/229 -- and the
-`FF1_SLOW` full-lattice guard re-passed on `nov`, 4096 of 4096.
-
-**`visibility-toggles` -- merged to `trunk`.** Sixteen commits in the end. The
-gold-ring switch, the four drawn icons, the "Pins" group in the four map
-trackers, and three doc corrections. `show_gold_rings` is the only one of the
-four toggles built; the other three icons are drawn ahead of the pins they
-switch and `tools/tests/test_toggle_icons.py` holds the list of which.
-
-**The review gate is closed on this branch too.** A full review of
-`trunk...visibility-toggles` returned six findings, all low, all held up against
-the files, and all six are fixed rather than waived, in one commit. None was a
-correctness bug in the Lua or the layouts. The two worth reading:
-
-- The icon writer had a `--check` mode and nothing ran it, and its docstring
-  sized the off state against PopTracker's *default* greyscale rather than the
-  one this pack sets. `settings.json` says `grayscale, dim`, which is a flat
-  halving on top: the gold ring greys to 78 against a 94 glyph, a third darker
-  than the docstring's model and the reason `showIncentiveRings` is the one most
-  likely to want a drawn "off" image. `--check` runs in the suite now, alongside
-  an audit that fails if an icon is wired up without leaving the staged list.
-- The stale-override trap the branch itself filed had no detection. It has one
-  now -- `regen_maps.py --verify`, reading the `inputs` fingerprint that was
-  already in the cache, no cartridge and no rendering. What stays open is that
-  nothing can fire at tracker load, which is a PopTracker change.
-  `docs/ISSUES.md` says so.
-
-**`map-legibility` -- landed off `trunk`, not merged** (`git log trunk..` for
-the count; this page has had it wrong twice). Several
-changes sharing one regen, because each moves the `inputs` or `marker`
-fingerprint in `.regen_cache.json` and a single run picks up all of them. All
-measured on the std and nov oracle cartridges, which agree, so there was no
-separate No-Overworld pass -- with the standing caution that the *speck* rule
-does not measure identically on the two, even where the box does.
-
-- **Rotate before boxing, treated as a contract change.** A standard map wraps
-  at 64 tiles and the box did not, so maps were framed across the void between
-  their halves. `content_box` is gone; `content_crop` returns a `Crop` -- a
-  plain `(c0, c1, r0, r1)` box plus a `(shift_x, shift_y)` pair -- and
-  `Crop.place` is now the only tile-to-pixel arithmetic in the tree.
-
-  **Five maps, not the four this section predicted.** `con_castle` 64x35 ->
-  31x35, `crescent_lake` 52x64 -> 52x43, `melmond` 45x64 -> 45x46, `elf_castle`
-  28x64 -> 28x35, and `sky4F` 64x64 -> 60x59. The two widths this page gave as
-  53 and 29 were a padding artefact of the estimate and are 52 and 28 measured.
-  (`melmond` is 45x44 once the speck rule lands and trims its one stray cell.)
-
-  `sky4F` came from the residue list in `docs/ISSUES.md`, against that entry's
-  own prediction that rotating it would put the left half on the right. Rendered
-  both ways it is a regular 4x4 tiling of identical rooms -- re-phasing it
-  cannot swap anything distinguishable, and the un-slid frame *cut four of the
-  sixteen rooms in half* against three edges. `iceB2` and `iceB3` stay in the
-  residue and the rule leaves them alone on its own, because their content never
-  reaches the join.
-
-  The slide is a jump rather than an offset, so `rendered_calibration` emits one
-  region per straight run -- two each for the four maps that slide on one axis,
-  four for `sky4F`, which slides on both. The format already carried per-region
-  `cols` and `rows`. A map that did not slide is emitted exactly as before, so
-  no marker on the other 56 moved. Counted after the wrap fix below; while the
-  speck rule was suppressing the slide only two maps slid at all, and the boxes
-  on `melmond`, `lefein`, `elf_castle`, `matoya`, `gaia` and `sky4F` moved with
-  it.
-
-  **The hand art confirmed this for `elf_castle` and did not settle
-  `con_castle`**, as this section expected; neither is in the set the crop test
-  measures against the art, and a check that none of that set slid is asserted
-  now.
-- **Trap marks keyed to the formation id.** `trap_marks()` keys to the
-  formation and `standing_formations()` hands marks out only to formations a
-  map actually places -- that second filter is what keeps a mark to one glyph.
-  32 formations stand on a map on vanilla, std and nov2, 31 on nov and shard,
-  against 35 marks. Every mark is a single glyph on all five, no formation
-  carries two and no mark stands for two. The two-character fallback is written
-  and unreached. `seaB4` reads `0 1 Y Z` where it read `AB AC AD AE`.
-
-  It costs the exact agreement with the shipped art, **by one place, and the
-  place is named**: DarkmoonEX counted formation `$00`, five fixed tileset
-  entries no map places, so his `earthB1` `{G,H,I}` is this scheme's `{F,G,H}`.
-  The test asserts the shift and its cause rather than pinning the output.
-- **The marker default, 16px -> 14px.** Moved, with the rationale rewritten in
-  the same commit. What decided it was rendering rather than arguing: Waterfall
-  has six chests on six tiles in a row, and at exactly `TILE_PX` their boxes
-  share edges and draw as one green bar with dividers rather than six markers.
-  At 12 the border cuts into the chest sprite, so 14 is the smallest change that
-  buys the gap and the largest that leaves the chest whole.
-
-- **The flood learned that the grid wraps, which put the slide back.** Caught by
-  the pre-merge review, not by either suite. `components()` used plain
-  4-connectivity on a torus, so a region straddling the join split in two and
-  `drop_specks` threw the smaller half away as a speck -- and because that
-  removed index 0 or 63 from `occupied`, `_axis_shift`'s join test stopped
-  firing, silently reverting the rotation commit on three of the five seam
-  maps. `sky4F` was clipping seven of sixteen rooms, worse than the four the
-  rotation was written to fix; `melmond` lost a 13-cell road and `elf_castle` a
-  5-cell approach, both torus-adjacent to their towns.
-
-  One line -- flood modulo `MAP_DIM`. Exactly three crops change and all three
-  return to their pre-speck framing: `sky4F` back to `(0,59,0,58)`, `elf_castle`
-  to `(0,27,0,34)`, `melmond` to `(0,44,0,43)`. Verified as a count rather than
-  by eye: sixteen 88-cell rooms on `sky4F`, all sixteen inside the box, and
-  across all 61 maps zero kept cells fall outside their crop.
-
-  It widened the speck band rather than narrowing it, which is the reassuring
-  direction: largest droppable 19, smallest kept **88** against 58 before,
-  measured over vanilla, both duck and both oracle cartridges. The old floor was
-  low precisely because the flat flood was offering split halves as candidates.
-  The `MAX_SPECK` rationale carries the new numbers.
-
-Both claims this branch invalidated are updated rather than left: `test_crop.py`
-asserts the new scheme with its cause, and the `STATUS.md` "reproduces the
-shipped art exactly" finding says what replaced it and by how much.
-
-Acceptance, met: `test_crop.py` has the wrapped case it lacked (`con_castle`
-beside `mirage1F`, compared tile by tile over the whole frame rather than
-sampled); all five seam maps pass `crop_violations`; and a scratch regen of both
-cartridges puts every seam map's chest markers on their chests with no strays.
-Both suites green on the vanilla, std and nov cartridges, and `test_crop.py`'s
-band check green on all five (vanilla, both duck, both oracle).
-
-**The review gate is closed on this branch too.** A full review of
-`trunk...map-legibility` returned eight findings, all of which held up against
-the cartridges, and all eight are fixed rather than waived. **None was a
-correctness bug**: the slide, the calibration regions and the marker placement
-were verified region by region against `Crop.place` over all 64x64 cells on all
-61 maps of five cartridges. What the review found was drift -- rationale that
-had stopped being true, and one check that could not fail. The three worth
-reading:
-
-- **`test_crop.py`'s "no formation carries two marks" could not fail for any
-  cartridge or any labelling, including the broken one.** `trap_marks` builds
-  `{key: mark[fixed[key]]}` from a per-formation dict, so the singleton it
-  asserted is true by construction. It re-reads byte 1 off the tileset property
-  table now and puts the question to the *maps* -- two tiles that spawn the same
-  fight carry the same mark, wherever they stand -- plus a check that at least
-  one fight stands on two maps, so the assertion has something to compare.
-  Demonstrated against the old `(tileset, tile)` keying, per the working rule:
-  it reports 2 fights carrying two marks (`$4A` W/AI, `$1C` X/Y) where the old
-  check reported nothing.
-- **`_axis_shift`'s docstring gave a measurably false reason for its join
-  guard** -- "where the content is already contiguous the widest run is the one
-  the box drops anyway". `iceB3`'s widest gap is 18 columns in its interior, so
-  a forced slide takes its box from 62 columns to 48, and `iceB2`'s from 62 to
-  58. Both are still declined, and still should be: they are the multi-lobe maps
-  in `docs/ISSUES.md` where re-phasing moves the left lobe to the right. The
-  behaviour was right and the stated reason was not, so the reason is rewritten.
-- **`cropped_objects` was never called on the regen path**, only from
-  `--self-check`. With `--npcs` now defaulting to `all` and `drop_specks` newly
-  able to discard a whole region, a regen could omit a drawn sprite in silence.
-  The regen reports it now -- as a note rather than fatal, because one of them
-  is real. Measured on all five cartridges: the only object outside its crop is
-  `marshB1`'s parked spare bat, which is there on vanilla too.
-
-The rest were measurement drift, each corrected against the cartridges rather
-than adjusted by eye: the mean kept area is **46%**, not the 48% three prose
-copies still carried; `--self-check` printed `len(marks)` under the label
-"fixed-formation trap tiles" and so reported 35 where vanilla has 43 (it names
-all three numbers now -- 43 tiles, 35 marked, 32 standing formations);
-`trap_marks`'s docstring claimed the cartridge falls back to two-character
-labels past 35 formations, where `_label` is per index and the first 26 stay
-single letters; a comment lost its reason to the letters-to-marks rename; and
-`docs/IDEAS.md` still named `trap_letters()` / `map_trap_letters()` as the
-mechanism a future boss annotation would build on, both gone in this branch.
-
-Re-verified after the fixes: both suites green on vanilla and all four oracle
-cartridges, `test_crop.py` green on five, and `--self-check` passing on five.
-
-**Next branch: the `onrac` crop -- and its measurements need retaking.** The
-residue in `docs/ISSUES.md` -- the maps with no empty column anywhere -- has a
-candidate rule. Rule A: flood from the edge over *every* tile id present in the
-border ring rather than only the modal one, with `protected_cells()` as walls.
-
-Measured on both duck cartridges, zero cut-offs: `onrac` 64x58 -> 49x37,
-`lefein` -> 63x25, `melmond` -> 32x29, `sky4F` -> 35x35. **Do not trust those
-four numbers.** They were taken while `components()` still flooded flat, so each
-was measured against a speck pass that could throw away the wrapped half of a
-region -- the defect the commit above fixed, and one that moved three crops on
-its own. Re-measure on the torus flood before judging the rule.
-
-The interaction is not incidental to this branch, it *is* this branch. Widening
-the flood eats more filler, which changes `content`, which changes what
-`components()` splits and `drop_specks` discards, which changes whether
-`_axis_shift`'s join test fires. `crescent_lake` is the worked example and the
-one real regression: 52x43 -> 50x64, because with more filler eaten its content
-stops touching both edges, the join test stops firing, and the map goes back to
-being framed across the void the rotation commit exists to avoid. The second
-cost is a judgement rather than a mechanism -- `con_castle` tightens 31x35 ->
-28x35 and loses the green margin that makes it read well. Both are why this
-stayed out of the legibility branch. The seam interaction is the work; the flood
-change itself is a few lines.
-
-**`outside_cells` stays flat, and Rule A should leave it flat.** It seeds from
-all 256 border cells, so the wrap edges it would gain join cells that are
-already seeds and it cannot reach anything new -- which is why the torus fix
-touched `components()` and nothing else. That is a claim about the *outside*
-flood only. Rule A still changes the speck pass, by changing what content is.
-
-**The order against the warning branch below is open.** The rationale for
-putting art first was that the regen the warning triggers should produce the
-better art, and it carried an escape clause: only while the art stays one branch
-of that size. A second art branch is that clause firing. If the seam interaction
-turns out to be more than a few days, the warning goes first and a regen is
-re-run once the art lands -- one extra regen against delaying a correctness
-guard. Decide when this is picked up, not now.
-
-**Branch after that: the stale-override warning**, per "Notice when the drawn
-maps are for a different cartridge" in `docs/IDEAS.md`. Separate because it
-touches the bridge and the pack rather than the tools, and is worth nothing
-until someone is playing on rendered art.
-
-It builds **detection and execution both**, which is a change from what that page
-used to conclude -- see the entry, which says why the old "detection, not
-execution" no longer holds rather than dropping it. In order: record the FFR seed
-and flag strings into `.regen_cache.json` beside the sha, since the bridge has no
-sha256 and both sides already read both; compare on connect and publish a
-variable; light a warning cell on mismatch per the `flagsUnread` pattern
-(`uat.lua:159-203`); and on mismatch also start the regen **detached**, because
-rendering 61 maps inline on the emulator's script thread stalls emulation.
-
-**It has a second mismatch to cover, and that one is not hypothetical.** The
-override shadows pack edits as well as cartridge changes: `layouts/shared.json`
-and the four location files are in `INPUT_FILES`, so editing one in the repo
-does nothing at all while an older override is installed, and a layout key the
-override predates renders an **empty group** with no warning anywhere
-(`tracker.cpp:791-794`). That happened on 2026-08-30 and is filed in
-`docs/ISSUES.md`. The `inputs` fingerprint already moves on such an edit, so
-covering it is one more comparison beside the ROM one -- and it is the cheaper
-half, because it needs no seed or flag string and no regen to fix a false alarm.
-Whichever warning cell this branch lights should say **which** of the two
-mismatched, since the fixes differ.
-
-**Step 0 is a measurement, not code:** `os.execute` inside Mesen's Lua is filed
-as "plausibly in reach", which is an inference from the file and socket functions
-the bridge already uses. If it is not reachable, the first three steps ship and
-the fourth does not. The restart is irreducible either way.
-
-Acceptance is a demonstrated failure, per the working rule below: connect with a
-mismatched cartridge and show the cell lights, connect with the matching one and
-show it does not.
-
-**On the order of these.** The legibility branch sat first so the regen the
-warning triggers would produce the better art, and that held only while the art
-stayed one branch of that size. It did not: the torus leg landed inside it and
-the `onrac` crop split off as a second art branch, which is exactly the
-condition that clause named. The queue as written is `onrac` crop, then the
-warning, then item 3 -- but the recorded rationale argues the other way as soon
-as the seam interaction looks large, and the entry above says so at the point
-where the call gets made. One extra regen is cheaper than delaying a
-correctness guard behind an art change.
-
-Not queued, and deliberately: more oracle seeds. The provenance table says
-where the risk is; spend there.
-
-**The solver is off this list rather than at the bottom of it, because the
-question changed shape.** It used to be "should we write a propagation pass
-instead of the sweep", with Lefein -- a requirement naming another *location*,
-which no widening of the sweep reaches -- as the one argument for it. It is two
-arguments now: the Elf Prince is the same shape and derives `(free)` against
-FFR's `(Herb)`, and unlike Lefein it reports nothing, because `herb` is outside
-the swept vocabulary. FFR
-already runs that pass, and the export we grade against is its output, so the
-real question is whether the pack's Lua rules should be **compiled from that
-export** rather than hand-written or sampled. That is a decision about
-provenance, not an optimisation, and it wants its own session.
-`docs/IDEAS.md`, "Solve the requirements instead of sampling them", has the
-mechanism, the three things to settle first, and the argument against.
+- `trunk` is level with `origin/trunk` and clean as of 2026-08-30. `noverworld-logic`
+  and `visibility-toggles` are merged.
+- Nothing is in flight.
