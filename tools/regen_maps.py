@@ -79,6 +79,7 @@ sys.path.insert(0, HERE)
 import entrance_graph
 import extract_chests
 import extract_npcs
+import lane
 import make_markers
 import overworld_pins
 import pin_visibility
@@ -304,14 +305,37 @@ def crops(rom, graph, npc_cells=None):
     return out
 
 
-def legend_rows(rom, crops_=None):
-    """{map name: rows of backdrop reserved below it for a Map Key}."""
+def route_lanes(rom, graph):
+    """{map name: lane.Lanes} -- the route drawn on each map that has one.
+
+    Only the maps carrying a chest get an entry, which is 38 of the 61 on the
+    standard duck cartridge and 37 on the No-Overworld one. The rest is the
+    exact tour, and it is the slowest thing in a regen: about 35 seconds for a
+    whole cartridge, almost a third of it GurguVolcanoB2's eighteen checks.
+    """
+    out = {}
+    chests = extract_chests.extract(rom)[0]
+    for map_id, name in render_maps.MAP_FILES.items():
+        got = lane.plan(rom, graph, map_id, chests)
+        if got is not None:
+            out[name] = got
+    return out
+
+
+def legend_rows(rom, lanes=None):
+    """{map name: rows of backdrop reserved below it for a Map Key}.
+
+    Both kinds of entry share the band: the lane swatches and the trap letters
+    are one list, so a map that has both is not pushed up twice.
+    """
     marks = render_maps.trap_marks(rom)
     out = {}
     for map_id, name in render_maps.MAP_FILES.items():
         used = render_maps.map_trap_marks(
             rom, map_id, render_maps.map_tiles(rom, map_id), marks)
-        out[name] = render_maps.legend_rows_for(len(set(used.values())))
+        keys = render_maps.lane_key_entries((lanes or {}).get(name))
+        out[name] = render_maps.legend_rows_for(len(set(used.values())),
+                                                len(keys))
     return out
 
 
@@ -401,7 +425,7 @@ def mode_of(rom, path, override=None):
 
 
 def build_images(rom, mode, crops_, rows, graph=None, only=None,
-                 marks=None, ow_box=None):
+                 marks=None, ow_box=None, lanes=None):
     """-> {relpath: (w, h, rgb)} for all 61 maps, rooms drawn open.
 
     Unroofed, because a tracker map is read rather than walked. In the game a
@@ -425,7 +449,8 @@ def build_images(rom, mode, crops_, rows, graph=None, only=None,
     for map_id, name in render_maps.MAP_FILES.items():
         out[f"images/maps/{mode}/{name}.png"] = render_maps.render(
             rom, map_id, unroof=True, graph=graph, only=only,
-            crop=crops_[name], legend_rows=rows[name], marks=marks)
+            crop=crops_[name], legend_rows=rows[name], marks=marks,
+            lanes=(lanes or {}).get(name))
     # And the overworld, which is not one of the 61 and is drawn by its own
     # tool: a different bank and a different tileset. It is the map every
     # overworld flag edits and the one the pack has only ever shown a vanilla
@@ -1064,6 +1089,12 @@ def main():
                          "townspeople, orbs and bats are what make a town read "
                          "as a town; --npcs none suppresses them, and --npcs "
                          "gates keeps only the NPCs that stand in a doorway")
+    ap.add_argument("--lanes", choices=("none", "loot"), default="loot",
+                    help="draw the route to walk on each map that carries a "
+                         "chest: the with-loot lane and, where the floor gates "
+                         "on something, the walk holding it (default), or "
+                         "nothing. Adds about 35 seconds to a regen -- the "
+                         "visit order is an exact tour")
     ap.add_argument("--force", action="store_true",
                     help="regenerate even if nothing changed")
     ap.add_argument("--dry-run", action="store_true",
@@ -1205,7 +1236,8 @@ def main():
     # here, and handed to both -- two calls that could drift apart is the shape
     # of bug that puts a box next to its chest instead of on it.
     crops_ = crops(rom, box_graph, npc_cells)
-    rows = legend_rows(rom)
+    lanes = route_lanes(rom, box_graph) if args.lanes == "loot" else {}
+    rows = legend_rows(rom, lanes)
 
     # Which trees this mode's pins live in, and the tiles the cartridge puts
     # each marker on. Read before anything is drawn, because the overworld's
@@ -1282,7 +1314,7 @@ def main():
 
     # 1. the art, cropped to what each map actually uses and filed by mode
     art = build_images(rom, mode, crops_, rows, graph, only,
-                       render_maps.trap_marks(rom), ow_box)
+                       render_maps.trap_marks(rom), ow_box, lanes)
     sizes = {name: (crops_[name].size[0] * TILE_PX,
                     (crops_[name].size[1] + rows[name]) * TILE_PX)
              for name in render_maps.MAP_FILES.values()}

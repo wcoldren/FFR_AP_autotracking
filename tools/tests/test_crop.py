@@ -358,19 +358,32 @@ def main():
                      if crop.place(*crop.source(fc, fr)) != (fc, fr)]
         check(f"and {name}'s tile-to-pixel mapping inverts", roundtrip, [])
 
-    tiles = rm.map_tiles(rom, 23)
-    crop = rm.content_crop(tiles)
-    w, h, small = rm.render(rom, 23, unroof=True, crop=crop, legend_rows=3)
-
     # The band is drawn into, not just reserved. Rendering the same map with
     # and without `marks` has to differ inside the band, and a map with no
     # trap tiles has to stay exactly as it was -- one check that the key is
     # written and one that nothing is written where there is no key.
+    #
+    # The map is chosen for having a mark rather than named. This was mirage1F,
+    # which has three on the standard duck cartridge and **none** on the
+    # No-Overworld one -- so on that cartridge the check was passing on an
+    # artefact: a `Map Key` heading over an empty list, written because the key
+    # was the trap marks' own job and ran whenever it was handed the table. Fix
+    # that and the check had nothing left to demonstrate, which is how it came
+    # to light.
+    keyed_map = next((m for m in rm.MAP_FILES
+                      if rm.map_trap_marks(rom, m, rm.map_tiles(rom, m),
+                                           marks)), None)
+    check("some map on this cartridge carries a trap mark",
+          keyed_map is not None, True)
+    tiles = rm.map_tiles(rom, keyed_map)
+    crop = rm.content_crop(tiles)
+    w, h, small = rm.render(rom, keyed_map, unroof=True, crop=crop,
+                            legend_rows=3)
     band = crop.size[1] * rm.TILE_PX * w * 3
-    _, _, lettered = rm.render(rom, 23, unroof=True, crop=crop, legend_rows=3,
-                               marks=marks)
-    check("the Map Key band is drawn into, not left as backdrop",
-          lettered[band:] != small[band:], True)
+    _, _, lettered = rm.render(rom, keyed_map, unroof=True, crop=crop,
+                               legend_rows=3, marks=marks)
+    check(f"the Map Key band on {rm.MAP_FILES[keyed_map]} is drawn into, "
+          "not left as backdrop", lettered[band:] != small[band:], True)
     for map_id, name in rm.MAP_FILES.items():
         if name != "coneria_town":
             continue

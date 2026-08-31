@@ -56,6 +56,15 @@ says when it went too far. What it cannot answer is the judgement — Onrac's ri
 is real map content and still not worth framing — so a size threshold here is a
 decision to be defended, not tuned.
 
+**Routes drawn on the map. Built 2026-08-31** -- the with-loot flavour, baked
+into the regenerated art by `tools/lane.py` and `render_maps.draw_lanes`, keyed
+in the Map Key band, on by default and off with `--lanes none`. `STATUS.md`,
+"The route to walk is drawn on the map", has what the port found wrong with the
+prototype and what the three open questions were settled by. The shortest-to-
+the-exit flavour is still unbuilt; everything below is kept as written, because
+the reasoning is what the built thing was built from. **Two figures in it are
+wrong and are corrected where they appear.**
+
 **Routes drawn on the map.** Wanted in two flavours — shortest to the exit, and
 one that collects the loot on the way — and eventually per-map custom routes for
 towns, where the useful stops are shops and NPCs rather than chests.
@@ -175,9 +184,15 @@ visible wandering in the middle of `MarshCaveB3` -- it commits to the nearest
 chest and pays for it later -- and so did rebuilding a path by walking the cost
 field down, which needs a tolerance for the turn charge and spends it on
 detours. Real predecessors out of the search, plus Held-Karp over the chests,
-took that floor's with-key lane from **419 steps to 336**. The largest chest
-count on any map here is 13, so an exact tour is affordable and there is no
-reason to approximate.
+took that floor's with-key lane from **419 steps to 336**.
+
+**The largest chest count is 18, not the 13 this said.** Swept over both duck
+cartridges 2026-08-31: `GurguVolcanoB2` carries 18 checks, `SkyPalace3F` and
+`GurguVolcanoB4` 14 apiece, and `Cardia` 15 on the No-Overworld one. The old
+figure was chest *tiles* on the maps that had been looked at rather than checks
+over all of them -- the same unit error that made `MarshCaveB2` look split. An
+exact tour is still affordable: 2**18 is twelve seconds, and about a third of a
+whole cartridge's 35.
 
 **Two lanes, where the floor says there should be.** `Graph.floor_items()`
 returns `['key']` for `MarshCaveB3` and nothing at all for the other two Marsh
@@ -215,8 +230,12 @@ all 119 reached tiles it never touched -- so this was not overlap being drawn
 twice, it was two equally cheap routes through the same region.
 
 The fix is a tie-break that cannot outrank anything real: every cost is
-multiplied by 1000 and a step onto a tile the first lane does not use costs 1
-more. The two lanes then run together wherever that is free and part only where
+multiplied by 1000 and a step the first lane does not draw costs 1 more.
+**Over tiles, as this first said, is not enough** -- two tiles the first lane
+reaches by separate routes are both preferred, so a step straight between them
+is free and the second lane draws a purple stub across ground that is already
+cyan. Over *edges* it is right, and the difference is 121 purple segments to
+101 on `MarshCaveB3` and 122 to 105 on `TempleOfFiendsRevisitedFire`. The two lanes then run together wherever that is free and part only where
 the map makes them, which took the second colour from 1710 to 1589 pixels and
 removed both of the divergences that were visible on the right of that floor.
 

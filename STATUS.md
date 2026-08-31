@@ -4,7 +4,7 @@ The working log: what was built, why, and what each decision cost. Kept as a
 narrative so a fresh session can pick a thread up cold -- the measurements are
 here, and so is the reasoning that was tried and rejected.
 
-Last updated 2026-08-30.
+Last updated 2026-08-31.
 
 If you are looking for something specific, it is probably not in here. This is
 the log; the settled half was lifted out of it into `docs/`, and `docs/README.md`
@@ -1534,6 +1534,116 @@ layouts, and neither of those is what PopTracker ends up serving, so the eight
 new paths would otherwise be asserted by nothing. It also pins that exactly the
 eight towns moved, that every other entry is byte-identical, and that a
 hand-edited table stops the run.
+
+
+## The route to walk is drawn on the map
+
+Built 2026-08-31, on the third of the three questions the routes idea had left
+open. Two were settled first, and both by measurement rather than by argument.
+
+**Where a lane stops.** A lane ends at an exit, and the worry was that this
+tells a player which staircase leads onward. Counted on both duck cartridges:
+33 of 38 chest-bearing maps on the standard one, 34 of 37 on the No-Overworld
+one, have more than one exit tile -- and the lane finishes at the *nearest*,
+which a shuffled cartridge has no bearing on. So the drawing says "there is a
+way out here", which the art already drew, and not "this is the way onward".
+Ending at the last chest instead would also drop the goal DarkmoonEX's own
+objective names alongside treasure.
+
+**A floor that is two regions gets two lanes, both drawn.** `MarshCaveB2` is
+the case: the top half's lane collects all four checks in 97 steps, and the
+bottom half's then walks 179 more for two of the same four -- because indices
+`25` and `26` each have a tile in both halves. That is not a lane buying
+nothing; it is the answer to "if you came in *this* door". The silver
+connectors are what explain the overlap, and suppressing the second lane would
+leave half the map with no route on it, which is the bug the per-region lane
+exists to fix.
+
+### What the port found that the prototype had wrong
+
+The router had been living outside the repo since it was written. Bringing it
+in under `tools/lane.py` and putting a test around it turned up five things,
+four of them changing a drawn lane:
+
+- **The tour chose each chest's tile greedily, at every hop.** The docstring
+  said the opposite -- "which tile of a linked set to use is part of the
+  problem rather than chosen up front" -- and the Held-Karp table only ever
+  relaxed the single cheapest tile of the node it was stepping to, throwing the
+  others away before the state could use them. Keeping every tile in the state
+  took `MarshCaveB3`'s two lanes from 174 and 310 steps to **170 and 306**.
+  Docstring rationale rots faster than the code, again.
+- **A lane walked through gate NPCs and through staircases.** Both are rules
+  `Graph.floor_walk()` states and the cost search enforced neither. They change
+  the lane on **8 of 38** maps on the standard cartridge and 6 of 37 on the
+  No-Overworld one. `TitansTunnel` is the one to look at: without the NPC rule
+  its keyless lane strolls past the Titan and collects all four chests.
+  `IceCaveB2` is the staircase one -- the floor is two regions and was drawn as
+  one, because the route hopped over the stairs between them.
+- **A chest's stand-spot could be a staircase.** A tour arrives at a target and
+  continues from it, so a target you cannot stand still on is one the lane
+  steps onto and leaves the floor from.
+- **An arrival could be a wall.** `MatoyasCave` (15, 0) is `TP_NOMOVE` with no
+  special on both cartridges -- a teleport table row the seed does not use --
+  and a lane starting there begins inside the rock.
+- **The coincidence tie-break preferred tiles, and had to prefer edges.** Two
+  tiles the first lane reaches by separate routes are both "preferred", so a
+  step straight between them is free and the second lane draws a purple stub
+  over ground that is already cyan. On edges it drops `MarshCaveB3` from 121
+  purple segments to 101, and `TempleOfFiendsRevisitedFire` from 122 to 105.
+
+**Runs that collect nothing are no longer drawn.** A floor whose checks all sit
+behind its gate produced a one-tile "lane" -- a start box on the tile the key
+lane was about to draw a start box on anyway. On a No-Overworld
+`ConeriaCastle1F` that tile is the one the gate NPC stands on, so the degenerate
+lane was also a walk the game refuses.
+
+### The drawing
+
+Colours are NES palette ids beside the trap marks' own, so the swatch in the key
+and the line on the map cannot drift apart: cyan `$2C` for the walk you can
+always do, purple `$34` for what a key buys, red `$16` for a trap with no way
+round, silver `$10` for two tiles that are one check. **One colour per lane
+across all 61** -- the reference swaps cyan and purple between his optimised and
+with-loot routes from map to map, and that is the thing to improve on rather
+than copy.
+
+The key shares the trap letters' band rather than opening a second one, and
+lists only what is on the image: no purple row on an ungated floor, no red row
+where the lane never has to take a fight. It measures itself and halves the
+glyph scale where a row would not fit -- `sky5F` on a No-Overworld cartridge is
+sixteen tiles across, four pixels short of the longest row at full size.
+
+Draw order is load-bearing in three places, and each was got wrong first: the
+connectors go **under** the lanes, because a lane crossing one is what keeps it
+from reading as a route; the trap letters go **over** them, because a stripe
+through a one-tile glyph costs the letter its meaning while a one-tile gap in a
+line the eye follows for a hundred tiles costs nothing; and the start box
+carries a black ring, because Marsh Cave's floor is light grey and a bare white
+square on it is invisible.
+
+**The cost model was checked rather than assumed.** The encounter-floor term is
+weighted a thousand times a step, which looks like it should send a lane
+wandering. Measured on the two largest floors it costs **nothing**:
+`GurguVolcanoB2` walks 381 steps either way and crosses 329 encounter tiles
+instead of 339; `MarshCaveB3` walks 170 either way and crosses 135 instead of
+142. What it does spend is turns -- 33 against 22 on that floor -- which is the
+published order working as stated, since counted turns are the last term.
+
+`--lanes loot` is the default and `--lanes none` turns it off. It adds about 35
+seconds to a regen: 38 maps carry a chest on the standard cartridge and the
+visit order is an exact tour, a third of that time being `GurguVolcanoB2`'s
+eighteen checks. **The plan said the largest floor was thirteen** and named the
+wrong maps; that figure was chest tiles on the maps that had been looked at
+rather than checks over all of them.
+
+`tools/tests/test_lane.py` holds the invariants a picture cannot show: every
+tile a lane walks is walkable holding what that lane holds, consecutive tiles
+are one step apart on the torus, no lane crosses a gate NPC or a staircase, a
+key lane appears only where `Graph.floor_items()` says the floor gates on
+something, and the longest key row fits the narrowest map that carries a lane.
+The two floor_walk rules and the edge tie-break each carry their own
+demonstration that turning them off changes a drawing, so none of them can
+quietly stop biting.
 
 
 ## Known wrong

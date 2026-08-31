@@ -905,9 +905,15 @@ def map_trap_marks(rom, map_id, tiles, marks=None):
 LEGEND_HEADING_ROWS = 2
 
 
-def legend_rows_for(mark_count):
-    """How many tile-height rows to reserve for a map's Map Key."""
-    return 0 if not mark_count else LEGEND_HEADING_ROWS + mark_count
+def legend_rows_for(mark_count, lane_keys=0):
+    """How many tile-height rows to reserve for a map's Map Key.
+
+    Lane entries share the band with the trap marks rather than getting one of
+    their own: the reference's key is a single list too, and two panels on a
+    map that has both would push the art up twice.
+    """
+    n = mark_count + lane_keys
+    return 0 if not n else LEGEND_HEADING_ROWS + n
 
 
 # The Map Key's colours, as tile ids in the NES palette rather than as RGB
@@ -919,20 +925,53 @@ SHADOW_COLOUR = 0x0F          # black
 LETTER_SCALE = TILE_PX // 8   # a glyph is 8px, a tile is 16, so a mark fills it
 KEY_PAD = 4
 
+# The lane colours, NES palette ids for the same reason the mark colours are:
+# the swatch in the key and the line on the map have to be the same colour, and
+# naming it once is how they stay that way. The reference is not consistent
+# about this -- his cyan and purple swap roles between the optimised route and
+# the with-loot one from map to map -- so fixing one colour per lane across all
+# 61 is the thing to improve on rather than copy.
+LANE_PLAIN = 0x2C             # cyan   -- the walk you can always do
+LANE_KEY = 0x34               # purple -- only the steps a key buys
+LANE_FORCED = 0x16            # red    -- a trap tile with no way round
+LANE_LINK = 0x10              # silver -- two tiles that are one check
+LANE_START = 0x30             # white  -- where the lane begins
+LANE_PX = 5                   # the drawn width of a lane, in pixels
+ARROW_PX = 6                  # the drawn length of a direction arrow
 
-def draw_trap_marks(rom, font, out, w, h, crop, legend_rows, cells):
-    """Letter the trap tiles in place, and write the key into the band.
+# Far enough apart that a corridor is not a row of arrowheads, close enough
+# that a lane which doubles back says which pass is which. A lane without them
+# says where to walk but not which way round, and on a route that doubles back
+# that is most of the information.
+ARROW_EVERY = 7
+
+# The key's own wording. No punctuation anywhere: font.CHARS is digits and
+# letters only, so a slash in "Optimal w/Key" draws as a gap.
+LANE_KEY_TEXT = {
+    "plain": "Optimal Route",
+    "key": "Optimal w Key",
+    "forced": "Forced Fight",
+    "link": "Linked Chest",
+}
+
+# The swatch column: a sample of the line, then the name. Narrower than the
+# trap letters' two tiles because the key has to fit the narrowest map that
+# carries a chest, and on the No-Overworld cartridge that is sky5F at 256px.
+KEY_SWATCH = TILE_PX * 3 // 2
+KEY_TEXT_X = KEY_PAD + KEY_SWATCH + KEY_PAD
+
+
+def draw_trap_marks(rom, font, out, w, h, crop, cells):
+    """Letter the trap tiles in place.
 
     `cells` is map_trap_marks' {(col, row): mark}. Marks are drawn at the
     tile they mark, at LETTER_SCALE so a glyph is exactly one tile, with a
     one-pixel shadow -- a trap tile can sit on any floor colour, and yellow on
-    sand is otherwise unreadable. The band below gets a `Map Key` heading and
-    one `Trap Tile X` row per distinct mark, in the order the marks derive.
+    sand is otherwise unreadable. The key that says what a letter means is
+    draw_map_key's job, since the band is shared with the lanes.
     """
     yellow = NES_PALETTE[LETTER_COLOUR]
-    white = NES_PALETTE[KEY_TEXT_COLOUR]
     black = NES_PALETTE[SHADOW_COLOUR]
-
     for (col, row), mark in sorted(cells.items()):
         at = crop.place(col, row)
         if at is None:
@@ -940,23 +979,223 @@ def draw_trap_marks(rom, font, out, w, h, crop, legend_rows, cells):
         font.draw_text(out, w, h, at[0] * TILE_PX, at[1] * TILE_PX,
                        mark, yellow, LETTER_SCALE, rom, black)
 
-    if not legend_rows:
+
+def lane_key_entries(lanes):
+    """[(colour id, text)] -- the key rows one map's lanes need.
+
+    Only what is actually on the image. A floor with no gate gets no purple
+    row, a floor whose lane never has to cross a trap gets no red one, and a
+    floor with no linked chests gets no silver one -- so the band stays as
+    short as the map's own facts allow.
+    """
+    if lanes is None:
+        return []
+    out = []
+    if any(r.label == "plain" for r in lanes.runs):
+        out.append((LANE_PLAIN, LANE_KEY_TEXT["plain"]))
+    if any(r.label == "key" for r in lanes.runs):
+        out.append((LANE_KEY, LANE_KEY_TEXT["key"]))
+    if any(c in r.traps for r in lanes.runs for c in r.path):
+        out.append((LANE_FORCED, LANE_KEY_TEXT["forced"]))
+    if lanes.links:
+        out.append((LANE_LINK, LANE_KEY_TEXT["link"]))
+    return out
+
+
+def draw_map_key(rom, font, out, w, h, crop, legend_rows, marks, lanes):
+    """Write the Map Key band: the lane swatches, then the trap letters.
+
+    Lanes first because they are the thing the map is telling you to do and
+    the letters are a caveat on it -- which is the order the reference's own
+    key uses. `marks` is the distinct letters on this map, `lanes` the entries
+    lane_key_entries derived.
+    """
+    # A heading over an empty list is not a key. The band is normally sized by
+    # legend_rows_for, which returns nothing when there is nothing to say, but
+    # a caller is free to reserve rows anyway and must not get a bare "Map Key"
+    # for it -- which is what a render with no marks and no lanes was given
+    # once the key stopped being the trap marks' own job.
+    if not legend_rows or not (marks or lanes):
         return
+    yellow = NES_PALETTE[LETTER_COLOUR]
+    white = NES_PALETTE[KEY_TEXT_COLOUR]
+    black = NES_PALETTE[SHADOW_COLOUR]
     band = crop.size[1] * TILE_PX
+
+    # The key is the map's own width, and a map is as narrow as its content --
+    # sky5F on a No-Overworld cartridge is sixteen tiles across, four pixels
+    # short of the longest lane row at full scale. Rather than trim the wording
+    # to whatever fits today, measure and halve the scale where it does not:
+    # a small key still reads, and a clipped one silently loses its last word.
+    labels = [t for _, t in lanes] + [f"Trap Tile {m}" for m in marks]
+    scale = LETTER_SCALE
+    while scale > 1 and any(KEY_TEXT_X + font.text_px(t, scale) > w
+                            for t in labels):
+        scale -= 1
+
     font.draw_text(out, w, h, KEY_PAD, band + KEY_PAD, "Map Key", white,
-                   LETTER_SCALE, rom, black)
-    # One row per mark, below the two the heading reserves. Sorted, so the
-    # key reads A B C however the tiles happen to lie on the map.
-    for i, mark in enumerate(sorted(set(cells.values()))):
-        y = band + (1 + i) * TILE_PX + KEY_PAD
-        font.draw_text(out, w, h, KEY_PAD, y, mark, yellow, LETTER_SCALE,
-                       rom, black)
-        font.draw_text(out, w, h, KEY_PAD + 2 * TILE_PX, y,
-                       f"Trap Tile {mark}", white, LETTER_SCALE, rom, black)
+                   scale, rom, black)
+    row = 0
+    for colour, text in lanes:
+        y = band + (1 + row) * TILE_PX + KEY_PAD
+        # A swatch drawn at the width the lane itself is, so the key is a
+        # sample of the line rather than a differently-shaped block beside a
+        # name. Centred on the glyph rather than on the row, so it lines up
+        # with the text however the scale came out.
+        _bar(out, w, h, KEY_PAD,
+             y + font.GLYPH_PX * scale // 2 - LANE_PX // 2,
+             KEY_PAD + KEY_SWATCH, LANE_PX, NES_PALETTE[colour])
+        font.draw_text(out, w, h, KEY_TEXT_X, y, text, white, scale, rom, black)
+        row += 1
+    # Sorted, so the letters read A B C however the tiles happen to lie.
+    for mark in sorted(marks):
+        y = band + (1 + row) * TILE_PX + KEY_PAD
+        font.draw_text(out, w, h, KEY_PAD, y, mark, yellow, scale, rom, black)
+        font.draw_text(out, w, h, KEY_TEXT_X, y, f"Trap Tile {mark}", white,
+                       scale, rom, black)
+        row += 1
+
+
+def _bar(out, w, h, x0, y0, x1, thick, rgb):
+    """A horizontal run `thick` pixels tall, clipped to the image."""
+    for y in range(y0, y0 + thick):
+        if not 0 <= y < h:
+            continue
+        for x in range(max(0, x0), min(w, x1)):
+            i = (y * w + x) * 3
+            out[i], out[i + 1], out[i + 2] = rgb
+
+
+def draw_lanes(out, w, h, crop, lanes):
+    """Draw one map's route lanes onto an already-rendered frame.
+
+    Four passes, in an order the overdraw depends on:
+
+    1. the silver connectors, **first**, so a lane crosses over the top of one.
+       A connector is not a route and must not read as one; it is straight,
+       orthogonal and goes through walls where the two tiles are in different
+       rooms, which is the point -- the claim is "these two are one check", not
+       "you can walk between them".
+    2. the plain lane, then the key lane *as an extension of it*. Where both
+       use the same corridor there is one line, in the colour of the walk you
+       can always do; purple appears only on the steps the key actually buys.
+       Drawing both in full -- even offset by a pixel -- puts two parallel
+       lines down a shared corridor, which reads as "there are two ways through
+       here", and that is not what is true.
+    3. the arrows, after the lanes so nothing overdraws them. Without one a
+       lane says where to walk but not which way round, and on a route that
+       doubles back that is most of the information.
+    4. the start box, last, because it is the one thing that must be findable.
+    """
+    def cell(c, r):
+        """Tile to top-left pixel, or None where the crop does not hold it."""
+        at = crop.place(c, r)
+        return None if at is None else (at[0] * TILE_PX, at[1] * TILE_PX)
+
+    def dot(x, y, rgb):
+        if 0 <= x < w and 0 <= y < h:
+            i = (y * w + x) * 3
+            out[i], out[i + 1], out[i + 2] = rgb
+
+    silver = NES_PALETTE[LANE_LINK]
+    for a, b in lanes.links:
+        pa, pb = cell(*a), cell(*b)
+        if pa is None or pb is None:
+            continue
+        x1, y1 = pa[0] + TILE_PX // 2, pa[1] + TILE_PX // 2
+        x2, y2 = pb[0] + TILE_PX // 2, pb[1] + TILE_PX // 2
+        for x in range(min(x1, x2), max(x1, x2) + 1):
+            dot(x, y1, silver)
+        for y in range(min(y1, y2), max(y1, y2) + 1):
+            dot(x2, y, silver)
+
+    def steps(run, shared):
+        """The pairs this run draws: for a key lane, only what it adds."""
+        return [(a, b) for a, b in zip(run.path, run.path[1:])
+                if a != b and not (run.label == "key"
+                                   and frozenset((a, b)) in shared)]
+
+    shared = set()
+    drawn = []
+    for run in lanes.runs:
+        if run.label == "plain":
+            shared = {frozenset((a, b))
+                      for a, b in zip(run.path, run.path[1:]) if a != b}
+        base = NES_PALETTE[LANE_KEY if run.label == "key" else LANE_PLAIN]
+        forced = NES_PALETTE[LANE_FORCED]
+        mine = steps(run, shared)
+        drawn.append((run, base, mine))
+        for a, b in mine:
+            pa, pb = cell(*a), cell(*b)
+            if pa is None or pb is None:
+                continue
+            (x1, y1), (x2, y2) = pa, pb
+            # A step across the torus join lands a frame apart on the image;
+            # there is no line to draw between two tiles that are not adjacent
+            # on the page, and drawing one would stripe the whole map.
+            if abs(x1 - x2) > TILE_PX or abs(y1 - y2) > TILE_PX:
+                continue
+            # A trap the lane could not route round is drawn as itself rather
+            # than pretended away: three crossings is MarshCaveB3's floor, not
+            # a failure, and a player wants to see the fight coming.
+            col = forced if (a in run.traps or b in run.traps) else base
+            half = LANE_PX // 2
+            for k in range(TILE_PX + 1):
+                x = x1 + (x2 - x1) * k // TILE_PX + TILE_PX // 2
+                y = y1 + (y2 - y1) * k // TILE_PX + TILE_PX // 2
+                for o in range(-half, half + 1):
+                    dot(x + (o if y1 == y2 else 0),
+                        y + (o if x1 == x2 else 0), col)
+
+    for run, base, mine in drawn:
+        for n, (a, b) in enumerate(mine):
+            if n % ARROW_EVERY == ARROW_EVERY - 1 or (a, b) == mine[-1]:
+                _arrow(dot, cell, a, b, base)
+
+    # The start box, on a black ring. Marsh Cave's floor is light grey and a
+    # bare white square on it is invisible -- the same reason the trap letters
+    # carry a shadow, and the same fix: one ring outside the box and one in,
+    # so it reads on any floor the game draws.
+    white = NES_PALETTE[LANE_START]
+    black = NES_PALETTE[SHADOW_COLOUR]
+    for run in lanes.runs:
+        at = cell(*run.start)
+        if at is None:
+            continue
+        for ring, rgb in ((-1, black), (0, white), (1, black)):
+            lo, hi = ring, TILE_PX - 1 - ring
+            for d in range(lo, hi + 1):
+                dot(at[0] + d, at[1] + lo, rgb)
+                dot(at[0] + d, at[1] + hi, rgb)
+                dot(at[0] + lo, at[1] + d, rgb)
+                dot(at[0] + hi, at[1] + d, rgb)
+
+
+def _arrow(dot, cell, a, b, rgb):
+    """A triangle at `b`, pointing the way the step went.
+
+    Drawn by stepping back along the line and spreading across it. The spread
+    goes on the *perpendicular* axis -- putting it on the axis of travel draws
+    a smear down the lane that reads as nothing at all.
+    """
+    pa, pb = cell(*a), cell(*b)
+    if pa is None or pb is None:
+        return
+    (x1, y1), (x2, y2) = pa, pb
+    if abs(x1 - x2) > TILE_PX or abs(y1 - y2) > TILE_PX:
+        return
+    dx, dy = (x2 - x1) // TILE_PX, (y2 - y1) // TILE_PX
+    cx, cy = x2 + TILE_PX // 2, y2 + TILE_PX // 2
+    for k in range(ARROW_PX):
+        for spread in range(-k, k + 1):
+            if dx:
+                dot(cx - dx * k, cy + spread, rgb)
+            else:
+                dot(cx + spread, cy - dy * k, rgb)
 
 
 def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
-           crop=None, legend_rows=0, marks=None):
+           crop=None, legend_rows=0, marks=None, lanes=None):
     """(w, h, rgb_bytes) for one standard map.
 
     `unroof` draws the rooms open: outdoor palette everywhere, room palette on
@@ -979,6 +1218,11 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
     lettered where they stand and the reserved band is filled in with the key,
     which is what the shipped hand-drawn art does -- see earthB1.png, whose
     G, H and I this reproduces on a vanilla cartridge.
+
+    `lanes` is lane.plan(...)'s Lanes for this map: the route to walk to
+    collect the floor, drawn on top and keyed in the same band. The router is
+    not imported here -- it imports this module for the tile properties -- so
+    the caller derives it, the same way it derives `crop` and `marks`.
     """
     tiles = map_tiles(rom, map_id)
     tileset = rom[TILESET_LUT + map_id]
@@ -1026,17 +1270,32 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
                         out[dst + 1] = g
                         out[dst + 2] = b
                         dst += 3
-    if marks:
-        # Imported here for the same reason as sprites below: font reads this
-        # module's tile decode, so a module-scope import would be a cycle.
-        import font                                                 # noqa: E402
-        draw_trap_marks(rom, font, out, w, h, crop, legend_rows,
-                          map_trap_marks(rom, map_id, tiles, marks))
+    cells = map_trap_marks(rom, map_id, tiles, marks) if marks else {}
     if graph is not None:
         # Imported here, not at module scope: sprites imports this module for
         # the NES palette and the tile decode.
         import sprites                                              # noqa: E402
         sprites.draw_objects(rom, graph, map_id, w, h, out, only, crop)
+    # After the sprites, deliberately: a lane runs past an NPC often enough
+    # that whichever goes second wins the pixels, and the lane is the thing the
+    # image is for. The sprite is still legible either side of the line.
+    if lanes is not None:
+        draw_lanes(out, w, h, crop, lanes)
+    # The trap letters go on last of all. A lane is long and a letter is one
+    # tile, so whichever draws second wins and only one of the two can spare
+    # the pixels: a stripe through a glyph costs the letter its meaning, while
+    # a one-tile gap in a line the eye follows for a hundred tiles costs
+    # nothing. The letter is also the caveat on the route, and a caveat under
+    # the thing it qualifies is not a caveat.
+    if cells:
+        # Imported here for the same reason as sprites above: font reads this
+        # module's tile decode, so a module-scope import would be a cycle.
+        import font                                                 # noqa: E402
+        draw_trap_marks(rom, font, out, w, h, crop, cells)
+    if legend_rows:
+        import font                                                 # noqa: E402
+        draw_map_key(rom, font, out, w, h, crop, legend_rows,
+                     set(cells.values()), lane_key_entries(lanes))
     return w, h, bytes(out)
 
 

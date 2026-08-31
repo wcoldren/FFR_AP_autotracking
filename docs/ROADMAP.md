@@ -86,31 +86,27 @@ share work with section 1, which is why they come second and not later.
   these are the top map item for a No-Overworld or entrance-rando player; the
   design is in `STATUS.md`, "Designed, not started". First increment is the
   bridge's edge log plus a console print, display half after.
-- **Routes on regenerated maps.** The shipped hand art already carries
-  DarkmoonEX's lanes; the regenerated art — the only art a No-Overworld player
-  can trust — has none. Two flavours (shortest, with-loot), one colour per lane
-  across all 61, key in the Map Key band. Baked at render time in `regen_maps`;
-  the PopTracker tab is a static image. Objective function is in `IDEAS.md`.
+- **Routes on regenerated maps — the with-loot lane is built (2026-08-31).**
+  `tools/lane.py` routes it and `render_maps.draw_lanes` draws it, baked at
+  render time in `regen_maps` because the PopTracker tab is a static image.
+  One colour per lane across all 61 with the key in the Map Key band, `--lanes
+  loot` on by default. `STATUS.md`, "The route to walk is drawn on the map".
 
-  **This does not wait on the entrance markers.** This list said it did until
-  2026-08-31, on the grounds that a route needs the edge log to know which door
-  leads where. It does not. A route baked at render time has the cartridge, and
-  `entrance_graph.Graph` reads the shuffled teleport tables straight off it; the
-  log exists so the *tab* can learn the permutation by observation without
-  spoiling it, which is a display concern and not a routing one. The search is
-  written as well — `Graph.floor_walk()` is a torus-aware BFS returning steps
-  per tile, so a lane is path reconstruction down that gradient. What is
-  unbuilt is the objective function and the drawing.
+  **The spoiler question is settled: a lane ends at the nearest exit.** On both
+  duck cartridges most chest-bearing maps have several — 33 of 38 standard, 34
+  of 37 No-Overworld — and the lane finishes at whichever is closest, which the
+  shuffle has no bearing on. It says "there is a way out here", which the art
+  already drew, and not "this is the way onward". Stopping at the last chest
+  instead would drop a goal the published objective names beside treasure.
 
-  **The spoiler question arrives from the other side instead.** A lane baked
-  into the image says which staircase is the way onward to a player who may
-  have wanted to walk into that. Settle it before drawing, not after.
-
-  **The reference is the acceptance test, not the input.** DarkmoonEX's lanes
-  are drawn on vanilla layouts, and the regenerated art exists for the seeds
-  where the layout is not vanilla — which is the same trap the trap-tile
-  letters fell into (`ISSUES.md`, "Our trap letters are not DarkmoonEX's").
-  Derive the lane from the cartridge; check it by eye against his.
+  **What is left is the shortest-to-the-exit flavour**, and the by-eye pass.
+  The reference is the acceptance test, not the input: DarkmoonEX's lanes are
+  drawn on vanilla layouts and the regenerated art exists for the seeds where
+  the layout is not vanilla — the same trap the trap-tile letters fell into
+  (`ISSUES.md`, "Our trap letters are not DarkmoonEX's"). His 58 drawn images
+  want walking one at a time, recording agree or disagree-and-why; a
+  disagreement is either a bug in the cost function or a judgement of his that
+  is not in the published rule, and only the second kind needs transcribing.
 - **The No-Overworld map surface.** The connection diagram — a hand-drawn
   pseudo-overworld with the fixed links as roads. Unchanged from the earlier
   plan; the topology is measured and stable.
