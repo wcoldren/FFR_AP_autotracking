@@ -169,6 +169,22 @@ The current focus, resumed once the above are in.
   drift off its art in the first place.
 - **The 28 incentive pins.** `locations/NOverworld/incentives.json` is still
   hand-authored against upstream's poster. Derive them from the cartridge.
+
+  **`nerrick`'s poster slot belongs to this item.** The No-Overworld poster is
+  missing exactly one slot and it is that one: a real Archipelago location on
+  this mode -- the export has `ConeriaCastle1 -> DwarfCave -> Nerrick (Tnt)` --
+  which both dungeon trees already carry. Where it sits on a poster with no
+  overworld is the same question as deriving the rest of the pins, which is why
+  it is here and not filed as a bug of its own.
+
+  **`airship` is not the other half of a pair, and the pairing was the error.**
+  It is not a location on any cartridge, standard included: the slot is
+  `I: Ryukahn Desert / I: Floater Turn In`, and `hosted_item: airship` means it
+  hands the tracker a vehicle when checked. On this mode there is no desert and
+  no vehicle, and all 26 of the nov poster's `airship` mentions are already
+  behind `$standardWorld`. Adding a slot for it would hand a seed a vehicle it
+  does not have. `docs/ISSUES.md` has the derivation; do not re-derive this as a
+  missing pair.
 - **Entrance markers.** The data half is done — `entrance_graph.py` reads the whole
   shuffle. The display half is designed end to end: the bridge watches party
   position and publishes an edge log, so the pack learns the permutation by
@@ -444,6 +460,44 @@ mechanism a future boss annotation would build on, both gone in this branch.
 Re-verified after the fixes: both suites green on vanilla and all four oracle
 cartridges, `test_crop.py` green on five, and `--self-check` passing on five.
 
+**Next branch: the `onrac` crop -- and its measurements need retaking.** The
+residue in `docs/ISSUES.md` -- the maps with no empty column anywhere -- has a
+candidate rule. Rule A: flood from the edge over *every* tile id present in the
+border ring rather than only the modal one, with `protected_cells()` as walls.
+
+Measured on both duck cartridges, zero cut-offs: `onrac` 64x58 -> 49x37,
+`lefein` -> 63x25, `melmond` -> 32x29, `sky4F` -> 35x35. **Do not trust those
+four numbers.** They were taken while `components()` still flooded flat, so each
+was measured against a speck pass that could throw away the wrapped half of a
+region -- the defect the commit above fixed, and one that moved three crops on
+its own. Re-measure on the torus flood before judging the rule.
+
+The interaction is not incidental to this branch, it *is* this branch. Widening
+the flood eats more filler, which changes `content`, which changes what
+`components()` splits and `drop_specks` discards, which changes whether
+`_axis_shift`'s join test fires. `crescent_lake` is the worked example and the
+one real regression: 52x43 -> 50x64, because with more filler eaten its content
+stops touching both edges, the join test stops firing, and the map goes back to
+being framed across the void the rotation commit exists to avoid. The second
+cost is a judgement rather than a mechanism -- `con_castle` tightens 31x35 ->
+28x35 and loses the green margin that makes it read well. Both are why this
+stayed out of the legibility branch. The seam interaction is the work; the flood
+change itself is a few lines.
+
+**`outside_cells` stays flat, and Rule A should leave it flat.** It seeds from
+all 256 border cells, so the wrap edges it would gain join cells that are
+already seeds and it cannot reach anything new -- which is why the torus fix
+touched `components()` and nothing else. That is a claim about the *outside*
+flood only. Rule A still changes the speck pass, by changing what content is.
+
+**The order against the warning branch below is open.** The rationale for
+putting art first was that the regen the warning triggers should produce the
+better art, and it carried an escape clause: only while the art stays one branch
+of that size. A second art branch is that clause firing. If the seam interaction
+turns out to be more than a few days, the warning goes first and a regen is
+re-run once the art lands -- one extra regen against delaying a correctness
+guard. Decide when this is picked up, not now.
+
 **Branch after that: the stale-override warning**, per "Notice when the drawn
 maps are for a different cartridge" in `docs/IDEAS.md`. Separate because it
 touches the bridge and the pack rather than the tools, and is worth nothing
@@ -479,17 +533,26 @@ Acceptance is a demonstrated failure, per the working rule below: connect with a
 mismatched cartridge and show the cell lights, connect with the matching one and
 show it does not.
 
-**On the order of those two.** The legibility branch sits first so the regen the
-warning triggers produces the better art. That holds **only while it stays one
-branch of the size above** -- the torus leg is a contract change and is the leg
-that might grow. If it does, the warning branch goes first and a regen is re-run
-once the art lands. That costs one extra regen, which is cheaper than delaying a
+**On the order of these.** The legibility branch sat first so the regen the
+warning triggers would produce the better art, and that held only while the art
+stayed one branch of that size. It did not: the torus leg landed inside it and
+the `onrac` crop split off as a second art branch, which is exactly the
+condition that clause named. The queue as written is `onrac` crop, then the
+warning, then item 3 -- but the recorded rationale argues the other way as soon
+as the seam interaction looks large, and the entry above says so at the point
+where the call gets made. One extra regen is cheaper than delaying a
 correctness guard behind an art change.
 
-Not queued, and deliberately: a general requirements solver, and more oracle
-seeds. The provenance table says where the risk is; spend there.
+Not queued, and deliberately: more oracle seeds. The provenance table says
+where the risk is; spend there.
 
-The solver has one more argument for it than it did, and it is still not enough
-to queue it: Lefein above is a requirement that names another *location* rather
-than an item, so no widening of the sweep reaches it. It is one location of 226,
-and it is permissive rather than silent, so it stays filed.
+**The solver is off this list rather than at the bottom of it, because the
+question changed shape.** It used to be "should we write a propagation pass
+instead of the sweep", with Lefein -- a requirement naming another *location*,
+which no widening of the sweep reaches -- as the one argument for it. FFR
+already runs that pass, and the export we grade against is its output, so the
+real question is whether the pack's Lua rules should be **compiled from that
+export** rather than hand-written or sampled. That is a decision about
+provenance, not an optimisation, and it wants its own session.
+`docs/IDEAS.md`, "Solve the requirements instead of sampling them", has the
+mechanism, the three things to settle first, and the argument against.

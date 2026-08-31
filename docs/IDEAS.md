@@ -349,6 +349,59 @@ the Slab translated, which is Dr Unne's own reachability. That last shape is the
 one the sampling approach cannot express at any vocabulary size, and it is the
 strongest argument for the solver.
 
+**FFR already runs that solver, and the oracle is its output -- which changes
+what is worth building.** `SanityCheckerV2` builds the map, `SCLogic` propagates
+`SCRequirements` over it, and `FF1Lib/archipelago/Archipelago.cs:205` serialises
+the result as the export's `rules:` section: one entry per Archipelago location,
+`List<List<string>>`, an or-of-ands of item names. That is the file
+`tools/check_logic.py` already grades against. So the interesting option is not
+writing a propagation pass. It is **compiling the pack's Lua rules from that
+export** instead of hand-writing them or sampling them.
+
+That dissolves the Lefein class outright rather than working around it.
+`SCLogic.cs:555-557` resolves the translated Slab to `allNpcs[Unne]` restricted
+by the Slab -- a requirement naming another location -- and by the time it
+reaches the export it has been flattened to items, `(Tnt OR Ruby OR Canoe) AND
+Floater AND Slab`. Nothing downstream has to express "reach another location",
+because the solver already did. The vocabulary is wider too: `nov`'s rules
+mention fifteen distinct items, including `Mark` and `Sigil` (the renamed Canoe
+and Floater), against the twelve `entrance_graph.ITEM_NAMES` sweeps, and all
+five trades the sweep cannot hold -- Slab, Herb, Adamant, Bottle, Crystal -- are
+in there.
+
+Three things to settle before this is a plan rather than an idea.
+
+- **The export is per-seed and the pack ships one rule set.** Not a new problem:
+  158 of `nov`'s 226 pack-side rules were already transcribed from one seed's
+  export, per the provenance table in `docs/ORACLE.md`. Compiling makes that
+  dependence visible rather than introducing it, and gives it a test -- compile
+  from two seeds at identical flags and diff. On No-Overworld the difference is
+  likely small, since three seeds carry 157 links each and differ only in the
+  Gaia gateway and the two Waterfall stairs. Under entrance rando it would not
+  be.
+- **`Orbs` is the one requirement flag the export drops.** `SCRequirements` has
+  twenty flags; both `GetRule` overloads emit nineteen and neither emits `Orbs`
+  (`0x0100`), so a location requiring it exports with an empty -- that is,
+  free -- clause. It does not bite today, because the orb-gated floors are the
+  Temple of Fiends Revisited and those are excluded from the Archipelago pool
+  unconditionally. A compiler would inherit the hole in silence, so it needs a
+  guard that refuses an empty clause it cannot account for.
+- **`ExtSpoiler.cs` is the wrong source.** Its `WriteItemPlacementSpoiler` uses
+  the same `GetRule` shape, but filters `logic.RewardSources` to incentive
+  items, quest items and orbs, so the `.txt` carries requirements for a handful
+  of slots rather than all of them. The yaml's `rules:` is over every reward
+  source: 227 locations on `nov`, 226 on `std`, 230 on `shard`.
+
+**And the argument against, which is the one to answer first.** The current
+setup's whole value is that the two sides are independent -- rules written one
+way, graded against an answer produced another way. Compiling makes the oracle
+and the rules the same object, so they agree by construction and
+`check_logic.py` stops being a check at all. What would replace it is the
+cartridge sweep, which is the genuinely independent third reading and today
+supports 215 of `nov`'s 226. Whether that is enough cover is the decision, and
+it is a decision about provenance rather than an optimisation. It wants its own
+session; `docs/ROADMAP.md` says so at the bottom rather than queueing it.
+
 ## Notes and hints
 
 Wanted: somewhere to write down a hint — which orbs a seed requires, what an NPC
