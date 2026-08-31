@@ -50,10 +50,12 @@
         "type" : "progressive",
         "stages" : [
             {
+                "name" : "Open Progression",
                 "img" : "images/flags/openProgression.png",
                 "codes" : "progressionFlag,openProgression"
             },
             {
+                "name" : "Extended Open Progression",
                 "img" : "images/flags/extendedOpen.png",
                 "codes" : "progressionFlag,extendedOpen"
             }
@@ -204,10 +206,12 @@
         "type": "progressive",		
         "stages" : [
             {
+                "name" : "Cardia Island is Incentive",
                 "img" : "images/locations/cardiaIncentive.png",
                 "codes" : "cardiaIsIncentive"
             },
             {
+                "name" : "Bahamut's Hoard",
                 "img" : "images/flags/BahamutHoard.png",
                 "codes" : "BahamutHoard"
             }
@@ -323,14 +327,17 @@
         "loop" : true,
         "stages" : [
             {
+                "name" : "Overworld Tab: Auto (the seed decides)",
                 "img" : "images/flags/tabAuto.png",
                 "codes" : "tab_mode"
             },
             {
+                "name" : "Overworld Tab: always the incentive poster",
                 "img" : "images/flags/tabIncentive.png",
                 "codes" : "tab_mode"
             },
             {
+                "name" : "Overworld Tab: always the full map",
                 "img" : "images/flags/tabFull.png",
                 "codes" : "tab_mode"
             }

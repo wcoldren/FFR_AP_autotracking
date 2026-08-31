@@ -281,6 +281,39 @@ if #hidden == 0 and #staleOff == 0 then
                       #flagItems))
 end
 
+-- 4d. a flag cell that can show more than one picture has to say which.
+--
+--     PopTracker's tooltip is getCurrentName(): a stage's own `name` if it has
+--     one, the item's otherwise (jsonitem.h:133-140, surfaced at
+--     defaulttrackerwindow.cpp:196). Without per-stage names the Overworld Tab
+--     cell hovered as "Overworld Tab" on all three of its icons, and Open
+--     Progression said the same thing whether it was on stage 1 or Extended --
+--     so the one place a player can learn what a cell is currently set to said
+--     nothing about the setting.
+--
+--     COUNTERS are the exception and are listed by name: their stages are a
+--     quantity, the picture is the number, and a label per stage would repeat
+--     it eight times.
+local COUNTERS = { ["Loose Items"] = true, ["dud Items"] = true }
+local unnamed = {}
+for _, item in ipairs(json.load(PACK .. "/items/flags.json")) do
+  local stages = item.stages or {}
+  if #stages > 1 and not COUNTERS[item.name] then
+    for i, stage in ipairs(stages) do
+      if not stage.name or stage.name == "" then
+        unnamed[#unnamed + 1] = (item.name or "?") .. " stage " .. i
+      end
+    end
+  end
+end
+table.sort(unnamed)
+for _, where in ipairs(unnamed) do
+  fails("a flag stage with no name, so the tooltip cannot say which it is: " .. where)
+end
+if #unnamed == 0 then
+  print("ok   every multi-stage flag names each of its stages")
+end
+
 local dangling, orphan = {}, {}
 for key in pairs(referenced) do
   if not definedIn[key] then dangling[#dangling + 1] = key end
