@@ -1213,13 +1213,17 @@ disjoint components out separately instead of framing their union.
 **A Map Key band is reserved, not drawn.** Trap letters derive: enumerate the
 fixed-formation trap tiles (`TP_SPEC_BATTLE`, byte 1 not the random marker) over
 all eight tilesets in order and label them A, B, C. On a *vanilla* cartridge
-that reproduces the shipped art exactly -- `earthB1` comes out `{G,H,I}` and
-`volcB4` `{M,N}`, and `volcB1`'s bare `A` correctly is not a trap letter.
+that reproduced the shipped art exactly -- `earthB1` came out `{G,H,I}` and
+`volcB4` `{M,N}`, and `volcB1`'s bare `A` correctly is not a trap mark.
 (**Historical.** That agreement is what pinned the enumeration base, and it did
-its job; the scheme it verified is being replaced, because numbering by
-`(tileset, tile)` gives one formation two labels -- see above. The base it
-established is unaffected: what changes is the key, not where the tiles are read
-from.) 23 of
+its job; the scheme it verified has been replaced, because numbering by
+`(tileset, tile)` gives one formation two labels -- see above. What replaced it
+is `trap_marks()`, keyed to the formation and handed out only to formations that
+stand on a map, and it lands **one place behind** the art rather than on it:
+`earthB1` is `{F,G,H}` and `volcB4` `{L,M}`. The one place is formation `$00`,
+five fixed tileset entries that no map places, which the art counted and this
+does not. The base is unaffected: what changed is the key, not where the tiles
+are read from.) 23 of
 61 maps use one and no map uses more than four, so the band below the map is
 small and bounded. Which branch decides byte 1 is read rather than assumed:
 `SMMove_Battle`'s `BPL` sits at 0x0DC5 in the fixed bank, `$10` on a vanilla
@@ -1653,6 +1657,26 @@ that alphabet would otherwise have walked into.
 Two recorded claims do not survive this and are updated rather than left:
 `test_crop.py:179` and `:195` assert `volcB4` is `{M,N}` on named tiles, and the
 "reproduces the shipped art exactly" finding below.
+
+**Landed, and the numbers it came out at.** `trap_marks()` keys to the formation
+and `standing_formations()` supplies the order. Measured over five cartridges --
+vanilla, the std, nov, nov2 and shard oracles -- **every mark is a single glyph
+on all five**, and no formation carries two marks and no mark stands for two
+formations on any of them. Formations standing on a map: 32 vanilla, 32 std, 31
+nov, 32 nov2, 31 shard, against 35 available. The two-character fallback is
+written and no measured cartridge reaches it; it is there because a reused mark
+is a map that lies about which fight is on a tile, which is worse than a label
+too wide for one.
+
+The clutter went with it. `seaB4` read `AB AC AD AE` and now reads `0 1 Y Z`;
+`earthB1` and `marshB3` both read `G` for formation `$10`, which is the same
+fight and now says so.
+
+What this cost is the exact agreement with the art, and the cost is one place
+rather than an unknown. `test_crop.py` asserts the shift **and names its cause**
+-- that formation `$00` is fixed, is in the tileset tables five times, and
+stands on no map -- so the check still says something about the derivation
+instead of merely pinning today's output.
 
 **Linked chests, measured while the chest data was open.** Six chest indices sit
 on more than one tile on std and **fourteen on nov** -- Short ToFR duplicates

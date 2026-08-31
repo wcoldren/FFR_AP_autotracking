@@ -625,25 +625,35 @@ def cropped_objects(map_id, crop, graph):
 # ---------------------------------------------------------------- trap tiles
 
 # FFR randomizes which monsters a trap tile throws at you and the tracker says
-# nothing about it. The shipped art does: a yellow capital letter on the tile,
-# and a Map Key on the backdrop saying what each letter is. The letters are
+# nothing about it. The shipped art does: a yellow capital mark on the tile,
+# and a Map Key on the backdrop saying what each mark is. The marks are
 # derivable, which is worth stating because it was not obvious -- they are
 # positions in the cartridge's own flat tileset order.
 #
 # A trap tile is TP_SPEC_BATTLE, and tile properties live per tileset, so a
 # tile id means the same thing on every map sharing that tileset: the same trap
-# in Sea Shrine and Temple of Fiends is literally the same two ROM bytes.
-# Enumerating the fixed-formation ones over all eight tilesets in order and
-# labelling them A, B, C ... reproduces the shipped art on a vanilla cartridge:
-# earthB1 comes out {G, H, I} and volcB4 {M, N}, which is what DarkmoonEX drew.
-# volcB1's bare `A` is not a trap letter under this scheme and is not supposed
+# in Sea Shrine and Temple of Fiends is literally the same two ROM bytes. But a
+# tile is not a fight -- the byte beside it is, and one formation is reachable
+# through more than one tileset entry, which is why the mark is keyed to the
+# formation and not to the tile. Keyed to the tile, the same enemies came out
+# G on earthB1 and W on marshB3.
+#
+# The marks are handed out in tileset-scan order, which is the order the
+# shipped art numbers them in, and only to formations that stand on some map.
+# That second filter is what keeps a mark to one glyph, and it is also the one
+# place this parts company with DarkmoonEX: he counted formation $00, which is
+# a fixed trap tile in five tileset entries that no map places, so his letters
+# are these shifted by exactly one -- his earthB1 G H I is this F G H, his
+# volcB4 M N is this L M. tools/tests/test_crop.py asserts the shift and its
+# cause rather than the bare marks.
+#
+# volcB1's bare `A` is not a trap mark under this scheme and is not supposed
 # to be -- it is an entrance label, and the derivation agreeing about that is
 # part of why it is believable.
 #
-# The letters shift by a place or two on an FFR seed, because the shuffle turns
-# some fixed formations random and they drop out of the ordering. That is fine
-# and unavoidable: a letter's job is to key a tile to the legend drawn on the
-# same image.
+# Which formations stand on a map moves with the seed, so the marks do too.
+# That is fine and unavoidable: a mark's job is to key a tile to the legend
+# drawn on the same image.
 
 TP_SPEC_BATTLE = 0x0A
 TILESET_COUNT = 8
@@ -678,13 +688,26 @@ def battle_byte_inverted(rom):
 
 
 def _label(n):
-    """A, B, ... Z, AA, AB, ... -- there are more trap tiles than letters."""
+    """A, B, ... Z, AA, AB, ... -- the fallback when the marks run out."""
     a = string.ascii_uppercase
     return a[n] if n < len(a) else a[n // len(a) - 1] + a[n % len(a)]
 
 
-def trap_letters(rom):
-    """{(tileset, tile): letter} for every fixed-formation trap tile."""
+# The marks a trap tile can carry, in the order they are handed out. Every one
+# is a single glyph in the cartridge's own font, which is what lets a mark
+# occupy exactly the tile it marks. `O` is left out because it and `0` are the
+# same glyph in this font -- tools/font.py asserts precisely that -- so a key
+# offering both would ask the reader to tell apart two identical drawings.
+# Marks first: the shipped art's marks are marks, and 25 of them covers
+# most of a cartridge on its own.
+TRAP_MARKS = "ABCDEFGHIJKLMNPQRSTUVWXYZ0123456789"
+
+assert len(set(TRAP_MARKS)) == len(TRAP_MARKS) == 35
+assert "O" not in TRAP_MARKS
+
+
+def fixed_formations(rom):
+    """{(tileset, tile): formation id} for every fixed-formation trap tile."""
     inverted = battle_byte_inverted(rom)
     out = {}
     for tileset in range(TILESET_COUNT):
@@ -694,81 +717,129 @@ def trap_letters(rom):
             if (b0 & entrance_graph.TP_SPEC_MASK) != TP_SPEC_BATTLE:
                 continue
             random = (b1 == 0) if inverted else bool(b1 & 0x80)
-            if random:
-                continue
-            out[(tileset, tile)] = _label(len(out))
+            if not random:
+                out[(tileset, tile)] = b1
     return out
 
 
-def map_trap_letters(rom, map_id, tiles, letters=None):
-    """{(col, row): letter} for the trap tiles standing on one map."""
-    letters = trap_letters(rom) if letters is None else letters
+def standing_formations(rom, fixed=None):
+    """The fixed formations a trap tile somewhere on a map actually spawns.
+
+    In tileset-scan order, which is the order the shipped art numbers them in.
+    Two filters, and both are what make a single-glyph mark possible:
+
+      * **by formation, not by tile.** A formation reachable through two
+        tileset entries is one fight and wants one mark. Keying by
+        (tileset, tile) is what drew the same enemies as G on earthB1 and W on
+        marshB3;
+      * **only what stands on a map.** The tileset tables carry fixed-formation
+        entries no map places -- four of them on a vanilla cartridge -- and a
+        mark for a fight that cannot be met is a row in the key doing nothing.
+
+    Together they take a vanilla cartridge from 43 lettered tiles to 32 marks,
+    the std oracle to 33 and the nov oracle to 32, all inside the 35 the font
+    can draw one glyph for.
+    """
+    fixed = fixed_formations(rom) if fixed is None else fixed
+    standing = set()
+    for map_id in MAP_FILES:
+        tileset = rom[TILESET_LUT + map_id]
+        for tile in map_tiles(rom, map_id):
+            if (tileset, tile & 0x7F) in fixed:
+                standing.add(fixed[(tileset, tile & 0x7F)])
+    order = []
+    for key in sorted(fixed):
+        if fixed[key] in standing and fixed[key] not in order:
+            order.append(fixed[key])
+    return order
+
+
+def trap_marks(rom):
+    """{(tileset, tile): mark} -- one mark per formation, not one per tile.
+
+    Past what the font can draw as single glyphs the whole cartridge falls back
+    to two-character labels rather than reusing a mark: a repeated mark is a
+    map that lies about which fight is on the tile, and that is worse than a
+    label too wide to sit on one. No measured cartridge reaches it.
+    """
+    fixed = fixed_formations(rom)
+    order = standing_formations(rom, fixed)
+    if len(order) <= len(TRAP_MARKS):
+        mark = {f: TRAP_MARKS[i] for i, f in enumerate(order)}
+    else:
+        mark = {f: _label(i) for i, f in enumerate(order)}
+    return {key: mark[f] for key, f in fixed.items() if f in mark}
+
+
+def map_trap_marks(rom, map_id, tiles, marks=None):
+    """{(col, row): mark} for the trap tiles standing on one map."""
+    marks = trap_marks(rom) if marks is None else marks
     tileset = rom[TILESET_LUT + map_id]
-    return {(i % MAP_DIM, i // MAP_DIM): letters[(tileset, t & 0x7F)]
-            for i, t in enumerate(tiles) if (tileset, t & 0x7F) in letters}
+    return {(i % MAP_DIM, i // MAP_DIM): marks[(tileset, t & 0x7F)]
+            for i, t in enumerate(tiles) if (tileset, t & 0x7F) in marks}
 
 
-# The Map Key is drawn in the phase that draws the letters; what is reserved
+# The Map Key is drawn in the phase that draws the marks; what is reserved
 # here is somewhere to put it. A band below the map rather than beside it, so
 # offset_y is untouched and no marker moves, filled with the map's own backdrop
 # tile -- which is what the hand art does, its backdrop being the map's own
-# outdoor tint. Measured: 23 of 61 maps use a letter at all and the most any
+# outdoor tint. Measured: 23 of 61 maps use a mark at all and the most any
 # map uses is four, so the band is small and bounded.
 LEGEND_HEADING_ROWS = 2
 
 
-def legend_rows_for(letter_count):
+def legend_rows_for(mark_count):
     """How many tile-height rows to reserve for a map's Map Key."""
-    return 0 if not letter_count else LEGEND_HEADING_ROWS + letter_count
+    return 0 if not mark_count else LEGEND_HEADING_ROWS + mark_count
 
 
 # The Map Key's colours, as tile ids in the NES palette rather than as RGB
-# literals: the shipped art letters its trap tiles yellow and writes its key in
+# literals: the shipped art marks its trap tiles yellow and writes its key in
 # white on a dark panel, and these are the cartridge's own nearest equivalents.
 LETTER_COLOUR = 0x28          # yellow
 KEY_TEXT_COLOUR = 0x30        # white
 SHADOW_COLOUR = 0x0F          # black
-LETTER_SCALE = TILE_PX // 8   # a glyph is 8px, a tile is 16, so a letter fills it
+LETTER_SCALE = TILE_PX // 8   # a glyph is 8px, a tile is 16, so a mark fills it
 KEY_PAD = 4
 
 
-def draw_trap_letters(rom, font, out, w, h, crop, legend_rows, cells):
+def draw_trap_marks(rom, font, out, w, h, crop, legend_rows, cells):
     """Letter the trap tiles in place, and write the key into the band.
 
-    `cells` is map_trap_letters' {(col, row): letter}. Letters are drawn at the
+    `cells` is map_trap_marks' {(col, row): mark}. Marks are drawn at the
     tile they mark, at LETTER_SCALE so a glyph is exactly one tile, with a
     one-pixel shadow -- a trap tile can sit on any floor colour, and yellow on
     sand is otherwise unreadable. The band below gets a `Map Key` heading and
-    one `Trap Tile X` row per distinct letter, in the order the letters derive.
+    one `Trap Tile X` row per distinct mark, in the order the marks derive.
     """
     yellow = NES_PALETTE[LETTER_COLOUR]
     white = NES_PALETTE[KEY_TEXT_COLOUR]
     black = NES_PALETTE[SHADOW_COLOUR]
 
-    for (col, row), letter in sorted(cells.items()):
+    for (col, row), mark in sorted(cells.items()):
         at = crop.place(col, row)
         if at is None:
             continue
         font.draw_text(out, w, h, at[0] * TILE_PX, at[1] * TILE_PX,
-                       letter, yellow, LETTER_SCALE, rom, black)
+                       mark, yellow, LETTER_SCALE, rom, black)
 
     if not legend_rows:
         return
     band = crop.size[1] * TILE_PX
     font.draw_text(out, w, h, KEY_PAD, band + KEY_PAD, "Map Key", white,
                    LETTER_SCALE, rom, black)
-    # One row per letter, below the two the heading reserves. Sorted, so the
+    # One row per mark, below the two the heading reserves. Sorted, so the
     # key reads A B C however the tiles happen to lie on the map.
-    for i, letter in enumerate(sorted(set(cells.values()))):
+    for i, mark in enumerate(sorted(set(cells.values()))):
         y = band + (1 + i) * TILE_PX + KEY_PAD
-        font.draw_text(out, w, h, KEY_PAD, y, letter, yellow, LETTER_SCALE,
+        font.draw_text(out, w, h, KEY_PAD, y, mark, yellow, LETTER_SCALE,
                        rom, black)
         font.draw_text(out, w, h, KEY_PAD + 2 * TILE_PX, y,
-                       f"Trap Tile {letter}", white, LETTER_SCALE, rom, black)
+                       f"Trap Tile {mark}", white, LETTER_SCALE, rom, black)
 
 
 def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
-           crop=None, legend_rows=0, letters=None):
+           crop=None, legend_rows=0, marks=None):
     """(w, h, rgb_bytes) for one standard map.
 
     `unroof` draws the rooms open: outdoor palette everywhere, room palette on
@@ -787,7 +858,7 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
     off, so a plain render is still the whole 64x64 grid at 1024x1024 and
     --check still compares like with like.
 
-    `letters` is trap_letters(rom). Given it, the trap tiles on this map are
+    `marks` is trap_marks(rom). Given it, the trap tiles on this map are
     lettered where they stand and the reserved band is filled in with the key,
     which is what the shipped hand-drawn art does -- see earthB1.png, whose
     G, H and I this reproduces on a vanilla cartridge.
@@ -838,12 +909,12 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
                         out[dst + 1] = g
                         out[dst + 2] = b
                         dst += 3
-    if letters:
+    if marks:
         # Imported here for the same reason as sprites below: font reads this
         # module's tile decode, so a module-scope import would be a cycle.
         import font                                                 # noqa: E402
-        draw_trap_letters(rom, font, out, w, h, crop, legend_rows,
-                          map_trap_letters(rom, map_id, tiles, letters))
+        draw_trap_marks(rom, font, out, w, h, crop, legend_rows,
+                          map_trap_marks(rom, map_id, tiles, marks))
     if graph is not None:
         # Imported here, not at module scope: sprites imports this module for
         # the NES palette and the tile decode.
@@ -945,10 +1016,10 @@ def self_check(rom, path):
     for name, oid, cell in parked:
         print(f"  note: {name} object {oid} at {cell} is outside its box "
               "(parked out of bounds; marshB1's spare bat is the known one)")
-    letters = trap_letters(rom)
+    marks = trap_marks(rom)
     used = sum(1 for m in range(MAP_COUNT)
-               if map_trap_letters(rom, m, map_tiles(rom, m), letters))
-    print(f"{len(letters)} fixed-formation trap tiles, used on {used} maps; "
+               if map_trap_marks(rom, m, map_tiles(rom, m), marks))
+    print(f"{len(marks)} fixed-formation trap tiles, used on {used} maps; "
           f"SMMove_Battle byte 1 is "
           f"{'FFR (b1 == 0 is random)' if battle_byte_inverted(rom) else 'vanilla (b1 & $80 is random)'}")
     if bad:
@@ -999,7 +1070,7 @@ def main():
         import entrance_graph                                       # noqa: E402
         graph = entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
 
-    letters = trap_letters(rom) if args.crop else None
+    marks = trap_marks(rom) if args.crop else None
     ids = [args.map] if args.map is not None else range(MAP_COUNT)
     for map_id in ids:
         name = MAP_FILES[map_id]
@@ -1009,9 +1080,9 @@ def main():
             tiles = map_tiles(rom, map_id)
             crop = content_crop(tiles)
             rows = legend_rows_for(
-                len(set(map_trap_letters(rom, map_id, tiles, letters).values())))
+                len(set(map_trap_marks(rom, map_id, tiles, marks).values())))
         w, h, rgb = render(rom, map_id, args.inside, args.unroof, graph,
-                           crop=crop, legend_rows=rows or 0, letters=letters)
+                           crop=crop, legend_rows=rows or 0, marks=marks)
         path = os.path.join(args.out, name + ".png")
         pngio.write_rgb(path, w, h, rgb)
         where = (f"tile (c,r) is pixel {TILE_PX}((c+{crop.shift[0]}) mod {MAP_DIM} "

@@ -13,8 +13,8 @@ things are tested, because the rule has two ways to be wrong:
     is within a tile of the drawn one. That agreement is the reason to believe
     the rule rather than merely to like its output.
 
-The trap-letter derivation is checked here as well, because the Map Key band
-is sized from it: on a *vanilla* cartridge the letters have to come out the way
+The trap-mark derivation is checked here as well, because the Map Key band
+is sized from it: on a *vanilla* cartridge the marks have to come out the way
 the art draws them, earthB1 {G,H,I} and volcB4 {M,N}.
 
 Set FF1_ROM to a cartridge; without one this skips.
@@ -172,40 +172,83 @@ def main():
     check("and none of the maps it is measured on slid",
           [n for n in ART_AGREES if crops[n].shift != (0, 0)], [])
 
-    # The letters, and the branch that decides what byte 1 means.
-    letters = rm.trap_letters(rom)
+    # The marks, and the branch that decides what byte 1 means.
+    marks = rm.trap_marks(rom)
     check("SMMove_Battle's branch reads as one of the two opcodes",
           inverted in (True, False), True)
-    used = {name: sorted(set(rm.map_trap_letters(
-                rom, map_id, rm.map_tiles(rom, map_id), letters).values()))
+    used = {name: sorted(set(rm.map_trap_marks(
+                rom, map_id, rm.map_tiles(rom, map_id), marks).values()))
             for map_id, name in rm.MAP_FILES.items()}
     if not inverted:
-        # Vanilla is where the shipped art's letters came from, so it is the
-        # only cartridge that can check the derivation against them.
-        check("vanilla earthB1 is the art's G H I", used["earthB1"], ["G", "H", "I"])
-        check("vanilla volcB4 is the art's M N", used["volcB4"], ["M", "N"])
-        check("volcB1's bare A is not a trap letter", used["volcB1"], [])
+        # Vanilla is where the shipped art's marks came from, so it is the
+        # only cartridge that can check the derivation against them -- and the
+        # derivation no longer reproduces them, by one place, on purpose.
+        #
+        # DarkmoonEX numbered every fixed-formation entry in the tileset
+        # tables. This numbers the formations that stand on a map, so that a
+        # mark can be one glyph. The gap between the two is nameable rather
+        # than a fudge: formation $00 is a fixed trap tile in five tileset
+        # entries and no map places any of them, it sorts ahead of earthB1's
+        # three, and it is the whole shift. Asserted as the shift, because a
+        # bare list of marks would not say why they moved.
+        check("vanilla earthB1 is the art's G H I, back one", used["earthB1"],
+              ["F", "G", "H"])
+        check("vanilla volcB4 is the art's M N, back one", used["volcB4"],
+              ["L", "M"])
+        check("and the one is formation $00, which stands on no map",
+              (0x00 in rm.fixed_formations(rom).values(),
+               0x00 in rm.standing_formations(rom)), (True, False))
+        check("volcB1's bare A is not a trap mark", used["volcB1"], [])
         # Sets are not enough, and believing they were is how the earthB1
-        # mismatch below survived: the same three letters can be handed to the
+        # mismatch below survived: the same three marks can be handed to the
         # wrong three tiles and a sorted-set comparison never notices. volcB4
         # is the map whose assignment was read off the shipped art tile by
-        # tile -- M on the Worm Room and Second Greed tiles, N on the Entrance
-        # and Grind Room ones -- so it is the one that can assert it.
+        # tile -- the art's M on the Worm Room and Second Greed tiles, its N on
+        # the Entrance and Grind Room ones -- so it is the one that can assert
+        # it, one mark back on each.
         assign = {}
         for map_id, name in rm.MAP_FILES.items():
             if name != "volcB4":
                 continue
             tiles = rm.map_tiles(rom, map_id)
-            for (col, row), letter in rm.map_trap_letters(
-                    rom, map_id, tiles, letters).items():
-                assign[letter] = tiles[row * rm.MAP_DIM + col] & 0x7F
-        check("volcB4's letters land on the tiles the art puts them on",
-              assign, {"M": 0x23, "N": 0x2F})
+            for (col, row), mark in rm.map_trap_marks(
+                    rom, map_id, tiles, marks).items():
+                assign[mark] = tiles[row * rm.MAP_DIM + col] & 0x7F
+        check("volcB4's marks land on the tiles the art puts them on",
+              assign, {"L": 0x23, "M": 0x2F})
     else:
-        print("     (letters vs the shipped art need a vanilla cartridge; "
+        print("     (marks vs the shipped art need a vanilla cartridge; "
               "this one is an FFR seed)")
-    check("every trap letter belongs to a fixed formation",
+    check("every trap mark belongs to a fixed formation",
           all(len(v) <= 4 for v in used.values()), True)
+
+    # One formation, one mark, and one mark, one formation. This is the defect
+    # the formation keying closes: keyed by (tileset, tile), the same enemies
+    # were G on earthB1 and W on marshB3, so a mark said nothing about which
+    # fight was on the tile.
+    fixed = rm.fixed_formations(rom)
+    by_formation, by_mark = {}, {}
+    for key, mark in marks.items():
+        by_formation.setdefault(fixed[key], set()).add(mark)
+        by_mark.setdefault(mark, set()).add(fixed[key])
+    check("no formation carries two marks",
+          {f"${f:02X}": sorted(v) for f, v in by_formation.items() if len(v) > 1}, {})
+    check("no mark stands for two formations",
+          {m: sorted(v) for m, v in by_mark.items() if len(v) > 1}, {})
+
+    # And every mark is a single glyph, which is what lets it sit on the tile
+    # it marks rather than spilling across its neighbour. The fallback to
+    # two-character labels exists for a cartridge past 35 formations and no
+    # measured one reaches it -- so what is asserted is the count that keeps
+    # the fallback unused, not the fallback.
+    standing = rm.standing_formations(rom)
+    check("every mark is one glyph the font can draw",
+          sorted({m for m in marks.values()
+                  if len(m) != 1 or m not in rm.TRAP_MARKS}), [])
+    check("and the formations standing on a map fit inside the marks",
+          len(standing) <= len(rm.TRAP_MARKS), True)
+    print(f"     ({len(standing)} formations stand on a map, "
+          f"{len(set(marks.values()))} marks, {len(rm.TRAP_MARKS)} available)")
     check("the Map Key band is reserved only where there is a key",
           [rm.legend_rows_for(len(used[n])) > 0 for n in ("earthB1", "coneria_town")],
           [True, False])
@@ -255,12 +298,12 @@ def main():
     w, h, small = rm.render(rom, 23, unroof=True, crop=crop, legend_rows=3)
 
     # The band is drawn into, not just reserved. Rendering the same map with
-    # and without `letters` has to differ inside the band, and a map with no
+    # and without `marks` has to differ inside the band, and a map with no
     # trap tiles has to stay exactly as it was -- one check that the key is
     # written and one that nothing is written where there is no key.
     band = crop.size[1] * rm.TILE_PX * w * 3
     _, _, lettered = rm.render(rom, 23, unroof=True, crop=crop, legend_rows=3,
-                               letters=letters)
+                               marks=marks)
     check("the Map Key band is drawn into, not left as backdrop",
           lettered[band:] != small[band:], True)
     for map_id, name in rm.MAP_FILES.items():
@@ -268,8 +311,8 @@ def main():
             continue
         b = rm.content_crop(rm.map_tiles(rom, map_id))
         plain = rm.render(rom, map_id, unroof=True, crop=b)[2]
-        keyed = rm.render(rom, map_id, unroof=True, crop=b, letters=letters)[2]
-        check("a map with no trap tiles is untouched by the letters",
+        keyed = rm.render(rom, map_id, unroof=True, crop=b, marks=marks)[2]
+        check("a map with no trap tiles is untouched by the marks",
               plain == keyed, True)
 
     for f in fails:

@@ -192,11 +192,11 @@ def crops(rom):
 
 def legend_rows(rom, crops_=None):
     """{map name: rows of backdrop reserved below it for a Map Key}."""
-    letters = render_maps.trap_letters(rom)
+    marks = render_maps.trap_marks(rom)
     out = {}
     for map_id, name in render_maps.MAP_FILES.items():
-        used = render_maps.map_trap_letters(
-            rom, map_id, render_maps.map_tiles(rom, map_id), letters)
+        used = render_maps.map_trap_marks(
+            rom, map_id, render_maps.map_tiles(rom, map_id), marks)
         out[name] = render_maps.legend_rows_for(len(set(used.values())))
     return out
 
@@ -286,7 +286,7 @@ def mode_of(rom, path, override=None):
 
 
 def build_images(rom, mode, crops_, rows, graph=None, only=None,
-                 letters=None):
+                 marks=None):
     """-> {relpath: (w, h, rgb)} for all 61 maps, rooms drawn open.
 
     Unroofed, because a tracker map is read rather than walked. In the game a
@@ -303,7 +303,7 @@ def build_images(rom, mode, crops_, rows, graph=None, only=None,
     for map_id, name in render_maps.MAP_FILES.items():
         out[f"images/maps/{mode}/{name}.png"] = render_maps.render(
             rom, map_id, unroof=True, graph=graph, only=only,
-            crop=crops_[name], legend_rows=rows[name], letters=letters)
+            crop=crops_[name], legend_rows=rows[name], marks=marks)
     return out
 
 
@@ -898,7 +898,7 @@ def main():
 
     # 1. the art, cropped to what each map actually uses and filed by mode
     art = build_images(rom, mode, crops_, rows, graph, only,
-                       render_maps.trap_letters(rom))
+                       render_maps.trap_marks(rom))
     sizes = {name: (crops_[name].size[0] * TILE_PX,
                     (crops_[name].size[1] + rows[name]) * TILE_PX)
              for name in render_maps.MAP_FILES.values()}

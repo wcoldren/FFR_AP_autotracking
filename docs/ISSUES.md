@@ -133,27 +133,36 @@ Nothing here is urgent unless it says so.
   formation they become self-consistent per *cartridge*, which is the stronger
   claim and the one worth making.
 
-- **The same enemies can carry two different trap letters.** `trap_letters()`
-  numbers by `(tileset, tile)` enumeration order rather than by the formation the
-  tile spawns, so one formation reached through two tileset entries gets two
-  labels. Measured 2026-08-30, three formations on each oracle cartridge: on the
-  std seed formation `$10` is drawn **G** on `earthB1` and **W** on `marshB3`;
-  `$1C` is AA and AG; `$4A` is V and X.
+- **The same enemies could carry two different trap letters. Fixed.**
+  `trap_letters()` numbered by `(tileset, tile)` enumeration order rather than by
+  the formation the tile spawns, so one formation reached through two tileset
+  entries got two labels. Measured 2026-08-30, three formations on each oracle
+  cartridge: on the std seed formation `$10` was drawn **G** on `earthB1` and
+  **W** on `marshB3`; `$1C` was AA and AG; `$4A` V and X.
 
-  That defeats the thing a trap letter is for. Meet a fixed formation early,
-  decide it is worth fighting or worth avoiding, and the label it carries the
-  next time you meet it may be a different one.
+  That defeated the thing a trap mark is for. Meet a fixed formation early,
+  decide it is worth fighting or worth avoiding, and the label it carried the
+  next time you met it might be a different one.
 
-  The same enumeration is why labels run to two characters. 38 distinct labels
-  exist on the std cartridge, so everything past index 25 becomes AA…AL — seven
-  maps carry one, `tofrChaos` reads AG AH AI AJ across eight tiles in a row and
-  `seaB4` reads AB AC AD AE, and at two tiles wide a label no longer says which
+  The same enumeration is why labels ran to two characters. 38 distinct labels
+  existed on the std cartridge, so everything past index 25 became AA…AL — seven
+  maps carried one, `tofrChaos` read AG AH AI AJ across eight tiles in a row and
+  `seaB4` read AB AC AD AE, and at two tiles wide a label no longer says which
   tile it marks.
 
-  Both close together by keying the mark to the formation id. Only **32
-  formations actually stand on a map** (31 on nov), and the cartridge's own font
-  carries `0-9A-Z` — 35 single glyphs once `O` is dropped, since `tools/font.py`
-  asserts `0` and `O` are the same glyph in it. On `docs/ROADMAP.md`.
+  Both closed together, by keying the mark to the formation id and handing marks
+  out only to the formations that stand on a map. `render_maps.trap_marks()`
+  does that; `standing_formations()` is the order. Over five cartridges —
+  vanilla, std, nov, nov2, shard — every mark is a single glyph, no formation
+  carries two and no mark stands for two. 32 formations stand on a map (31 on
+  nov and shard) against 35 single glyphs in `0-9A-Z` once `O` is dropped, since
+  `tools/font.py` asserts `0` and `O` are the same glyph in the cartridge's font.
+  `seaB4` reads `0 1 Y Z` where it read `AB AC AD AE`.
+
+  **It costs the exact agreement with the shipped art, by one place.** The art
+  counted formation `$00` — five fixed tileset entries no map places — so
+  DarkmoonEX's `earthB1` `{G,H,I}` is this scheme's `{F,G,H}`. `test_crop.py`
+  asserts the shift and names its cause rather than pinning the output.
 
 - **A room bigger than the guard stays shut.** Mirage Tower 1F's interior is 458
   cells and `ROOM_MAX_CELLS` is 256, so it does not open. Raising the cap is not
