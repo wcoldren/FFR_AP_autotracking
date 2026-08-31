@@ -402,3 +402,41 @@ they are cheap, and they are what someone with a small screen or a second monito
 would pick. For dropping them: every layout and location change has to be sound
 in both trees, and nobody here runs them. Deciding needs the one thing nobody
 knows — whether anyone outside this repo uses the pack.
+
+**What a new user gets without the emulator bridge, and what the pack claims
+about its assets.** Raised 2026-08-30 while looking at the regenerated maps. The
+facts, gathered rather than assumed, because most of the answer turns out to be
+"this already works" and the rest is one thing the README does not say.
+
+- **Mesen is the emulator feed, and only the emulator feed.** `bridge/` is one
+  Lua script Mesen runs. Nothing else in the pack needs it.
+- **Without it, the Archipelago feed still autotracks.** What it cannot see is
+  already written down under "What each feed can see": chests outside the
+  multiworld's pool, orbs lit, items turned in, and shards from lighting orbs.
+  A plain FFR async has no AP server either, and that is the case the bridge
+  exists for.
+- **Manual tracking is what the four `NoMap` variants are**, and the four map
+  variants work with no ROM and no emulator at all — they load the 53
+  hand-drawn PNGs in `images/maps/`, which ship with the pack.
+- **Those PNGs are the pack's only substantial shipped assets**, 12 MB of them,
+  inherited from the pack this forked and credited in the README. The README's
+  claim is that no ROM is included and that no art *derived from one* is either,
+  and both hold: `regen_maps.py` writes only into PopTracker's user-override
+  directory. The hand-drawn maps are a different thing and are not covered by
+  that sentence, which is easy to misread as "no assets ship at all".
+- **The Pins toggles are map-only, and that is correct rather than a gap.**
+  Measured: the `Pins` group appears in `standard/tracker.json`,
+  `shardHunt/tracker.json`, `NOverworld/tracker.json` and
+  `NOverworld/shardsTracker.json` — the four map variants. A variant with no map
+  tabs has no pins to switch off, so parity here would mean adding a control that
+  does nothing.
+
+So the bridge-less experience is fine and mostly documented. What is missing is
+one sentence saying it: that the map tabs work out of the box on hand-drawn art,
+that rendering them from your own cartridge is an optional upgrade, and that the
+emulator feed is what the extra boxes need. Everything above is a README
+paragraph rather than a feature.
+
+The open question underneath is the one the `NoMap` entry above already names —
+nobody knows whether anyone outside this repo runs the pack — and it is worth
+answering before spending on either.

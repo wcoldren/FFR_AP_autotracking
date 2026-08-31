@@ -32,9 +32,15 @@ Working on it rather than using it needs a little more -- Lua, Python and
 optionally a cartridge. See
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#what-you-need-to-work-on-it).
 
+The map tabs work out of the box: the maps that ship with the pack are
+hand-drawn, and need no cartridge and no emulator. Drawing them from your own
+ROM instead is an optional upgrade -- see
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 No ROM is included or downloaded, and none ever will be. Neither is any art
 derived from one: `tools/regen_maps.py` writes into PopTracker's user-override
-directory, never into this repo.
+directory, never into this repo. The hand-drawn maps are not that -- they came
+with the pack this forked, and their authors are in [Credits](#credits).
 
 ## What each feed can see
 
