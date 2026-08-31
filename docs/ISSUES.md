@@ -349,6 +349,38 @@ Nothing here is urgent unless it says so.
   Workaround for the remaining gap: re-run `tools/regen_maps.py` after touching
   any file in `INPUT_FILES`, once per mode, or `--clean` the override.
 
+- **`I: Shop Item` carries no rule at all, and nothing has ever compared it.**
+  The pin is `Onrac Continent/I: Shop Item`, and its `access_rules` are empty at
+  both node and section level while `Onrac Continent` is an organisational node
+  with no rules of its own. So the pack shows it green unconditionally. FFR does
+  not: the slot is whichever shop the seed chose to hold a key item, and its
+  exported rule is that shop's reachability -- `PravokaShop1` and `()` on
+  `std497`, `ElflandShop4` and `(Canoe)` on `drydock497`. On any seed that lands
+  it behind a vehicle the pin is a green check that is not reachable, which is
+  the failure mode the pack cares most about.
+
+  **No oracle run has caught this, on any cartridge.** `check_logic` resolves a
+  location by path suffix and `find_section` returns None on more than one hit
+  (`tools/check_logic.py:198-206`); `I: Shop Item/I: Shop Item` matches both
+  `Onrac Continent/...` in the dungeon tree and `I: Onrac Continent/...` on the
+  incentive poster, so it is the "1 could not be mapped" that every run on every
+  cartridge has been printing, 4.9.2 baselines included.
+
+  Two things to fix and they are separable: the ambiguity, which is a harness
+  change, and the missing rule, which needs deciding what one static rule can
+  say about a slot whose shop is rolled per seed. That is the Cardia Forest
+  question again -- ship the conjunction and be strict -- and it wants its own
+  branch and its own measurement. Raised 2026-08-31 by the review of the
+  `shipDrydock` branch, which is where the divergence showed; it is not caused
+  by that flag. See the note below.
+
+  **It is not a `ShipDrydock` effect, and the first reading of it said it was.**
+  The two 4.9.7 cartridges differ in this rule, which looks like a 52nd thing
+  the flag does. It is not: the flag's map edit changes 11 overworld tiles and
+  **five go from unwalkable to walkable while none goes the other way**, so it
+  only ever opens land. The Shop Item rule moved because the seed put the shop
+  slot in a different shop. Do not re-derive this as the drydock closing a route.
+
 ## Open questions
 
 - **The agreement figures used to grant away most of what they appeared to

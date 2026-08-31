@@ -473,6 +473,28 @@ check("applied the baseline cartridge", applyFFRFlags("4-9-7|" .. PLAIN497_FLAGS
 check("  shipDrydock is cleared again", byCode["shipDrydock"].Active, false)
 check("  and the Ship sails again", noShipDrydock(), 1)
 
+-- A flag the build has never heard of is not a flag the generator rolled.
+-- schema_4-9-2 carries neither ShipDrydock nor MapSardasForest, so decoding a
+-- 4.9.2 cartridge leaves both nil -- and nil used to mean "left as they were".
+-- The toggles survive a cartridge swap, so a 4.9.7 drydock seed followed by a
+-- 4.9.2 one kept shipDrydock set and every Ship alternative dead for the rest
+-- of the session. NOTAIL_RECORD is a 4.9.2 cartridge, so it is the swap.
+check("applied the drydock cartridge again", applyFFRFlags("4-9-7|" .. DRYDOCK_FLAGS), true)
+check("  shipDrydock is set", byCode["shipDrydock"].Active, true)
+byCode["sardasForest"].Active = true
+check("then swapped to a 4.9.2 cartridge", applyFFRFlags(NOTAIL_RECORD), true)
+check("  shipDrydock is off, not left as it was", byCode["shipDrydock"].Active, false)
+check("  and so is sardasForest, same cause", byCode["sardasForest"].Active, false)
+
+-- The other kind of nil still has to be left alone, or a tri-state rolled at
+-- generation would be forced off instead of kept. A hand-built table has no
+-- version behind it and is the case that must not change.
+byCode["earlyKing"].Active = true
+applyFFRFlagsToBoard({ EarlyKing = nil })
+check("a nil with no schema to ask is left alone", byCode["earlyKing"].Active, true)
+applyFFRFlagsToBoard({ EarlyKing = nil }, "4-9-7")
+check("  and a tri-state the schema does carry, too", byCode["earlyKing"].Active, true)
+
 -- The guard is only worth anything if every alternative carries it. One added
 -- later without it would put back a route FFR has taken away, and nothing else
 -- in either suite would notice.
@@ -481,9 +503,19 @@ local TREES = {
   "locations/NOverworld/overworld.json", "locations/NOverworld/incentives.json",
 }
 
+-- `sections` is the one that has to be spelled out. A location's rules can sit
+-- on the node or on a section under it -- 296 lists at node level and 110 at
+-- section level across the four trees -- and a walk that follows only
+-- `children` reaches none of the second kind. It counted 121 and passed either
+-- way, which is exactly the shape of canary this file is meant not to be.
+--
+-- `visibility_rules` is deliberately not walked: it decides whether a pin is
+-- drawn, not whether it can be reached, and no alternative in it names the
+-- Ship.
 local function eachRule(node, fn)
   if type(node) ~= "table" then return end
   for _, alt in ipairs(node.access_rules or {}) do fn(alt) end
+  for _, section in ipairs(node.sections or {}) do eachRule(section, fn) end
   for _, child in ipairs(node.children or {}) do eachRule(child, fn) end
   if node[1] ~= nil then
     for _, child in ipairs(node) do eachRule(child, fn) end

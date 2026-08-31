@@ -164,16 +164,51 @@ local function applyShardCount(flags, random)
   return setShardsRequired(count) and 1 or 0
 end
 
+-- The flag names one FFR build actually has, cached per version.
+--
+-- A decoded table says nil for two different things and they want opposite
+-- treatment. A tristate the generator rolled is genuinely unknown, so the board
+-- keeps whatever it had. A flag the build has never heard of is a definite off:
+-- `schema_4-9-2.lua` carries neither `ShipDrydock` nor `MapSardasForest`,
+-- because 4.9.2 has neither flag, and a build with no drydock cannot have
+-- drydocked the ship.
+--
+-- Telling them apart matters because the toggles survive a cartridge swap --
+-- `resetForNewGame` clears what the RAM feed owns, not the flag grid. Treating
+-- both as "rolled" left a 4.9.7 drydock seed's `shipDrydock` set when the next
+-- cartridge was a 4.9.2 one, and with it every alternative in the trees that
+-- names the Ship, for the rest of the session.
+local SCHEMA_NAMES = {}
+local function schemaNames(version)
+  if version == nil or FFR_FLAG_SCHEMAS == nil then return nil end
+  local cached = SCHEMA_NAMES[version]
+  if cached then return cached end
+  local schema = FFR_FLAG_SCHEMAS[version]
+  if not schema then return nil end
+  local names = {}
+  for _, entry in ipairs(schema.properties or {}) do names[entry.name] = true end
+  SCHEMA_NAMES[version] = names
+  return names
+end
+
 -- Push a decoded set onto the flag grid. Returns how many settings were applied.
-function applyFFRFlagsToBoard(flags)
-  local applied, random = 0, {}
+--
+-- `version` is the FFR release the string was decoded against. Omitting it is
+-- for a hand-built table with no schema behind it, and costs the absent-flag
+-- distinction above -- every nil then reads as rolled.
+function applyFFRFlagsToBoard(flags, version)
+  local applied, random, absent = 0, {}, {}
+  local names = schemaNames(version)
 
   for _, entry in ipairs(TOGGLES) do
     local value = flags[entry.ffr]
-    if value == nil then
+    if value ~= nil then
+      if setToggle(entry.code, value) then applied = applied + 1 end
+    elseif names ~= nil and not names[entry.ffr] then
+      absent[#absent + 1] = entry.ffr
+      if setToggle(entry.code, false) then applied = applied + 1 end
+    else
       random[#random + 1] = entry.ffr
-    elseif setToggle(entry.code, value) then
-      applied = applied + 1
     end
   end
 
@@ -188,6 +223,11 @@ function applyFFRFlagsToBoard(flags)
   if #random > 0 then
     table.sort(random)
     print("flags: rolled at generation, left as they were -- " .. table.concat(random, ", "))
+  end
+  if #absent > 0 then
+    table.sort(absent)
+    print("flags: not settings in FFR " .. tostring(version) .. ", so switched off -- "
+          .. table.concat(absent, ", "))
   end
   return applied
 end
@@ -267,7 +307,7 @@ function applyFFRFlags(record)
           .. tostring(flags.OwMapExchange) .. ") -- map logic does not model it")
   end
 
-  local applied = applyFFRFlagsToBoard(flags)
+  local applied = applyFFRFlagsToBoard(flags, version)
   print(string.format("flags: FFR %s seed, %d settings applied from the cartridge",
                       version, applied))
   return true

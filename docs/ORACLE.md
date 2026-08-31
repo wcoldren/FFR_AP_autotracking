@@ -230,7 +230,7 @@ Last run 2026-08-31.
 |---|---|
 | `std497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
 | `drydock497`, pack rules vs FFR | **223 checked, 223 agree, 0 divergences** — it was 170 agree, 11 divergences over 53 locations before the `shipDrydock` code |
-| `std497` vs `drydock497`, exported rules | **207 locations in both exports, 52 rules differ; 51 lose a `Ship` alternative and not one gains anything** |
+| `std497` vs `drydock497`, exported rules | **207 locations in both exports, 52 rules differ; 51 lose a `Ship` alternative and not one gains anything. The 52nd is `Shop Item` and is not the flag — see below** |
 
 `std497`'s 226/226 is `std`'s 225/225 one version later, and it is the row that
 says the corpus itself is sound: the harness works against a 4.9.7 export and the
@@ -238,7 +238,7 @@ pack's hand-written standard rules hold there unchanged. Protect it the same way
 
 **`drydock497` is the opposite of `notail`, and that is the whole point of
 building this corpus.** `NoTail` rewrote no rule FFR hands Archipelago, so its
-cartridge graded an unchanged rule set against itself. `ShipDrydock` rewrites 52
+cartridge graded an unchanged rule set against itself. `ShipDrydock` rewrites 51
 of the 207 rules the two exports share, and every one of the changes is a route
 being taken away. Before the pack had a code for the flag it went on offering the
 Ship route: 53 locations showed reachable that FFR says are not, across Elf
@@ -254,6 +254,21 @@ drydock, and `OverworldMapEdits.cs:535-549` (`GaiaDrydock`, applied at
 `OverworldMap.cs:69`) lays the dock tiles there. Wherever the seed puts the Ship,
 it launches on the far eastern coast. Nothing gains a Ship alternative because
 everything reachable from Gaia already needed the Canoe or the Airship.
+
+**The 52nd differing rule is not the flag, and reading it as one is a mistake
+worth not repeating.** `Shop Item` goes from `()` to `(Canoe)` between the two
+cartridges, which looks like a land route closing. It is not. The slot is
+whichever shop the seed chose to hold a key item, and the seeds chose different
+ones -- `PravokaShop1` on `std497`, `ElflandShop4` on `drydock497`. The flag
+cannot close a route at all: its map edit changes **11 overworld tiles, five of
+which go from unwalkable to walkable and none the other way**, so it only ever
+opens land. The mountain tiles in `GaiaDrydock` replace terrain that was already
+impassable. Measured on the two cartridges 2026-08-31, tile by tile.
+
+`Shop Item` is also the "1 could not be mapped" that every run on every
+cartridge prints, so the pack's rule for it -- which is no rule at all -- has
+never been compared against FFR on any seed. That is filed in `docs/ISSUES.md`
+and is not a `ShipDrydock` defect.
 
 Both check_logic runs print the "where ship, canal, canoe, floater were placed is
 not recorded for this seed" caveat and are marked NOT COUNTED. That is the normal

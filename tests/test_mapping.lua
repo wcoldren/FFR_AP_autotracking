@@ -222,7 +222,7 @@ else
                       gridSeen, #layoutFiles))
 end
 
--- 4c. and the same check the other way round: every flag toggle reaches a grid.
+-- 4c. and the same check the other way round: every flag reaches a grid.
 --
 --     4b catches a cell naming nothing. It cannot catch the reverse, and the
 --     reverse is the one that has happened: `noTail` was added to
@@ -231,34 +231,54 @@ end
 --     still worked, which is exactly why nobody saw it -- the gap only bites a
 --     player reading the board, or one setting flags by hand with no bridge.
 --
+--     Progressives count too, and by every code they offer rather than by one:
+--     the Open Progression cell is named `extendedOpen`, which is a stage-2
+--     code, so asking only about a first stage would report it missing. Leaving
+--     them out would have exempted the six progressive flags from the very
+--     check the noTail bug motivated.
+--
 --     Anything deliberately kept off the board goes on OFF_BOARD with its
---     reason, so this fails both ways: adding a hidden toggle fails, and giving
---     a listed one a cell without taking it off the list fails too.
+--     reason, so this fails both ways: adding a hidden flag fails, and giving a
+--     listed one a cell without taking it off the list fails too.
 local OFF_BOARD = {}
-local flagCodes = {}
+local flagItems = {}
 for _, item in ipairs(json.load(PACK .. "/items/flags.json")) do
-  if item.codes and item.type == "toggle" then flagCodes[#flagCodes + 1] = item.codes end
+  local codes = {}
+  for _, field in ipairs({ item.codes }) do
+    for code in tostring(field or ""):gmatch("[^,]+") do codes[#codes + 1] = code end
+  end
+  for _, stage in ipairs(item.stages or {}) do
+    for code in tostring(stage.codes or ""):gmatch("[^,]+") do codes[#codes + 1] = code end
+  end
+  if #codes > 0 then
+    flagItems[#flagItems + 1] = { name = item.name or codes[1], codes = codes }
+  end
 end
-table.sort(flagCodes)
-if #flagCodes < 20 then
-  fails("read only " .. #flagCodes .. " toggles out of items/flags.json")
+table.sort(flagItems, function(a, b) return a.name < b.name end)
+if #flagItems < 30 then
+  fails("read only " .. #flagItems .. " flags out of items/flags.json")
 end
 local hidden, staleOff = {}, {}
-for _, code in ipairs(flagCodes) do
-  if not gridCodes[code] and not OFF_BOARD[code] then hidden[#hidden + 1] = code end
+for _, item in ipairs(flagItems) do
+  local seen = false
+  for _, code in ipairs(item.codes) do
+    if gridCodes[code] then seen = true end
+  end
+  if seen then
+    if OFF_BOARD[item.name] then staleOff[#staleOff + 1] = item.name end
+  elseif not OFF_BOARD[item.name] then
+    hidden[#hidden + 1] = item.name
+  end
 end
-for code in pairs(OFF_BOARD) do
-  if gridCodes[code] then staleOff[#staleOff + 1] = code end
+for _, name in ipairs(hidden) do
+  fails("flag with no grid cell, so the board can never show it: " .. name)
 end
-table.sort(staleOff)
-for _, code in ipairs(hidden) do
-  fails("flag toggle with no grid cell, so the board can never show it: " .. code)
-end
-for _, code in ipairs(staleOff) do
-  fails("flag toggle listed as off-board but it has a grid cell: " .. code)
+for _, name in ipairs(staleOff) do
+  fails("flag listed as off-board but it has a grid cell: " .. name)
 end
 if #hidden == 0 and #staleOff == 0 then
-  print(string.format("ok   all %d flag toggles have a cell on the board", #flagCodes))
+  print(string.format("ok   all %d flags in items/flags.json have a cell on the board",
+                      #flagItems))
 end
 
 local dangling, orphan = {}, {}

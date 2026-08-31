@@ -198,8 +198,9 @@ the six.
 
 **The 4.9.7 corpus closed the first half.** `std497` and `drydock497`, one seed
 apart by a single flag value, at `seeds/ff1/oracle-4.9.7/`. `ShipDrydock` turned
-out to have the export footprint `NoTail` did not — it rewrites 52 of the 207
-rules the two exports share, always by taking the `Ship` alternative away, and
+out to have the export footprint `NoTail` did not — it rewrites 51 of the 207
+rules the two exports share, every one of them by taking the `Ship` alternative
+away, and
 the pack was over-reporting 53 locations as reachable on such a seed. It has a
 code now, graded on that cartridge: 170 of 223 agreeing before, 223 of 223
 after. `MapAirshipHike` and `MapCardiaLandBridge` are rollable there too and
