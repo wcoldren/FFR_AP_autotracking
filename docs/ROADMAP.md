@@ -304,7 +304,8 @@ correctness bug in the Lua or the layouts. The two worth reading:
   nothing can fire at tracker load, which is a PopTracker change.
   `docs/ISSUES.md` says so.
 
-**`map-legibility` -- eight commits off `trunk`, landed, not merged.** Several
+**`map-legibility` -- landed off `trunk`, not merged** (`git log trunk..` for
+the count; this page has had it wrong twice). Several
 changes sharing one regen, because each moves the `inputs` or `marker`
 fingerprint in `.regen_cache.json` and a single run picks up all of them. All
 measured on the std and nov oracle cartridges, which agree, so there was no
