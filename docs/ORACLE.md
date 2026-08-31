@@ -9,6 +9,16 @@ question, and how to rebuild any of them from nothing.
 Five cartridges, all 4.9.2, all generated locally with `Spoilers` and
 `Archipelago` on so the export is attached.
 
+**All 4.9.2 is a limit as well as a fact.** `ShipDrydock`, `MapAirshipHike` and
+`MapCardiaLandBridge` do not exist in FFR at the 4.9.2 release commit, so no
+cartridge here can be rolled with one of them on and no addition to this corpus
+grades them. They want a second corpus off the 4.9.7 release `1f31434`, built by
+the recipe below with that commit in place of `01272d4`; the flag decoder
+already expects that SHA, because `tools/ffr_flags/schemas/4-9-7.json` records
+it. `docs/FLAG_COVERAGE.md` has the rest of that split, including the three
+remaining flags that 4.9.2 *does* carry and this corpus still cannot grade,
+because they are Temple of Fiends flags and the export drops ToFR.
+
 ## Inventory
 
 | Slug | Preset | Seed | Mode | Answers |
