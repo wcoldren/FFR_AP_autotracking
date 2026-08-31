@@ -207,12 +207,16 @@ than the pixel the drawing had. That is more accurate than it sounds: the
 drawing is not a scaled map, and the shipped pins sit up to eleven tiles from
 the tile they name.
 
-It is cropped to what those pins need to be seen, which is a trim on a standard
-seed and the whole point on a No-Overworld one. There the nine stub doors sit
-within fourteen tiles of each other on a field of 65536, so the uncropped map is
-a picture of nothing you can do; cropped, it is the hub you actually navigate.
-The marker is sized from how wide the image came out, so it lands about the same
-size on screen either way.
+It is cropped to what those pins need to be seen, which on a standard seed trims
+the ocean margin, and the marker is sized from how wide the image came out. Two
+places share a door -- the Temple of Fiends Revisited is entered through the
+Temple of Fiends, and the Sky Palace through Mirage Tower -- so the second pin
+of a pair is stacked directly above the first rather than hidden under it.
+
+**Standard seeds only.** A No-Overworld cartridge has an overworld too, and
+`tools/render_overworld.py` will draw it, but it is an ocean stub with nine
+one-tile town pads and a tab showing that is not what those variants want. They
+keep the map they have; see `docs/IDEAS.md` for what they should get instead.
 
 One thing the drawing has that a render does not is its single annotation --
 the caravan, marked so you know the shop-item check exists at all. That

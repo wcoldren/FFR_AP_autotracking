@@ -102,13 +102,6 @@ end
 -- answer below therefore has to collapse to the incentive tab there, whatever
 -- the pool says -- asking for a tab the layout has not got activates nothing,
 -- silently, which is the same failure the tab titles are checked for.
---
--- `tools/regen_maps.py` does add an Overworld tab to these two layouts, but
--- only in the override and only once it has drawn the seed's own overworld --
--- at which point the art is of the ocean stub rather than of the vanilla map,
--- and the 29 pins in locations/NOverworld/overworld.json have somewhere to be
--- seen. This still collapses: that tab is there to be opened, not to be
--- switched to, and a layout without it must keep working.
 local function hasFullOverworldTab()
   return Tracker.ActiveVariantUID:find("NOverworld") == nil
 end

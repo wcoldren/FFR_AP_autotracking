@@ -130,6 +130,30 @@ player's head. The observation channel the entrance markers are designed around 
 the bridge watching party position — is the only thing that could answer it, and
 standing next to an NPC is not the same as having talked to them.
 
+**The No-Overworld tab wants an amalgamated map, not a picture of the stub.**
+Raised 2026-08-31, deciding what a rendered overworld should do for those
+variants. The obvious move is the one that was tried and backed out: draw the
+cartridge's own overworld and put it on a tab. It renders correctly -- the
+renderer needs no changes and the pins resolve to 27 of 29 -- and it is still
+the wrong thing, because a No-Overworld map is an ocean stub carrying nine
+one-tile town pads within fourteen tiles of each other, and every continent it
+still draws has had its towns, castles and caves erased off it. Cropped to the
+pins it is legible and says almost nothing; uncropped it is a picture of
+somewhere the seed never goes, which is the reasoning
+`scripts/autotracking/maptab.lua` has carried all along.
+
+What those variants want is a map that does not exist in the cartridge at all:
+the areas arranged so the *connections* are the subject, in the spirit of the
+`nooverworldmap.jpg` sheet they already carry but built from the seed rather
+than drawn once. That is the same want as the connection diagram under "The
+shape of the fix" in `STATUS.md`, and it is where marking the shuffled
+entrances belongs -- on a No-Overworld cartridge the geography carries nearly
+no information and the links carry all of it, so drawing the map and drawing
+the connections on it are one piece of work rather than two. `entrance_graph`
+already emits every door and floor link with tile coordinates, so what is
+missing is the surface, not the data. Nothing is blocked on it: the standard
+tab is done and the No-Overworld variants are exactly as they were.
+
 **Notice when the drawn maps are for a different cartridge.** Raised while
 regenerating after a rules change: the override shadows the checkout, so a stale
 override serves stale art *and* stale access rules, and nothing says so. The ask

@@ -119,8 +119,6 @@ INPUT_FILES = [
     "tools/map_calibration.json",
     "maps/maps.json",
     "layouts/shared.json",
-    "layouts/NOverworld/tracker.json",
-    "layouts/NOverworld/shardsTracker.json",
     "locations/overworld.json",
     "locations/NOverworld/overworld.json",
     "locations/incentives.json",
@@ -331,11 +329,21 @@ def build_images(rom, mode, crops_, rows, graph=None, only=None,
             rom, map_id, unroof=True, graph=graph, only=only,
             crop=crops_[name], legend_rows=rows[name], marks=marks)
     # And the overworld, which is not one of the 61 and is drawn by its own
-    # tool: a different bank, a different tileset and no crop. It is the map
-    # every overworld flag edits and the one the pack has only ever shown a
-    # vanilla drawing of.
-    out[f"images/maps/{mode}/overworld.png"] = render_overworld.render(
-        rom, box=ow_box)
+    # tool: a different bank and a different tileset. It is the map every
+    # overworld flag edits and the one the pack has only ever shown a vanilla
+    # drawing of.
+    #
+    # Standard only, deliberately. A No-Overworld cartridge has one too and it
+    # renders correctly -- see tools/render_overworld.py, which will draw any
+    # cartridge -- but the map it draws is an ocean stub with nine one-tile
+    # town pads and nothing else, and a tab showing that is not the tab those
+    # variants want. What they want is an amalgamated map of the kind
+    # nooverworldmap.jpg already gestures at, with the connections on it; see
+    # docs/IDEAS.md. Half-answering it with a picture of the stub would make
+    # that harder rather than easier.
+    if mode == "std":
+        out[f"images/maps/{mode}/overworld.png"] = render_overworld.render(
+            rom, box=ow_box)
     return out
 
 
@@ -453,19 +461,9 @@ def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER,
         # scaled up by the crop.
         e["location_size"] = size if "nov" in have else 24
         e["location_border_thickness"] = border if "nov" in have else 3
-    # The overworld, and only the overworld. These variants already point
-    # `incentives` at nooverworldmap.jpg, which is a purpose-drawn sheet with
-    # its own pin layout rather than the overworld with different pins on it,
-    # so it is not the overworld's to replace. The overworld row is: a
-    # No-Overworld cartridge has every town and castle erased off its map, and
-    # what those 29 pins have been standing on is a drawing of the vanilla one.
-    if "nov" in have:
-        e = by_name.setdefault("overworld", {"name": "overworld"})
-        if "overworld" not in order:
-            order.append("overworld")
-        e["img"] = "images/maps/nov/overworld.png"
-        e["location_size"] = ow_size
-        e["location_border_thickness"] = ow_border
+    # No overworld row. These variants point `incentives` at nooverworldmap.jpg
+    # and have no Overworld tab at all, and both of those stay until there is
+    # an amalgamated map worth putting in one -- see docs/IDEAS.md.
     return [by_name[n] for n in order]
 
 
@@ -719,68 +717,6 @@ def build_layouts():
     doc["shared_other_tabs"]["tabs"] = [t for t in tabs
                                         if t.get("title") != "Towns"] + [towns]
     return doc
-
-
-# The two No-Overworld layouts that have map tabs at all. The NoMap pair is
-# deliberately excluded, being the variants for a player who does not want them.
-NOVERWORLD_LAYOUTS = ("layouts/NOverworld/tracker.json",
-                      "layouts/NOverworld/shardsTracker.json")
-
-
-def build_noverworld_layouts():
-    """{relpath: doc} for the No-Overworld trackers, with an Overworld tab.
-
-    The shipped pack has no such tab, on purpose and with the reason written
-    down in two places: a No-Overworld seed's overworld is an ocean stub with
-    nine one-tile town pads, so vanilla art would be "a picture of somewhere the
-    seed never goes" (`scripts/autotracking/maptab.lua`), and asking for a tab
-    the layout has not got activates nothing silently.
-
-    That reasoning was right and is what this changes: with a rendered
-    No-Overworld overworld there *is* art of the place the seed actually goes,
-    and 29 pins in locations/NOverworld/overworld.json that have never had a tab
-    to appear on. So the tab is added here rather than in the checkout, which
-    keeps both true at once -- the pack still has no tab and no vanilla picture
-    to show, and an override with the art has one.
-
-    `overworldTab()` still collapses to the incentive sheet on these variants,
-    so nothing auto-switches to this tab; it is there to be opened.
-    """
-    out = {}
-    for rel in NOVERWORLD_LAYOUTS:
-        doc = lenient(os.path.join(PACK, rel))
-        added = False
-
-        def walk(node):
-            nonlocal added
-            if isinstance(node, list):
-                for v in node:
-                    walk(v)
-                return
-            if not isinstance(node, dict):
-                return
-            tabs = node.get("tabs")
-            if isinstance(tabs, list):
-                titles = [t.get("title") for t in tabs if isinstance(t, dict)]
-                if "Incentive Locations" in titles and "Overworld" not in titles:
-                    at = titles.index("Incentive Locations") + 1
-                    tabs.insert(at, {"title": "Overworld",
-                                     "content": {"type": "map",
-                                                 "maps": ["overworld"]}})
-                    added = True
-                for t in tabs:
-                    walk(t)
-            for v in node.values():
-                walk(v)
-
-        walk(doc)
-        if not added:
-            # Same reasoning as the shared.json guard above: a tab that quietly
-            # fails to appear is how con_castle2F ended up reachable from
-            # nowhere.
-            sys.exit(f"no tab list in {rel} to add an Overworld tab to")
-        out[rel] = doc
-    return out
 
 
 # ---------------------------------------------------------------------- cache
@@ -1088,14 +1024,26 @@ def main():
     board_doc = lenient(os.path.join(PACK, dungeon_locations))
     ow_placed, ow_unplaced, ow_anchors = overworld_pins.resolve(
         rom, ow_reader, ow_graph, board_doc, tiles_by_name)
+    # Stack the pins that share a door before the box is measured, so a pin
+    # nudged clear of another is inside the art rather than off the top of it.
+    # The step is a marker's height, and the marker is a fraction of the crop --
+    # which is not known yet, so it is estimated from the anchors' own spread
+    # and the margin absorbs the difference. One pass: the estimate moves the
+    # box by a few tiles at most, and the guard below is what says so.
+    est = overworld_pins.content_box(list(ow_placed.values()))
+    ow_placed = overworld_pins.spread(
+        ow_placed, overworld_pins.marker_tiles(max(est[2], est[3])))
     ow_mirror = overworld_pins.mirror_of(board_doc, ow_placed)
-    ow_box = overworld_pins.content_box(list(ow_placed.values()))
+    ow_box = (overworld_pins.content_box(list(ow_placed.values()))
+              if mode == "std" else (0, 0, render_overworld.OW_DIM,
+                                     render_overworld.OW_DIM))
     ow_moved, ow_dropped = 0, []
-    # Which map names this mode's overworld render actually backs. On a
-    # No-Overworld cartridge `incentives` is nooverworldmap.jpg, a purpose-drawn
-    # sheet with its own pin layout and its own size, so it is neither restamped
-    # nor measured against the overworld's crop.
-    ow_maps = OVERWORLD_MAPS if mode == "std" else ["overworld"]
+    # Which map names this mode's overworld render backs -- none of them off a
+    # No-Overworld cartridge, which gets no overworld render and keeps both the
+    # hand-drawn art in maps.json and the nooverworldmap.jpg sheet its own index
+    # points at. Nothing there is restamped and nothing is measured against a
+    # crop that was not drawn.
+    ow_maps = OVERWORLD_MAPS if mode == "std" else []
     if ow_box[2:] != (render_overworld.OW_DIM, render_overworld.OW_DIM):
         print(f"the overworld is cropped to {ow_box[2]}x{ow_box[3]} tiles at "
               f"{ow_box[0]},{ow_box[1]} -- what its {len(ow_placed)} pins need "
@@ -1123,9 +1071,9 @@ def main():
                   f"for {want[0]}x{want[1]}")
         print("\nnothing was written.")
         return 1
-    ow_art = art[f"images/maps/{mode}/overworld.png"]
     ow_want = (ow_box[2] * render_overworld.TILE_PX,
                ow_box[3] * render_overworld.TILE_PX)
+    ow_art = art.get(f"images/maps/{mode}/overworld.png", ow_want)
     if ow_art[:2] != ow_want:
         # Same guard the 61 get, for the same reason: the pins are placed at
         # tile * 16 and nothing downstream would notice if the art stopped
@@ -1165,12 +1113,17 @@ def main():
         # exactly the seeds an override exists for. Stamping rather than
         # preserving is also what gives the pins this cartridge newly places --
         # Astos, Matoya, Bikke, the Fairy, Bahamut -- their rule on arrival.
-        # Then the overworld half, onto the same document. On a No-Overworld
-        # cartridge only the overworld map moves: those variants already point
-        # `incentives` at a purpose-drawn sheet of their own.
+        # Then the overworld half, onto the same document -- on a standard
+        # cartridge only, ow_maps being empty otherwise.
         if rel is incentive_locations and mode == "std":
             placed_here, un_here, _ = overworld_pins.resolve(
                 rom, ow_reader, ow_graph, doc, tiles_by_name, mirror=ow_mirror)
+            # The sheet mirrors the board, so its pins arrive already stacked
+            # where the board's were; this only separates any of its own that
+            # land together.
+            placed_here = overworld_pins.spread(
+                placed_here, overworld_pins.marker_tiles(max(ow_box[2],
+                                                             ow_box[3])))
             ow_unplaced += un_here
         else:
             placed_here = ow_placed
@@ -1275,22 +1228,15 @@ def main():
         elif os.path.exists(os.path.join(out_dir, rel)):
             ow_px[other] = pngio.size(os.path.join(out_dir, rel))[0]
     std_size, std_border = overworld_marker(ow_px.get("std", 4096))
-    nov_size, nov_border = overworld_marker(ow_px.get("nov", 4096))
     files["maps/maps.json"] = (json.dumps(
         build_maps_json(have, args.marker_size, args.marker_border,
                         args.overworld_marker_size or std_size,
                         args.overworld_marker_border or std_border),
         indent=4) + "\n").encode()
     files["maps/NOverworldMaps.json"] = (json.dumps(
-        build_noverworld_maps_json(have, args.marker_size, args.marker_border,
-                                   args.overworld_marker_size or nov_size,
-                                   args.overworld_marker_border or nov_border),
+        build_noverworld_maps_json(have, args.marker_size, args.marker_border),
         indent=4) + "\n").encode()
     files["layouts/shared.json"] = (json.dumps(build_layouts(), indent=4) + "\n").encode()
-    # Only once there is No-Overworld art for it to show.
-    if "nov" in have:
-        for rel, doc in build_noverworld_layouts().items():
-            files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
 
     stray += ow_stray
 

@@ -18,7 +18,11 @@ are worth anything are these:
   * `I: Shop Item` lands on the caravan and `Ryukahn Desert` on the desert the
     floater digs the airship out of. Neither has a chest to ask about; both are
     a tile property.
-  * two pins never share a tile, because a pin under a pin is one pin.
+  * two pins never share a tile once stacked, and no two boxes in a column
+    overlap. A pin under a pin is one pin, and at a marker of six tiles a
+    one-tile nudge does not separate them -- which is why the step is a
+    marker's height and why the same fraction is computed two ways, here in
+    tiles and in regen_maps in pixels, with a check that they agree.
 
 Set FF1_ROM to a cartridge; without one this skips. A No-Overworld cartridge is
 tested as it is: it has no caravan and no airship desert, so those two pins are
@@ -121,13 +125,29 @@ def main():
                       if n not in by_property and w not in on_a_door)
     check("every other pin resolves to a door", off_door, [])
 
-    # Several pins share a door -- ToFR enters through the Temple of Fiends,
-    # and on a No-Overworld cartridge nine stub doors carry everything -- so a
-    # pin is drawn on its door or in the column directly above it. Anywhere
-    # else is a position nothing derived.
-    strayed = sorted(n for n, w in placed.items()
+    # Several pins share a door -- ToFR enters through the Temple of Fiends and
+    # Sky Palace through Mirage Tower, because that is the door you go through.
+    # `spread` is what separates them, and it is a separate step because the
+    # step size is a marker's height and the marker is a fraction of a crop
+    # that resolve cannot see.
+    box = op.content_box(list(placed.values()))
+    step = op.marker_tiles(max(box[2], box[3]))
+    stacked = op.spread(placed, step)
+    check("a marker is more than a tile on this crop", step > 1, not nov)
+
+    strayed = sorted(n for n, w in stacked.items()
                      if w[0] != anchors[n][0] or w[1] > anchors[n][1])
-    check("and is drawn on it or in the column above it", strayed, [])
+    check("every pin is on its door or stacked above it", strayed, [])
+
+    # The point of stacking is boxes that do not overlap, so that is what to
+    # check: two pins in a column have to be at least a marker apart.
+    by_col = {}
+    for n, (x, y) in stacked.items():
+        by_col.setdefault(x, []).append(y)
+    tight = sorted(x for x, ys in by_col.items()
+                   if len(ys) > 1 and min(abs(a - b) for i, a in enumerate(ys)
+                                          for b in ys[i + 1:]) < step)
+    check("  and no two boxes in a column overlap", tight, [])
 
     if not nov and ffr:
         cardia = sorted(w for n, w in anchors.items() if n.startswith("Cardia"))
@@ -139,11 +159,18 @@ def main():
         check("Ryukahn Desert is on the floater's desert",
               special(placed["Ryukahn Desert"], op.OWTP_SPEC_FLOATER), True)
 
-    check("no two pins share a tile",
-          len(set(placed.values())), len(placed))
+    check("no two pins share a tile once stacked",
+          len(set(stacked.values())), len(stacked))
 
     # The mirror is what puts a pin on the incentive slots that hold no chest
     # of their own, so it has to reach further down the tree than the pins do.
+    # The two sizings of the same fraction have to agree: overworld_pins works
+    # in tiles so the step is known before the art exists, regen_maps in pixels
+    # off the finished image.
+    px = regen_maps.overworld_marker(box[2] * ro.TILE_PX)[0]
+    check("the tile and pixel marker sizes agree", op.marker_tiles(box[2]),
+          round(px / ro.TILE_PX) or 1)
+
     mirror = op.mirror_of(doc, placed)
     check("the mirror covers every pin", set(placed) <= set(mirror), True)
     check("and more of the tree than just the pins", len(mirror) > len(placed), True)

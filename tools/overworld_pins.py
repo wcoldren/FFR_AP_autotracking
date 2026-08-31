@@ -226,7 +226,6 @@ def resolve(rom, reader, graph, doc, tiles_by_name, mirror=None, report=None):
     car = render_overworld.caravan(rom)
     props = {"caravan": car[0] if car else None, "floater": floater(rom)}
     placed, unplaced, anchors = {}, [], {}
-    taken = {}
 
     def door_for(target, chests):
         candidates = [(d, a) for d, a in reaching_doors(graph, target)
@@ -273,16 +272,32 @@ def resolve(rom, reader, graph, doc, tiles_by_name, mirror=None, report=None):
             unplaced.append((name, why or "nothing resolved it"))
             continue
         anchors[name] = where
-        # Two pins on one tile is one pin: ToFR shares the Temple of Fiends'
-        # door and Sky Palace shares Mirage Tower's, because that is the door
-        # you go through. Nudging the second one north keeps both visible, and
-        # a tile is the smallest move that can do it.
-        while where in taken:
-            where = (where[0], (where[1] - 1) % render_overworld.OW_DIM)
-        taken[where] = name
         placed[name] = where
 
     return placed, unplaced, anchors
+
+
+def spread(placed, step, dim=256):
+    """Move pins off each other, `step` tiles at a time. -> a new dict.
+
+    Two pins on one tile is one pin: ToFR shares the Temple of Fiends' door and
+    Sky Palace shares Mirage Tower's, because that is the door you go through.
+
+    The step is a marker's height rather than a tile, and that is the whole
+    point of taking it as an argument. A tile was the smallest move that
+    separates two *tiles*, which is what the first version did -- and at a
+    marker of 92 pixels, near six tiles, two boxes a tile apart still sit on
+    top of each other. Boxes are what a player sees, so boxes are what has to
+    be stacked, and how big one is depends on a crop this cannot see.
+    """
+    step = max(1, int(step))
+    out, taken = {}, {}
+    for name, where in placed.items():
+        while where in taken:
+            where = (where[0], (where[1] - step) % dim)
+        taken[where] = name
+        out[name] = where
+    return out
 
 
 # How much map to keep around the pins. Eight tiles is a screen's worth of
@@ -290,6 +305,18 @@ def resolve(rom, reader, graph, doc, tiles_by_name, mirror=None, report=None):
 # two from rendering as a postage stamp PopTracker then blows up to nothing.
 CROP_MARGIN = 8
 CROP_MIN = 32
+
+
+def marker_tiles(box_tiles, num=80, den=3096):
+    """How many tiles wide the overworld marker will be on a crop this wide.
+
+    regen_maps sizes the marker as a fraction of the image's pixel width, and a
+    tile is 16 pixels however wide the crop is -- so the same fraction in tiles
+    needs no pixels to compute, and the stack step can be known before anything
+    is drawn. Same constants, and tests/test_overworld_pins.py checks the two
+    agree rather than trusting that they do.
+    """
+    return max(1, round(box_tiles * num / den))
 
 
 def content_box(anchors, dim=256, margin=CROP_MARGIN, minimum=CROP_MIN):
