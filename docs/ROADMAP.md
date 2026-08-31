@@ -549,7 +549,10 @@ where the risk is; spend there.
 **The solver is off this list rather than at the bottom of it, because the
 question changed shape.** It used to be "should we write a propagation pass
 instead of the sweep", with Lefein -- a requirement naming another *location*,
-which no widening of the sweep reaches -- as the one argument for it. FFR
+which no widening of the sweep reaches -- as the one argument for it. It is two
+arguments now: the Elf Prince is the same shape and derives `(free)` against
+FFR's `(Herb)`, and unlike Lefein it reports nothing, because `herb` is outside
+the swept vocabulary. FFR
 already runs that pass, and the export we grade against is its output, so the
 real question is whether the pack's Lua rules should be **compiled from that
 export** rather than hand-written or sampled. That is a decision about

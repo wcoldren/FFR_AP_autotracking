@@ -100,6 +100,31 @@ Nothing here is urgent unless it says so.
   Closing that would AND the Slab into the derived rule; it would not close the
   divergence above, since the Slab is granted to both sides anyway.
 
+  **There is a second instance of this class, and it is silent rather than
+  reported: the Elf Prince.** Found 2026-08-30 while listing which of `nov`'s
+  226 comparisons the sweep does not independently support. FFR's rule is
+  `(Herb)` on both No-Overworld cartridges and `(Herb AND Ship) OR (Canoe AND
+  Herb)` on the standard one; the derivation says **`(free)`**. The mechanism is
+  the Lefein one exactly -- `SCLogic.cs:559-562` is
+  `allNpcs[ElfDoc].Restrict(SCRequirements.Herb)`, structurally identical to
+  `:555-557`'s Unne/Slab -- and there is a second, more mundane reason it
+  misses. `talk_item_requirements()` puts the herb on object **`$05`, the Elf
+  Doc**, while the `Elf Castle Elf Prince` node resolves to object **`$06`**, so
+  `noverworld_rules.py:395` finds no trade for that node and ANDs nothing in.
+  Smith `$09` -> adamant and Matoya `$0A` -> crystal are hosted by the node
+  their requirement sits on and both derive correctly, which is what makes the
+  Elf Prince the odd one.
+
+  **The shipped tracker is not affected.** `locations/NOverworld/overworld.json`
+  ships `access_rules: ["herb"]` and agrees with FFR; this is the derivation
+  alone. What it costs is a claim: the "requirement names another location"
+  class was recorded as one location of 226, and it is two. Lefein is at least
+  loud -- it shows up as the one `--derived` divergence. The Elf Prince does not
+  show up at all, because `herb` is outside `SWEPT_ITEMS` so `check_logic`
+  grants it to both sides and the comparison passes as agreeing. A silently
+  permissive rule is the worse of the two, and it argues for widening the swept
+  vocabulary before trusting the "225 of 226 agree" figure as coverage.
+
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so a
   Locations-grid cell needs a new hosted toggle under a different code. It would
   be a bridge-only cell — Titan is not an Archipelago location either.

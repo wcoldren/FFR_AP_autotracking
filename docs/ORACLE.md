@@ -91,6 +91,22 @@ deliberately strict below, the 4 still granted a trade item (Herb, Adamant,
 Bottle, Crystal), and Lefein, where the derivation is permissive and FFR is
 right — see `docs/ISSUES.md`.
 
+**The eleven, by name**, so this does not have to be re-derived. The 6 strict
+are `Cardia Forest Incentive Room Left`, `Incentive Room Middle`,
+`Incentive Room Lower`, `Cardia Forest Incentive`, `Cardia Forest Entrance
+Bottom` and `Entrance Middle`. The 4 granted are `Dwarf Cave Smith` (adamant),
+`Matoya's Cave Matoya` (crystal), `Elf Castle Elf Prince` (herb) and `Fairy`
+(bottle). Lefein is granted the slab and is also the one divergence.
+
+Two of the four granted already agree and only the grant hides it -- the
+derivation says `[['adamant']]` for the Smith and `[['crystal']]` for Matoya
+against FFR's `(Adamant)` and `(Crystal)`. **The Elf Prince does not**: it
+derives `(free)` against FFR's `(Herb)`, and the grant is why that passes
+quietly. See `docs/ISSUES.md`. The Fairy's `(Sigil AND Bottle)` is the one whose
+item the cartridge's talk table does not carry at all -- `bottle` is not among
+`talk_item_requirements`' seven entries, where herb, adamant, crystal and slab
+all are.
+
 The **6 deliberately strict** are Cardia Forest, and they are not a defect. FFR
 says `chime,floater,oxyale OR canoe` on `nov` and `floater` on `nov2` because
 that gateway is rolled per seed; the pack ships one static rule, so it ships the

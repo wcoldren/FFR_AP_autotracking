@@ -363,7 +363,16 @@ That dissolves the Lefein class outright rather than working around it.
 by the Slab -- a requirement naming another location -- and by the time it
 reaches the export it has been flattened to items, `(Tnt OR Ruby OR Canoe) AND
 Floater AND Slab`. Nothing downstream has to express "reach another location",
-because the solver already did. The vocabulary is wider too: `nov`'s rules
+because the solver already did.
+
+**The class has two members, not one, and the second is the stronger
+argument.** `SCLogic.cs:559-562` is `allNpcs[ElfDoc].Restrict(Herb)`, the same
+shape, and the derivation gets the Elf Prince `(free)` where FFR says `(Herb)`.
+Lefein at least reports itself as the one `--derived` divergence; the Elf Prince
+passes as agreeing, because `herb` is off-vocabulary and `check_logic` grants it
+to both sides. So the sampling approach is not merely unable to express this
+shape -- it cannot currently see how often it is hitting it. Full write-up in
+`docs/ISSUES.md`. The vocabulary is wider too: `nov`'s rules
 mention fifteen distinct items, including `Mark` and `Sigil` (the renamed Canoe
 and Floater), against the twelve `entrance_graph.ITEM_NAMES` sweeps, and all
 five trades the sweep cannot hold -- Slab, Herb, Adamant, Bottle, Crystal -- are
