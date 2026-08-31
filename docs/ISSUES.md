@@ -8,14 +8,25 @@ Nothing here is urgent unless it says so.
 
 ## Known wrong
 
-- **The No-Overworld variants run standard-overworld logic.** `scripts/logic.lua`
-  branches on shard hunt and nothing else, so roughly thirty overworld-geography
-  rules (`ship`, `canoe`, `canal`, `bridge`, `northernDocks`, `lefeinBridge`,
-  `hwyOrdeals`, `gaiaMountain`, `melmondRiver`, `luffyDock`, `cardiaDock`) gate a
-  mode where ship and bridge are free and the canoe is not a vehicle. Every pin
-  on a No-Overworld tracker is coloured by rules that do not describe the seed.
-  This is the largest live defect in the pack. See `docs/NOVERWORLD.md` and
-  `docs/ROADMAP.md`.
+- **The No-Overworld variants ran standard-overworld logic. Closed 2026-08-30.**
+  This entry led "Known wrong" for weeks saying `scripts/logic.lua` "branches on
+  shard hunt and nothing else", and it had not been true since the
+  `noverworld-logic` merge. `isNoOverworld()` is at `logic.lua:56`, matching
+  `Tracker.ActiveVariantUID` with `:find`; `noOverworld()` and `standardWorld()`
+  at `:76` and `:83` feed the 25 region rules that replaced the overworld
+  geography, so one set of rules serves both modes rather than two trees that
+  must agree and never get compared.
+
+  The entry is kept rather than deleted because of *how* it went stale: nothing
+  re-reads a closed defect, so a "largest live defect in the pack" line survives
+  its own fix and sends the next reader after work already done. When a Known
+  wrong entry closes, say so in it the same day.
+
+  What is genuinely left on this mode is smaller and is filed separately:
+  **Lefein**, the one `--derived` divergence, below; the **committed dungeon
+  tree** still being a copy of the standard one; the poster's missing
+  **`nerrick`** slot; and the **Gaia** rule the two trees disagree about. None
+  of them is a mode guard.
 
 - **The walk models all five object gates the cartridge has. Closed
   2026-08-30.** `FF1Lib/Sanity/SCMap.cs:167-186` gates **five** object ids by
@@ -397,15 +408,32 @@ Nothing here is urgent unless it says so.
   compares the incentive tree against the dungeon tree, is unaffected -- those
   two files are genuinely different.
 
-- **The No-Overworld incentive poster is missing two slots.** It hosts no
-  `nerrick` and no `airship` (the Floater turn-in in Ryukahn Desert), both of
-  which `locations/incentives.json` and both dungeon trees carry. `test_maps.lua`
-  check 7 walks the incentive sheet and asks the dungeon tree about each slot it
-  finds, so a slot the poster omits is invisible to it -- the check is one-way
-  by construction, and making it two-way would fail on the four orb-lit slots
-  that are poster-only by design. Deciding what these two should look like on a
+- **The No-Overworld incentive poster is missing one slot, not two.** Diffing
+  `hosted_item` across the two posters gives exactly `nerrick` and `airship`,
+  and this entry used to call both defects. Only `nerrick` is.
+
+  **`nerrick` belongs there.** It is a real Archipelago location on this mode --
+  the export has `ConeriaCastle1 -> DwarfCave -> Nerrick (Tnt)` -- and both
+  dungeon trees carry it.
+
+  **`airship`'s absence is correct, and it is not a location at all.** Grep the
+  four oracle exports for it and you get nothing, on standard either: the slot
+  is `I: Ryukahn Desert / I: Floater Turn In`, and `hosted_item: airship` means
+  it *grants the vehicle to the tracker* when checked, not that an item is
+  placed there. On No-Overworld there is no desert and no vehicle -- the Floater
+  is `NoOW_Floater`, a barrier key for Coneria Castle 1F, Castle Ordeals 1F and
+  Ice Cave B1 -- and all 26 of the nov poster's `airship` mentions are already
+  behind `$standardWorld`, so they are dead rules. A poster slot for it would be
+  a way to hand the tracker a vehicle the seed does not have.
+
+  Do not re-derive this as a missing pair. The pairing was the error.
+
+  `test_maps.lua` check 7 walks the incentive sheet and asks the dungeon tree
+  about each slot it finds, so a slot the poster omits is invisible to it -- the
+  check is one-way by construction, and making it two-way would fail on the four
+  orb-lit slots that are poster-only by design. Where `nerrick` should sit on a
   poster with no overworld is the same question as deriving the rest of the
-  pins, so it is filed with `docs/ROADMAP.md` item 3 rather than patched here.
+  pins, so it stays filed with `docs/ROADMAP.md` item 3.
 
 - **The two tabs disagree about how to reach Gaia.** The Gaia node's
   northern-docks route reads `northernDocks,hwyOrdeals,gaiaMountain,ship,canal`
