@@ -214,8 +214,11 @@ library — no Pillow, no .NET.
 | `sprites.py` / `font.py` | NPC sprite art and the cartridge's menu font |
 
 **`regen_maps.py` writes to PopTracker's `user-override/` tree, never into the
-repo.** That keeps ROM-derived art out of git and is also more correct, since
-some map details are rolled per seed. `--clean` puts the shipped art back.
+repo.** That keeps rendered maps out of git and is also more correct, since
+some map details are rolled per seed. The rule is about whole maps, not about
+everything a cartridge can yield -- single sprites pulled by `sprites.py` or
+`font.py` may ship as tracker icons; see the README. `--clean` puts the shipped
+art back.
 
 Two things to know before trusting any tool that reads maps:
 

@@ -37,10 +37,19 @@ hand-drawn, and need no cartridge and no emulator. Drawing them from your own
 ROM instead is an optional upgrade -- see
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-No ROM is included or downloaded, and none ever will be. Neither is any art
-derived from one: `tools/regen_maps.py` writes into PopTracker's user-override
-directory, never into this repo. The hand-drawn maps are not that -- they came
-with the pack this forked, and their authors are in [Credits](#credits).
+No ROM is included or downloaded, and none ever will be.
+
+Whole maps rendered from a cartridge stay out of the repo too:
+`tools/regen_maps.py` writes into PopTracker's user-override directory. A
+full-size map drawn from your ROM is that ROM's art, and it is rolled per seed
+besides, so it has no business in git.
+
+Single sprites are a deliberate exception. A tracker cell wants an icon,
+`tools/sprites.py` and `tools/font.py` can pull one off the cartridge, and an
+icon lifted and recoloured for a tracker is ordinary practice in this community.
+Icons made that way may ship here. None do today -- everything in `images/` is
+either drawn for this pack or inherited from the pack this forked, whose authors
+are in [Credits](#credits).
 
 ## What each feed can see
 
