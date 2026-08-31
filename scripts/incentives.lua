@@ -43,11 +43,10 @@ local ringsWarned = false
 
 -- Does the player want the rings drawn at all?
 --
--- This one toggle is Lua, and it stays Lua even once the three pin toggles land
--- as `restrict_visibility_rules` on the pins themselves (docs/ROADMAP.md, "2.
--- Visibility toggles" -- none of those rules are written yet, so this is the
--- only visibility toggle the pack has today). The difference is not a style
--- choice: a Highlight is not a pin state. PopTracker draws it as a glow around
+-- This one toggle is Lua, and the three pin toggles are not: those are
+-- `restrict_visibility_rules` on the pins themselves, stamped by
+-- tools/pin_visibility.py. The difference is not a style choice: a Highlight is
+-- not a pin state. PopTracker draws it as a glow around
 -- a marker it is already drawing, so a visibility rule could only take the
 -- whole pin away, and taking away the slots a key item can be in is the
 -- opposite of what anyone means by turning the rings off.
