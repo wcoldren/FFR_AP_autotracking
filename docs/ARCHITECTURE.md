@@ -210,7 +210,7 @@ library — no Pillow, no .NET.
 | `ffr_flags/` | The offline flag decoder and schema generator |
 | `extract_chests.py` / `extract_npcs.py` | Chest and NPC tile positions |
 | `pin_visibility.py` | Stamps the pin toggles' rules onto the location trees |
-| `incentive_slots.py` | Writes the slot table `scripts/incentives.lua` rings |
+| `incentive_slots.py` | Writes `scripts/incentive_slots.lua`, the table the rings read |
 | `sprites.py` / `font.py` | NPC sprite art and the cartridge's menu font |
 
 **`regen_maps.py` writes to PopTracker's `user-override/` tree, never into the
