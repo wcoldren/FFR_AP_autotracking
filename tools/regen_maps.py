@@ -298,6 +298,13 @@ def build_images(rom, mode, crops_, rows, graph=None, only=None,
     narrows that to some of them. A sprite is 16x16 on art whose markers are
     placed to the tile, so the two share pixels and PopTracker draws its pins
     on top -- which is the whole trade-off between --npcs gates and --npcs all.
+
+    Drawing them is the default. It was `none`, on the reasoning that a sprite
+    under a pin is clutter; looked at on a real regen the opposite is true --
+    the townspeople, the orbs and the bats are what make a town read as a town,
+    and the pin collision is already handled by emitting a diamond on a sprite
+    cell rather than an opaque square. `--npcs none` is still there for anyone
+    who wants the bare tiles.
     """
     out = {}
     for map_id, name in render_maps.MAP_FILES.items():
@@ -804,9 +811,12 @@ def main():
                          "hand-drawn art uses 24)")
     ap.add_argument("--marker-border", type=int, default=MARKER_BORDER,
                     metavar="PX", help=f"its border (default {MARKER_BORDER})")
-    ap.add_argument("--npcs", choices=("none", "gates", "all"), default="none",
-                    help="draw map objects on the art: none (default), just "
-                         "the No-Overworld gate NPCs, or every NPC")
+    ap.add_argument("--npcs", choices=("none", "gates", "all"), default="all",
+                    help="draw map objects on the art: every NPC (default), "
+                         "just the No-Overworld gate NPCs, or none. The "
+                         "townspeople, orbs and bats are what make a town read "
+                         "as a town; --npcs none suppresses them, and --npcs "
+                         "gates keeps only the NPCs that stand in a doorway")
     ap.add_argument("--force", action="store_true",
                     help="regenerate even if nothing changed")
     ap.add_argument("--dry-run", action="store_true",
