@@ -165,37 +165,49 @@ Nothing here is urgent unless it says so.
 
 - **Crop boxes are looser than the map on several tabs.** Two causes, not one.
   This entry used to name a single one — "stray detached tiles out near the
-  boundary hold the frame open" — and **that is wrong for the four worst maps.**
+  boundary hold the frame open" — and **that is wrong for the five worst maps.**
 
-  **The seam.** A standard map wraps at 64 tiles (`AND #$3F`, and
-  `entrance_graph.floor_walk` already models it). `render_maps.content_box` does
-  not: it takes an axis-aligned bounding box in un-rotated coordinates, so a map
-  whose content straddles column 0 or row 0 is framed across the void between
-  its two halves. Measured 2026-08-30 over all 61 maps of the std and nov oracle
-  cartridges, which give **identical answers** — the wrap is a property of the
-  map, not of the seed, so there is no separate No-Overworld audit here:
+  **The seam. Fixed.** A standard map wraps at 64 tiles (`AND #$3F`, and
+  `entrance_graph.floor_walk` already models it). `content_box` did not: it took
+  an axis-aligned bounding box in un-rotated coordinates, so a map whose content
+  straddles column 0 or row 0 was framed across the void between its two halves.
+  `render_maps.content_crop` slides the grid first — the widest empty run goes
+  off the end — and boxes what is left. Measured over all 61 maps of the std and
+  nov oracle cartridges, which give **identical answers** — the wrap is a
+  property of the map, not of the seed, so there is no separate No-Overworld
+  audit here:
 
-  | map | boxed now | on the torus | where the content actually is |
+  | map | boxed before | after the slide | where the content actually is |
   |---|---|---|---|
   | `con_castle` | 64x35 | 31x35 | cols 62-63 + 0-26; the 35 blank columns are 27-61 |
-  | `crescent_lake` | 52x64 | 53x43 | rows 58-63 + 0-34 |
+  | `crescent_lake` | 52x64 | 52x43 | rows 58-63 + 0-34 |
   | `melmond` | 45x64 | 45x46 | rows 51-63 + 0-30 |
-  | `elf_castle` | 28x64 | 29x35 | row 63 + 0-31 — wrapped by a single row |
+  | `elf_castle` | 28x64 | 28x35 | row 63 + 0-31 — wrapped by a single row |
+  | `sky4F` | 64x64 | 60x59 | a 4x4 tiling of rooms, straddling both axes |
 
   `con_castle`'s 35 columns are the number this entry always carried; only the
-  cause was wrong. Fixing it is a rotation before boxing, and it is on
-  `docs/ROADMAP.md`.
+  cause was wrong.
+
+  **`sky4F` moved here from the residue below, against this entry's own
+  prediction.** It was filed as a multi-lobe map that rotating "would put the
+  left half on the right and make things worse". Rendered both ways, that is
+  backwards: the map is a regular 4x4 tiling of identical rooms, so re-phasing
+  it cannot swap anything distinguishable, and the un-slid frame *cuts four of
+  the sixteen rooms in half* against the top, left and bottom edges. Every room
+  is whole after the slide. The prediction was made from the gap list rather
+  than from the image.
 
   **The residue, which is the original diagnosis and still stands.** `onrac`,
   `lefein` and `seaB1` have **no empty column at all** — a sliver of one to three
   cells per column runs the full width and holds the frame open (`lefein` rows
-  33-47, `seaB1` cols 32-63). `iceB2` (8-column interior gap), `iceB3` (18) and
-  `sky4F` (six scattered gaps) are genuinely multi-lobe maps, where rotating
-  would put the left half on the right and make things worse. Still deliberately
-  not fixed by adding another per-tile proxy — walkability and size were both
-  tried and rejected. The shape of a real answer is the one the room work landed
-  on: ask what a region is connected to, not what its tiles look like. Insets
-  would dissolve it, and `docs/IDEAS.md` names these maps under that heading.
+  33-47, `seaB1` cols 32-63). `iceB2` (8-column interior gap) and `iceB3` (18)
+  are genuinely multi-lobe: their content does not reach the join at all, so the
+  slide correctly leaves them where they are, and boxing them tightly would put
+  the left lobe on the right. Still deliberately not fixed by adding another
+  per-tile proxy — walkability and size were both tried and rejected. The shape
+  of a real answer is the one the room work landed on: ask what a region is
+  connected to, not what its tiles look like. Insets would dissolve it, and
+  `docs/IDEAS.md` names these maps under that heading.
 
 - **The standard-seed reachability oracle is stated without its precondition.**
   It is recorded in several places as "on a Standard seed, `--have

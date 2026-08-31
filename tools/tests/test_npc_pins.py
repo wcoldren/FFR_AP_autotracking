@@ -183,7 +183,7 @@ def main():
 
     # One flood for both passes; the calibration is a property of the cartridge
     # and the crop, not of which location tree names the markers.
-    cal = rg.rendered_calibration(rom, rg.crop_boxes(rom))
+    cal = rg.rendered_calibration(rom, rg.crops(rom))
 
     for rel in LOCATIONS:
         tag = "nov" if "NOverworld" in rel else "std"

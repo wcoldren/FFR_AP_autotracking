@@ -177,20 +177,20 @@ def inputs_fingerprint():
 
 # ---------------------------------------------------------------- calibration
 
-def crop_boxes(rom):
-    """{map name: (c0, c1, r0, r1)} -- what each rendered image covers.
+def crops(rom):
+    """{map name: render_maps.Crop} -- what each rendered image covers.
 
     Cropping is what turns a tab from a postage stamp in an empty field into
     the map: a mean 48% of the grid survives, and Mirage Tower 1F goes from a
-    33x33 corner of 64x64 to filling its frame. See render_maps.content_box for
-    where the box comes from and why the hand-drawn art is what says it is
-    right.
+    33x33 corner of 64x64 to filling its frame. See render_maps.content_crop
+    for where the box comes from, why the hand-drawn art is what says it is
+    right, and what the slide on a map drawn across the join is for.
     """
-    return {name: render_maps.content_box(render_maps.map_tiles(rom, map_id))
+    return {name: render_maps.content_crop(render_maps.map_tiles(rom, map_id))
             for map_id, name in render_maps.MAP_FILES.items()}
 
 
-def legend_rows(rom, boxes=None):
+def legend_rows(rom, crops_=None):
     """{map name: rows of backdrop reserved below it for a Map Key}."""
     letters = render_maps.trap_letters(rom)
     out = {}
@@ -201,27 +201,59 @@ def legend_rows(rom, boxes=None):
     return out
 
 
-def rendered_calibration(rom, boxes):
+def _axis_regions(shift, origin, span):
+    """[(lo, hi, offset)] -- one piece per straight run of a shifted axis.
+
+    `region_for` picks a region by tile coordinate and the marker is then a
+    linear offset from it, so an axis the grid slid on needs one region per
+    piece: tile `n` draws at `((n + shift) mod 64 - origin) * span`, which is
+    two straight lines with the join between them. Unshifted it is one line and
+    one unbounded region, which is what every map had before and what all but
+    the handful drawn across the join still get.
+    """
+    if not shift:
+        return [(None, None, -origin * span)]
+    return [(0, render_maps.MAP_DIM - 1 - shift, (shift - origin) * span),
+            (render_maps.MAP_DIM - shift, render_maps.MAP_DIM - 1,
+             (shift - render_maps.MAP_DIM - origin) * span)]
+
+
+def rendered_calibration(rom, crops_):
     """The calibration the rendered art needs, as a map_calibration.json.
 
     Uncropped this was nothing at all -- every image 64 tiles at TILE_PX, tile
     n at pixel TILE_PX * n. Cropped it is one number per axis per map: the box
-    the render starts at. Still one region, still no per-region special case,
-    and still derived rather than eyeballed, which is the difference that
-    matters -- the hand-solved offsets in tools/map_calibration.json are what
-    a marker can drift away from.
+    the render starts at. Still derived rather than eyeballed, which is the
+    difference that matters -- the hand-solved offsets in
+    tools/map_calibration.json are what a marker can drift away from.
+
+    It is no longer always one region. A map drawn across the grid's join is
+    boxed after a slide (render_maps.content_crop), and the slide is a jump
+    rather than an offset, so such a map comes back as two regions per slid
+    axis -- four if it slid on both, which none of the measured cartridges do.
+    That is the whole cost of the rotation on this side: the file format
+    already carried per-region `cols` and `rows` bounds and nothing else
+    changes. Maps that did not slide are emitted exactly as they were, one
+    unbounded region, so their markers do not move.
 
     The Map Key band hangs below the map, so it does not enter here.
     """
-    return {
-        name: {
-            "rom_map_id": map_id,
-            "tile_px": TILE_PX,
-            "regions": [{"offset_x": -boxes[name][0] * TILE_PX,
-                         "offset_y": -boxes[name][2] * TILE_PX}],
-        }
-        for map_id, name in render_maps.MAP_FILES.items()
-    }
+    out = {}
+    for map_id, name in render_maps.MAP_FILES.items():
+        crop = crops_[name]
+        (c0, _, r0, _), (sx, sy) = crop.box, crop.shift
+        regions = []
+        for clo, chi, ox in _axis_regions(sx, c0, TILE_PX):
+            for rlo, rhi, oy in _axis_regions(sy, r0, TILE_PX):
+                region = {"offset_x": ox, "offset_y": oy}
+                if clo is not None:
+                    region["cols"] = [clo, chi]
+                if rlo is not None:
+                    region["rows"] = [rlo, rhi]
+                regions.append(region)
+        out[name] = {"rom_map_id": map_id, "tile_px": TILE_PX,
+                     "regions": regions}
+    return out
 
 
 # ------------------------------------------------------------------- contents
@@ -253,7 +285,7 @@ def mode_of(rom, path, override=None):
              "which set of art it belongs in.")
 
 
-def build_images(rom, mode, boxes, rows, graph=None, only=None,
+def build_images(rom, mode, crops_, rows, graph=None, only=None,
                  letters=None):
     """-> {relpath: (w, h, rgb)} for all 61 maps, rooms drawn open.
 
@@ -271,7 +303,7 @@ def build_images(rom, mode, boxes, rows, graph=None, only=None,
     for map_id, name in render_maps.MAP_FILES.items():
         out[f"images/maps/{mode}/{name}.png"] = render_maps.render(
             rom, map_id, unroof=True, graph=graph, only=only,
-            crop=boxes[name], legend_rows=rows[name], letters=letters)
+            crop=crops_[name], legend_rows=rows[name], letters=letters)
     return out
 
 
@@ -349,7 +381,7 @@ def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
 def stands_on_map(rom, map_id, col, row, cache=None):
     """Is (col, row) somewhere the player can be, rather than backdrop?
 
-    The same flood content_box crops by: a cell the edge flood reaches is the
+    The same flood content_crop crops by: a cell the edge flood reaches is the
     filler around the map, not the map. Objects are not all placed inside it.
     The Ice Cave B1 fairy stands at (47,30) on a cell the flood reaches -- a
     leftover copy of the Gaia object in the black outside the cave, which the
@@ -859,16 +891,16 @@ def main():
     # drawn from it and every marker's pixel is measured from it. Computed once,
     # here, and handed to both -- two calls that could drift apart is the shape
     # of bug that puts a box next to its chest instead of on it.
-    boxes = crop_boxes(rom)
+    crops_ = crops(rom)
     rows = legend_rows(rom)
 
     files = {}
 
     # 1. the art, cropped to what each map actually uses and filed by mode
-    art = build_images(rom, mode, boxes, rows, graph, only,
+    art = build_images(rom, mode, crops_, rows, graph, only,
                        render_maps.trap_letters(rom))
-    sizes = {name: ((boxes[name][1] - boxes[name][0] + 1) * TILE_PX,
-                    (boxes[name][3] - boxes[name][2] + 1 + rows[name]) * TILE_PX)
+    sizes = {name: (crops_[name].size[0] * TILE_PX,
+                    (crops_[name].size[1] + rows[name]) * TILE_PX)
              for name in render_maps.MAP_FILES.values()}
     mismatched = [(name, art[f"images/maps/{mode}/{name}.png"][:2], sizes[name])
                   for name in render_maps.MAP_FILES.values()
@@ -888,7 +920,7 @@ def main():
         files[rel] = encode(w, h, rgb)
 
     # 2. the markers, built from the cartridge onto it
-    cal = rendered_calibration(rom, boxes)
+    cal = rendered_calibration(rom, crops_)
     dungeon_locations = ("locations/overworld.json" if mode == "std"
                          else "locations/NOverworld/overworld.json")
     incentive_locations = ("locations/incentives.json" if mode == "std"
@@ -943,7 +975,7 @@ def main():
         cut += [(f"{what} on {name}", name, cell[0], cell[1])
                 for what, cell in render_maps.crop_violations(
                     rom, map_id, render_maps.map_tiles(rom, map_id),
-                    boxes[name], box_graph, npc_cells.get(map_id, ()))]
+                    crops_[name], box_graph, npc_cells.get(map_id, ()))]
 
     # And every marker has to land inside the image it names, with room for the
     # 24px box PopTracker draws around it -- tests/test_maps.lua checks exactly
@@ -1075,8 +1107,8 @@ def main():
             print(f"    {name} on {m}")
         if len(shaded) > 10:
             print(f"    ... and {len(shaded) - 10} more")
-    kept = sum((b[1] - b[0] + 1) * (b[3] - b[2] + 1) for b in boxes.values())
-    print(f"  cropped to a mean {kept / len(boxes) / 4096 * 100:.0f}% of the "
+    kept = sum(c.size[0] * c.size[1] for c in crops_.values())
+    print(f"  cropped to a mean {kept / len(crops_) / 4096 * 100:.0f}% of the "
           f"64x64 grid; {sum(1 for r in rows.values() if r)} maps reserve a "
           "Map Key band")
     # Say what each tracker variant will actually open, because "which art am I

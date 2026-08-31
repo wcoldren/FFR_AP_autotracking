@@ -73,6 +73,7 @@ import os
 import string
 import sys
 from collections import Counter, deque
+from typing import NamedTuple
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -456,37 +457,123 @@ def outside_cells(tiles, tile):
 CROP_PAD = 1
 
 
-def content_box(tiles, pad=CROP_PAD):
-    """(c0, c1, r0, r1), inclusive: the part of the grid worth drawing.
-
-    The bounding box of everything the edge flood could not reach, padded so
-    the wall the content ends against stays in frame. One tile rather than none
-    for two reasons: a room's outer wall is content, and tests/test_maps.lua
-    bounds-checks every marker with a 12px half-box, which a 16px pad clears.
-
-    A map whose content reaches every edge comes back as the whole grid --
-    Waterfall very nearly does, sky4F does. That is the honest answer, not a
-    failure.
-    """
+def content_cells(tiles):
+    """{(col, row)}: everything the edge flood could not reach."""
     tile, _ = backdrop_tile(tiles)
     outside = outside_cells(tiles, tile)
-    content = [(i % MAP_DIM, i // MAP_DIM) for i in range(MAP_DIM * MAP_DIM)
-               if (i % MAP_DIM, i // MAP_DIM) not in outside]
+    return {(i % MAP_DIM, i // MAP_DIM) for i in range(MAP_DIM * MAP_DIM)
+            if (i % MAP_DIM, i // MAP_DIM) not in outside}
+
+
+# A standard map is a torus: column 63 is next to column 0, and the game scrolls
+# across the join without comment. Four maps are drawn across it -- Coneria
+# Castle's two halves sit at columns 0-8 and 44-63 with 35 empty columns
+# between them -- and a box measured in rom coordinates has to span the void to
+# hold both, which is how con_castle came out 64x35 for a map that is 31 wide.
+#
+# So the grid slides before it is boxed. The widest empty run goes off the end,
+# the content becomes one contiguous block, and the box is measured there. Only
+# the tile-to-pixel mapping learns about the slide; every consumer still
+# receives a plain axis-aligned box.
+
+
+def _axis_shift(occupied, pad):
+    """How far to slide one axis so its widest empty run falls off the end.
+
+    Zero unless the content actually crosses the join -- index 0 and index 63
+    both in use, with something free between them. That test is what keeps this
+    off the maps that do not need it: where the content is already contiguous
+    the widest run is the one the box drops anyway, and sliding it would move
+    every marker on the map to buy nothing.
+    """
+    if len(occupied) in (0, MAP_DIM):
+        return 0
+    if not (0 in occupied and MAP_DIM - 1 in occupied):
+        return 0
+    best = (0, 0)
+    for start in range(MAP_DIM):
+        if start in occupied or (start - 1) % MAP_DIM not in occupied:
+            continue                                  # not the start of a run
+        length = 0
+        while (start + length) % MAP_DIM not in occupied:
+            length += 1
+        if length > best[1]:
+            best = (start, length)
+    start, length = best
+    return (pad - (start + length)) % MAP_DIM
+
+
+class Crop(NamedTuple):
+    """A tile box, and how far the grid slid before it was measured.
+
+    `box` is (c0, c1, r0, r1) inclusive, axis-aligned, exactly the shape it has
+    always been. `shift` is (sx, sy): what to add to a rom tile coordinate,
+    modulo the grid, before the box means anything. On the maps whose content
+    does not cross the join the shift is (0, 0) and the two say the same thing.
+
+    Nothing outside this class does that arithmetic. `place` is the one
+    tile-to-pixel mapping, and a consumer that wants the plain box takes
+    `.box` -- which is what the calibration, the marker bounds and the render's
+    own frame loop all do.
+    """
+
+    box: tuple
+    shift: tuple = (0, 0)
+
+    @property
+    def size(self):
+        """(cols, rows) the frame is across."""
+        c0, c1, r0, r1 = self.box
+        return c1 - c0 + 1, r1 - r0 + 1
+
+    def place(self, col, row):
+        """(frame col, frame row) for a rom tile, or None if it is not in frame."""
+        c0, c1, r0, r1 = self.box
+        c = (col + self.shift[0]) % MAP_DIM
+        r = (row + self.shift[1]) % MAP_DIM
+        if not (c0 <= c <= c1 and r0 <= r <= r1):
+            return None
+        return c - c0, r - r0
+
+    def source(self, col, row):
+        """The rom tile a frame cell draws -- place() the other way round."""
+        c0, _, r0, _ = self.box
+        return ((col + c0 - self.shift[0]) % MAP_DIM,
+                (row + r0 - self.shift[1]) % MAP_DIM)
+
+    def holds(self, col, row):
+        return self.place(col, row) is not None
+
+
+WHOLE = Crop((0, MAP_DIM - 1, 0, MAP_DIM - 1))
+
+
+def content_crop(tiles, pad=CROP_PAD):
+    """The part of the grid worth drawing, as a Crop.
+
+    The bounding box of everything the edge flood could not reach, measured
+    after the slide above, and padded so the wall the content ends against
+    stays in frame. One tile rather than none for two reasons: a room's outer
+    wall is content, and tests/test_maps.lua bounds-checks every marker with a
+    12px half-box, which a 16px pad clears.
+
+    A map whose content reaches every edge comes back as the whole grid --
+    Waterfall very nearly does. That is the honest answer, not a failure.
+    """
+    content = content_cells(tiles)
     if not content:
-        return 0, MAP_DIM - 1, 0, MAP_DIM - 1
-    cols = [c for c, _ in content]
-    rows = [r for _, r in content]
-    return (max(0, min(cols) - pad), min(MAP_DIM - 1, max(cols) + pad),
-            max(0, min(rows) - pad), min(MAP_DIM - 1, max(rows) + pad))
+        return WHOLE
+    sx = _axis_shift({c for c, _ in content}, pad)
+    sy = _axis_shift({r for _, r in content}, pad)
+    cols = [(c + sx) % MAP_DIM for c, _ in content]
+    rows = [(r + sy) % MAP_DIM for _, r in content]
+    return Crop((max(0, min(cols) - pad), min(MAP_DIM - 1, max(cols) + pad),
+                 max(0, min(rows) - pad), min(MAP_DIM - 1, max(rows) + pad)),
+                (sx, sy))
 
 
-def in_box(box, col, row):
-    c0, c1, r0, r1 = box
-    return c0 <= col <= c1 and r0 <= row <= r1
-
-
-def crop_violations(rom, map_id, tiles, box, graph, extra=()):
-    """[(what, (col, row))] that the box would cut off and must not.
+def crop_violations(rom, map_id, tiles, crop, graph, extra=()):
+    """[(what, (col, row))] that the crop would cut off and must not.
 
     Zero on all 61 maps of three FFR cartridges, a fourth FFR seed and a
     vanilla image, which is what makes this a guard rather than a hope. What it
@@ -511,19 +598,19 @@ def crop_violations(rom, map_id, tiles, box, graph, extra=()):
                    == entrance_graph.TP_SPEC_TREASURE}
     for i, t in enumerate(tiles):
         cell = (i % MAP_DIM, i // MAP_DIM)
-        if (t & 0x7F) in chest_tiles and not in_box(box, *cell):
+        if (t & 0x7F) in chest_tiles and not crop.holds(*cell):
             bad.append(("chest", cell))
     for x, y, kind, _ in graph.teleports(map_id):
-        if kind != entrance_graph.TP_TELE_WARP and not in_box(box, x, y):
+        if kind != entrance_graph.TP_TELE_WARP and not crop.holds(x, y):
             bad.append((f"teleport ${kind:02X}", (x, y)))
     for what, col, row in extra:
-        if not in_box(box, col, row):
+        if not crop.holds(col, row):
             bad.append((what, (col, row)))
     return bad
 
 
-def cropped_objects(map_id, box, graph):
-    """[(object id, (col, row))] the box leaves outside the frame.
+def cropped_objects(map_id, crop, graph):
+    """[(object id, (col, row))] the crop leaves outside the frame.
 
     Reported rather than fatal, because one of these is real and correct.
     Marsh Cave B1 carries a fifth bat parked at (52,22) on void tile $3F, with
@@ -532,7 +619,7 @@ def cropped_objects(map_id, box, graph):
     did. Anything else showing up here wants looking at.
     """
     return [(oid, (x, y)) for oid, x, y in graph.objects(map_id)
-            if not in_box(box, x, y)]
+            if not crop.holds(x, y)]
 
 
 # ---------------------------------------------------------------- trap tiles
@@ -645,8 +732,7 @@ LETTER_SCALE = TILE_PX // 8   # a glyph is 8px, a tile is 16, so a letter fills 
 KEY_PAD = 4
 
 
-def draw_trap_letters(rom, font, out, w, h, origin, cols, rows, legend_rows,
-                      cells):
+def draw_trap_letters(rom, font, out, w, h, crop, legend_rows, cells):
     """Letter the trap tiles in place, and write the key into the band.
 
     `cells` is map_trap_letters' {(col, row): letter}. Letters are drawn at the
@@ -658,17 +744,17 @@ def draw_trap_letters(rom, font, out, w, h, origin, cols, rows, legend_rows,
     yellow = NES_PALETTE[LETTER_COLOUR]
     white = NES_PALETTE[KEY_TEXT_COLOUR]
     black = NES_PALETTE[SHADOW_COLOUR]
-    c0, r0 = origin
 
     for (col, row), letter in sorted(cells.items()):
-        if not (c0 <= col < c0 + cols and r0 <= row < r0 + rows):
+        at = crop.place(col, row)
+        if at is None:
             continue
-        font.draw_text(out, w, h, (col - c0) * TILE_PX, (row - r0) * TILE_PX,
+        font.draw_text(out, w, h, at[0] * TILE_PX, at[1] * TILE_PX,
                        letter, yellow, LETTER_SCALE, rom, black)
 
     if not legend_rows:
         return
-    band = rows * TILE_PX
+    band = crop.size[1] * TILE_PX
     font.draw_text(out, w, h, KEY_PAD, band + KEY_PAD, "Map Key", white,
                    LETTER_SCALE, rom, black)
     # One row per letter, below the two the heading reserves. Sorted, so the
@@ -696,10 +782,10 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
     building one reads and decompresses map data, and a caller rendering all 61
     maps should pay for that once. `only` narrows that to a set of object ids.
 
-    `crop` is a (c0, c1, r0, r1) tile box -- content_box(tiles) -- and
-    `legend_rows` reserves that many tile-heights of backdrop below the map for
-    a Map Key. Both default to off, so a plain render is still the whole 64x64
-    grid at 1024x1024 and --check still compares like with like.
+    `crop` is a Crop -- content_crop(tiles) -- and `legend_rows` reserves that
+    many tile-heights of backdrop below the map for a Map Key. Both default to
+    off, so a plain render is still the whole 64x64 grid at 1024x1024 and
+    --check still compares like with like.
 
     `letters` is trap_letters(rom). Given it, the trap tiles on this map are
     lettered where they stand and the reserved band is filled in with the key,
@@ -713,16 +799,22 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
         if unroof and not inside else None
     rooms = hidden_cells(rom, map_id, tiles, art, open_art) if open_art else set()
 
-    c0, c1, r0, r1 = crop if crop else (0, MAP_DIM - 1, 0, MAP_DIM - 1)
-    w = (c1 - c0 + 1) * TILE_PX
-    h = (r1 - r0 + 1 + legend_rows) * TILE_PX
+    crop = crop or WHOLE
+    cols, rows_ = crop.size
+    w = cols * TILE_PX
+    h = (rows_ + legend_rows) * TILE_PX
     out = bytearray(w * h * 3)
-    for row in range(r0, r1 + 1):
-        for col in range(c0, c1 + 1):
-            here = open_art if (row, col) in rooms else art
-            block = here[tiles[row * MAP_DIM + col] & 0x7F]
+    for row in range(rows_):
+        for col in range(cols):
+            # The frame is walked, and each cell asks the crop which rom tile
+            # it draws. On a map that does not cross the join that is the old
+            # `row + r0`; on one that does it is the slide as well, and this is
+            # the only place in the render that knows the difference.
+            src_col, src_row = crop.source(col, row)
+            here = open_art if (src_row, src_col) in rooms else art
+            block = here[tiles[src_row * MAP_DIM + src_col] & 0x7F]
             for y in range(TILE_PX):
-                dst = (((row - r0) * TILE_PX + y) * w + (col - c0) * TILE_PX) * 3
+                dst = ((row * TILE_PX + y) * w + col * TILE_PX) * 3
                 line = block[y]
                 for x in range(TILE_PX):
                     r, g, b = line[x]
@@ -735,8 +827,8 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
         # hand art fills its margins with, so the Map Key drawn into it later
         # sits on the map's colour rather than on an invented one.
         block = art[backdrop_tile(tiles)[0] & 0x7F]
-        for row in range(r1 - r0 + 1, r1 - r0 + 1 + legend_rows):
-            for col in range(c1 - c0 + 1):
+        for row in range(rows_, rows_ + legend_rows):
+            for col in range(cols):
                 for y in range(TILE_PX):
                     dst = ((row * TILE_PX + y) * w + col * TILE_PX) * 3
                     line = block[y]
@@ -750,14 +842,13 @@ def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,
         # Imported here for the same reason as sprites below: font reads this
         # module's tile decode, so a module-scope import would be a cycle.
         import font                                                 # noqa: E402
-        draw_trap_letters(rom, font, out, w, h, (c0, r0), (c1 - c0 + 1),
-                          (r1 - r0 + 1), legend_rows,
+        draw_trap_letters(rom, font, out, w, h, crop, legend_rows,
                           map_trap_letters(rom, map_id, tiles, letters))
     if graph is not None:
         # Imported here, not at module scope: sprites imports this module for
         # the NES palette and the tile decode.
         import sprites                                              # noqa: E402
-        sprites.draw_objects(rom, graph, map_id, w, h, out, only, (c0, r0))
+        sprites.draw_objects(rom, graph, map_id, w, h, out, only, crop)
     return w, h, bytes(out)
 
 
@@ -840,14 +931,14 @@ def self_check(rom, path):
     parked = []
     for map_id in range(MAP_COUNT):
         tiles = map_tiles(rom, map_id)
-        box = content_box(tiles)
-        kept += (box[1] - box[0] + 1) * (box[3] - box[2] + 1)
-        for what, cell in crop_violations(rom, map_id, tiles, box, graph,
+        crop = content_crop(tiles)
+        kept += crop.size[0] * crop.size[1]
+        for what, cell in crop_violations(rom, map_id, tiles, crop, graph,
                                           npcs.get(map_id, ())):
             print(f"  CUT OFF map {map_id} ({MAP_FILES[map_id]}): {what} at {cell}")
             bad += 1
         parked += [(MAP_FILES[map_id], oid, cell)
-                   for oid, cell in cropped_objects(map_id, box, graph)]
+                   for oid, cell in cropped_objects(map_id, crop, graph)]
 
     print(f"crop keeps a mean {kept / MAP_COUNT / (MAP_DIM * MAP_DIM) * 100:.0f}% "
           f"of the grid across {MAP_COUNT} maps")
@@ -912,18 +1003,21 @@ def main():
     ids = [args.map] if args.map is not None else range(MAP_COUNT)
     for map_id in ids:
         name = MAP_FILES[map_id]
-        box = rows = None
+        crop = None
+        rows = None
         if args.crop:
             tiles = map_tiles(rom, map_id)
-            box = content_box(tiles)
+            crop = content_crop(tiles)
             rows = legend_rows_for(
                 len(set(map_trap_letters(rom, map_id, tiles, letters).values())))
         w, h, rgb = render(rom, map_id, args.inside, args.unroof, graph,
-                           crop=box, legend_rows=rows or 0, letters=letters)
+                           crop=crop, legend_rows=rows or 0, letters=letters)
         path = os.path.join(args.out, name + ".png")
         pngio.write_rgb(path, w, h, rgb)
-        where = (f"tile (c,r) is pixel ({TILE_PX}(c-{box[0]}), {TILE_PX}(r-{box[2]}))"
-                 if box else f"tile n is pixel {TILE_PX}n")
+        where = (f"tile (c,r) is pixel {TILE_PX}((c+{crop.shift[0]}) mod {MAP_DIM} "
+                 f"- {crop.box[0]}), {TILE_PX}((r+{crop.shift[1]}) mod {MAP_DIM} "
+                 f"- {crop.box[2]})"
+                 if crop else f"tile n is pixel {TILE_PX}n")
         print(f"wrote {path}  ({w}x{h}, {where})")
     return 0
 

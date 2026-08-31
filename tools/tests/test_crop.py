@@ -101,22 +101,26 @@ def main():
             npcs.setdefault(q["map_id"], []).append(
                 (f"npc {name}", q["tile_col"], q["tile_row"]))
 
-    boxes = {}
+    crops = {}
     cut, kept, whole = [], 0, 0
     for map_id in range(rm.MAP_COUNT):
         tiles = rm.map_tiles(rom, map_id)
-        box = boxes[rm.MAP_FILES[map_id]] = rm.content_box(tiles)
+        crop = crops[rm.MAP_FILES[map_id]] = rm.content_crop(tiles)
         cut += [(rm.MAP_FILES[map_id], what, cell) for what, cell in
-                rm.crop_violations(rom, map_id, tiles, box, graph,
+                rm.crop_violations(rom, map_id, tiles, crop, graph,
                                    npcs.get(map_id, ()))]
-        area = (box[1] - box[0] + 1) * (box[3] - box[2] + 1)
+        area = crop.size[0] * crop.size[1]
         kept += area
         whole += area == rm.MAP_DIM * rm.MAP_DIM
 
-        # The box is a box: inside the grid, and the right way round.
-        c0, c1, r0, r1 = box
+        # The box is a box: inside the grid, and the right way round. The
+        # slide does not get to make it anything else -- that is the point of
+        # boxing after the rotation rather than carrying a torn box around.
+        c0, c1, r0, r1 = crop.box
         if not (0 <= c0 <= c1 < rm.MAP_DIM and 0 <= r0 <= r1 < rm.MAP_DIM):
-            fails.append(f"map {map_id} box is not a box: {box}")
+            fails.append(f"map {map_id} box is not a box: {crop.box}")
+        if not all(0 <= v < rm.MAP_DIM for v in crop.shift):
+            fails.append(f"map {map_id} shift is not a shift: {crop.shift}")
 
     check("the crop cuts off no chest, staircase, exit or tracked NPC", cut, [])
     mean = kept / rm.MAP_COUNT / (rm.MAP_DIM * rm.MAP_DIM) * 100
@@ -133,7 +137,7 @@ def main():
         check("the Ice Cave B1 fairy stands on a cell the flood reaches",
               fairy[0] in reach, True)
         check("and the box keeps it anyway",
-              rm.in_box(boxes["iceB1"], *fairy[0]), True)
+              crops["iceB1"].holds(*fairy[0]), True)
 
     # Against the hand art, which is the reference the rule is measured on.
     inverted = rm.battle_byte_inverted(rom)
@@ -155,15 +159,18 @@ def main():
     drift = []
     for name in ART_AGREES:
         drawn = art_box(name, cal[name])
-        if drawn is None or name not in boxes:
+        if drawn is None or name not in crops:
             fails.append(f"{name}: no art or no box to compare")
             continue
-        off = max(abs(a - b) for a, b in zip(boxes[name], drawn))
+        off = max(abs(a - b) for a, b in zip(crops[name].box, drawn))
         if off > 1 and name not in allowed:
-            drift.append((name, boxes[name], drawn, off))
+            drift.append((name, crops[name].box, drawn, off))
     check("the derived box sits within a tile of the one DarkmoonEX drew",
           drift, [])
-    check("tofrAir lands on it exactly", boxes["tofrAir"], art_box("tofrAir", cal["tofrAir"]))
+    check("tofrAir lands on it exactly", crops["tofrAir"].box,
+          art_box("tofrAir", cal["tofrAir"]))
+    check("and none of the maps it is measured on slid",
+          [n for n in ART_AGREES if crops[n].shift != (0, 0)], [])
 
     # The letters, and the branch that decides what byte 1 means.
     letters = rm.trap_letters(rom)
@@ -203,35 +210,63 @@ def main():
           [rm.legend_rows_for(len(used[n])) > 0 for n in ("earthB1", "coneria_town")],
           [True, False])
 
-    # A cropped render has to be the same pixels, moved -- and the band below it.
+    # A cropped render has to be the same pixels, moved -- and the band below
+    # it. Two maps, because a crop has two shapes now: mirage1F sits inside the
+    # grid and is boxed where it stands, and con_castle is drawn across the
+    # join and is boxed after the slide. The second is the case with somewhere
+    # to go wrong, and there was no wrapped case here at all before.
+    for map_id, wrapped in ((23, False), (8, True)):
+        tiles = rm.map_tiles(rom, map_id)
+        crop = rm.content_crop(tiles)
+        name = rm.MAP_FILES[map_id]
+        check(f"{name} is {'' if wrapped else 'not '}drawn across the join",
+              crop.shift != (0, 0), wrapped)
+        full_w, _, full = rm.render(rom, map_id, unroof=True)
+        w, h, small = rm.render(rom, map_id, unroof=True, crop=crop,
+                                legend_rows=3)
+        check(f"{name}'s crop is smaller than the whole grid",
+              (w, h) < (full_w, full_w), True)
+        check(f"{name}'s width is the box", w, crop.size[0] * rm.TILE_PX)
+        check(f"{name}'s height is the box plus the band", h,
+              (crop.size[1] + 3) * rm.TILE_PX)
+
+        # Every frame tile, not one sample: on a slid map a single cell can
+        # agree by luck while the two halves are swapped, and the whole point
+        # of the slide is which half went where.
+        moved = []
+        for fr in range(crop.size[1]):
+            for fc in range(crop.size[0]):
+                col, row = crop.source(fc, fr)
+                src = ((row * rm.MAP_DIM * rm.TILE_PX + col) * rm.TILE_PX) * 3
+                dst = ((fr * rm.TILE_PX * w) + fc * rm.TILE_PX) * 3
+                if small[dst:dst + 48] != full[src:src + 48]:
+                    moved.append((fc, fr))
+        check(f"and every tile of {name} is the same pixels, moved", moved, [])
+
+        # ... and the move is the one the calibration will publish: place() is
+        # the inverse of source(), which is what keeps a marker on its chest.
+        roundtrip = [(fc, fr) for fr in range(crop.size[1])
+                     for fc in range(crop.size[0])
+                     if crop.place(*crop.source(fc, fr)) != (fc, fr)]
+        check(f"and {name}'s tile-to-pixel mapping inverts", roundtrip, [])
+
     tiles = rm.map_tiles(rom, 23)
-    box = rm.content_box(tiles)
-    full_w, _, full = rm.render(rom, 23, unroof=True)
-    w, h, small = rm.render(rom, 23, unroof=True, crop=box, legend_rows=3)
-    check("the crop is smaller than the whole grid", (w, h) < (full_w, full_w), True)
-    check("its width is the box", w, (box[1] - box[0] + 1) * rm.TILE_PX)
-    check("its height is the box plus the band", h,
-          (box[3] - box[2] + 1 + 3) * rm.TILE_PX)
-    row = box[2] + 4
-    col = box[0] + 4
-    src = ((row * rm.MAP_DIM * rm.TILE_PX + col) * rm.TILE_PX + 0) * 3
-    dst = (((row - box[2]) * rm.TILE_PX * w) + (col - box[0]) * rm.TILE_PX) * 3
-    check("and a tile inside it is the same pixels", small[dst:dst + 48],
-          full[src:src + 48])
+    crop = rm.content_crop(tiles)
+    w, h, small = rm.render(rom, 23, unroof=True, crop=crop, legend_rows=3)
 
     # The band is drawn into, not just reserved. Rendering the same map with
     # and without `letters` has to differ inside the band, and a map with no
     # trap tiles has to stay exactly as it was -- one check that the key is
     # written and one that nothing is written where there is no key.
-    band = (box[3] - box[2] + 1) * rm.TILE_PX * w * 3
-    _, _, lettered = rm.render(rom, 23, unroof=True, crop=box, legend_rows=3,
+    band = crop.size[1] * rm.TILE_PX * w * 3
+    _, _, lettered = rm.render(rom, 23, unroof=True, crop=crop, legend_rows=3,
                                letters=letters)
     check("the Map Key band is drawn into, not left as backdrop",
           lettered[band:] != small[band:], True)
     for map_id, name in rm.MAP_FILES.items():
         if name != "coneria_town":
             continue
-        b = rm.content_box(rm.map_tiles(rom, map_id))
+        b = rm.content_crop(rm.map_tiles(rom, map_id))
         plain = rm.render(rom, map_id, unroof=True, crop=b)[2]
         keyed = rm.render(rom, map_id, unroof=True, crop=b, letters=letters)[2]
         check("a map with no trap tiles is untouched by the letters",

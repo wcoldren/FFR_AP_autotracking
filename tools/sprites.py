@@ -76,7 +76,7 @@ import entrance_graph as eg                                     # noqa: E402
 import pngio                                                    # noqa: E402
 from render_maps import (                                       # noqa: E402
     CHR_BASE, MAP_COUNT, MAP_FILES, NES_PALETTE, PALETTE_BASE, PALETTE_STRIDE,
-    TILE_PX, decode_ppu,
+    TILE_PX, WHOLE, decode_ppu,
 )
 
 GFX_TABLE = eg.bank_off(0x00, 0xAE00)     # lut_MapObjGfx, BANK_OBJINFO
@@ -228,7 +228,7 @@ def drawn_cells(rom, graph, map_id, only=None):
             and sprite_rgb(rom, ids[oid], map_id) is not None}
 
 
-def draw_objects(rom, graph, map_id, w, h, out, only=None, origin=(0, 0)):
+def draw_objects(rom, graph, map_id, w, h, out, only=None, crop=None):
     """Draw the objects standing on a map onto a rendered map buffer.
 
     Tile (col, row) is pixel (16col, 16row) in render_maps' output, and a map
@@ -236,16 +236,18 @@ def draw_objects(rom, graph, map_id, w, h, out, only=None, origin=(0, 0)):
     stands on. DrawMapObject nudges it three pixels up on screen for looks; a
     map drawing wants it on its tile, so that is left out.
 
-    `origin` is the (col, row) the buffer starts at, so a cropped render draws
-    its objects in the right place; the clipping in paste then does the rest,
-    which is what drops the objects a crop leaves outside the frame.
+    `crop` is the render_maps.Crop the buffer was drawn to, so a cropped render
+    draws its objects in the right place -- including on a map whose grid slid
+    before it was boxed, where the object's rom column is not its frame column.
+    A sprite is exactly one tile, so an object the crop does not hold is
+    entirely outside the frame and is dropped rather than pasted and clipped.
 
     `only` restricts to a set of object ids -- the gate NPCs, say, which are
     the ones with no marker of their own to collide with. Returns how many
     were drawn.
     """
     ids = sprite_ids(rom)
-    ox, oy = origin
+    crop = crop or WHOLE
     drawn = 0
     for oid, x, y in graph.objects(map_id):
         if only is not None and oid not in only:
@@ -253,7 +255,10 @@ def draw_objects(rom, graph, map_id, w, h, out, only=None, origin=(0, 0)):
         block = sprite_rgb(rom, ids[oid], map_id)
         if block is None:
             continue
-        paste(out, w, h, (x - ox) * TILE_PX, (y - oy) * TILE_PX, block)
+        at = crop.place(x, y)
+        if at is None:
+            continue
+        paste(out, w, h, at[0] * TILE_PX, at[1] * TILE_PX, block)
         drawn += 1
     return drawn
 
