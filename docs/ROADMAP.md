@@ -122,30 +122,38 @@ instead: same flags, different seed, report what the shuffle moved.
 
 ## 2. Visibility toggles
 
-Infrastructure, and the reason it comes before the remaining map work: the
-features after this each add a large set of pins, and pins with no off switch are
-worse than no pins.
+**Done.** Four toggles in a **Pins** group in the left dock, all defaulting on:
+Chest Pins, NPC Pins, Skipped Incentive Pins and Incentive Rings. `README.md`
+says what a player gets; `docs/ARCHITECTURE.md` under "Rules" says how it works
+and where it deliberately stops.
 
-Everything needed is available at the current `min_poptracker_version` of 0.35.1.
-`visibility_rules` has existed since 0.17.0 and per-pin
-`restrict_visibility_rules` / `force_invisibility_rules` since 0.25.4. This pack
-uses `visibility_rules` exactly once per tree.
+Two things this section predicted turned out otherwise, and the reasons are
+worth keeping.
 
-The pattern to copy is two-stage progressive items whose "on" stage grants a
-`show_*` code and whose "off" stage grants nothing, with `inherit_codes: false`
-on both — that is what makes a `visibility_rules` entry flip.
+**Not two-stage progressives.** The gotcha recorded here was real --
+`inherit_codes` defaults true (`jsonitem.cpp:161`), so a naive two-stage toggle
+never turns off -- but it was the answer to the wrong question.
+`initial_active_state` (`jsonitem.cpp:118-120`) has been in PopTracker since
+0.25.4, well under the pack's floor, and a plain `toggle` that starts on is one
+item rather than two stages.
 
-Start with the categories that have pins today, chests and NPCs, and add a
-category alongside each later feature rather than declaring empty ones now.
+**Not `visibility_rules`.** The constraint this section set -- that a slot the
+seed did not reserve is drawn blue rather than hidden, and these toggles must
+not quietly re-introduce hiding -- is met by which field the rule is written to
+rather than by care. Per-pin `restrict_visibility_rules` hides one marker and
+leaves the section in the tree, in the counts, and clearable from the location
+list; section-level `visibility_rules` is the one that takes a check off the
+board.
 
-One thing not to break: an incentive slot the seed did not reserve is drawn blue
-rather than hidden, deliberately, because it is still a check -- and can still
-hold a key item, since FFR places the ones it did not incentivize into exactly
-that pool. These toggles are a different question and must not quietly
-re-introduce hiding.
+What survives as a rule rather than a plan: **a later feature adds its category
+alongside itself.** That is now a fact about `pin_visibility.kind_of()`, which
+reads `extract_npcs.WANTED` and the sub-512 ids in `location_mapping.lua` rather
+than a list of its own -- so a pin the cartridge learns to place gets a rule with
+no edit to the stamper. Entrance markers will want a `kind` of their own, and the
+place to add it is `rule_for()`.
 
-`layouts/settings_popup.json` — the gear-button panel — is a later pass, once
-there are enough toggles to justify it.
+`layouts/settings_popup.json` -- the gear-button panel -- is still a later pass,
+and four toggles is still not enough to justify it.
 
 ## 3. The No-Overworld map surface
 
@@ -186,6 +194,14 @@ split, mode guards, 25 region rules, checker), the record correction, the Black
 Orb gate, the idea below, and five commits answering the review. All suites
 green; std 225/225 and shard 229/229 unmoved throughout, including across the
 gate branch below.
+
+**`visibility-toggles` -- twelve commits off `trunk`, not merged.** The docs
+sweep, the blue paragraph, the icons, the four toggles, `tools/pin_visibility.py`
+and the regen's use of it. Both suites green at each; what each toggle is worth
+is a number in its own commit message and an assertion in `tests/test_pins.lua`.
+A review of the first six is answered in `5ede637`. The five after it -- the
+reformat, the two kind toggles, the regen stamping, the slot toggle and these
+docs -- have not been reviewed, and that gate comes before any merge.
 
 **The review gate is closed.** A full review of `trunk...noverworld-logic`
 returned seven findings, all of which held up against the files. All seven

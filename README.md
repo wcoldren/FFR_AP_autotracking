@@ -131,6 +131,28 @@ The colours themselves are PopTracker's rather than the pack's -- packs choose
 which state a pin reports, not what colour the tracker paints it. If you want
 different ones, they come from `colors.json` in your PopTracker config directory.
 
+## Turning pins off
+
+The **Pins** group in the left dock, under Incentives, has four switches. All
+four start on, so a board you never touch is the board described above.
+
+    Chest Pins               the 251 chest markers on the dungeon and town maps
+    NPC Pins                 the NPC markers on those same maps
+    Skipped Incentive Pins   the blue slots on the Incentive Locations tab
+    Incentive Rings          the gold ring, without hiding anything
+
+These hide *markers*, not checks. A hidden pin's location stays in the tree, in
+the counts, and clearable from the location list -- switching Chest Pins off is
+a way to read a crowded map, not a way to shorten the run.
+
+Three things are deliberately not switchable. The overworld pins stay, because
+one of them stands for a whole town -- its chests, its NPC and its shop at once
+-- so no switch describes it and turning them off would empty the tab. The five
+orb slots on the incentive sheet stay, for the same reason: each holds sections
+the flags do not speak for. And Skipped Incentive Pins does nothing at all on a
+shard hunt, or on a seed that allows key items in chests, because on those every
+chest is a check and none of those slots is really being skipped.
+
 ## Maps
 
 The dungeon maps are DarkmoonEX's, drawn and shared with the FFR community. The
