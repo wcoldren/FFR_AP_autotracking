@@ -73,16 +73,192 @@ one from map to map. Ours should fix one colour per lane across all 61 and draw 
 key on the map saying which is which — the Map Key band `render_maps` already
 reserves is where that goes.
 
-**"Optimal" needs an objective function, and it is not purely step count.**
-Lowest step count first, but tie-broken toward **running into a wall rather than
-turning in an open four-way**: holding a direction until the map stops you is
-much easier to execute than counting tiles and turning on the right one. A route
-that is two steps shorter and needs three counted turns is the worse route. Where
-turning at a non-dead-end is genuinely necessary the route should still take it —
-the preference is a tie-break, not a constraint.
+**"Optimal" needs an objective function, and the reference publishes his.**
+Read off the head of the Appendix D page 2026-08-31, in his own words:
+
+> routing floors is based on how many unsafe tiles a player has to cross to get
+> to their goal (treasure rooms, the stairs to the next floor, and/or the boss of
+> that dungeon). Unsafe tiles are tiles that can cause an encounter... Safe tiles
+> are tiles that do not cause an encounter, such as lava tiles, door tiles, and
+> tiles along the bottom of any room with a door. Maximizing the number of safe
+> tiles you take, along with minimizing unsafe tiles, will result in the best,
+> fastest route through a floor.
+
+and separately, that trap tiles do not raise the encounter counter but should
+still be minimised. So the objective is **lexicographic and step count comes
+last**: fewest fixed-formation traps, then fewest encounter tiles, then fewest
+steps, then fewest counted turns.
+
+This page argued for step count first with a turn tie-break until that was
+read -- the same ordering upside down, and the reason a derived lane could look
+reasonable and still not be his. The turn preference below survives as the last
+term, and the reasoning for it is unchanged.
+
+**The turn tie-break, kept as the last term.** Running into a wall is easier to
+execute than turning in an open four-way: holding a direction until the map
+stops you needs no counting. A route that is two steps shorter and needs three
+counted turns is the worse route. Where turning at a non-dead-end is genuinely
+necessary the route should still take it -- a preference, not a constraint.
+
+**How much of his work has lanes: 58 drawn images, in 15 groups.** Counted from
+the page contents 2026-08-31 -- 1 Elfland magic route, 7 vampire-blighted towns,
+6 Circle Sea locations, 3 Marsh, 4 Earth, 1 Titan, 6 Volcano, 4 Ice, 2 Ordeals,
+3 Cardia, 5 Sea Shrine, 1 Waterfall, 7 Mirage/Sky, 3 overworld routes, 5 ToFR.
+Note what that is not: 58 is not 58 of our 61 maps. His unit is a region, so
+several of his images are one map of ours (Marsh is 3 images over 2 maps that
+carry chests), and several of his subjects -- the town routes, the overworld
+routes -- are not dungeon map tabs at all.
 
 Deriving is not the whole job either. A by-eye pass per map, flagging where a
 better route exists than the reference draws, is expected to stay in the loop.
+
+**Scoped 2026-08-31, from a prototype rather than by reasoning.** The with-loot
+lane is the flavour to build first, because it is the one with no spoiler
+question attached: the chests it strings together are already drawn on the art.
+Three things the prototype settled:
+
+- **A chest tile is not walkable**, so a lane routed *to* a chest routes to
+  nowhere and every chest reads as unreachable. That is the engine's own rule --
+  `walkable()` refuses `TP_SPEC_TREASURE` -- and the fix is that the target is
+  the walkable neighbour you stand on to open it. `render_maps` had hit the same
+  rule from the other side, drawing chest tiles as roof.
+- **The arrival comes off the teleport tables, not off `Graph.route()`.** route()
+  walks in from an overworld door, so it answers "can I get here holding
+  nothing", which a drawing does not ask -- deep floors reported as having no
+  route at all. Scanning `norm_map` and `entr_map` for the target gives every
+  tile the game can put you down on. Likewise the walk uses `floor_items(map)`
+  as its inventory: a lane is a drawing of the map, and routing with an empty
+  one stops at the first gated tile and draws a floor half its real size.
+- **One lane per map is nearly always enough, and the exceptions are
+  structural.** Swept both duck cartridges: of the 38 maps carrying chests on
+  the standard one (37 on the No-Overworld one), **36 have every check reachable
+  from a single arrival**. The two that do not are `Cardia` (7 of 13 checks from
+  the best of 8 ways in) and `SeaShrineB3` (2 of 4, of 3). Both are map geometry
+  rather than the shuffle: Cardia is eight islands sharing one map.
+
+  **This said 35 and named a third map until the linked chests were understood.**
+  Counting chest *tiles*, `MarshCaveB2` looks split -- 4 of 7 from the best
+  arrival. Counting *checks* it is not split at all: indices `25` and `26` each
+  have a tile in both halves, so the reachable half already clears them, and one
+  lane collects all four checks in 97 steps. The old figure was not a
+  miscount, it was the wrong unit. Which means the two maps above are the real
+  exceptions and DarkmoonEX's Top/Middle split of that floor is about drawing
+  legibility, not about reachability.
+
+**And that is what the reference does too, which settles the drawing unit.**
+Read off DarkmoonEX's own Marsh Cave pages 2026-08-31: he draws one image per
+**connected region**, not per map -- "Marsh Top" and "Marsh Middle" are the two
+halves of the single map `MarshCaveB2`, separately titled, separately routed,
+each with its own entrance. The three maps the sweep found are exactly the ones
+he splits. His floor labels are one behind FFR's map names; `FINDINGS.local.md`
+has the correspondence and how it was settled.
+
+**His Map Key asks for four things the plan did not have.** Worth reading before
+scoping the drawing, because two of them are nearly free and two are not:
+
+- **Two lanes, not one: "Optimal Route" and "Optimal w/Key".** A second lane for
+  the same region, walked holding the key. Nearly free -- the walk is already
+  parameterised on `have`, so it is the same search run twice.
+- **Linked chests as a line**, with the key naming the region the twin is on.
+  Already measured; the data is in `extract_chests`.
+- **"Better Trap Chest", marked with an asterisk.** Which of the trap-guarded
+  chests is the one worth eating the fight for. That is a judgement about
+  contents, not geometry, and on a randomised cartridge the contents are not
+  what his art assumed.
+- **Room names -- "Corner", "Single", "Duo", "Distant", "Tetris-Z First".**
+  Hand-authored, not derivable from anything on the cartridge. Either
+  transcribed with credit or left off; inventing a parallel set would be the
+  trap-tile letters again.
+
+**The visit order is solved exactly, not greedily.** Nearest-neighbour left
+visible wandering in the middle of `MarshCaveB3` -- it commits to the nearest
+chest and pays for it later -- and so did rebuilding a path by walking the cost
+field down, which needs a tolerance for the turn charge and spends it on
+detours. Real predecessors out of the search, plus Held-Karp over the chests,
+took that floor's with-key lane from **419 steps to 336**. The largest chest
+count on any map here is 13, so an exact tour is affordable and there is no
+reason to approximate.
+
+**Two lanes, where the floor says there should be.** `Graph.floor_items()`
+returns `['key']` for `MarshCaveB3` and nothing at all for the other two Marsh
+floors -- which is exactly where DarkmoonEX drew a second "Optimal w/Key" line
+and where he did not. So the two-lane treatment does not need a rule about which
+maps get it: the cartridge already says. On that floor the plain lane reaches
+8 of 11 chests in 204 steps crossing one trap; the with-key lane reaches all 11
+in 336 crossing three.
+
+**A linked chest is one check, and the lane visits it once.** An index can sit
+on up to three tiles and opening any one clears the lot, so an errand built on
+tiles walks detours for nothing: `MarshCaveB2` is 7 tiles and 4 checks,
+`MarshCaveB3` is 11 and 9. Visiting checks took B3's with-key lane from 336
+steps to **304** and B2's from 99 to **97 while going from 4 of 7 to 4 of 4**.
+
+Which tile of a linked set to use is part of the problem rather than something
+to settle up front -- the one nearest the door is not always the one the rest of
+the round wants -- so a node in the tour carries every tile you could stand on
+to open any of its tiles, and the state is (visited, node, which tile).
+
+**And the ones it skips get a silver connector**, the way the reference does:
+straight, orthogonal, drawn under the lanes and through walls where the twins
+are in different rooms. Through walls is the point -- the claim is "these two
+are one check", not "you can walk between them" -- and a lane crossing over the
+top of one is what keeps a connector from reading as a route. On `MarshCaveB2`
+that single drawing element is what explains why the lane never goes near the
+bottom-right half of the map.
+
+**A second lane has to be told to coincide with the first.** Left alone it
+re-routes: with nine checks instead of six the cheapest order changes, so the
+with-key lane approached shared rooms down *parallel* corridors and the drawing
+grew divergences that meant nothing. Measured before fixing, on `MarshCaveB3`:
+of 119 segments drawn in the second colour, **none** retraced the first lane and
+all 119 reached tiles it never touched -- so this was not overlap being drawn
+twice, it was two equally cheap routes through the same region.
+
+The fix is a tie-break that cannot outrank anything real: every cost is
+multiplied by 1000 and a step onto a tile the first lane does not use costs 1
+more. The two lanes then run together wherever that is free and part only where
+the map makes them, which took the second colour from 1710 to 1589 pixels and
+removed both of the divergences that were visible on the right of that floor.
+
+**Each region gets its own lane, from its own door.** `MarshCaveB2` is two
+halves that do not connect, and drawing one lane left the other half a map with
+no route on it. Two things had to be true for the second lane to appear at all,
+and both were wrong first:
+
+- **Regions are read holding what the floor gates on.** A locked door is not a
+  region boundary, it is the reason for the second lane; reading regions keyless
+  files the gated checks as "not on this floor" and `MarshCaveB3` lost its
+  with-key lane entirely.
+- **A region's lane must start at that region's own door.** A linked chest with
+  a tile in each half belongs to both, so an unconstrained "best arrival" served
+  the smaller half from the larger half's door -- drawing a second lane on top
+  of the first and leaving the other half bare, which looks exactly like the bug
+  it is meant to fix.
+
+**The second lane is drawn as an extension, not as a second line.** Where both
+lanes use the same corridor there is one line, in the colour of the walk you can
+always do; the key colour appears only on the steps the key actually buys.
+Drawing both in full -- even offset by a pixel -- puts two parallel lines down a
+shared corridor, which reads as "there are two ways through here", and that is
+not what is true. On `MarshCaveB3` it is the difference between 4032 and 1710
+pixels of the second colour, all of it now saying something.
+
+**The cost model, measured on `MarshCaveB3` (his "Bottom"), 11 chests:**
+
+| costs | steps | encounter tiles | traps crossed | turns |
+|---|---|---|---|---|
+| step count only | 380 | 311 | 5 | 65 |
+| + turn preference | 380 | 318 | 4 | 58 |
+| + encounter floor | 380 | 306 | 5 | 67 |
+| + fixed traps | 419 | 347 | **3** | 66 |
+
+The turn preference is free -- same step count, seven fewer counted turns. The
+trap term costs 39 steps to avoid two fights, which is worth it. **Three
+crossings is the floor, not a failure:** flooding the map with trap tiles made
+impassable reaches 8 of the 11 chests, and chests `28`, `31` and `32` are
+reachable no other way -- trap `(23,40)` is the only way to 28, `(26,53)` or
+`(27,54)` to 31, `(52,54)` to 32. So a lane should draw a forced crossing
+differently rather than pretend it avoided it.
 
 **Linked chests belong on the same drawing pass.** A chest index can sit on more
 than one tile, so opening any one clears the lot, and nothing on the map says so

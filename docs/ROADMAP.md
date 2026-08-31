@@ -85,13 +85,32 @@ share work with section 1, which is why they come second and not later.
 - **Entrance markers.** On a shuffled seed the hand art's exits are wrong, so
   these are the top map item for a No-Overworld or entrance-rando player; the
   design is in `STATUS.md`, "Designed, not started". First increment is the
-  bridge's edge log plus a console print, display half after. Routes need the
-  same log to know which door leads where, which is why this comes first.
+  bridge's edge log plus a console print, display half after.
 - **Routes on regenerated maps.** The shipped hand art already carries
   DarkmoonEX's lanes; the regenerated art — the only art a No-Overworld player
   can trust — has none. Two flavours (shortest, with-loot), one colour per lane
   across all 61, key in the Map Key band. Baked at render time in `regen_maps`;
   the PopTracker tab is a static image. Objective function is in `IDEAS.md`.
+
+  **This does not wait on the entrance markers.** This list said it did until
+  2026-08-31, on the grounds that a route needs the edge log to know which door
+  leads where. It does not. A route baked at render time has the cartridge, and
+  `entrance_graph.Graph` reads the shuffled teleport tables straight off it; the
+  log exists so the *tab* can learn the permutation by observation without
+  spoiling it, which is a display concern and not a routing one. The search is
+  written as well — `Graph.floor_walk()` is a torus-aware BFS returning steps
+  per tile, so a lane is path reconstruction down that gradient. What is
+  unbuilt is the objective function and the drawing.
+
+  **The spoiler question arrives from the other side instead.** A lane baked
+  into the image says which staircase is the way onward to a player who may
+  have wanted to walk into that. Settle it before drawing, not after.
+
+  **The reference is the acceptance test, not the input.** DarkmoonEX's lanes
+  are drawn on vanilla layouts, and the regenerated art exists for the seeds
+  where the layout is not vanilla — which is the same trap the trap-tile
+  letters fell into (`ISSUES.md`, "Our trap letters are not DarkmoonEX's").
+  Derive the lane from the cartridge; check it by eye against his.
 - **The No-Overworld map surface.** The connection diagram — a hand-drawn
   pseudo-overworld with the fixed links as roads. Unchanged from the earlier
   plan; the topology is measured and stable.
@@ -138,6 +157,6 @@ Stated once so nobody re-derives them.
 Where things stand on the day this was written. `git log trunk..` is what
 actually says where a branch is.
 
-- `trunk` is level with `origin/trunk` and clean as of 2026-08-30. `noverworld-logic`
-  and `visibility-toggles` are merged.
+- `trunk` is level with `origin/trunk` and clean as of 2026-08-31.
+  `noverworld-logic` and `visibility-toggles` are merged.
 - Nothing is in flight.
