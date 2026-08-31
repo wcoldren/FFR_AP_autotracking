@@ -7,6 +7,13 @@ next.
 
 ## On the maps
 
+**Show the towns when you walk into one. Built 2026-08-31** -- the answer was
+the third of the three this paragraph offered, an override shipping its own
+`mapValues.lua`, and it cost about forty lines. `STATUS.md`, "The towns got tabs
+the party can walk into", has what it turned on. Kept below as written, because
+the reasoning about why the base pack cannot name those tabs is still the reason
+the file is generated rather than edited.
+
 **Show the towns when you walk into one.** No-Overworld gives every town
 staircases, so a town is a room you route through — but `MAP_VALUE` still calls
 maps 0-7 "Overworld" and `maptab.lua` sends you to the overworld tab. The town

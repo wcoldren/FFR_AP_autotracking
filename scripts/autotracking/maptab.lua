@@ -15,8 +15,15 @@
 ------------------------------------------------------------------
 
 -- Where to go when the player is somewhere with no dungeon tab of its own:
--- the overworld itself, or one of the eight towns (MAP_VALUE sends those to
--- "Overworld" because they have no tab either).
+-- the overworld itself, or one of the eight towns.
+--
+-- Whether the towns land here at all depends on which MAP_VALUE is loaded. The
+-- pack's own table sends map ids 0-7 to "Overworld", because the pack ships no
+-- town art and so has no town tab to name. An override written by
+-- tools/regen_maps.py does have that art, and its build_map_values() rewrites
+-- those eight entries to "Other/Towns/<Title>" -- PopTracker serves the
+-- override's copy ahead of the pack's, so with one installed the towns get
+-- their own tabs and never reach the fallback below.
 --
 -- Both candidates are the same overworld art; they differ in which markers
 -- they carry. On an ordinary seed the incentive map carries the whole board --
@@ -184,7 +191,9 @@ function activateMapTab(mapId)
   end
 
   local path = (mapId == -1) and overworldTab() or (MAP_VALUE and MAP_VALUE[mapId])
-  -- Towns come through the table as "Overworld"; send them the same way.
+  -- With the pack's own table the towns come through as "Overworld"; send them
+  -- the same way. An override's table names their tabs outright, so this is
+  -- dead there -- see the note at the top of the file.
   if path == MAP_VALUE_OVERWORLD then
     path = overworldTab()
   end

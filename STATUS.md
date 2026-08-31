@@ -1492,6 +1492,50 @@ restart is still irreducible -- PopTracker loads pack images at load time, so no
 amount of detecting or regenerating removes it.
 
 
+## The towns got tabs the party can walk into
+
+Built 2026-08-31, straight after the stale-art detection and deliberately
+before the regen that had to be run for it -- one regen then delivered both.
+
+`maptab.lua` has followed the party between floors since the bridge landed, and
+`MAP_VALUE` is the table that says which tab a map id belongs to. It calls maps
+0-7 "Overworld", which is every town, so walking into Pravoka took you to the
+overworld art.
+
+**The table could not be fixed where it lives.** The pack ships art only for
+what vanilla gives a tab to, and the eight town images exist nowhere but a
+regenerated override -- measured: the override's `maps.json` names 63 tabs to
+the pack's 53, the extra ten being the eight towns plus `con_castle2F` and
+`bahamutB2`. Naming them in the pack's own table would point the shipped tracker
+at tabs it does not contain, and `tests/test_maptab.lua` check 1 fails on
+exactly that, for the right reason.
+
+**So the tree that has the art names it.** `regen_maps.py` now writes
+`scripts/autotracking/mapValues.lua` into the override alongside the layouts,
+the location files and `maps.json`, and `autotracking.lua:24` loads that table
+by a pack-relative path -- which PopTracker resolves through the override first.
+That is the same shadowing that makes a stale override serve stale layouts
+(`docs/ISSUES.md`), used on purpose this time.
+
+**Rewritten from the pack's file, not emitted from scratch**, so the other 45
+entries flow through untouched and a later edit to any of them needs nothing
+here. The match is narrow on purpose: only an entry still reading the bare
+`"Overworld"` is replaced, so a table someone has already changed by hand stops
+the run rather than being quietly overwritten.
+
+**Which map id is which town is derived, not restated.** `render_maps.MAP_FILES`
+says which image a map id draws into and `TOWN_TABS` says which tab shows that
+image, so the two existing tables are joined rather than a third one written
+that could drift from both.
+
+`tools/tests/test_map_values.py` re-runs `test_maptab.lua`'s check 1 against the
+generated pair -- the pack's check reads the pack's table against the pack's
+layouts, and neither of those is what PopTracker ends up serving, so the eight
+new paths would otherwise be asserted by nothing. It also pins that exactly the
+eight towns moved, that every other entry is byte-identical, and that a
+hand-edited table stops the run.
+
+
 ## Known wrong
 
 Moved to `docs/ISSUES.md`, with the open questions.

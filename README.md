@@ -107,8 +107,14 @@ if you would rather stay on the floor you are reading; it is on by default. This
 needs the emulator bridge -- Archipelago on its own does not report your position
 -- and only the two map variants have dungeon tabs to switch between.
 
-Towns and the overworld land on one of the two overworld tabs, which are the same
-art carrying different markers: `Incentive Locations` has the slots a key item
+If you have run `tools/regen_maps.py`, the eight towns have tabs of their own
+under `Other > Towns`, and walking into one brings its tab up like any dungeon
+floor. That only works in a regenerated tree: the pack ships no town art, so it
+has no town tabs, and the table that names them is written into the override
+beside the art it names.
+
+The overworld -- and the towns on a tracker without that art -- land on one of
+the two overworld tabs, which are the same art carrying different markers: `Incentive Locations` has the slots a key item
 can be in, `Overworld` has every chest in the game as well. `Overworld Tab` in
 the flags grid decides which. On `Auto`, the default, an Archipelago session is
 asked what is in its pool, and a bridge-only one is asked what the cartridge

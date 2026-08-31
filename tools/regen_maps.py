@@ -146,6 +146,7 @@ INPUT_FILES = [
     "locations/NOverworld/incentives.json",
     "maps/NOverworldMaps.json",
     "scripts/autotracking/location_mapping.lua",
+    "scripts/autotracking/mapValues.lua",
 ]
 
 # Every map this redraws. A marker on one of these needs a calibration entry
@@ -823,6 +824,74 @@ def build_layouts():
     return doc
 
 
+# Where a town's tab ends up, once build_layouts has added the group: the
+# "Other" tab of each variant layout, then the "Towns" group inside it.
+TOWN_TAB_PATH = "Other/Towns/%s"
+
+
+def build_map_values():
+    """The pack's MAP_VALUE, with the eight towns pointed at their own tabs.
+
+    `maptab.lua` brings a map's tab to the front when the party walks onto it,
+    and `MAP_VALUE` is the table that says which tab. It calls maps 0-7
+    "Overworld", because the eight towns have no tab in the pack: the pack ships
+    art only for what vanilla gives a tab to, and the town images exist nowhere
+    but this override.
+
+    So the table cannot be fixed in the pack. Naming tabs there that only the
+    override has would point the shipped tracker at tabs it does not contain,
+    and `tests/test_maptab.lua` check 1 fails on exactly that, for the right
+    reason. The tree that has the town art is the tree that gets to name it --
+    which is this one, and `autotracking.lua:24` loads the table by a
+    pack-relative path, so PopTracker serves this copy ahead of the pack's.
+
+    Rewritten from the pack's own file rather than emitted from scratch, so a
+    later edit to any of the other 45 entries flows through untouched. The
+    match is deliberately narrow: only an entry whose value is still the bare
+    "Overworld" is replaced, so a table that has already been changed by hand
+    stops the run instead of being overwritten.
+    """
+    path = os.path.join(PACK, "scripts", "autotracking", "mapValues.lua")
+    with open(path) as f:
+        text = f.read()
+
+    # Which map id is which town, derived rather than restated: MAP_FILES says
+    # which image a map id draws into, TOWN_TABS says which tab shows that
+    # image. Spelling them out again here is how the two would drift.
+    by_image = {name: mid for mid, name in render_maps.MAP_FILES.items()}
+    want = {}
+    for title, image in TOWN_TABS:
+        if image not in by_image:
+            sys.exit(f"no map id draws {image}, so the {title} tab has nothing "
+                     "to follow the party into -- TOWN_TABS and "
+                     "render_maps.MAP_FILES disagree")
+        want[by_image[image]] = TOWN_TAB_PATH % title
+
+    done = set()
+
+    def swap(m):
+        mid = int(m.group(2))
+        if mid not in want:
+            return m.group(0)
+        done.add(mid)
+        return '%s"%s",' % (m.group(1), want[mid])
+
+    out = re.sub(r'(\s*\[(\d+)\]\s*=\s*)"Overworld",', swap, text)
+    if done != set(want):
+        missed = sorted(set(want) - done)
+        sys.exit("mapValues.lua does not say [%s] = \"Overworld\" any more, so "
+                 "this rewrite would leave %d town%s pointing somewhere else. "
+                 "Check what the table says now."
+                 % (", ".join(str(m) for m in missed), len(missed),
+                    "" if len(missed) == 1 else "s"))
+
+    return ("-- Written by tools/regen_maps.py. The pack's own copy of this\n"
+            "-- table sends the eight towns to the overworld, because the pack\n"
+            "-- has no town art and so no town tabs; this tree has both.\n"
+            "-- Edit scripts/autotracking/mapValues.lua, not this file.\n"
+            + out)
+
+
 # ---------------------------------------------------------------------- cache
 
 def load_cache(out_dir):
@@ -1398,6 +1467,7 @@ def main():
         build_noverworld_maps_json(have, args.marker_size, args.marker_border),
         indent=4) + "\n").encode()
     files["layouts/shared.json"] = (json.dumps(build_layouts(), indent=4) + "\n").encode()
+    files["scripts/autotracking/mapValues.lua"] = build_map_values().encode()
 
     stray += ow_stray
 

@@ -70,8 +70,11 @@ share work with section 1, which is why they come second and not later.
   it against the cartridge and publishes `ff1/art`, and the `artStale` light
   says so on the board. Left: the execution half, which no longer gates on a
   measurement now that `os.execute` is known to run and detach.
-- **Follow the party into towns and rooms.** Auto-tab exists; extend it to the
-  No-Overworld towns and to the room-level zoom.
+- **Follow the party into rooms.** The towns half landed 2026-08-31 (`STATUS.md`,
+  "The towns got tabs the party can walk into"): `regen_maps.py` writes its own
+  `mapValues.lua` into the override, so the tree that has the town art is the
+  tree that names it. What is left is the room-level zoom -- `UiHint("Zoom
+  <map>")` and `UiHint("Pan <map>")`, per `IDEAS.md`.
 - **`hide unreachable locations` swallows skipped slots.** Decide whether
   Inspect should survive it.
 - **What a diamond means.** Settle it and put it in the Map Key.
