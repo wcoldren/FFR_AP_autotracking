@@ -128,6 +128,13 @@ def flags_of(node):
     flags = set()
     for section in sections:
         flag = incentive_slots.flag_of(section)
+        # A rule string is commasplit before it is parsed (rule.h:12), so a
+        # comma inside a flag would not read as part of the flag -- it would
+        # AND a second rule onto the pin, hiding it whenever some item named by
+        # the tail is missing however the toggle stands. flag_of() cuts at the
+        # comma on its access_rules path but not on its visibility_rules
+        # fallback; cut here so the rule builder cannot be handed one either way.
+        flag = flag.split(",")[0] if flag else None
         if not flag:
             return None
         flags.add(flag)

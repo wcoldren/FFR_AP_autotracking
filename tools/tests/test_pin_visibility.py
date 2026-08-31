@@ -177,6 +177,28 @@ def main():
         for m in n.get("map_locations") or []
         if m["map"] == "overworld" and m.get("restrict_visibility_rules")), 0)
 
+    # 6. A comma in a flag cannot smuggle a second rule onto a pin.
+    #
+    # PopTracker commasplits a rule string before parsing it (rule.h:12), so
+    # "$showPin|slot|a,b" is not one rule about a flag spelled "a,b" -- it is two
+    # rules AND'd, and the pin then hides whenever item `b` is absent however the
+    # toggle stands. incentive_slots.flag_of() cuts at the comma when it reads a
+    # flag out of an access rule but not when it falls back to a lone
+    # visibility_rules entry, and tests/test_pins.lua cannot see the difference:
+    # its flag scan stops at the comma and never names `b`. Nothing on either
+    # sheet carries one today, which is why both halves are here -- the synthetic
+    # slot is the guard, the count is the statement that it is still hypothetical.
+    comma = {"name": "I: Comma",
+             "map_locations": [{"map": pin_visibility.INCENTIVE_MAP}],
+             "sections": [{"name": "Slot", "visibility_rules": ["Xcalber,b"]}]}
+    check("a flag's comma tail is cut rather than ANDed on",
+          pin_visibility.rule_for(pin_visibility.INCENTIVE_MAP, comma),
+          "$showPin|slot|Xcalber")
+    check("commas in the rules the trees carry", sum(
+        1 for rel in pin_visibility.TREES for n in nodes(load(rel))
+        for m in n.get("map_locations") or []
+        for rule in m.get(pin_visibility.FIELD) or [] if "," in rule), 0)
+
     for f in fails:
         print("     " + f)
     print("ALL PASS" if not fails else f"{len(fails)} FAILED")
