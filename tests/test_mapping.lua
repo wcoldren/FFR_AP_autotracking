@@ -184,13 +184,14 @@ if #layoutFiles < 2 then
 end
 
 local docs, definedIn, referenced = {}, {}, {}
-local gridMissing, gridSeen = {}, 0
+local gridMissing, gridSeen, gridCodes = {}, 0, {}
 local function walkGrids(node, file)
   if type(node) ~= "table" then return end
   if node.type == "itemgrid" then
     for _, row in ipairs(node.rows or {}) do
       for _, code in ipairs(row) do
         gridSeen = gridSeen + 1
+        gridCodes[code] = true
         if not items[code] and not LUA_ITEM_CODES[code] then
           gridMissing[code .. "  (" .. file .. ")"] = true
         end
@@ -219,6 +220,45 @@ if #gm > 0 then
 else
   print(string.format("ok   all %d itemgrid cells across %d layout files name a real item",
                       gridSeen, #layoutFiles))
+end
+
+-- 4c. and the same check the other way round: every flag toggle reaches a grid.
+--
+--     4b catches a cell naming nothing. It cannot catch the reverse, and the
+--     reverse is the one that has happened: `noTail` was added to
+--     items/flags.json with a flag_mapping row and no cell anywhere, so a
+--     NoTail seed set the item and the board showed nothing at all. Autotracking
+--     still worked, which is exactly why nobody saw it -- the gap only bites a
+--     player reading the board, or one setting flags by hand with no bridge.
+--
+--     Anything deliberately kept off the board goes on OFF_BOARD with its
+--     reason, so this fails both ways: adding a hidden toggle fails, and giving
+--     a listed one a cell without taking it off the list fails too.
+local OFF_BOARD = {}
+local flagCodes = {}
+for _, item in ipairs(json.load(PACK .. "/items/flags.json")) do
+  if item.codes and item.type == "toggle" then flagCodes[#flagCodes + 1] = item.codes end
+end
+table.sort(flagCodes)
+if #flagCodes < 20 then
+  fails("read only " .. #flagCodes .. " toggles out of items/flags.json")
+end
+local hidden, staleOff = {}, {}
+for _, code in ipairs(flagCodes) do
+  if not gridCodes[code] and not OFF_BOARD[code] then hidden[#hidden + 1] = code end
+end
+for code in pairs(OFF_BOARD) do
+  if gridCodes[code] then staleOff[#staleOff + 1] = code end
+end
+table.sort(staleOff)
+for _, code in ipairs(hidden) do
+  fails("flag toggle with no grid cell, so the board can never show it: " .. code)
+end
+for _, code in ipairs(staleOff) do
+  fails("flag toggle listed as off-board but it has a grid cell: " .. code)
+end
+if #hidden == 0 and #staleOff == 0 then
+  print(string.format("ok   all %d flag toggles have a cell on the board", #flagCodes))
 end
 
 local dangling, orphan = {}, {}

@@ -188,6 +188,9 @@
                 [
                     "sardasForest",
                     "shipDrydock",
+                    "noTail"
+                ],
+                [
                     "tab_mode"
                 ]
             ]
