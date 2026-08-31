@@ -102,7 +102,7 @@ Desert`. A Desert seed is warned about, but by `flag_mapping.lua:264`
 | `MapSardasForest` | `sardasForest` | code |
 | `MapAirshipHike` | — | **missing**; 4.9.7+ only (also read by `EntrancesFloorsShuffle.cs`) |
 | `MapCardiaLandBridge` | — | **missing**; 4.9.7+ only |
-| `ShipDrydock` | — | **missing**; 4.9.7+ only. `Tracker.cs` reads it, so FFR thinks a tracker needs it |
+| `ShipDrydock` | — | **missing**; 4.9.7+ only. Measured: 52 exported rules change and the pack over-reports 53 locations (`docs/ORACLE.md`). `Tracker.cs` reads it, so FFR thinks a tracker needs it |
 | `DisableOWMapModifications` | — | n/a (meta: disables all of the above) |
 
 The last three arrive after 4.9.2 — `git grep` finds no mention of any of them
@@ -177,9 +177,9 @@ location — so `check_logic` graded it 226/226 against rules that had not
 changed. The pack still needed the code, because the lying cell is the pack's
 own; the gate for it is `tests/test_flags.lua`, not the oracle.
 
-### None of the six can be graded by the corpus as it stands
+### None of the six could be graded by the 4.9.2 corpus
 
-The corpus is five 4.9.2 cartridges (`docs/ORACLE.md`). Against that, the six
+That corpus is five 4.9.2 cartridges (`docs/ORACLE.md`). Against it the six
 split in two, for reasons that have nothing to do with each other.
 
 **Three do not exist at 4.9.2.** `ShipDrydock`, `MapAirshipHike` and
@@ -194,14 +194,20 @@ from the pool unconditionally, and ToFR appears zero times in all five existing
 exports. Rolling one of these produces the `NoTail` outcome by construction
 rather than by accident: an unchanged rule set graded against itself.
 
-So the oracle-seed-per-branch step is not one more 4.9.2 cartridge for any of
-the six. The three overworld flags want a **4.9.7 oracle build**, which is the
-recipe already in `docs/ORACLE.md` with a different base commit — `1f31434` is
-in the clone, it is the SHA `tools/ffr_flags/schemas/4-9-7.json` already
-expects, and the export commit the 4.9.2 build needed is a 19-line addition to
-`FF1R/Commands/Generate.cs`. The three ToFR flags want something other than the
-export; `tools/tofr_diff.py` is the tool that already covers ToFR by comparison
-instead.
+So the oracle-seed-per-branch step was never one more 4.9.2 cartridge for any of
+the six.
+
+**The 4.9.7 corpus exists now** and closes the first half: `std497` and
+`drydock497`, one seed apart by a single flag value, at
+`seeds/ff1/oracle-4.9.7/`. `ShipDrydock` turns out to have the export footprint
+`NoTail` did not — it rewrites 52 of the 207 rules the two exports share, always
+by taking the `Ship` alternative away, and the pack over-reports 53 locations as
+reachable on such a seed today. `MapAirshipHike` and `MapCardiaLandBridge` are
+rollable there too and have not been measured yet. Figures, mechanism and the
+build deltas are in `docs/ORACLE.md`, "The second corpus: 4.9.7".
+
+The three ToFR flags still want something other than the export;
+`tools/tofr_diff.py` is the tool that covers ToFR by comparison instead.
 
 Two to verify rather than add: `IsFloaterRemoved`, `ShuffleObjectiveNPCs`.
 

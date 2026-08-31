@@ -12,12 +12,10 @@ Five cartridges, all 4.9.2, all generated locally with `Spoilers` and
 **All 4.9.2 is a limit as well as a fact.** `ShipDrydock`, `MapAirshipHike` and
 `MapCardiaLandBridge` do not exist in FFR at the 4.9.2 release commit, so no
 cartridge here can be rolled with one of them on and no addition to this corpus
-grades them. They want a second corpus off the 4.9.7 release `1f31434`, built by
-the recipe below with that commit in place of `01272d4`; the flag decoder
-already expects that SHA, because `tools/ffr_flags/schemas/4-9-7.json` records
-it. `docs/FLAG_COVERAGE.md` has the rest of that split, including the three
-remaining flags that 4.9.2 *does* carry and this corpus still cannot grade,
-because they are Temple of Fiends flags and the export drops ToFR.
+grades them. That is what the second corpus below is for. `docs/FLAG_COVERAGE.md`
+has the rest of the split, including the three remaining flags that 4.9.2 *does*
+carry and neither corpus can grade, because they are Temple of Fiends flags and
+the export drops ToFR.
 
 ## Inventory
 
@@ -206,6 +204,77 @@ split and gave 254 derived and 222/220 compared where this page recorded 255 and
 226/224 — and the rows above are what the regenerated files actually produce.
 Regenerating them is the two `noverworld_rules.py` commands below and about two
 minutes.
+
+## The second corpus: 4.9.7
+
+At `seeds/ff1/oracle-4.9.7/`, built the same way from the 4.9.7 release commit
+`1f31434` -- the SHA `tools/ffr_flags/schemas/4-9-7.json` already records, so the
+flag decoder accepts a local build of it unmodified.
+
+| Slug | Preset | Seed | Mode | Answers |
+|---|---|---|---|---|
+| `std497` | `oracle497_std` | `3B7E1C8A` | GameMode 0, ToFRMode 0 (Long) | that the harness and the standard rules hold at 4.9.7 |
+| `drydock497` | `oracle497_drydock` | `3B7E1C8A` | GameMode 0, ToFRMode 0 (Long), ShipDrydock | what `ShipDrydock` does to the rules FFR exports |
+
+**The pair shares a seed and differs in one flag value.** Both presets are the
+same 543 keys; `ShipDrydock` is `false` in one and `true` in the other, and
+nothing else differs. So anything that moves between the two exports is the
+flag, not the roll -- a tighter control than `nov`/`nov2`, which hold the flags
+still and vary the seed.
+
+### Measured
+
+Last run 2026-08-31.
+
+| Check | Result |
+|---|---|
+| `std497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
+| `drydock497`, pack rules vs FFR | **223 checked, 170 agree, 11 distinct divergences over 53 locations** |
+| `std497` vs `drydock497`, exported rules | **207 locations in both exports, 52 rules differ; 51 lose a `Ship` alternative and not one gains anything** |
+
+`std497`'s 226/226 is `std`'s 225/225 one version later, and it is the row that
+says the corpus itself is sound: the harness works against a 4.9.7 export and the
+pack's hand-written standard rules hold there unchanged. Protect it the same way.
+
+**`drydock497` is the opposite of `notail`, and that is the whole point of
+building this corpus.** `NoTail` rewrote no rule FFR hands Archipelago, so its
+cartridge graded an unchanged rule set against itself. `ShipDrydock` rewrites 52
+of the 207 rules the two exports share, and every one of the changes is a route
+being taken away. The pack has no code for the flag, so it goes on offering the
+Ship route: 53 locations show reachable that FFR says are not, across Elf Castle,
+Marsh Cave, Earth Cave, the Castle of Ordeals, Astos, the Canoe Sage and the Elf
+Prince. A check shown green that is not reachable is the failure mode the pack
+cares most about, so this is a real defect with a measurement attached, and the
+gate for the eventual `shipDrydock` code is this cartridge rather than a pack
+test.
+
+**What the flag does**, read off the code rather than inferred from the diff:
+`MapExchange/ShipLocations.cs:52-60` moves *every* ship spawn to the Gaia
+drydock, and `OverworldMapEdits.cs:535-549` (`GaiaDrydock`, applied at
+`OverworldMap.cs:69`) lays the dock tiles there. Wherever the seed puts the Ship,
+it launches on the far eastern coast. Nothing gains a Ship alternative because
+everything reachable from Gaia already needed the Canoe or the Airship.
+
+Both check_logic runs print the "where ship, canal, canoe, floater were placed is
+not recorded for this seed" caveat and are marked NOT COUNTED. That is the normal
+condition for these cartridges -- the 4.9.2 runs behind the 225/225 and 229/229
+figures print it too -- and the export diff above is the independent reading that
+the 53 are not an artefact of it.
+
+### Rebuilding the 4.9.7 pair
+
+The recipe below, with three differences:
+
+- base commit `1f31434` on local branch `ffr-497-oracle`, worktree
+  `vendor/ff1/FF1Randomizer-497` (pinned in `pins.yaml` as
+  `ff1_randomizer_497`); stamp `FFRVersion.Sha = "1f31434"`.
+- **4.9.7 targets `net10.0`, not `net6.0`**, so the CLI is at
+  `FF1R/bin/Release/net10.0/FF1R.dll` and `DOTNET_ROLL_FORWARD` is not needed.
+- the presets are 4.9.7's own `default.json` with the same six flags flipped on,
+  plus `ShipDrydock` written explicitly -- `false` in `oracle497_std` and `true`
+  in `oracle497_drydock`. The stock preset omits the key entirely; Newtonsoft
+  binds it straight onto `Flags`, and the value was confirmed by decoding it back
+  off each finished cartridge rather than trusting the preset.
 
 ## Rebuilding
 
