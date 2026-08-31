@@ -389,6 +389,41 @@ for _, version in ipairs({ "4-9-7", "4-9-2" }) do
 end
 
 
+------------------------------------------------------------------
+print("\n-- NoTail, off the oracle cartridge that carries it")
+------------------------------------------------------------------
+-- NoTail takes the Tail out of the item pool and rewrites no access rule FFR
+-- hands Archipelago, so no export grades it -- notail.yaml's rules mention the
+-- Tail nowhere, and Bahamut is not an Archipelago location at all. The Bahamut
+-- cell is the pack's own, and on a NoTail seed its `tail` can never light:
+-- stage 0 reads $602D, and the seed has no Tail to put there. Without the
+-- noTail alternative the cell reads unreachable right up until the class
+-- change lights stage 1 from $620E and makes the question moot.
+--
+-- The before/after anchor is deliberately not this file's main 4-9-7 fixture,
+-- which turns out to carry NoTail itself -- unnoticed for as long as there was
+-- no noTail code to notice it with. SHARD_RECORD is the NoTail-off record here.
+--
+-- Flag string is read off seeds/ff1/oracle-4.9.2/notail at seed 45057553,
+-- which is oracle_std with exactly one flag flipped.
+local NOTAIL_FLAGS = "omlInPoZ8aeRURUYe2aUg0I8HZZCUXtPc76esLTcnyl5plsgMDVIQ3lOapR226xybGTTrugBTQeMv5"
+    .. "wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBv"
+    .. "UxrD89pHBz3zAEWHH4FmWj"
+local NOTAIL_RECORD = "4-9-2|" .. NOTAIL_FLAGS
+
+check("ordinary 4-9-2 cartridge decodes NoTail off", f492.NoTail, false)
+local fNoTail = decodeFFRFlags("4-9-2", NOTAIL_FLAGS)
+check("the NoTail cartridge decodes", fNoTail ~= nil, true)
+check("  and it says NoTail", fNoTail and fNoTail.NoTail, true)
+
+-- On, then off again: the toggle has to track the flag in both directions, or
+-- a NoTail seed followed by an ordinary one leaves Bahamut permanently open.
+check("applied the NoTail cartridge", applyFFRFlags(NOTAIL_RECORD), true)
+check("  noTail is set", byCode["noTail"].Active, true)
+check("applied a NoTail-off cartridge", applyFFRFlags(SHARD_RECORD), true)
+check("  noTail is cleared again", byCode["noTail"].Active, false)
+
+
 print("")
 if fail == 0 then
   print("ALL PASS")

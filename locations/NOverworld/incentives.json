@@ -554,7 +554,8 @@
                     {
                         "name": "I: Bahamut",
                         "access_rules": [
-                            "tail"
+                            "tail",
+                            "noTail"
                         ],
                         "hosted_item": "bahamut"
                     },

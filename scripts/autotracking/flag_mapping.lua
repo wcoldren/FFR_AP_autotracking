@@ -39,6 +39,7 @@ local TOGGLES = {
   { ffr = "EarlySarda",              code = "earlySarda" },
   { ffr = "EarlySage",               code = "earlySage" },
   { ffr = "EarlyOrdeals",            code = "earlyOrdeals" },
+  { ffr = "NoTail",                  code = "noTail" },
   { ffr = "IncentivizeFreeNPCs",     code = "npcsAreIncentive" },
   { ffr = "IncentivizeFetchNPCs",    code = "fetchQuestsAreIncentive" },
   { ffr = "IncentivizeIceCave",      code = "iceCaveIsIncentive" },

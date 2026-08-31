@@ -42,7 +42,6 @@ topology in a way no toggle can express.
 | `FreeLute` | Lute at start | `lute` from inventory | RAM |
 | `FreeRod` | Rod at start | `rod` from inventory | RAM |
 | `FreeTail` | Tail at start | `tail` from inventory | RAM |
-| `NoTail` | Bahamut promotes without the Tail; Tail removed from pool | Bahamut section still requires `tail` | **missing** — false red on Bahamut |
 | `IsFloaterRemoved` | Airship placed as an item; no Floater/desert step | `floater` progressive assumes Floater→Airship | probably RAM (airship byte lights stage 2); **verify** |
 | `AirBoat` | Ship doubles as airship after Floater | `airBoat` progressive, rules use it | code |
 | `GameMode` / `NoOverworld` | Mode 2 = No-Overworld | `isNoOverworld()` from variant UID | variant (warning printed on mismatch) |
@@ -80,6 +79,7 @@ topology in a way no toggle can express.
 | `EarlyKing` | `earlyKing` | code |
 | `EarlySarda` | `earlySarda` | code |
 | `EarlySage` | `earlySage` | code |
+| `NoTail` | `noTail` | code — declared in `IVictoryConditionFlags` but **`FF1Lib/Sanity/` never reads it**; it reaches the checker only as a pool edit (`PlacementContext.cs:99,205`), so it belongs here, not in A |
 | `ShuffleObjectiveNPCs` | — | **check**: if it moves which NPC holds which objective, it moves logic |
 | `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks |
 | `NPCSwatter` | — | n/a |
@@ -115,22 +115,34 @@ whether Titan's Trove exists as a check — presentation, not reachability.
 
 Reachability flags with no pack code today:
 
-1. `NoTail` — Bahamut false red
-2. `MapAirshipHike`
-3. `MapCardiaLandBridge`
-4. `ShipDrydock`
-5. `ToFRMode`
-6. `ChaosRush`
-7. `ExitToFR`
+1. `MapAirshipHike`
+2. `MapCardiaLandBridge`
+3. `ShipDrydock`
+4. `ToFRMode`
+5. `ChaosRush`
+6. `ExitToFR`
+
+`NoTail` was the seventh and is **done** — see the row in section B. Closing
+it turned up something that applies to the rest of this list: **a flag being
+declared in `IVictoryConditionFlags` does not mean `SanityCheckerV2` reads it.**
+`NoTail` is declared there and appears nowhere in `FF1Lib/Sanity/`. Check the
+grep, not the interface, before filing a flag in section A.
 
 Two to verify rather than add: `IsFloaterRemoved`, `ShuffleObjectiveNPCs`.
 One that is a mode, not a flag: `DesertOfDeath`.
 
-That is seven codes, not twenty-five, and none is a redesign. Each wants: a
+That is six codes, not twenty-five, and none is a redesign. Each wants: a
 `TOGGLES`/`PROGRESSIVES` row in `flag_mapping.lua`, a code in `items/flags.json`,
 the affected `access_rules` alternatives, and one oracle seed rolled with the
 flag on so `check_logic` grades the branch. Without the oracle seed the code is
 another hand-transcribed rule.
+
+**Rolling the seed can also show the branch is ungradeable, and that is a
+result.** `NoTail`'s cartridge proved the flag rewrites no rule FFR hands
+Archipelago — its export mentions the Tail nowhere and Bahamut is not an AP
+location — so `check_logic` grades it 226/226 against rules that had not
+changed. The pack still needed the code, because the lying cell is the pack's
+own; the gate for it is `tests/test_flags.lua`, not the oracle.
 
 ## Keeping this current
 

@@ -30,6 +30,12 @@
 		"codes" : "earlyOrdeals"
 	},
 	{
+		"name" : "No Tail",
+		"type" : "toggle",
+		"img" : "images/items/tail.png",
+		"codes" : "noTail"
+	},
+	{
 		"name" : "AirBoat",
 		"type" : "progressive",
 		"stages" : [

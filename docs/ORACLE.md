@@ -6,7 +6,7 @@ rules FFR hands Archipelago — and `tools/check_logic.py` compares that with th
 pack's rules as truth tables. This file says which cartridge answers which
 question, and how to rebuild any of them from nothing.
 
-Four cartridges, all 4.9.2, all generated locally with `Spoilers` and
+Five cartridges, all 4.9.2, all generated locally with `Spoilers` and
 `Archipelago` on so the export is attached.
 
 ## Inventory
@@ -17,6 +17,7 @@ Four cartridges, all 4.9.2, all generated locally with `Spoilers` and
 | `nov` | `oracle_nov` | `F2585541` | GameMode 2, ToFRMode 2 (Short) | the derived No-Overworld rules |
 | `nov2` | `oracle_nov` | `1D0BE11E` | GameMode 2, ToFRMode 2 (Short) | second seed at identical flags — the ToFR control |
 | `shard` | `oracle_shard` | `5A4D0BAF` | GameMode 0, ShardHunt | `isShardHunt()` against a real export |
+| `notail` | `oracle_notail` | `45057553` | GameMode 0, ToFRMode 0 (Long), NoTail | that `NoTail` reaches no exported rule — see below |
 
 Modes are quoted as **read back off the cartridge**, never off the filename —
 that trap has bitten more than once.
@@ -29,6 +30,7 @@ seed-driven.
     nov    omlY4TDJ0WBi73FLBF5hW902l51xl72yHm32Rio0v38eGNM0fKy0TT8KJ-a0NWDQIIcxpvj7MlpYDG7gMaaVe-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
     nov2   (identical to nov)
     shard  omlInPoZ8aeCvsimCReMV9G4KHYm3TUYASJBGOBHlVOiR1kCNT91VO6GOxnA9GbEBb7YM1kQIzMfs8M3W7C8VP-aE5sJ0h2VYqBCNFMidFYuxFDg.QyWC6OgqMHtZPIrzXE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
+    notail omlInPoZ8aeRURUYe2aUg0I8HZZCUXtPc76esLTcnyl5plsgMDVIQ3lOapR226xybGTTrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
 
 Each cartridge sits in its own directory with its spoiler `.txt`, its
 Archipelago `.yaml` and, for the two No-Overworld ones, the derived rules JSON.
@@ -51,10 +53,26 @@ Last run 2026-08-30, on freshly rebuilt cartridges.
 | `nov`, derived rules vs FFR | **226 compared, 225 agree, 1 divergent** (Lefein) — **5 granted an off-vocabulary item**, so **221** are genuinely comparable; 255 derived, 0 unreachable |
 | `nov2`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein) — **5 granted**, **219** genuinely comparable; 255 derived, 0 unreachable |
 | `nov` vs `nov2`, ToFR shuffle | **0 differences** |
+| `notail`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
 
 `std`'s 225/225 is the baseline to protect: it validates the harness end to end
 against rules that were written by hand, and it must not move. `shard`'s 229/229
 is the same kind of measurement for `isShardHunt()`.
+
+**`notail`'s 226/226 measures something different, and reading it as a pass is a
+mistake.** It was rolled to grade a `NoTail` branch and instead proved there is
+no branch to grade: `NoTail` takes the Tail out of the item pool and rewrites no
+access rule FFR hands Archipelago. Its export mentions the Tail nowhere, and
+Bahamut is not an Archipelago location on any of the five cartridges. So the
+226/226 was already true before the pack gained a `noTail` code and stayed true
+after — it is a no-regression measurement, not evidence the code is right.
+
+That makes `NoTail` a flag whose only lying cell is the pack's own, and its gate
+is `tests/test_flags.lua`, which fails with the `flag_mapping.lua` row removed.
+Two things fell out of rolling it, both worth carrying to the remaining flags:
+`FF1Lib/Sanity/` never reads `NoTail` despite `IVictoryConditionFlags` declaring
+it, and this repo's main 4-9-7 flag fixture has carried `NoTail` all along
+without anyone noticing, because there was no code to notice it with.
 
 **The two No-Overworld rows say much less than they look like they say, and the
 difference matters more than the numbers.** Read the next section before quoting
@@ -237,6 +255,8 @@ touches a map bank.)
         --ap-rules $O/std/oracle_std.yaml --ff1-world $W
     python3 tools/check_logic.py $O/shard/oracle_shard.nes \
         --ap-rules $O/shard/oracle_shard.yaml --ff1-world $W
+    python3 tools/check_logic.py $O/notail/notail.nes \
+        --ap-rules $O/notail/notail.yaml --ff1-world $W
 
     python3 tools/tofr_diff.py $O/nov/oracle_nov.nes $O/nov2/oracle_nov2.nes
 
