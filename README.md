@@ -199,7 +199,7 @@ No-Overworld set side by side, so each tracker variant shows its own. Nothing is
 written into the pack: it all goes to PopTracker's user-override directory, and
 `--clean` puts DarkmoonEX's art back.
 
-    tools/regen_maps.py ~/Downloads/FFR_yourseed.nes
+    tools/regen_maps.py path/to/FFR_yourseed.nes
 
 The overworld is redrawn too, and it is the map the flags actually move. The
 drydock, the northern docks, Sarda's forest, the Gaia pass, the Lefein bridge

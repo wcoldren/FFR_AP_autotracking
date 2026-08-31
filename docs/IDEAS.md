@@ -56,6 +56,34 @@ says when it went too far. What it cannot answer is the judgement — Onrac's ri
 is real map content and still not worth framing — so a size threshold here is a
 decision to be defended, not tuned.
 
+**The two lanes are named wrong, and one of them is the wrong lane. Raised
+2026-08-31, from play judgement, after the first build.** What shipped is two
+*loot* lanes that differ by whether you hold the floor's key: cyan "Optimal
+Route" collects what it can keyless, purple "Optimal w Key" collects the rest.
+That is not what the pair means. The reference's two flavours are:
+
+- **Optimal Route** -- **no loot at all**. Arrival to exit, the safest walk
+  through the floor for someone who is passing through and not opening
+  anything. Nothing in the tracker draws this today.
+- **Optimal Route for Loot** -- everything, and **"for loot" already implies the
+  key**: a loot route that stopped at the locked door would not be the loot
+  route. So the key is a property of the loot lane, not a second lane beside it.
+
+So the built pair is really one lane drawn in two halves, and the genuinely
+missing one is the traversal lane. The fix is not a rename: it is to route
+`arrival -> nearest exit` with an empty errand for the first lane, and to let
+the second hold the floor's items from the start rather than deriving a keyless
+variant to diff against. The two-colour drawing mechanism survives intact --
+what changes is what each colour is routed for.
+
+**And a loot lane should not collect a check it would already have.** A linked
+chest index sits on up to three tiles across the run, and the errand treats each
+floor in isolation, so a floor whose only remaining claim on an index is its
+second tile still walks to it -- `MarshCaveB2`'s bottom half is 179 steps for
+two checks its top half already cleared. Deciding this needs an order the router
+does not have: which floor you reach first, which is a run-wide question and not
+a per-map one. Filed rather than guessed at.
+
 **Routes drawn on the map. Built 2026-08-31** -- the with-loot flavour, baked
 into the regenerated art by `tools/lane.py` and `render_maps.draw_lanes`, keyed
 in the Map Key band, on by default and off with `--lanes none`. `STATUS.md`,

@@ -99,7 +99,16 @@ share work with section 1, which is why they come second and not later.
   already drew, and not "this is the way onward". Stopping at the last chest
   instead would drop a goal the published objective names beside treasure.
 
-  **What is left is the shortest-to-the-exit flavour**, and the by-eye pass.
+  **What is left is the shortest-to-the-exit flavour, and it is more than a
+  missing extra: the pair that shipped is named wrong.** "Optimal Route" means
+  the walk through a floor collecting *nothing*, and "for loot" already implies
+  the key rather than needing a lane of its own. What is drawn today is one loot
+  lane in two halves. `IDEAS.md` has the correction and what it costs to fix.
+  Also open: a loot lane still walks to a linked chest whose twin it would have
+  collected on an earlier floor, which needs a run-wide order the router has
+  no notion of.
+
+  **The by-eye pass is the other half.**
   The reference is the acceptance test, not the input: DarkmoonEX's lanes are
   drawn on vanilla layouts and the regenerated art exists for the seeds where
   the layout is not vanilla — the same trap the trap-tile letters fell into
