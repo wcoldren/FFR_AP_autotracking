@@ -119,6 +119,8 @@ INPUT_FILES = [
     "tools/map_calibration.json",
     "maps/maps.json",
     "layouts/shared.json",
+    "layouts/NOverworld/tracker.json",
+    "layouts/NOverworld/shardsTracker.json",
     "locations/overworld.json",
     "locations/NOverworld/overworld.json",
     "locations/incentives.json",
@@ -361,8 +363,23 @@ def build_images(rom, mode, crops_, rows, graph=None, only=None,
 MARKER_SIZE = render_maps.TILE_PX - 2
 MARKER_BORDER = 2
 
+# The overworld needs its own, and much bigger. A cropped dungeon render is a
+# few hundred pixels across and PopTracker scales it up, so 14 lands as a
+# readable box; the overworld render is 4096 across and gets scaled *down* by
+# an order of magnitude, where 14 pixels is not a pin, it is a speck.
+#
+# Taken from the art it replaces rather than picked: the shipped drawing is
+# 3096 wide and carries location_size 80 with a border of 10, which is 6.6
+# tiles of the 256-tile field. The same fraction of a 4096-wide render is
+# 80 * 4096 / 3096 = 106, and 10 * 4096 / 3096 = 13. Both images draw the same
+# map, so the same fraction is the same number of tiles either way.
+OVERWORLD_MARKER_SIZE = 106
+OVERWORLD_MARKER_BORDER = 13
 
-def build_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
+
+def build_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER,
+                    ow_size=OVERWORLD_MARKER_SIZE,
+                    ow_border=OVERWORLD_MARKER_BORDER):
     """The pack's maps.json, pointed at the standard set of rendered art.
 
     The overworld and incentive entries keep the pack's own art and sizes --
@@ -387,14 +404,16 @@ def build_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
         e = by_name.setdefault(name, {"name": name})
         if name not in order:
             order.append(name)
-        art = "overworld" if name in OVERWORLD_MAPS else name
-        e["img"] = f"images/maps/std/{art}.png"
-        e["location_size"] = size
-        e["location_border_thickness"] = border
+        overworld = name in OVERWORLD_MAPS
+        e["img"] = f"images/maps/std/{'overworld' if overworld else name}.png"
+        e["location_size"] = ow_size if overworld else size
+        e["location_border_thickness"] = ow_border if overworld else border
     return [by_name[n] for n in order]
 
 
-def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
+def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER,
+                               ow_size=OVERWORLD_MARKER_SIZE,
+                               ow_border=OVERWORLD_MARKER_BORDER):
     """NOverworldMaps.json, which the No-Overworld variants load second.
 
     scripts/init.lua loads maps.json and then this, and PopTracker lets the
@@ -436,8 +455,8 @@ def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
         if "overworld" not in order:
             order.append("overworld")
         e["img"] = "images/maps/nov/overworld.png"
-        e["location_size"] = size
-        e["location_border_thickness"] = border
+        e["location_size"] = ow_size
+        e["location_border_thickness"] = ow_border
     return [by_name[n] for n in order]
 
 
@@ -693,6 +712,68 @@ def build_layouts():
     return doc
 
 
+# The two No-Overworld layouts that have map tabs at all. The NoMap pair is
+# deliberately excluded, being the variants for a player who does not want them.
+NOVERWORLD_LAYOUTS = ("layouts/NOverworld/tracker.json",
+                      "layouts/NOverworld/shardsTracker.json")
+
+
+def build_noverworld_layouts():
+    """{relpath: doc} for the No-Overworld trackers, with an Overworld tab.
+
+    The shipped pack has no such tab, on purpose and with the reason written
+    down in two places: a No-Overworld seed's overworld is an ocean stub with
+    nine one-tile town pads, so vanilla art would be "a picture of somewhere the
+    seed never goes" (`scripts/autotracking/maptab.lua`), and asking for a tab
+    the layout has not got activates nothing silently.
+
+    That reasoning was right and is what this changes: with a rendered
+    No-Overworld overworld there *is* art of the place the seed actually goes,
+    and 29 pins in locations/NOverworld/overworld.json that have never had a tab
+    to appear on. So the tab is added here rather than in the checkout, which
+    keeps both true at once -- the pack still has no tab and no vanilla picture
+    to show, and an override with the art has one.
+
+    `overworldTab()` still collapses to the incentive sheet on these variants,
+    so nothing auto-switches to this tab; it is there to be opened.
+    """
+    out = {}
+    for rel in NOVERWORLD_LAYOUTS:
+        doc = lenient(os.path.join(PACK, rel))
+        added = False
+
+        def walk(node):
+            nonlocal added
+            if isinstance(node, list):
+                for v in node:
+                    walk(v)
+                return
+            if not isinstance(node, dict):
+                return
+            tabs = node.get("tabs")
+            if isinstance(tabs, list):
+                titles = [t.get("title") for t in tabs if isinstance(t, dict)]
+                if "Incentive Locations" in titles and "Overworld" not in titles:
+                    at = titles.index("Incentive Locations") + 1
+                    tabs.insert(at, {"title": "Overworld",
+                                     "content": {"type": "map",
+                                                 "maps": ["overworld"]}})
+                    added = True
+                for t in tabs:
+                    walk(t)
+            for v in node.values():
+                walk(v)
+
+        walk(doc)
+        if not added:
+            # Same reasoning as the shared.json guard above: a tab that quietly
+            # fails to appear is how con_castle2F ended up reachable from
+            # nowhere.
+            sys.exit(f"no tab list in {rel} to add an Overworld tab to")
+        out[rel] = doc
+    return out
+
+
 # ---------------------------------------------------------------------- cache
 
 def load_cache(out_dir):
@@ -851,6 +932,15 @@ def main():
                          "hand-drawn art uses 24)")
     ap.add_argument("--marker-border", type=int, default=MARKER_BORDER,
                     metavar="PX", help=f"its border (default {MARKER_BORDER})")
+    ap.add_argument("--overworld-marker-size", type=int,
+                    default=OVERWORLD_MARKER_SIZE, metavar="PX",
+                    help=f"marker box on the overworld, which is 4096 pixels "
+                         f"across and scaled down rather than up (default "
+                         f"{OVERWORLD_MARKER_SIZE}, the fraction of the image "
+                         "the hand-drawn art's 80 was)")
+    ap.add_argument("--overworld-marker-border", type=int,
+                    default=OVERWORLD_MARKER_BORDER, metavar="PX",
+                    help=f"its border (default {OVERWORLD_MARKER_BORDER})")
     ap.add_argument("--npcs", choices=("none", "gates", "all"), default="all",
                     help="draw map objects on the art: every NPC (default), "
                          "just the No-Overworld gate NPCs, or none. The "
@@ -1125,12 +1215,20 @@ def main():
         if other != mode and os.path.isdir(os.path.join(out_dir, "images", "maps", other)):
             have.add(other)
     files["maps/maps.json"] = (json.dumps(
-        build_maps_json(have, args.marker_size, args.marker_border),
+        build_maps_json(have, args.marker_size, args.marker_border,
+                        args.overworld_marker_size,
+                        args.overworld_marker_border),
         indent=4) + "\n").encode()
     files["maps/NOverworldMaps.json"] = (json.dumps(
-        build_noverworld_maps_json(have, args.marker_size, args.marker_border),
+        build_noverworld_maps_json(have, args.marker_size, args.marker_border,
+                                   args.overworld_marker_size,
+                                   args.overworld_marker_border),
         indent=4) + "\n").encode()
     files["layouts/shared.json"] = (json.dumps(build_layouts(), indent=4) + "\n").encode()
+    # Only once there is No-Overworld art for it to show.
+    if "nov" in have:
+        for rel, doc in build_noverworld_layouts().items():
+            files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
 
     def report(what, rows):
         print(f"\nFAILED: {len(rows)} {what}:")

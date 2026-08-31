@@ -190,9 +190,15 @@ end
 --     Both are live now: which one the overworld lands on depends on whether
 --     the seed put the chests in the pool.
 --     The NOverworld layouts are the exception and deliberately so: they have
---     no "Overworld" tab because the mode has no overworld to draw, and
---     overworldTab() collapses to the incentive tab there rather than asking
---     for one that is not laid out.
+--     no "Overworld" tab because the mode has no *vanilla* overworld worth
+--     drawing, and overworldTab() collapses to the incentive tab there rather
+--     than asking for one that is not laid out.
+--
+--     This checks the checkout, which is the thing that has to keep working on
+--     its own. tools/regen_maps.py adds the tab to an override once it has
+--     rendered the seed's own No-Overworld map -- art of the ocean stub the
+--     seed does go to -- so an installed override having one is not a failure
+--     of this rule but the case it was hedging against being gone.
 local FALLBACKS = { "Incentive Locations", "Overworld" }
 for _, file in ipairs(MAP_LAYOUTS) do
   local titles = tabTitles(file)
