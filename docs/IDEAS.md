@@ -217,11 +217,25 @@ dropped, because the reasoning is still the reason the warning comes first.
 What has *not* changed is the restart. PopTracker loads pack images at load time,
 so an automatic regen buys the render and never the reload.
 
-One precondition is still unmeasured and is step 0 of that branch: `os.execute`
-is described above as "plausibly in reach" in Mesen's Lua, which is an inference
-from the file and socket functions the bridge already uses, not a test. If it
-turns out not to be reachable, the detection half ships and the execution half
-does not.
+**That precondition is now measured, and it holds.** `os.execute` was called
+"plausibly in reach" above on the strength of the file and socket functions the
+bridge already uses, which was an inference rather than a test. Run in Mesen's
+script window on 2026-08-31, with the "Allow access to I/O and OS functions"
+restriction the bridge already requires:
+
+- `os` is a table, and `execute`, `time`, `getenv`, `remove` and `tmpname` are
+  all functions on it.
+- `os.execute` runs. Checked by side effect -- a file written and read back --
+  rather than by return value, because Lua 5.1 and 5.4 disagree about what it
+  returns and a stubbed one can look like a success.
+- **It detaches.** A backgrounded three-second sleep returned in under a second,
+  so the detached half of the constraint above is satisfied by the shell rather
+  than needing anything cleverer.
+
+So the execution half is buildable and no longer gates on a measurement. The
+order does not change: detection still ships first, for the reason the
+superseded paragraph gives -- the warning cell is what makes an automatic regen
+legible to the player, and the restart it cannot remove is still there.
 
 One thing it needs first: the bridge has no sha256, so the cache has to record
 something cheap to compare. The FFR seed string and flag string are already read
