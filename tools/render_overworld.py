@@ -162,17 +162,26 @@ def tileset_art(rom):
     return blocks
 
 
-def render(rom, scale=1):
-    """(width, height, rgb) for the seed's overworld."""
+def render(rom, scale=1, box=None):
+    """(width, height, rgb) for the seed's overworld.
+
+    `box` is (x0, y0, w, h) in tiles, or None for all 256x256. Cropping is what
+    makes a No-Overworld map readable: its nine stub doors sit within fourteen
+    tiles of each other on a field of 65536, so the whole map is a picture of
+    nothing you can do. It is not a torus crop -- a box is clamped to the map
+    rather than wrapped, because a cluster that straddles the seam is a case
+    nothing has produced and guessing at it would be untested code.
+    """
     rows = overworld_reach.decompress_ow(rom)
     art = tileset_art(rom)
     px = TILE_PX
+    x0, y0, tw, th = box or (0, 0, OW_DIM, OW_DIM)
     out = bytearray()
-    for row in rows:
-        blocks = [art[t] for t in row]
+    for row in rows[y0:y0 + th]:
+        blocks = [art[t] for t in row[x0:x0 + tw]]
         for y in range(px):
             out += b"".join(block[y] for block in blocks)
-    w = h = OW_DIM * px
+    w, h = tw * px, th * px
     if scale > 1:
         out, w, h = downscale(out, w, h, scale)
     return w, h, out

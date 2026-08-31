@@ -207,6 +207,13 @@ than the pixel the drawing had. That is more accurate than it sounds: the
 drawing is not a scaled map, and the shipped pins sit up to eleven tiles from
 the tile they name.
 
+It is cropped to what those pins need to be seen, which is a trim on a standard
+seed and the whole point on a No-Overworld one. There the nine stub doors sit
+within fourteen tiles of each other on a field of 65536, so the uncropped map is
+a picture of nothing you can do; cropped, it is the hub you actually navigate.
+The marker is sized from how wide the image came out, so it lands about the same
+size on screen either way.
+
 One thing the drawing has that a render does not is its single annotation --
 the caravan, marked so you know the shop-item check exists at all. That
 information survives the swap as a pin rather than as a label: the caravan is

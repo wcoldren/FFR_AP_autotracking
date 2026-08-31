@@ -285,8 +285,48 @@ def resolve(rom, reader, graph, doc, tiles_by_name, mirror=None, report=None):
     return placed, unplaced, anchors
 
 
-def restamp(doc, placed, maps=("overworld", "incentives"), tile_px=16):
+# How much map to keep around the pins. Eight tiles is a screen's worth of
+# context at the game's own 16x15 viewport, and the floor stops a cluster of
+# two from rendering as a postage stamp PopTracker then blows up to nothing.
+CROP_MARGIN = 8
+CROP_MIN = 32
+
+
+def content_box(anchors, dim=256, margin=CROP_MARGIN, minimum=CROP_MIN):
+    """(x0, y0, w, h) in tiles: what the pins need to be seen, clamped to the map.
+
+    The rule is the pins rather than the land, because the land is not what an
+    overworld tab is for. On a standard cartridge the pins are spread over the
+    whole field and this trims ocean off the edges; on a No-Overworld one they
+    are nine doors in a fourteen-tile huddle and it is the difference between a
+    readable map and a green smudge.
+    """
+    if not anchors:
+        return (0, 0, dim, dim)
+    xs = [x for x, _ in anchors]
+    ys = [y for _, y in anchors]
+    x0, x1 = min(xs) - margin, max(xs) + margin + 1
+    y0, y1 = min(ys) - margin, max(ys) + margin + 1
+    def grow(lo, hi):
+        while hi - lo < minimum:
+            if lo > 0:
+                lo -= 1
+            if hi - lo < minimum and hi < dim:
+                hi += 1
+            if lo == 0 and hi == dim:
+                break
+        return max(0, lo), min(dim, hi)
+    x0, x1 = grow(max(0, x0), min(dim, x1))
+    y0, y1 = grow(max(0, y0), min(dim, y1))
+    return (x0, y0, x1 - x0, y1 - y0)
+
+
+def restamp(doc, placed, maps=("overworld", "incentives"), tile_px=16,
+            origin=(0, 0)):
     """Move every overworld pin in `doc` onto the tile it was resolved to.
+
+    `origin` is the crop box's top-left tile, so a pin's pixel is measured from
+    the image that is actually written rather than from the whole 256x256 field.
 
     -> (moved, dropped). A pin whose place this cartridge does not have -- the
     caravan and the airship desert are both absent from a No-Overworld map --
@@ -295,6 +335,7 @@ def restamp(doc, placed, maps=("overworld", "incentives"), tile_px=16):
     the run can say so; nothing here is silent.
     """
     half = tile_px // 2
+    ox, oy = origin
     moved, dropped = 0, []
 
     def walk(node):
@@ -316,8 +357,8 @@ def restamp(doc, placed, maps=("overworld", "incentives"), tile_px=16):
                 if where is None:
                     dropped.append((node.get("name"), ml.get("map")))
                     continue
-                ml["x"] = where[0] * tile_px + half
-                ml["y"] = where[1] * tile_px + half
+                ml["x"] = (where[0] - ox) * tile_px + half
+                ml["y"] = (where[1] - oy) * tile_px + half
                 keep.append(ml)
                 moved += 1
             node["map_locations"] = keep
