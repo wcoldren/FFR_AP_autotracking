@@ -375,15 +375,19 @@ def main():
                                            marks)), None)
     check("some map on this cartridge carries a trap mark",
           keyed_map is not None, True)
-    tiles = rm.map_tiles(rom, keyed_map)
-    crop = rm.content_crop(tiles)
-    w, h, small = rm.render(rom, keyed_map, unroof=True, crop=crop,
-                            legend_rows=3)
-    band = crop.size[1] * rm.TILE_PX * w * 3
-    _, _, lettered = rm.render(rom, keyed_map, unroof=True, crop=crop,
-                               legend_rows=3, marks=marks)
-    check(f"the Map Key band on {rm.MAP_FILES[keyed_map]} is drawn into, "
-          "not left as backdrop", lettered[band:] != small[band:], True)
+    # Guarded, so a cartridge with no mark anywhere records that one failure and
+    # goes on. Reading straight through leaves map_tiles(rom, None) to raise,
+    # and the traceback takes the rest of this file's checks with it.
+    if keyed_map is not None:
+        tiles = rm.map_tiles(rom, keyed_map)
+        crop = rm.content_crop(tiles)
+        w, h, small = rm.render(rom, keyed_map, unroof=True, crop=crop,
+                                legend_rows=3)
+        band = crop.size[1] * rm.TILE_PX * w * 3
+        _, _, lettered = rm.render(rom, keyed_map, unroof=True, crop=crop,
+                                   legend_rows=3, marks=marks)
+        check(f"the Map Key band on {rm.MAP_FILES[keyed_map]} is drawn into, "
+              "not left as backdrop", lettered[band:] != small[band:], True)
     for map_id, name in rm.MAP_FILES.items():
         if name != "coneria_town":
             continue
