@@ -214,23 +214,44 @@ flag decoder accepts a local build of it unmodified.
 | Slug | Preset | Seed | Mode | Answers |
 |---|---|---|---|---|
 | `std497` | `oracle497_std` | `3B7E1C8A` | GameMode 0, ToFRMode 0 (Long) | that the harness and the standard rules hold at 4.9.7 |
-| `drydock497` | `oracle497_drydock` | `3B7E1C8A` | GameMode 0, ToFRMode 0 (Long), ShipDrydock | what `ShipDrydock` does to the rules FFR exports |
+| `drydock497` | `oracle497_drydock` | `3B7E1C8A` | the same, plus `ShipDrydock` | what `ShipDrydock` does to the rules FFR exports |
+| `extended497` | `oracle497_extended` | `3B7E1C8A` | the same, plus `MapOpenProgressionExtended` | that the `extendedOpen` code describes the flag |
+| `airship497` | `oracle497_airship` | `3B7E1C8A` | the same, plus `MapAirshipHike` | what `MapAirshipHike` does to the rules FFR exports |
+| `landbridge497` | `oracle497_landbridge` | `3B7E1C8A` | the same, plus `MapCardiaLandBridge` | what `MapCardiaLandBridge` does to the same |
 
-**The pair shares a seed and differs in one flag value.** Both presets are the
-same 543 keys; `ShipDrydock` is `false` in one and `true` in the other, and
-nothing else differs. So anything that moves between the two exports is the
-flag, not the roll -- a tighter control than `nov`/`nov2`, which hold the flags
-still and vary the seed.
+**Every one of them shares `std497`'s seed and differs from it in one flag
+value.** So anything that moves between an export and `std497`'s is the flag,
+not the roll -- a tighter control than `nov`/`nov2`, which hold the flags still
+and vary the seed. `std497` is the baseline all four are read against, which is
+why its row is the one to protect.
+
+**The stock preset omits all three of the 4.9.7-only flags, and that is not the
+same as the build not having them.** 4.9.7's `default.json` names neither
+`ShipDrydock` nor `MapAirshipHike` nor `MapCardiaLandBridge`, even though all
+three are ordinary `bool?` properties on `Flags` at that commit
+(`Flags.cs:326-327`, and `ShipDrydock` beside them). Newtonsoft binds a key
+written in explicitly straight onto `Flags`, so every preset here writes
+`ShipDrydock` -- `oracle497_std` and the three built from it are 544 keys --
+and `oracle497_airship` and `oracle497_landbridge` add their own on top, at 545.
+Every value was confirmed by decoding it back off the finished cartridge rather
+than trusting the preset. An absent key is not an absent flag; that is the trap
+this paragraph exists to stop, and it is the only thing that made the last two
+rows look harder than `ShipDrydock` was.
 
 ### Measured
 
-Last run 2026-08-31.
+Last run 2026-09-01.
 
 | Check | Result |
 |---|---|
 | `std497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
 | `drydock497`, pack rules vs FFR | **223 checked, 223 agree, 0 divergences** — it was 170 agree, 11 divergences over 53 locations before the `shipDrydock` code |
+| `extended497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
+| `airship497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — it was 90 agree, 13 divergences over 134 locations before the `airshipHike` code |
+| `landbridge497`, pack rules vs FFR | **223 checked, 223 agree, 0 divergences** — it was 177 agree, 5 divergences over 46 locations before the `cardiaLandBridge` code |
 | `std497` vs `drydock497`, exported rules | **207 locations in both exports, 52 rules differ; 51 lose a `Ship` alternative and not one gains anything. The 52nd is `Shop Item` and is not the flag — see below** |
+| `std497` vs `airship497`, exported rules | **208 in both, 124 differ; every one of them gains `(Floater AND Ship)` and none loses anything** |
+| `std497` vs `landbridge497`, exported rules | **206 in both, 42 differ; every one gains `(Canoe AND Canal AND Ship)`** |
 
 `std497`'s 226/226 is `std`'s 225/225 one version later, and it is the row that
 says the corpus itself is sound: the harness works against a 4.9.7 export and the
@@ -276,18 +297,18 @@ condition for these cartridges -- the 4.9.2 runs behind the 225/225 and 229/229
 figures print it too -- and the export diff above is the independent reading that
 the 53 are not an artefact of it.
 
-### Checking the 4.9.7 pair
+### Checking the 4.9.7 corpus
 
     O7=<corpus>/oracle-4.9.7
-    python3 tools/check_logic.py $O7/std497/std497.nes \
-        --ap-rules $O7/std497/std497.yaml --ff1-world $W
-    python3 tools/check_logic.py $O7/drydock497/drydock497.nes \
-        --ap-rules $O7/drydock497/drydock497.yaml --ff1-world $W
+    for s in std drydock extended airship landbridge; do
+        python3 tools/check_logic.py $O7/${s}497/${s}497.nes \
+            --ap-rules $O7/${s}497/${s}497.yaml --ff1-world $W
+    done
 
-No `--derived` on either: the sweep derives No-Overworld rules and both of these
+No `--derived` on any of them: the sweep derives No-Overworld rules and all five
 are standard seeds.
 
-### Rebuilding the 4.9.7 pair
+### Rebuilding the 4.9.7 corpus
 
 The recipe below, with three differences:
 
@@ -300,7 +321,16 @@ The recipe below, with three differences:
   plus `ShipDrydock` written explicitly -- `false` in `oracle497_std` and `true`
   in `oracle497_drydock`. The stock preset omits the key entirely; Newtonsoft
   binds it straight onto `Flags`, and the value was confirmed by decoding it back
-  off each finished cartridge rather than trusting the preset.
+  off each finished cartridge rather than trusting the preset. The other three
+  are `oracle497_std` with exactly one more key written in the same way:
+  `MapOpenProgressionExtended`, `MapAirshipHike` and `MapCardiaLandBridge`.
+
+Generating one of the newer three, for the record:
+
+    O7=<corpus>/oracle-4.9.7
+    dotnet FF1R/bin/Release/net10.0/FF1R.dll generate "<vanilla FF1 ROM>" \
+        -j $O7/flags/oracle497_airship.json -s 3B7E1C8A \
+        -o $O7/airship497/airship497.nes
 
 ## Rebuilding
 

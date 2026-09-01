@@ -1796,6 +1796,7 @@
                     "$standardWorld,ruby,airship",
                     "$standardWorld,$noShipDrydock,ruby,ship,canal",
                     "$standardWorld,melmondRiver,canoe,ruby",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,ruby",
                     "$noOverworld,tnt"
@@ -1835,6 +1836,7 @@
                     "$standardWorld,ruby,airship",
                     "$standardWorld,$noShipDrydock,ruby,ship,canal",
                     "$standardWorld,melmondRiver,canoe,ruby",
+                    "airshipHike,$standardWorld,$noShipDrydock,ruby,floater,ship",
                     "$noOverworld,ruby"
                 ],
                 "sections": [
@@ -1956,6 +1958,7 @@
                     "$standardWorld,airship",
                     "$standardWorld,$noShipDrydock,ship,canal",
                     "$standardWorld,melmondRiver,canoe",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,ruby",
                     "$noOverworld,tnt"
@@ -2640,6 +2643,7 @@
                     "$standardWorld,$noShipDrydock,ship,canal",
                     "$standardWorld,extendedOpen,canoe",
                     "$standardWorld,$noShipDrydock,ship,canoe",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,ruby",
                     "$noOverworld,tnt"
@@ -2671,6 +2675,7 @@
                     "$standardWorld,bridge,canoe",
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,extendedOpen,canoe",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,chime,$hasFloater,oxyale"
                 ],
@@ -3094,6 +3099,7 @@
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,extendedOpen,canoe",
                     "$standardWorld,$noShipDrydock,ship,canoe",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,chime,$hasFloater,oxyale"
                 ],
@@ -4059,6 +4065,8 @@
                 "name": "Cardia Grassy",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
+                    "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,chime,$hasFloater,oxyale"
                 ],
@@ -4153,6 +4161,8 @@
                 "name": "Cardia Swampy",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
+                    "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "$noOverworld,$hasCanoe,rod",
                     "$noOverworld,rod,ruby",
                     "$noOverworld,rod,tnt"
@@ -4248,6 +4258,8 @@
                 "name": "Cardia Forest",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
+                    "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "$noOverworld,$hasCanoe,$hasFloater",
                     "$noOverworld,chime,$hasFloater,oxyale"
                 ],
@@ -4750,6 +4762,7 @@
                     "$standardWorld,$noShipDrydock,gaiaMountain,northernDocks,ship,canal",
                     "$standardWorld,$noShipDrydock,gaiaMountain,hwyOrdeals,ship,canal,canoe",
                     "$standardWorld,lefeinBridge,gaiaMountain,bridge",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "$noOverworld,$hasFloater"
                 ],
                 "sections": [
@@ -4777,6 +4790,7 @@
                     "$standardWorld,$noShipDrydock,northernDocks,chime,ship,canal",
                     "$standardWorld,lefeinBridge,bridge,hwyOrdeals,chime",
                     "$standardWorld,$noShipDrydock,hwyOrdeals,ship,canoe,canal,chime",
+                    "airshipHike,$standardWorld,$noShipDrydock,chime,floater,ship",
                     "$noOverworld,$hasCanoe,$hasFloater,oxyale",
                     "$noOverworld,chime,$hasFloater"
                 ],
@@ -5249,6 +5263,7 @@
                     "$standardWorld,$noShipDrydock,northernDocks,chime,ship,canal,cube",
                     "$standardWorld,lefeinBridge,bridge,hwyOrdeals,chime,cube",
                     "$standardWorld,$noShipDrydock,hwyOrdeals,ship,canal,canoe,chime,cube",
+                    "airshipHike,$standardWorld,$noShipDrydock,chime,cube,floater,ship",
                     "$noOverworld,$hasCanoe,$hasFloater,cube,oxyale",
                     "$noOverworld,$hasFloater,chime,cube"
                 ],
@@ -6131,6 +6146,7 @@
                 "access_rules": [
                     "$standardWorld,airship,canoe",
                     "$standardWorld,$noShipDrydock,northernDocks,ship,canal,canoe",
+                    "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "$noOverworld,$hasFloater"
                 ],
                 "sections": [
@@ -6316,6 +6332,7 @@
                     "$standardWorld,airship,canoe,oxyale",
                     "$standardWorld,$noShipDrydock,northernDocks,ship,canal,oxyale",
                     "$standardWorld,$noShipDrydock,northernDocks,airBoat,airship,ship,oxyale",
+                    "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship,oxyale",
                     "$noOverworld,$hasCanoe,$hasFloater,oxyale",
                     "$noOverworld,chime,$hasFloater"
                 ],

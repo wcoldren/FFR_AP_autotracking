@@ -691,9 +691,17 @@ check("  and the Ship sails again", noShipDrydock(), 1)
 check("applied the drydock cartridge again", applyFFRFlags("4-9-7|" .. DRYDOCK_FLAGS), true)
 check("  shipDrydock is set", byCode["shipDrydock"].Active, true)
 byCode["sardasForest"].Active = true
+-- The two overworld-shape flags added for 4.9.7 are new members of the same
+-- class: schema_4-9-2 has no field for either, so both have to clear on the
+-- swap rather than survive it and hold a route open on a cartridge that never
+-- rolled them.
+byCode["airshipHike"].Active = true
+byCode["cardiaLandBridge"].Active = true
 check("then swapped to a 4.9.2 cartridge", applyFFRFlags(NOTAIL_RECORD), true)
 check("  shipDrydock is off, not left as it was", byCode["shipDrydock"].Active, false)
 check("  and so is sardasForest, same cause", byCode["sardasForest"].Active, false)
+check("  airshipHike too, which 4.9.2 has no field for", byCode["airshipHike"].Active, false)
+check("  and cardiaLandBridge", byCode["cardiaLandBridge"].Active, false)
 
 -- The other kind of nil still has to be left alone, or a tri-state rolled at
 -- generation would be forced off instead of kept. A hand-built table has no

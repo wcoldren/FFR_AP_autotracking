@@ -2277,3 +2277,78 @@ Two smaller things rode along: a stale `flag_mapping.lua.bak` that had been
 committed into the pack was dropped and `*.bak` added to `.gitignore`, and
 `lane.py`'s comment about what the router does with the exit was corrected to
 describe the code rather than a line number that had already moved.
+
+## The last two flags without a code, and a preset key that was not there
+
+Built 2026-09-01 on `flags-real-seeds`. `MapAirshipHike` and
+`MapCardiaLandBridge` were the last two entries in `FLAG_COVERAGE.md`'s "Missing
+rows, in one place", and that section now says there are none.
+
+**The thing that made them look hard was not a flag at all.** Both are ordinary
+`bool?` properties on FFR's `Flags` at 4.9.7 (`Flags.cs:326-327`), and both are
+absent from every preset in `seeds/ff1/oracle-4.9.7/flags/` -- all 544 keys of
+`oracle497_std`, which does carry `ShipDrydock`. Read the wrong way round that
+says the corpus build predates them and no cartridge can be rolled. It says
+nothing of the kind: 4.9.7's stock `default.json` omits all three of the
+4.9.7-only flags, Newtonsoft binds a key written in explicitly straight onto
+`Flags`, and `ShipDrydock` is in the preset only because the drydock work put it
+there by hand. `ORACLE.md` now says so where the next reader will hit it.
+
+So each preset is `oracle497_std` plus one key at 545, each cartridge shares
+`std497`'s seed `3B7E1C8A`, and each differs from the baseline in one flag
+value. The flag was confirmed by decoding it back off the finished cartridge
+rather than trusting the preset, which is the rule the drydock pair set.
+
+**Both flags loosen, which is the shape neither `NoTail` nor `ShipDrydock` had.**
+`ShipDrydock` took a route away and the pack went on offering it, showing 53
+locations green that FFR calls unreachable. These two add a route the pack did
+not have, so the failure is the mirror image: pins held **red** that FFR calls
+reachable. 134 of them on an airship seed and 46 on a land-bridge one, against
+226 of 226 clean on the baseline they differ from by one flag.
+
+    airship497      90 of 224 agreeing  ->  224 of 224
+    landbridge497  177 of 223 agreeing  ->  223 of 223
+    std497         226 of 226           ->  226 of 226   (unmoved)
+    drydock497     223 of 223           ->  223 of 223   (unmoved)
+    extended497    226 of 226           ->  226 of 226   (unmoved)
+
+The rewrites are uniform, which is why 134 locations collapse to twelve nodes
+and 46 to five. `MapAirshipHike` adds the `AirshipHike` map edit
+(`OverworldMap.cs:62`) and every rule it touches gains `(Floater AND Ship)` --
+the Floater standing in for having raised the airship where it stands, so the
+pack's alternative is `floater,ship` and not `airship`. `MapCardiaLandBridge`
+adds the bridge (`:64`), moves the Cardia and Bahamut overworld teleport
+coordinates with it (`:392`) and suppresses `BahamutCardiaDock` (`:55`); its
+rules gain `(Canoe AND Canal AND Ship)`. Both new alternatives carry
+`$noShipDrydock`, like every other one that names the Ship, because a drydocked
+Ship opens nothing and neither flag changes that.
+
+**Bahamut's Cave is deliberately not in either set.** It is in the Cardia group
+and the land bridge moves `BahamutCave1`'s coordinate, so it looks like it
+belongs -- but Bahamut appears in no exported rule at all, on any of the five
+cartridges, because it is not an Archipelago location. Nothing can grade it
+either way, so it stays strict and is written down here instead of being
+guessed at.
+
+**The suite caught the half that reasoning had missed.** The incentive sheet
+carries its own copy of each slot's rules, and `test_maps.lua` holds the two
+tabs in agreement about every slot. Editing only `overworld.json` broke twenty
+of those checks and named all twenty. Eleven incentive nodes needed the same
+alternatives -- and one of them, the No-Overworld sheet's `sea` slot, is hosted
+under `I: Sea Incentive` rather than the `I: Sea Shrine` node the standard sheet
+uses, so a name-matching pass fixed nineteen and left the twentieth. That last
+one is the argument for the test: nothing else in the tree says the two sheets
+disagree about where a slot lives.
+
+`tests/test_ram.lua` demonstrates both gates on Cardia Forest, the one node
+carrying both new alternatives: out of logic on the items, in with the flag,
+still out with only half the items, and out again when the Ship is drydocked.
+`tests/test_flags.lua` adds them to the cartridge-swap check, because a
+4.9.7-only flag surviving a swap to a 4.9.2 cartridge is the `ShipDrydock` bug
+and these are new members of that class.
+
+One correction fell out of the source read: `FLAG_COVERAGE.md` had
+`MapAirshipHike` marked "also read by `EntrancesFloorsShuffle.cs`". It is not --
+it appears in `OverworldMap.cs:62` and `Flags.cs` and nowhere else.
+`MapCardiaLandBridge` is the one read outside `OverworldMap.cs`, at
+`EntrancesFloorsShuffle.cs:71`.

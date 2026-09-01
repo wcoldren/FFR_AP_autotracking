@@ -20,13 +20,19 @@ rolled with the flag on** so `check_logic --ap-rules` grades the branch. A rule
 without its oracle seed is a hand transcription, which is what section 5 is
 meant to end.
 
-- **Two flags with no code**, down from five. `MapAirshipHike` and
-  `MapCardiaLandBridge`, both 4.9.7-only. `ToFRMode` and `ChaosRush` landed
+- **No flags without a code are left. Closed 2026-09-01.** `MapAirshipHike` and
+  `MapCardiaLandBridge` were the last two; both are 4.9.7-only, both were rolled
+  on their own cartridge, and both graded the branch outright — 90 of 224
+  agreeing before and 224 of 224 after on `airship497`, 177 of 223 before and
+  223 of 223 after on `landbridge497`. `ToFRMode` and `ChaosRush` landed
   2026-08-31; `ExitToFR` is decided against rather than pending, because it
   writes an exit portal and nothing else and this pack does not model points of
   no return — it sits in `NOT_MODELLED`, where a flag with no code can be told
-  apart from one nobody has got to. Two still to verify before deciding:
-  `IsFloaterRemoved`, `ShuffleObjectiveNPCs`.
+  apart from one nobody has got to.
+
+  Two are still to **verify** rather than add: `IsFloaterRemoved`,
+  `ShuffleObjectiveNPCs`. Until that grep is run this bullet is closed on the
+  flags that were known to be missing, not on the whole question.
 
   `NoTail` and `ShipDrydock` mark out both ends of the rule above. `NoTail`'s
   oracle seed proved the flag rewrites no exported rule at all, so the seed

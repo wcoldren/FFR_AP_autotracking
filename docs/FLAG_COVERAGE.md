@@ -100,8 +100,8 @@ Desert`. A Desert seed is warned about, but by `flag_mapping.lua:410`
 | `MapHighwayToOrdeals` | `hwyOrdeals` | code |
 | `MapRiverToMelmond` | `melmondRiver` | code |
 | `MapSardasForest` | `sardasForest` | code |
-| `MapAirshipHike` | — | **missing**; 4.9.7+ only (also read by `EntrancesFloorsShuffle.cs`) |
-| `MapCardiaLandBridge` | — | **missing**; 4.9.7+ only |
+| `MapAirshipHike` | `airshipHike` | code — 4.9.7+ only. `OverworldMap.cs:62` adds the `AirshipHike` map edit; every rule it rewrites gains a `(Floater AND Ship)` alternative, which is the Floater standing in for having raised the airship where it stands. 124 of the 208 rules `std497` and `airship497` share move (`docs/ORACLE.md`) |
+| `MapCardiaLandBridge` | `cardiaLandBridge` | code — 4.9.7+ only. `OverworldMap.cs:64` adds the land bridge, `:392` moves the Cardia and Bahamut overworld teleport coordinates with it, and `:55` suppresses `BahamutCardiaDock`; the rewritten rules gain `(Canoe AND Canal AND Ship)`. 42 of 206 shared rules move. Also the one of the two read outside `OverworldMap.cs`, at `EntrancesFloorsShuffle.cs:71` |
 | `ShipDrydock` | `shipDrydock`, through `$noShipDrydock` | code — 4.9.7+ only. Every alternative naming `ship` carries the guard, because a drydocked Ship opens nothing (`docs/ORACLE.md`) |
 | `DisableOWMapModifications` | — | n/a (meta: disables all of the above) |
 
@@ -150,10 +150,13 @@ whether Titan's Trove exists as a check — presentation, not reachability.
 
 ## Missing rows, in one place
 
-Reachability flags with no pack code today:
+**There are none left.** Every reachability flag the logic consults now has a
+pack code or a recorded reason for not having one. `MapAirshipHike` and
+`MapCardiaLandBridge` were the last two and landed 2026-09-01, graded on a
+cartridge each — see their rows in section B and `docs/ORACLE.md`.
 
-1. `MapAirshipHike`
-2. `MapCardiaLandBridge`
+Two remain to **verify** rather than add: `IsFloaterRemoved` and
+`ShuffleObjectiveNPCs`. Neither is a missing row until the grep says it is one.
 
 **`ToFRMode` and `ChaosRush` landed 2026-08-31.** Neither can be graded by
 `check_logic` — `Archipelago.cs:93` drops every ToFR location from the pool, so
@@ -181,10 +184,20 @@ flag being declared in `IVictoryConditionFlags` does not mean `SanityCheckerV2`
 reads it.** Section A' is what running that grep over the rest produced, and it
 moved seven rows out of section A.
 
-Each of the two wants a `TOGGLES`/`PROGRESSIVES` row in `flag_mapping.lua`, a
-code in `items/flags.json`, the affected `access_rules` alternatives, and one
-oracle seed rolled with the flag on so `check_logic` grades the branch. Both are
-4.9.7-only and want a cartridge rolled there; neither is a redesign.
+Each row here cost the same four things: a `TOGGLES`/`PROGRESSIVES` row in
+`flag_mapping.lua`, a code in `items/flags.json`, the affected `access_rules`
+alternatives, and one oracle seed rolled with the flag on so `check_logic`
+grades the branch. The last two were `MapAirshipHike` and `MapCardiaLandBridge`,
+and the only thing that made them look harder than they were is that the stock
+4.9.7 preset omits both keys — the same omission `ShipDrydock` had, and
+Newtonsoft binds a key written in explicitly straight onto `Flags`.
+
+**A loosening flag needs the same guard a tightening one does.** Both of these
+add a route rather than take one away, so the failure they cause is a pin held
+red rather than a pin shown green — less dangerous to a player, and just as
+wrong. Their new alternatives carry `$noShipDrydock` like every other one that
+names the Ship, because a drydocked Ship opens nothing and neither flag changes
+that; `tests/test_ram.lua` demonstrates that half too.
 
 **Rolling the seed can also show the branch is ungradeable, and that is a
 result.** `NoTail`'s cartridge proved the flag rewrites no rule FFR hands
@@ -201,7 +214,8 @@ split in two, for reasons that have nothing to do with each other.
 **Three do not exist at 4.9.2.** `ShipDrydock`, `MapAirshipHike` and
 `MapCardiaLandBridge` are the section B rows marked 4.9.7+ above. A 4.9.2
 cartridge cannot be rolled with a flag its build has never heard of, so no
-amount of rolling against the present corpus reaches them.
+amount of rolling against the present corpus reaches them. **All three are done
+now**, each on its own 4.9.7 cartridge.
 
 **Three are Temple of Fiends flags, and the export never covers ToFR.**
 `ToFRMode`, `ChaosRush` and `ExitToFR` are all present at 4.9.2, so a cartridge
@@ -220,9 +234,13 @@ rules the two exports share, every one of them by taking the `Ship` alternative
 away, and
 the pack was over-reporting 53 locations as reachable on such a seed. It has a
 code now, graded on that cartridge: 170 of 223 agreeing before, 223 of 223
-after. `MapAirshipHike` and `MapCardiaLandBridge` are rollable there too and
-have not been measured yet. Figures, mechanism and the build deltas are in
-`docs/ORACLE.md`, "The second corpus: 4.9.7".
+after. `MapAirshipHike` and `MapCardiaLandBridge` were rollable there
+too, and are measured now. `MapAirshipHike` and `MapCardiaLandBridge` were rolled the
+same way on 2026-09-01 and behaved like `ShipDrydock` rather than `NoTail`,
+except that both **loosen**: the pack was over-strict, holding 134 and 46
+locations red that FFR calls reachable, and grades 224 of 224 and 223 of 223
+after. Figures, mechanism and the build deltas are in `docs/ORACLE.md`, "The
+second corpus: 4.9.7".
 
 The three ToFR flags still want something other than the export;
 `tools/tofr_diff.py` is the tool that covers ToFR by comparison instead.

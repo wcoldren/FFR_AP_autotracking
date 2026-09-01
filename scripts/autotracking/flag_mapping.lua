@@ -41,6 +41,8 @@ local TOGGLES = {
   { ffr = "MapRiverToMelmond",       code = "melmondRiver" },
   { ffr = "MapSardasForest",         code = "sardasForest" },
   { ffr = "ShipDrydock",             code = "shipDrydock" },
+  { ffr = "MapAirshipHike",          code = "airshipHike" },
+  { ffr = "MapCardiaLandBridge",     code = "cardiaLandBridge" },
   { ffr = "EarlyKing",               code = "earlyKing", default = true },
   { ffr = "EarlySarda",              code = "earlySarda", default = true },
   { ffr = "EarlySage",               code = "earlySage", default = true },

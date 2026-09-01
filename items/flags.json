@@ -146,6 +146,18 @@
         "codes" : "shipDrydock"
     },
     {
+        "name" : "Airship Hike",
+        "type" : "toggle",
+        "img" : "images/items/airship.png",
+        "codes" : "airshipHike"
+    },
+    {
+        "name" : "Cardia Land Bridge",
+        "type" : "toggle",
+        "img" : "images/items/canoe.png",
+        "codes" : "cardiaLandBridge"
+    },
+    {
         "name": "NPCs are Incentive",
         "type": "toggle",
         "img": "images/locations/king.png",

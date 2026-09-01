@@ -601,6 +601,76 @@ applyRamRules(byteAt)
 check("99 shards clamps to max stage", byCode["shards"].CurrentStage, RAM_SHARDS.maxStage)
 
 ------------------------------------------------------------------
+-- MapAirshipHike and MapCardiaLandBridge, the two 4.9.7-only overworld-shape
+-- flags. Both of them loosen. Each adds a route FFR's own exported rules gain
+-- and the pack did not have, so before these codes existed the board held pins
+-- red that FFR calls reachable -- 134 locations on an airship497 seed and 46 on
+-- a landbridge497 one, against 226 of 226 clean on the std497 baseline they
+-- differ from by one flag value (docs/ORACLE.md).
+--
+-- Cardia Forest is the one node that carries both new alternatives, so both
+-- gates can be demonstrated on it and neither can pass by accident.
+--
+-- MapAirshipHike lets the Floater and the Ship stand in for having raised the
+-- airship: OverworldMap.cs:62 adds the AirshipHike map edit, and every rule
+-- FFR rewrites for it gains a (Floater AND Ship) alternative.
+------------------------------------------------------------------
+reset()
+MEM[0x600C] = 1                                  -- canal not dug
+MEM[0x602B] = 1                                  -- Floater held, airship not raised
+MEM[0x6000] = 1                                  -- Ship
+applyRamRules(byteAt)
+check("floater and ship, no airship: Cardia Forest is out", inLogic("Cardia Forest"), false)
+byCode["airshipHike"].Active = true
+check("airshipHike opens it on the Floater and the Ship", inLogic("Cardia Forest"), true)
+
+-- The Ship half is real. The hike is a walk from where the Ship can dock, so
+-- the Floater on its own does not buy it.
+reset()
+MEM[0x600C] = 1
+MEM[0x602B] = 1                                  -- Floater, no Ship
+applyRamRules(byteAt)
+byCode["airshipHike"].Active = true
+check("airshipHike does not open it on the Floater alone", inLogic("Cardia Forest"), false)
+
+-- A drydocked Ship opens nothing, which is why this alternative carries
+-- $noShipDrydock like every other one that names the Ship.
+reset()
+MEM[0x600C] = 1
+MEM[0x602B], MEM[0x6000] = 1, 1
+applyRamRules(byteAt)
+byCode["airshipHike"].Active = true
+byCode["shipDrydock"].Active = true
+check("a drydocked ship takes the hike away again", inLogic("Cardia Forest"), false)
+byCode["airshipHike"].Active = false
+byCode["shipDrydock"].Active = false
+
+------------------------------------------------------------------
+-- MapCardiaLandBridge puts the Cardia islands on reachable land and moves
+-- their overworld teleport coordinates with them (OverworldMap.cs:64 and :392),
+-- so the rules FFR rewrites for it gain a (Canoe AND Canal AND Ship)
+-- alternative instead.
+------------------------------------------------------------------
+reset()
+MEM[0x600C] = 0                                  -- canal dug; the byte reads zero
+MEM[0x6012] = 1                                  -- Canoe
+MEM[0x6000] = 1                                  -- Ship
+applyRamRules(byteAt)
+check("canoe, canal and ship: Cardia Forest is out", inLogic("Cardia Forest"), false)
+byCode["cardiaLandBridge"].Active = true
+check("cardiaLandBridge opens it on canoe, canal and ship", inLogic("Cardia Forest"), true)
+
+-- The Canoe is the half the land bridge does not replace.
+reset()
+MEM[0x600C] = 0
+MEM[0x6000] = 1                                  -- canal and Ship, no Canoe
+applyRamRules(byteAt)
+byCode["cardiaLandBridge"].Active = true
+check("cardiaLandBridge still wants the canoe", inLogic("Cardia Forest"), false)
+byCode["cardiaLandBridge"].Active = false
+
+
+------------------------------------------------------------------
 -- Sanity on the rule table itself
 ------------------------------------------------------------------
 local unknown = {}
