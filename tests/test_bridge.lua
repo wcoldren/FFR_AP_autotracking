@@ -43,6 +43,7 @@ return {
   sha1 = sha1, b64encode = b64encode, wsAccept = wsAccept,
   wsEncodeText = wsEncodeText, wsEncodeControl = wsEncodeControl,
   wsDecode = wsDecode, clockText = clockText, TIMER_FPS = TIMER_FPS,
+  PACK_UID = PACK_UID,
 }
 ]], "bridge-internals"))()
 
@@ -139,6 +140,23 @@ check("a realistic run", T.clockText(math.floor((2*3600 + 40*60 + 54) * FPS + 0.
   "2:40:54.00")
 check("hours are not zero padded away", T.clockText(math.floor(10 * 3600 * FPS + 0.5)),
   "10:00:00.00")
+
+-- The bridge's copy of package_uid, against the manifest's.
+--
+-- It has to be a copy: the stamp lives at ~/PopTracker/user-override/<uid>/ and
+-- this script has no JSON parser and no reliable path to the pack, so it cannot
+-- look the uid up. regen_maps.py reads it out of the manifest and follows a
+-- change on its own; this constant does not, and nothing connected the two.
+--
+-- What that would cost is a silent failure rather than a loud one. A uid the
+-- override directory no longer uses makes stampPath() point at nothing, and
+-- "no stamp there" is one of the four silences the stale-art light treats as
+-- "nothing to say" -- so the light would go out and stay out, on exactly the
+-- seeds it exists to catch.
+local manifest = io.open(PACK .. "/manifest.json"):read("a")
+local manifestUID = manifest:match('"package_uid"%s*:%s*"([^"]+)"')
+check("the manifest declares a package_uid", manifestUID ~= nil, true)
+check("and the bridge's copy of it matches", T.PACK_UID, manifestUID)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)
