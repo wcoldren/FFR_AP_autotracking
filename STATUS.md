@@ -2645,3 +2645,17 @@ carries the upgrade note.
 `author` stays as it is. It credits the five people whose pack this started
 from, and that is the one field on the page that is not about identity but about
 attribution.
+
+**Done here, and it cost no art.** The override was renamed rather than
+redrawn, then regenerated once per mode from the two cartridges it was already
+drawn from -- `duck-weekly-0831` for std and `duck-104` for nov -- with the
+`--npcs all --lanes loot` the installed `.regen_cache.json` recorded, so the
+board keeps the sprites and the route lanes it had. The regen reported changing
+`layouts/shared.json` and the four location files and nothing else: no image was
+redrawn, because the cache key is the ROM plus the options and neither moved.
+`--verify` now says current, 2 modes, 131 files.
+
+Reading the options back out of the cache rather than passing the defaults is
+the step worth repeating. `--lanes` defaults to `none` and `--npcs` to `none`,
+so a regen run with bare defaults would have quietly taken the lanes and every
+sprite off a board that had them.
