@@ -292,7 +292,7 @@ flag layout it produces is upstream's.
 - **And the swap is one command.** `tools/regen_maps.py FFR_seed.nes` renders
   the 61 maps, moves all 254 dungeon markers onto them, and writes maps.json
   entries and tabs for the ten maps the pack has no art for -- into PopTracker's
-  `user-override/ff1_rando_ap/`, not the checkout, so the repo keeps shipping
+  `user-override/ff1_rando_ap_uat/`, not the checkout, so the repo keeps shipping
   the screenshots and `--clean` puts it back. Every moved marker is checked
   against the cartridge's own chest tiles and `npc_positions.json` before
   anything is written. It caches: a second run on the same cartridge does

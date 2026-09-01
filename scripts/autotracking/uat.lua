@@ -161,7 +161,7 @@ rememberRomAcrossRestarts()
 -- empty board on every AP session. The honest move is to say the grid is
 -- unread, not to pretend it is empty.
 --
--- Third of the three LuaItems in this file. Append, never insert: on a host
+-- Third of the five LuaItems in this file. Append, never insert: on a host
 -- without stable ids the fallback is the sequential item id, so a new item in
 -- front of these would renumber the Resync button and the ROM memo.
 local flagsUnreadItem = nil
