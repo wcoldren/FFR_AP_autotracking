@@ -136,6 +136,29 @@ cartridge, so an AP-only session leaves the light dark.
 Regenerating is still a manual step, and picking the new art up still needs
 PopTracker restarted: it loads its images once, at load.
 
+## It says when the seed is not the game this variant tracks
+
+The third warning triangle. Two things about a seed are chosen by which variant
+you loaded rather than by anything the tracker reads: the overworld shape and
+the goal. So a No-Overworld seed opened on a standard variant colours every pin
+with geography the seed does not have, and a shard-hunt seed on a standard
+variant waits for four lit orbs instead of counting shards. Neither goes wrong
+loudly.
+
+The bridge reads the mode and the goal off the flag string and lights the
+triangle when either disagrees with the variant. Click it for which half is
+wrong -- it names both when both are.
+
+**The pack cannot fix this for you, and that is a property of PopTracker rather
+than a gap here.** A variant is chosen once, while the pack is loading, and Lua
+cannot change it afterwards: `Tracker.ActiveVariantUID` is read-only and raises
+if written, and `Pack::setVariant` is only ever called from the load path. So
+the fix is to close the pack and reopen it on the matching variant, and the
+light exists to tell you that is worth doing.
+
+Like the other two, this one is bridge-only -- the flag string lives on the
+cartridge, so an Archipelago-only session leaves it dark.
+
 ## The board follows the game rather than accumulating
 
 Loading an older save un-marks the chests it had not opened and walks items back

@@ -430,6 +430,9 @@ function applyFFRFlags(record)
     -- Say it on the board too. Defaults are a guess, and a player who missed
     -- this line has no way to tell them from the seed's own settings.
     if setFlagsUnread then setFlagsUnread(err) end
+    -- An unread flag string says nothing about the mode either, so the light
+    -- from the last cartridge has to go out rather than stand.
+    if setModeMismatch then setModeMismatch(nil) end
     FFR_FLAGS_SOURCE = record   -- do not retry the same bad string every scan
     return false
   end
@@ -438,23 +441,56 @@ function applyFFRFlags(record)
   FFR_FLAGS_SOURCE = record
   if setFlagsUnread then setFlagsUnread(nil) end
 
-  if flags.GameMode ~= 0 then
-    print("flags: this seed is not a standard game (GameMode " .. tostring(flags.GameMode)
-          .. ") -- load the matching pack variant")
+  -- Which game this seed is, against which game the loaded variant tracks.
+  --
+  -- Both halves are chosen by variant and neither can be corrected downstream:
+  -- scripts/logic.lua reads Tracker.ActiveVariantUID for the overworld shape
+  -- and again for the goal, so a No-Overworld seed on a standard variant
+  -- colours every pin with the wrong geography, and a shard-hunt seed on a
+  -- standard variant is gated on four lit orbs instead of the shard count.
+  --
+  -- Nor can the pack switch variants for the player. That is settled rather
+  -- than assumed: Tracker.ActiveVariantUID is read-only from Lua and says so
+  -- (PopTracker core/tracker.cpp:747-749), and Pack::setVariant is called once
+  -- while the pack loads (poptracker.cpp:1202). There is no runtime path.
+  --
+  -- So both go to the board as well as to the console. Collected rather than
+  -- chained, because a seed can be wrong on both counts at once and reporting
+  -- only the first hides the second.
+  local uid = Tracker.ActiveVariantUID
+  local variantIsNoOverworld = uid:find("NOverworld") ~= nil
+  local variantIsShardHunt = uid:find("shardHunt") ~= nil
+  local wrong = {}
+
+  -- GameMode 2 is No-Overworld and 1 is Deep Dungeon (Enums.cs:396-404). The
+  -- line this replaced warned on any non-zero mode, which fired on every
+  -- No-Overworld seed loaded into the No-Overworld variant it belongs in.
+  if flags.GameMode == 1 then
+    wrong[#wrong + 1] = "this seed is Deep Dungeon, which this pack does not track"
+  elseif flags.GameMode ~= 0 and flags.GameMode ~= 2 then
+    wrong[#wrong + 1] = "this seed is GameMode " .. tostring(flags.GameMode)
+                        .. ", which this pack does not track"
+  elseif (flags.GameMode == 2) ~= variantIsNoOverworld then
+    wrong[#wrong + 1] = flags.GameMode == 2
+      and "this seed is No-Overworld and this variant is not, so the overworld "
+          .. "rules do not describe it"
+      or "this variant is No-Overworld and this seed is not, so its rules do "
+         .. "not describe the seed"
   end
-  -- The goal rule is chosen by variant, not by flag: scripts/logic.lua reads
-  -- Tracker.ActiveVariantUID, so a shard-hunt seed tracked on a standard
-  -- variant is gated on four lit orbs and never on the shard count. Nothing
-  -- downstream can correct that, so say so where the rest of the flag report
-  -- goes.
-  local variantIsShardHunt = Tracker.ActiveVariantUID:find("shardHunt") ~= nil
-  if flags.ShardHunt == true and not variantIsShardHunt then
-    print("flags: this seed is a shard hunt -- load a Shard Hunt pack variant, "
-          .. "the goal on this one is gated on the four orbs")
-  elseif flags.ShardHunt ~= true and variantIsShardHunt then
-    print("flags: this seed is not a shard hunt -- load a non-Shard-Hunt pack "
-          .. "variant, the goal on this one is gated on the shard count")
+
+  if (flags.ShardHunt == true) ~= variantIsShardHunt then
+    wrong[#wrong + 1] = flags.ShardHunt == true
+      and "this seed is a shard hunt and the goal on this variant is gated on "
+          .. "the four orbs"
+      or "this variant is a shard hunt and the goal on this seed is gated on "
+         .. "the four orbs"
   end
+
+  local mismatch = #wrong > 0 and table.concat(wrong, "; ") or nil
+  if mismatch then
+    print("flags: " .. mismatch .. " -- load the matching pack variant")
+  end
+  if setModeMismatch then setModeMismatch(mismatch) end
   if flags.OwMapExchange ~= 0 then
     print("flags: this seed has a non-vanilla overworld (OwMapExchange "
           .. tostring(flags.OwMapExchange) .. ") -- map logic does not model it")

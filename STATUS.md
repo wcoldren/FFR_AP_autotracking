@@ -2486,3 +2486,55 @@ The pair is the exception in `ORACLE.md`'s table, and the table now says so. Six
 of the eight 4.9.7 cartridges are one flag from `std497`; these two are one flag
 from *each other*, and it is the pair that isolates rather than either against
 the baseline.
+
+## The variant cannot be chosen for you, so the board says so instead
+
+`ROADMAP.md` had this as "act on it, or at least light the grid the way unread
+flags do", and `ISSUES.md` suspected the first half might not be expressible.
+The suspicion was right, and it is checked now rather than suspected.
+
+**Auto-selecting the variant is refused, not deferred.** PopTracker exposes
+`Tracker.ActiveVariantUID` read-only and raises `"Tried to write read-only
+property"` on assignment (`core/tracker.cpp:747-749`), and `Pack::setVariant`
+has exactly one caller, `poptracker.cpp:1202`, on the pack-load path. There is
+no runtime path to a variant change at all. Worth stating that way round: an
+item that says "not expressible, here is the source" is one nobody re-scopes,
+and this one had been sitting in the open questions inviting exactly that.
+
+**What the seed and the variant disagreeing actually costs.** Two things are
+chosen by variant rather than read: `scripts/logic.lua` takes the overworld
+shape from the UID and the goal from it as well. So a No-Overworld seed on a
+standard variant colours every pin with geography the seed does not have, and a
+shard-hunt seed on a standard variant waits on four lit orbs instead of counting
+shards. Both fail quietly, and nothing downstream can correct either.
+
+So `modeMismatch` is the third warning light, beside `flagsUnread` and
+`artStale`, drawn by `tools/make_toggle_icons.py` in the same family -- same
+ground, border, triangle and amber, with the glyph underneath changed from three
+marker boxes to one square and one diamond. The pack's two pin shapes, side by
+side and deliberately not the same shape, which says "these two do not match"
+without inventing a picture of a variant chooser PopTracker does not draw.
+
+**It reports both halves, not the first one.** The mode and the goal can be
+wrong at once, and a chain of `elseif`s would have named the mode and hidden the
+goal. They are collected into a list and joined, and `test_flags.lua` loads a
+standard shard-hunt seed into a No-Overworld variant to hold that.
+
+**Closing it fixed a warning that was firing on seeds that were fine.** The line
+this replaced was `if flags.GameMode ~= 0`, which warned "this seed is not a
+standard game -- load the matching pack variant" on **every No-Overworld seed
+loaded into the No-Overworld variant it belongs in**. GameMode 2 is the mode the
+pack has four variants for; the check never asked what was loaded. It compares
+against the variant now, and Deep Dungeon and any unknown mode are called out by
+name instead of by being non-zero.
+
+Placing the light needed no grid resizing, which was the thing worth checking
+before adding a cell: `shared_item_grid`'s bottom row had two spare slots and
+`NOverworld_item_grid`'s had one, so both grids keep the width and height they
+had. In the No-Overworld tree all three lights sit together; in the standard one
+the new one is at the end of the bottom row rather than beside the other two,
+which is the cost of not widening the item panel to eight.
+
+And, as with every other layout edit: it does not appear on a board with an
+installed override until `regen_maps.py` is re-run per mode, for the reason
+`BRIDGE.md` already gives about the stale-art triangle's own cell.

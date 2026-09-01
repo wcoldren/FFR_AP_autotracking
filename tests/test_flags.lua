@@ -586,7 +586,15 @@ check("and says nothing once the variant matches",
 
 said = applyCapturing(RECORD)
 check("orb seed on a shard variant is called out",
-      said:find("this seed is not a shard hunt", 1, true) ~= nil, true)
+      said:find("this variant is a shard hunt", 1, true) ~= nil, true)
+
+-- Both halves at once. A seed can be wrong about the mode and the goal
+-- together, and a chain of elseifs would report the first and hide the second.
+Tracker.ActiveVariantUID = "7NOverworld"
+said = applyCapturing(SHARD_RECORD)
+check("a No-Overworld variant on a standard shard seed says both",
+      said:find("this variant is No-Overworld", 1, true) ~= nil
+      and said:find("this seed is a shard hunt", 1, true) ~= nil, true)
 
 Tracker.ActiveVariantUID = "5standard"
 

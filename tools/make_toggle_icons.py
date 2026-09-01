@@ -49,10 +49,11 @@ barely separable from the square it encircles, so `showIncentiveRings` is the
 one of the four most likely to want a drawn `noXxx.png` rather than the filter.
 Adding one is a one-line change to the item.
 
-**The fifth icon is not a toggle.** `artStale` is a warning light -- the drawn
-maps are another cartridge's -- so it belongs to `flagsUnread.png`'s family
-rather than to the four above, and it is drawn here because that is where the
-canvas and the house style live. Its amber is sampled from `flagsUnread.png`
+**The last two icons are not toggles.** `artStale` -- the drawn maps are another
+cartridge's -- and `modeMismatch` -- the seed and the loaded variant disagree
+about which game this is -- belong to `flagsUnread.png`'s family rather than to
+the four above, and they are drawn here because that is where the canvas and the
+house style live. Its amber is sampled from `flagsUnread.png`
 (222/168/46, with the exclamation cut out in 60/44/10) for the same reason the
 rest of the palette is sampled: two warning lights side by side in the same grid
 that disagreed about their amber would look like a mistake. The glyph pairs that
@@ -208,12 +209,45 @@ def art_stale():
     return c
 
 
+def mode_mismatch():
+    """The warning triangle over a square and a diamond: the seed and the
+    variant are not describing the same game.
+
+    The third of the warning family, and the second drawn here. Same ground,
+    border, triangle and amber as `art_stale` above, because two warning lights
+    in one grid that disagreed about their amber would look like a mistake.
+
+    What changes is the glyph under the triangle. `art_stale` pairs it with
+    three marker boxes, which says "about the pins on the map art". This one
+    pairs it with one square and one diamond -- the pack's two pin shapes,
+    side by side and deliberately not the same shape -- which says "these two
+    do not match" in a vocabulary the board already uses, without inventing a
+    picture of a variant chooser that PopTracker does not draw either.
+    """
+    c = Canvas(fill=WARN_GROUND)
+    c.border()
+    apex_y, base_y, cx = 4, 19, 16
+    for y in range(apex_y, base_y + 1):
+        half = (y - apex_y) * 9 // (base_y - apex_y)
+        for x in range(cx - half, cx + half + 1):
+            c.set(x, y, AMBER)
+    for y in range(9, 15):
+        for x in (cx - 1, cx):
+            c.set(x, y, AMBER_CUT)
+    for x in (cx - 1, cx):
+        c.set(x, 17, AMBER_CUT)
+    c.square(10, 26, 3, GLYPH)
+    c.diamond(22, 26, 3, GLYPH)
+    return c
+
+
 ICONS = {
     "showChestPins": chest_pins,
     "showNpcPins": npc_pins,
     "showSkippedPins": skipped_pins,
     "showIncentiveRings": incentive_rings,
     "artStale": art_stale,
+    "modeMismatch": mode_mismatch,
 }
 
 

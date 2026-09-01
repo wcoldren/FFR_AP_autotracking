@@ -81,9 +81,19 @@ meant to end.
 
   Until then both stay strict, which costs six Cardia Forest locations on a
   No-Overworld seed and the Elf Prince plus Dr Unne on a shuffled one.
-- **Variant from `GameMode`.** A No-Overworld seed loaded into a standard
-  variant colours every pin wrong and only prints a warning. Mode detection
-  exists; act on it, or at least light the grid the way unread flags do.
+- **Variant from `GameMode`. Closed 2026-09-01, and the ambitious half is
+  refused rather than deferred.** Auto-selecting the variant is not expressible:
+  `Tracker.ActiveVariantUID` is read-only from Lua and raises if written
+  (PopTracker `core/tracker.cpp:747-749`), and `Pack::setVariant` is called once
+  from the load path (`poptracker.cpp:1202`). There is no runtime path to it, so
+  this is not something to come back to.
+
+  What landed is the fallback this bullet named: a third warning light,
+  `modeMismatch`, beside the unread-flags and stale-art triangles. It reports
+  the mode and the goal together rather than in a chain, because a seed can be
+  wrong on both at once. It also fixed a warning that fired on seeds that were
+  fine — the old line warned on any non-zero `GameMode`, which meant every
+  No-Overworld seed loaded into the No-Overworld variant it belongs in.
 
 ## 2. Boxes that do not exist
 

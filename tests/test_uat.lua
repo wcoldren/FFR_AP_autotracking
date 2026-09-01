@@ -350,12 +350,14 @@ check("and the feed's own code is still up", objects[bikke].Active, true)
 -- stable LuaItem ids the fallback is the sequential item id, so an item added
 -- in front of these renumbers the Resync button and the ROM memo and the memo
 -- comes back attached to the wrong thing. Pin it.
-check("four lua items", #luaItems, 4)
+check("five lua items", #luaItems, 5)
 check("resync is first", luaItems[1].Name, "Resync tracker")
 check("the rom memo is second", luaItems[2].Name, "FFR ROM id")
 check("the unread light is third", luaItems[3].Name, "FFR flags unread")
 check("the stale-art light is fourth", luaItems[4].Name,
   "Drawn maps are another cartridge's")
+check("the mode-mismatch light is fifth", luaItems[5].Name,
+  "Seed and variant disagree")
 
 local light = Tracker:FindObjectForCode("flagsUnread")
 check("the light is reachable by its code", light == luaItems[3], true)
@@ -371,6 +373,22 @@ check("and it remembers why", FLAGS_UNREAD_WHY, "no schema for FFR 4-9-2")
 setFlagsUnread(nil)
 check("a good decode clears it", light.Icon, nil)
 check("and forgets the reason", FLAGS_UNREAD_WHY, nil)
+
+-- The mode-mismatch light, same contract. PopTracker cannot switch variants at
+-- runtime -- Tracker.ActiveVariantUID is read-only from Lua and Pack::setVariant
+-- runs once at load -- so saying it on the board is the whole of what the pack
+-- can do about a No-Overworld seed on a standard variant.
+local modeLight = Tracker:FindObjectForCode("modeMismatch")
+check("the mode light is reachable by its code", modeLight == luaItems[5], true)
+check("it starts dark too", modeLight.Icon, nil)
+setModeMismatch("this seed is No-Overworld and this variant is not")
+check("a mismatch lights it", modeLight.Icon, "images/flags/modeMismatch.png")
+check("and it remembers why", MODE_MISMATCH_WHY,
+  "this seed is No-Overworld and this variant is not")
+setModeMismatch("")
+check("an empty reason is not a reason", modeLight.Icon, nil)
+setModeMismatch(nil)
+check("a matching variant clears it", modeLight.Icon, nil)
 
 -- A swap has to blow the light out with the rest of the board. ff1/rom and
 -- ff1/flags normally arrive together, so applyFFRFlags would usually re-decide

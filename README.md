@@ -94,6 +94,11 @@ Unne and then Lefein, Ruby to the Titan, and so on), Bridge/Ship/Canal/Canoe/
 Airship, and the shard count. It also times the run, fills in the flags grid from
 the flag string FFR stamped into the cartridge, and follows you between floors.
 
+It also warns rather than going quietly wrong. Three amber triangles sit in the
+key-item grid: one for a flag string it could not read, one for map art drawn
+off a different cartridge, and one for a seed that is not the game the variant
+you loaded tracks. Click any of them for what it found.
+
 **[`docs/BRIDGE.md`](docs/BRIDGE.md) has the rest** -- the run clock and what a
 reset costs it, how the flags grid is filled in and what it cannot read, how the
 board is kept honest across save loads and seed swaps, and what to check if `UAT`

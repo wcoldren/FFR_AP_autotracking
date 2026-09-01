@@ -227,8 +227,8 @@ end
 -- bridge-only by construction -- an Archipelago-only session never learns
 -- anything about the art on disk, the same way it never learns the flag string.
 --
--- Fourth of the four LuaItems in this file, and last for the reason the third
--- one gives: append, never insert.
+-- Fourth of the five LuaItems in this file. Append, never insert, for the
+-- reason the third one gives.
 local artStaleItem = nil
 ART_STALE_WHY = ART_STALE_WHY or nil
 
@@ -279,6 +279,68 @@ function setArtStale(why)
   end
 end
 
+-- The third warning light: this seed is not the game the loaded variant tracks.
+-- A No-Overworld seed on a standard variant colours every pin with the wrong
+-- geography, and a shard-hunt seed on a standard variant is gated on four lit
+-- orbs instead of the shard count -- both quietly, because nothing downstream
+-- can correct either.
+--
+-- The pack cannot fix this by switching variants, and that is settled rather
+-- than assumed: PopTracker's Tracker.ActiveVariantUID is read-only from Lua and
+-- says so out loud (core/tracker.cpp:747-749, "Tried to write read-only
+-- property"), and Pack::setVariant is called once, from poptracker.cpp:1202,
+-- while the pack is being loaded. There is no runtime path to it at all. So the
+-- honest move is the one flagsUnread makes: say it on the board, where a player
+-- who missed the console line will see it.
+--
+-- Fifth of the five LuaItems in this file, and last, for the same reason.
+local modeMismatchItem = nil
+MODE_MISMATCH_WHY = MODE_MISMATCH_WHY or nil
+
+local function makeModeMismatchLight()
+  if type(ScriptHost.CreateLuaItem) ~= "function" then
+    return
+  end
+  local ok, item = pcall(function() return ScriptHost:CreateLuaItem() end)
+  if not ok or not item then
+    print("uat: could not create the mode-mismatch light")
+    return
+  end
+  item.Name = "Seed and variant disagree"
+  item.Icon = nil
+  item.CanProvideCodeFunc = function(_, code)
+    return code == "modeMismatch"
+  end
+  item.OnLeftClickFunc = function()
+    if MODE_MISMATCH_WHY then
+      print("flags: " .. MODE_MISMATCH_WHY .. " -- close the pack and reopen it "
+        .. "on the matching variant; PopTracker cannot switch one at runtime")
+    else
+      print("flags: this seed matches the variant you have loaded")
+    end
+  end
+  modeMismatchItem = item
+end
+makeModeMismatchLight()
+
+-- why = nil clears it, exactly as the two above. Set from applyFFRFlags on
+-- every decode, so it always describes the cartridge in the slot.
+function setModeMismatch(why)
+  if why == "" then
+    why = nil
+  end
+  MODE_MISMATCH_WHY = why
+  if not modeMismatchItem then
+    return
+  end
+  local ok, err = pcall(function()
+    modeMismatchItem.Icon = why and "images/flags/modeMismatch.png" or nil
+  end)
+  if not ok then
+    print("uat: cannot set the mode-mismatch light -- " .. tostring(err))
+  end
+end
+
 -- "" means the emulator would not tell us, which is not the same as a change.
 local function checkRom(store)
   local rom = store:ReadVariable("ff1/rom")
@@ -297,6 +359,8 @@ local function checkRom(store)
     -- from the last cartridge describes a cartridge that is no longer in the
     -- slot.
     setFlagsUnread(nil)
+    -- And the mode verdict, which described the cartridge that just left.
+    setModeMismatch(nil)
     -- And the stale-art verdict, for the same reason. ff1/art is computed per
     -- cartridge and republished on a swap, so the frame below normally carries
     -- the new one -- but a frame that carries ff1/rom and not ff1/art would

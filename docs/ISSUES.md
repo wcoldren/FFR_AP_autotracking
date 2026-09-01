@@ -610,10 +610,18 @@ Nothing here is urgent unless it says so.
   square pin stops covering it. The first is free and is what the output already
   looks like.
 
-- **Should the variant be auto-selected from `GameMode`?** Mode detection already
-  works and drives nothing but a warning. PopTracker picks a variant once, at
-  load, so this may not be expressible — worth checking before assuming it is a
-  gap.
+- **Should the variant be auto-selected from `GameMode`? Answered 2026-09-01:
+  it cannot be.** The suspicion in this entry was right and is now checked
+  rather than suspected. `Tracker.ActiveVariantUID` is read-only from Lua and
+  raises `"Tried to write read-only property"` if assigned (PopTracker
+  `core/tracker.cpp:747-749`), and `Pack::setVariant` has exactly one caller,
+  `poptracker.cpp:1202`, on the load path. No runtime path exists, so this is
+  refused rather than parked.
+
+  What the pack does instead is the `modeMismatch` light, which says on the
+  board what the console was already saying. Closing this also fixed a warning
+  that was wrong: the old `GameMode ~= 0` line fired on every No-Overworld seed
+  loaded into the No-Overworld variant it belongs in.
 
 - **Does anyone outside this repo use the pack?** It decides the four `NoMap`
   variants question in `docs/IDEAS.md`, and nothing else can settle it.

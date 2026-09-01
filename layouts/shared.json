@@ -39,7 +39,8 @@
                     "ruby",
                     "tail",
                     "slab",
-                    "bottle"
+                    "bottle",
+                    "modeMismatch"
                 ]
             ]
         }
@@ -81,7 +82,8 @@
                     "slab",
                     "bottle",
                     "flagsUnread",
-                    "artStale"
+                    "artStale",
+                    "modeMismatch"
                 ]
             ]
         }
