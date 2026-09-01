@@ -24,6 +24,17 @@ cartridge: of 32 entrance rows, only those nine have a tile on the map. The othe
 23 keep an ordinary map byte and no tile anywhere, which is why anything counting
 "doors" has to ask `Graph.starts()` rather than filtering on FFR's spare pair.
 
+**The party starts on one pad, not on all of them.** FFR writes the starting
+position at bank `$00:$B010` (`MetroidVaniaMap.cs:93`) as the scroll origin,
+seven tiles short of the party; `SCCoords` is built from the same pair as
+`(x + 7, y + 7)`, which is what says the seven is a convention rather than a
+coincidence. That gives `(104, 160)`, whose foot landmass is an eight-tile
+platform holding exactly one door — Coneria Castle. `start_doors()` reads it and
+walks the stub granting the canoe, the most generous traversal available, and
+reports rather than assumes if a vehicle ever reaches a second pad. A walk that
+seeds from all nine pads at once is answering a different question, and answers
+it optimistically.
+
 ## Everything else is a fixed table
 
 A hand-authored table of **75 teleporters**, ids `0x41-0x8B`, at

@@ -34,6 +34,16 @@ plain FFR async with no server anywhere.
 anything cleared by hand. Neither feed is authoritative; a check reported by both
 is counted once.
 
+**An AP location id is `512 + ObjectId` (`FF1Lib/Items.cs`), and only fourteen
+ids above 510 exist.** `worlds/ff1/data/locations.json` — identical in all three
+vendored Archipelago clones — holds 513 King, 516 Bikke, 518 Elf Prince, 519
+Astos, 520 Nerrick, 521 Smith, 522 Matoya, 525 Sarda, 527 Lefein, 529 CubeBot,
+530 Princess, 531 Fairy, 533 Canoe Sage and 767 Shop Item. The gaps are the
+eight NPCs that hold no shuffled item — Garland, Princess1, ElfDoc, Unne,
+Vampire, Bahamut, SubEngineer and Titan. Lighting those from RAM only is correct
+rather than a missing `LOCATION_MAPPING` row: a row for one of them would map to
+an id the server never sends.
+
 The practical consequence, and the thing most likely to mislead: **the repo is
 named for the thinner feed.** If you are wondering why some setting is not
 tracked over Archipelago, the answer is almost always that Archipelago does not
@@ -233,7 +243,7 @@ everything a cartridge can yield -- single sprites pulled by `sprites.py` or
 `font.py` may ship as tracker icons; see the README. `--clean` puts the shipped
 art back.
 
-Two things to know before trusting any tool that reads maps:
+Four things to know before trusting any tool that reads maps:
 
 - **Maps live in bank `$14`, not `$04`.** Every FFR seed relocates all 61 standard
   maps and repoints the engine's constants. Banks 4-7 keep untouched vanilla
@@ -242,9 +252,78 @@ Two things to know before trusting any tool that reads maps:
   live, a vanilla copy left at `$0E:90D3`).
 - **FFR's own `renderdungeon` is not an oracle.** It reads from the vanilla bank
   too, so it draws vanilla for every seed.
+- **A standard map is a torus.** `SMMove_Right` adds one to `sm_scroll_x` and
+  masks `AND #$3F` — "and wrap at 64 tiles" (`bank_0F.asm:3070`) — and the other
+  three directions do the same on their axis. A walk that stops at 0 and 63 seals
+  pockets that the engine does not: SeaShrineB1 went 526 reachable tiles to 611
+  when the wrap landed. It hid well, because wrapping adds tiles rather than
+  maps, so the all-items oracle below could not see it and neither could any
+  tool suite — every number stayed internally consistent. It took someone who
+  had walked the room.
+- **NPC positions are per seed.** FFR randomizes where an NPC stands, not only
+  what it hands over: `titan` moves `(60,8,7)` → `(60,4,8)` and `nerrick`
+  `(19,16,45)` → `(19,15,47)`. `npc_positions.json` is the vanilla reference and
+  nothing more; a tool that resolves a node against it is deriving rules from
+  vanilla tiles. `test_npc_pins.py` asserts the two disagree wherever the
+  cartridge moves someone, so the claim cannot quietly come back.
 
 The cheap test that catches most routing mistakes: holding every item, all 61
 maps must be reachable from the doors. `entrance_graph.py --self-check`.
+
+### The derivations, and what pins each one
+
+Four of these tools read art or geometry the ROM does not label. In each case
+the base is derived from engine constants that do not know about each other, and
+the agreement is the guard — an eyeballed offset that merely looks right has
+none, which is how each of these was wrong once.
+
+- **The sprite sheet origin.** `LoadMapObjCHR` adds the graphic id to the *high*
+  byte of a pointer, so it is a page index: art for graphic *g* is the `$100`
+  bytes at `lut_MapObjCHR + g * $100`, and `lut_MapObjCHR` is `$A200` in bank
+  `$02`. Bank `$02` has no gap for a base to slide into — 12 + 6 pages from
+  `$9000` land exactly on `$A200`, and 30 pages from `$A200` land exactly on
+  `$C000`, where `render_maps.py` already reads the background tileset. Move it
+  a page either way and one of them breaks.
+- **The menu font base.** `LoadMenuCHR` points at `$09:8800` and loads 8 rows of
+  16 tiles, so the font is the `$800` bytes there. `LoadMenuCHR` writes to PPU
+  `$0800`, making its first tile background tile `$80`; FFR's encoding table
+  independently says `0` is `$80`, `A` is `$8A`, `a` is `$A4`
+  (`FF1Text.cs:174,184,210`). Those are `TEXT_BASE + CHARS.index(ch)` exactly.
+  `test_font.py` also requires a base one tile or one row out to be *rejected*.
+  `0` and `O` are one glyph — the font's own property, asserted so nobody
+  tightens the check into "all 62 distinct".
+- **The crop.** A 64x64 render is mostly not map. `content_box()` floods the
+  border tile inward and takes the bounding box of what the flood cannot reach,
+  padded a tile; mean 48% of the grid survives. Flooding rather than testing
+  `tile == filler` is the whole point — Waterfall's `$46` is the open water
+  outside the map *and* the room floor inside it, same tile, same property
+  bytes, which defeated every per-tile test. A wall stops a flood; it does not
+  stop a comparison. The guard is that the box cuts nothing off: every chest
+  tile, every NORM/EXIT teleport and every tracked NPC survives it. WARP
+  teleports are excluded because they *are* the filler.
+- **Unroofing.** Ask the rendered tile whether it is blank, not the palette — a
+  palette test finds a room's furniture, not the floor between it. `hidden_cells()`
+  runs a palette test and an art test, each size-guarded on its own components,
+  then unions them; neither may define a region alone. Both failure modes were
+  found by asking *closer to the original maps, or farther?* — the art test alone
+  merges separate rooms into one region that then fails the size guard, and
+  seeding from the palette and flooding through art-blank cells runs away,
+  because a room can touch a wall that is also art-blank.
+
+The hand-drawn art is the acceptance test for the last two, not the input. The
+derived crop lands within one tile of the box DarkmoonEX drew on 22 of the 30
+calibrated maps with nothing tuned to make it happen, and the union leaves zero
+walkable cells drawing flat white — the measurable form of "closer to the
+shipped art", since the hand art never draws one.
+
+**`doormap.py` reports a floor's whole staircase list, not the walkable half.**
+Three things it got wrong are worth not reintroducing: it counted every entry in
+the teleport table as a door rather than asking `starts()`, so it claimed 30
+doors on a 9-door cartridge; it hid gated staircases entirely, so every floor
+behind the Rod plate looked like a dead end rather than a floor with a locked
+half; and `reachable_teleports` drops the tile it starts on, which is correct for
+routing and made Coneria Castle 2F's way down report as gated. The page is read
+as a local file, so it needs its `<meta charset>` or the arrows mojibake.
 
 **`check_logic.py` reads FFR rather than trusting the pack.** It takes the
 requirement expressions FFR wrote down for a seed -- in its own spoiler, and in

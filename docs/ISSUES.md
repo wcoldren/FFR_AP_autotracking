@@ -490,7 +490,41 @@ Nothing here is urgent unless it says so.
   only ever opens land. The Shop Item rule moved because the seed put the shop
   slot in a different shop. Do not re-derive this as the drydock closing a route.
 
+- **Nothing tests the multi-tile OR in `derive()`.** Fifteen locations on
+  `F258553F` resolve to more than one chest tile, and `derive()` unions the
+  per-tile rule sets rather than intersecting them. The union is doing real
+  work, not agreeing with itself: ToFR Kary Floor 2 resolves to
+  `canoe,floater OR chime,floater | UNREACHABLE | (free)` and ships `(free)`,
+  where an AND would demand the Floater. Free is right — opening any one copy
+  clears the lot, so the party needs only the easiest. But the rule rests on a
+  comment in `derive()` and on that measurement, and no test would notice it
+  becoming an AND.
+
+  **A retraction, so it is not cited again.** A first pass printed an "if it
+  ANDed instead" column that agreed with the shipped rule everywhere, which
+  looked like confirmation. It was computed over the already-filtered live-tile
+  list, so it reproduced the OR answer by construction and could not have
+  disagreed. It is evidence of nothing.
+
 ## Open questions
+
+- **`canon` has a latent false FAIL in `test_maps.lua` check 7.** It treats a
+  rule as unconstrained only when *every* alternative empties out, but in
+  PopTracker an OR with one unconditional branch is unconditional. No rule
+  reaches it today — every `^$incentiveSlot` term sits either alone in its list
+  or in all of them — so this is a false FAIL waiting on the next incentive
+  rule rather than something being missed now.
+
+- **The toggle icons are sized against a filter a third darker than their
+  docstring assumed.** `make_toggle_icons.py` draws only the "on" image and lets
+  PopTracker grey the off state; the docstring described the default `grey`
+  filter, but `settings.json` sets `disabled_image_filter` to `grayscale, dim`,
+  and `dim` is a flat halving (`imagefilter.cpp:78-81`) applied after a greyscale
+  taken at full value. Measured through the real filter: GROUND 24/24/28 -> 12,
+  GLYPH 188 -> 94, blue -> 61, gold -> 78. The glyph shapes hold at 94 on 12.
+  The gold ring at 78 against a 94 glyph has stopped being gold, which makes
+  `showIncentiveRings` the one of the four most likely to want a drawn "off"
+  image. A look-at-it-on-a-board decision, not a code one.
 
 - **A stop at a chest re-orients for free, and nothing says whether it
   should.** `Floor.lane` chains its legs with `path()`, and `search()` seeds
