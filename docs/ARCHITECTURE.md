@@ -281,11 +281,14 @@ false greens.
 ## Tests
 
 ```
-tests/run.sh         13 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
+tests/run.sh         14 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   12 Python suites for the cartridge-reading tools. Tests
-                     that need a cartridge skip unless FF1_ROM points at one.
-                     One slow guard opts in separately with FF1_SLOW=1.
+tools/tests/run.sh   19 Python suites for the cartridge-reading tools. Ten of
+                     them skip, wholly or in part, unless FF1_ROM points at a
+                     cartridge — so a bare run passes and checks a good deal
+                     less than the count suggests. One slow guard opts in
+                     separately with FF1_SLOW=1 and wants a No-Overworld
+                     cartridge as well.
 ```
 
 Both are fast and neither needs a network. Run them before believing anything.

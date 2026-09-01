@@ -177,6 +177,26 @@ Nothing here is urgent unless it says so.
   pins moved to the cartridge and the other six gained boxes; nothing measured
   in that pass argues for adding these.
 
+- **14 of the 245 shipped images are referenced by nothing.** Counted
+  2026-09-01 by grepping every tracked file for `images/...`. They are
+  `flags/airBoatOFF.png`, `flags/noOpenProgression.png`, `items/airorb.png`,
+  `items/masmune.png`, `items/ribbon.png`, six under `locations/`
+  (`earthRod`, `seaShrineKey`, `skyPalaceChime`, `skyPalaceCube`, `volcano`,
+  `volcanoArmory`), `misc/gil_shop_item.png`, `misc/northernDocks-old.png` and
+  `misc/unne.png`.
+
+  Recorded rather than deleted, and the distinction is the point. Most are
+  inherited from the pack this forked and credited in the README; a few name
+  things the pack decided differently about (`items/airorb.png` lost to the
+  `orb-air-no`/`orb-air-yes` pair, `flags/airBoatOFF.png` to PopTracker's own
+  disabled-image filter). `misc/unne.png` is the odd one out and is worth
+  keeping on purpose: it is the art for a box `docs/ROADMAP.md` §2 has not
+  decided whether to add.
+
+  They cost nothing but the bytes, nothing loads them, and removing another author's art
+  from a fork on a tidying impulse is not a change worth making without a
+  reason. If one is ever wanted, it is here.
+
 - **17 maps have no markers on the shipped hand-drawn art.** 16 were never
   calibrated and `ConeriaCastle2F` is a composite the schema cannot address. This
   is a limit of that art only: markers on redrawn art are built from the

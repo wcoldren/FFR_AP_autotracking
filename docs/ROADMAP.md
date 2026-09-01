@@ -14,11 +14,23 @@ table of every flag that logic consults and how the pack models it.
 
 ## 1. Colours that are wrong on real seeds
 
-Each item here is a pin that lies today on a seed someone could roll. Each
+**Closed 2026-09-01, and left standing rather than deleted.** Every bullet below
+is answered; the section is kept because each one records what the answer cost
+and how it was reached, and because "closed" is a claim that should be readable
+next to its evidence. The next thing that makes a pin lie goes here, under the
+same rule.
+
+Each item here was a pin that lied on a seed someone could roll. Each
 wants: a code, the affected `access_rules` alternatives, and **one oracle seed
 rolled with the flag on** so `check_logic --ap-rules` grades the branch. A rule
 without its oracle seed is a hand transcription, which is what section 5 is
 meant to end.
+
+Two of the answers below are **strict** rather than graded, and the difference
+matters: `ShuffleObjectiveNPCs` and the Cardia roll are permutations chosen at
+generation that no file the pack can read records, so the pack deliberately
+disagrees with FFR there instead of agreeing with it. Both are waived by name in
+`check_logic` so the disagreement stays printed.
 
 - **No flags without a code are left. Closed 2026-09-01.** `MapAirshipHike` and
   `MapCardiaLandBridge` were the last two; both are 4.9.7-only, both were rolled
@@ -231,6 +243,10 @@ actually says where a branch is.
 - `trunk` carries the route-lane work and is **ten commits ahead of
   `origin/trunk`**, unpushed, as of 2026-09-01. `noverworld-logic`,
   `visibility-toggles` and `route-lanes` are merged.
-- **`flags-real-seeds` is in flight**, six commits past `trunk`. It is the
-  section 1 work: `ChaosRush` and `ToFRMode` codes, the `ExitToFR` decision, and
-  the tests that hold them. The review gate has not run on it yet.
+- **`flags-real-seeds` is in flight**, and it is now the whole of section 1:
+  the `ChaosRush` and `ToFRMode` codes and the `ExitToFR` decision, then
+  `MapAirshipHike` and `MapCardiaLandBridge` graded on a cartridge each, the two
+  verify flags answered, `ShuffleObjectiveNPCs` closed strictly, Gaia settled
+  against FFR, the mode-mismatch light, and the flags grid on the variants that
+  had none. Section 1 has no open bullets left. **The review gate has not run on
+  it yet**, and it wants a fresh-context session before it merges.
