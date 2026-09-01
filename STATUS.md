@@ -2539,6 +2539,15 @@ And, as with every other layout edit: it does not appear on a board with an
 installed override until `regen_maps.py` is re-run per mode, for the reason
 `BRIDGE.md` already gives about the stale-art triangle's own cell.
 
+**Confirmed working on a running tracker, 2026-09-01**, once the override had
+been regenerated for both modes. Worth recording as its own line rather than
+leaving the suite to speak for it: `test_flags.lua` loads a standard shard-hunt
+seed into a No-Overworld variant and asserts the reported string, which proves
+the logic and proves nothing about whether a cell exists on the board a player
+opens. The two are independent, and the gap between them is exactly where the
+paragraph above says the light goes missing -- the suite passes just the same on
+a stale override that never draws it. A green suite is not a sighting.
+
 ## Six of eight variants had no flags grid, and nothing said so
 
 Found while auditing what a board actually shows rather than what the docs
