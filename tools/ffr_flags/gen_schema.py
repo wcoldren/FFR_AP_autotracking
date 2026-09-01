@@ -19,6 +19,7 @@ scripts/flags/schema_<version>.lua for the pack.
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -41,11 +42,45 @@ def run_dumper(ff1lib):
     return json.loads(proc.stdout)
 
 
-def git_sha(ff1lib):
-    proc = subprocess.run(["git", "-C", ff1lib, "rev-parse", "HEAD"],
+def stamped_sha(checkout):
+    """The SHA hardcoded into FFRVersion.cs, or None if it is still upstream's.
+
+    FFR substitutes `Sha` during its own deploy and leaves the literal "SHA" in
+    source, so a locally built oracle cartridge has to stamp it by hand or the
+    flag decoder refuses the ROM. That stamp is what the cartridge carries, so
+    it is what the schema has to record -- see the comment in git_sha.
+    """
+    src = os.path.join(checkout, "FF1Lib", "FFRVersion.cs")
+    if not os.path.isfile(src):
+        return None
+    with open(src, encoding="utf-8", errors="replace") as handle:
+        m = re.search(r'\bSha\s*=\s*"([^"]+)"', handle.read())
+    if not m or m.group(1) == "SHA":
+        return None
+    return m.group(1)
+
+
+def git_sha(checkout):
+    """The build SHA to record: the stamp if there is one, else HEAD.
+
+    HEAD alone was wrong, and quietly so. Both oracle worktrees sit two local
+    commits above the release they are checked out at -- the FF1R export commit
+    and the FFRVersion stamp -- so HEAD is not the commit the cartridges claim.
+    Regenerating 4-9-7 from the pinned worktree wrote `b4ec325` where the ROMs
+    say `1f31434`, and the proof loop below then failed against every oracle
+    cartridge that exists. Loud rather than silent, but the failure was in the
+    checker rather than in the tree, which is the worst place for it.
+
+    The stamp is the right source because it is what ends up in the ROM, which
+    is the value ffr_flags.py:102 compares the schema against.
+    """
+    stamped = stamped_sha(checkout)
+    if stamped:
+        return stamped
+    proc = subprocess.run(["git", "-C", checkout, "rev-parse", "HEAD"],
                           capture_output=True, text=True)
     if proc.returncode != 0:
-        raise SystemExit("not a git checkout: " + ff1lib)
+        raise SystemExit("not a git checkout: " + checkout)
     return proc.stdout.strip()[:7]
 
 
