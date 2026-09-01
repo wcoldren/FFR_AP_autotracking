@@ -19,11 +19,12 @@ Nothing here is urgent unless it says so.
 - **The No-Overworld variants ran standard-overworld logic. Closed 2026-08-30.**
   This entry led "Known wrong" for weeks saying `scripts/logic.lua` "branches on
   shard hunt and nothing else", and it had not been true since the
-  `noverworld-logic` merge. `isNoOverworld()` is at `logic.lua:56`, matching
+  `noverworld-logic` merge. `isNoOverworld()` in `scripts/logic.lua` matches
   `Tracker.ActiveVariantUID` with `:find`; `noOverworld()` and `standardWorld()`
-  at `:76` and `:83` feed the 25 region rules that replaced the overworld
-  geography, so one set of rules serves both modes rather than two trees that
-  must agree and never get compared.
+  feed the 25 region rules that replaced the overworld geography, so one set of
+  rules serves both modes rather than two trees that must agree and never get
+  compared. Named rather than numbered: this entry cited three line numbers that
+  had all moved by 2026-09-01.
 
   The entry is kept rather than deleted because of *how* it went stale: nothing
   re-reads a closed defect, so a "largest live defect in the pack" line survives
