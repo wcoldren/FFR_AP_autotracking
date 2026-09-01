@@ -1507,26 +1507,15 @@ than per set, which is the case where the two do coincide.
 
 ## One fingerprint for two modes marked the other one current
 
+Moved to `docs/ISSUES.md`, into the stale-override entry, which already owned
+`.regen_cache.json`'s `inputs` fingerprint and now says that it used to be one
+value for both modes.
+
 Found 2026-08-29 while rendering the Map Key into both trees: the No-Overworld
 run said `nothing to do` immediately after the standard run, and its band was
-still a flat slab of backdrop.
-
-`.regen_cache.json` kept `inputs` -- the fingerprint of the pack and these tools
--- once for the whole tree, while `rom`, `npcs` and `marker` were already per
-mode. So regenerating either mode stamped the new fingerprint over both. The
-other mode's art stayed on disk exactly as the older tools drew it, and its next
-run compared that shared fingerprint, found it current, and did nothing. Every
-change to the renderer since the modes split has had this hole; it only became
-visible because this one changes pixels in a place easy to test (`the band is
-one colour` versus `three`).
-
-`inputs` now lives in each mode's slot, for the same reason `rom` does. The
-version was deliberately **not** bumped: `load_cache` treats a version change as
-"clear every file the old cache lists", which would delete the other mode's art
-and not redraw it. A cache written before this simply has no per-mode
-fingerprint, so that mode reads as stale and redraws once, which is the right
-answer for it.
-
+still a flat slab of backdrop. The bug was older than that render by every
+change since the modes split; it took one that moves pixels somewhere easy to
+test to make it visible.
 
 ## The art on disk now says what it was drawn for
 
@@ -2238,24 +2227,14 @@ editor work.
 
 ## The item grid gets its rows back
 
-`shared_item_grid` is re-tiled. The four-grid reflow in `c5e0752` shortened
-the docked strip so the maps get the height, which is right, but it re-tiled the
-standard item grid without regard to what its rows meant: the vehicles ended up
-split across two rows with the key items running into them. It now leads each
-row with a group -- orbs, key items, vehicles -- and parks the two warning
-lights at the end of row 1. Same 26 cells, same width, still four rows, because
-the row count is what stops Flags setting the strip's height.
+Moved to `docs/ARCHITECTURE.md`, "The pack", as the rule underneath it: a
+grid's row count is load-bearing and its tiling is not.
 
-The other three grids that reflow touched were checked and left alone:
-`NOverworld_item_grid` has no vehicles to split, `shared_locations_grid` still
-leads with the NPCs and keeps the four fiend dungeons on one row, and
-`shared_incentives_grid` kept its dungeon and fiend rows whole. The flags grid
-going seven-by-three to four-by-five was a different change, `2b0ff32`, and
-carries its own reasoning.
-
-Decided off the cell lists rather than a screenshot, so it still wants looking
-at on a real board. If it reads badly the thing to move is the tiling, not the
-row count.
+The four-grid reflow in `c5e0752` shortened the docked strip so the maps get
+the height, which is right, and re-tiled the standard item grid without regard
+to what its rows meant. The other three grids that reflow touched were checked
+and left alone. The flags grid going seven-by-three to four-by-five was a
+different change, `2b0ff32`, and carries its own reasoning.
 
 ## What the review of the route-lane branch found
 

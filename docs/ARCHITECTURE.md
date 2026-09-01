@@ -52,6 +52,19 @@ incentives, layouts, then defaults.
 | `layouts/` | Window arrangement: item grids, map tabs, broadcast views |
 | `maps/` | Map tab definitions — a name, an image, and default pin sizing |
 
+**A grid's row count and its tiling are separate decisions, and only one of them
+is free.** The docked strip takes its height from the tallest grid in it, so the
+row count is load-bearing — shortening the item grids is what gives the map tabs
+their height. The tiling within those rows is not: each row leads with a group
+(orbs, key items, vehicles) and the two warning lights park at the end of row 1,
+which is a readability choice and can move. A reflow that changes the row count
+to fix how a grid reads is spending the maps' height on it; move the tiling
+instead. `shared_item_grid` lost its row meanings to exactly that once and was
+re-tiled to get them back at the same 26 cells, width and four rows.
+
+Grid composition is decided off the cell lists rather than a screenshot, so it
+wants looking at on a real board before it is trusted.
+
 ### Variants
 
 `manifest.json` declares **eight** variants, and `scripts/init.lua` picks which

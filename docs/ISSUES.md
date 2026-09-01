@@ -393,6 +393,22 @@ Nothing here is urgent unless it says so.
   sitting in the cache: `.regen_cache.json` stores `inputs`, a sha256 over
   `INPUT_FILES` (`regen_maps.py:99-112`), which lists `layouts/shared.json` and
   all four location files, so the fingerprint moves on exactly this edit.
+
+  **`inputs` was one fingerprint for both modes until 2026-08-29, and that was a
+  hole of its own.** `rom`, `npcs` and `marker` were already per mode; `inputs`
+  was kept once for the whole tree, so regenerating either mode stamped the new
+  fingerprint over both. The other mode's art stayed on disk exactly as the
+  older tools drew it, and its next run compared that shared fingerprint, found
+  it current, and did nothing. Every renderer change since the modes split had
+  this hole; it only surfaced on one that changes pixels somewhere easy to test
+  -- the Map Key band reading as one colour rather than three. `inputs` lives in
+  each mode's slot now, for the same reason `rom` does.
+
+  The cache version was deliberately **not** bumped when that moved.
+  `load_cache` treats a version change as "clear every file the old cache
+  lists", which would delete the other mode's art without redrawing it. A cache
+  written before the split simply has no per-mode fingerprint, so that mode
+  reads as stale and redraws once -- the right answer, reached by doing nothing.
   `tools/regen_maps.py --verify` reads it -- no cartridge, no rendering, a few
   milliseconds against a regen's six seconds per cartridge -- and exits 1 naming
   the stale modes. It is silent where no override is installed, because that is
