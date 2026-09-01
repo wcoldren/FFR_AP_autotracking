@@ -404,19 +404,31 @@ Stated once so nobody re-derives them.
 Where things stand on the day this was written. `git log trunk..` is what
 actually says where a branch is.
 
-- `trunk` is **level with `origin/trunk`**, as of 2026-09-01.
-  `noverworld-logic`, `visibility-toggles`, `route-lanes` and `flags-real-seeds`
-  are all merged. `flag-coverage` is in flight and unmerged. No number here on
+- `trunk` is **ahead of `origin/trunk` and unpushed**, as of 2026-09-01.
+  `noverworld-logic`, `visibility-toggles`, `route-lanes`, `flags-real-seeds`
+  and `flag-coverage` are all merged. Nothing is in flight. No number here on
   purpose: `00dffd4` took a count out of this section for going wrong twice, and
   the one that briefly replaced it went wrong inside the commit that wrote it —
   `git rev-list --count origin/trunk..trunk` is the answer.
 
-  This bullet said "ahead of `origin/trunk` and unpushed" for the rest of the
-  day after the push. That is the third time in three days a line in this
-  section has been wrong about where a branch stands, in both directions, and
-  the entry below already draws the lesson: **say it on the day it happens.**
-  The standing count is now zero rather than a number, which is the one form of
-  this sentence that does not rot.
+  This line has now been wrong about where a branch stands four times in four
+  days, in both directions — it has claimed unpushed work that was pushed and
+  pushed work that was not. The lesson the entries below keep drawing is the
+  only fix: **say it on the day it happens**, and carry no count, because a
+  count rots a commit after it is written.
+- **`flag-coverage` merged 2026-09-01**, and was the whole of section 5's
+  first two bullets: `test_flag_coverage.py`, which fails when FFR grows a flag
+  nothing here models, and `test_ffr_pin.py`, which holds the schemas to the
+  revision the workspace pins. Nine commits, `83f97d4..8331b33`.
+
+  **The review gate ran on it**, and every finding is committed —
+  `1dbcf4f..9148fdd`. It found a coverage row that did not demonstrate the term
+  it named: "a pin from the wrong FFR version is not an ancestor" was a
+  conjunction of ancestry and the stamp, and only the stamp ever fired. Same
+  lesson as the gate rows, and the two terms are separate rows now.
+
+  **What it leaves behind is five flags filed `unjudged`**, in section 5.
+
 - **`flags-real-seeds` merged 2026-09-01**, and was the whole of section 1: the
   `ChaosRush` and `ToFRMode` codes and the `ExitToFR` decision, then
   `MapAirshipHike` and `MapCardiaLandBridge` graded on a cartridge each, the two
@@ -424,8 +436,8 @@ actually says where a branch is.
   against FFR, the mode-mismatch light, and the flags grid on the variants that
   had none. Section 1 has no open bullets left.
 
-  **The review gate has run**, in a fresh context at high effort on 2026-09-01,
-  and every finding is addressed and committed — seven commits,
+  **The review gate has run** on 2026-09-01, and every finding is addressed
+  and committed — seven commits,
   `52ba9d5..7371acf`. It found a real hole the oracle structurally could not see
   (Bahamut's Cave never got the `airshipHike` or `cardiaLandBridge`
   alternatives, because FFR's export has no Bahamut location to grade against),
