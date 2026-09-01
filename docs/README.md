@@ -12,6 +12,7 @@ Start with **`ARCHITECTURE.md`**.
 | [`BRIDGE.md`](BRIDGE.md) | The emulator bridge in detail: the run clock, what a reset costs it, how the flags grid fills itself in, how the board stays honest. |
 | [`NOVERWORLD.md`](NOVERWORLD.md) | How the pack models No-Overworld, read off the cartridge. Not a description of the setting — the FFR wiki has that. |
 | [`ORACLE.md`](ORACLE.md) | The oracle cartridges, and how the access logic is graded against FFR's own. |
+| [`FLAG_COVERAGE.md`](FLAG_COVERAGE.md) | Every FFR flag the access logic consults, and how the pack models each one. The per-flag row lives here. |
 | [`ROADMAP.md`](ROADMAP.md) | What is next, in order, and what each merged branch landed. |
 | [`ISSUES.md`](ISSUES.md) | Known defects and open questions. |
 | [`IDEAS.md`](IDEAS.md) | Unscoped, with the facts already attached. |
