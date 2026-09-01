@@ -192,110 +192,58 @@ The sections below are the log of how that was found and what it cost.
 ### The gauntlet the mode skips
 
 Found 2026-08-29, the first time the all-items reachability oracle was run
-against a cartridge. It failed, and it was right to: seven maps cannot be
-reached from the doors holding every item -- the Temple of Fiends Revisited
-floors 1F, 2F, 3F, Earth, Fire, Water and Air.
+against a cartridge. It failed, and it was right to. Moved to
+`docs/NOVERWORLD.md`, "The Temple of Fiends Revisited is orphaned", which
+carries the seven maps, the stripped `TP_SPEC_4ORBS` special and what the oracle
+excepts.
 
-Not a bug in the walk. The cartridge really does orphan them:
-
-- On a **vanilla** cartridge `TempleOfFiends (20,17)` carries both a
-  `TP_SPEC_4ORBS` special and a normal teleport. That pair is the time warp:
-  the special gates the step on the four Orbs, the teleport moves you.
-- On a **No-Overworld** seed the special is **stripped** and the teleport points
-  straight at `TempleOfFiendsRevisitedChaos`. The mode skips the gauntlet and
-  drops you at the Chaos fight.
-- Nothing else on the cartridge teleports into those seven, of any teleport
-  kind, and `MetroidVaniaMap.cs` gives them a backdrop (`:942-948`) and a
-  tileset (`:1108-1114`) but no entry in its teleporter table. The chain runs
-  1F -> Earth -> Fire -> Water -> Air -> Chaos and 1F -> 2F -> 3F, all of it
-  flowing toward Chaos, with no way in.
-
-So the oracle's invariant was wrong as first written, not the cartridge. It now
-excepts those seven by name and checks the reason instead of waving it through:
-Chaos's own room still has to be reachable, since the shortcut is what makes the
-seven unreachable. A seed that wires the gauntlet up passes too -- an excepted
-map being reachable was never the failure.
-
-Worth keeping: the oracle's first real run corrected a claim this document had
-been making for weeks. Cheap tests of stated invariants find the invariants that
-were never true.
+What stays here is the lesson, which is not about this mode. The oracle's first
+real run corrected a claim this document had been making for weeks: the
+invariant was wrong as written, not the cartridge. Cheap tests of stated
+invariants find the invariants that were never true, and this one had been
+written down and left unrun long enough to be believed.
 
 ### Version drift, and why it is not the thing to worry about
 
 Measured 2026-08-29 rather than guessed, because all of this is being built
-against 4.9.2 (the practice seed) while the tournament runs 4.9.7.
+against 4.9.2 while the tournament runs 4.9.7. Moved to `docs/NOVERWORLD.md`,
+"Version drift is not the thing to worry about", which carries the six-release
+diff, the two cartridges' identical figures and why no 4-9-8 schema is
+committed.
 
-Diffing the vendored FFR from the commit that first stamped 4.9.2 (`371e38ed`,
-Nov 2025) to 4.9.8 (May 2026) — six releases — the whole No-Overworld surface
-moved by **one line**:
+Two things stay here.
 
-    FF1Lib/MetroidVaniaMap.cs | 3 ++-
-    FF1Lib/Sanity/SCMap.cs        unchanged
-    FF1Lib/Teleporters.cs         unchanged
-    FF1Lib/StandardMaps.cs        unchanged
-    FF1Lib/Enums.cs               unchanged
+**The conclusion the rest of the work was built on**: derive from the cartridge,
+transcribe nothing from C#. A derived rule set re-derives on a new version. That
+is the version-proofing, and it is worth more than any amount of tracking
+upstream.
 
-and the line is `ApplyMapMods(..., LefeinSuperStore && ShopKillMode == None)`.
-The 75-link table, the gate NPCs and the map indices did not move at all.
-
-**"A shop flag, not topology" is what this said until 2026-09-01, and the call
-site does not support it.** `ApplyMapMods` is reached only from
-`NoOverworld()`, and at `MetroidVaniaMap.cs:260` the flag picks between two
-different sets of tile writes to `MapIndex.Lefein` — different wall edges, and
-a blob named `lefeinNonteleport`. Those are walls and a teleport tile in a town
-the 75-link table was hand-derived from with the flag off. It may still change
-nothing a router can see; nobody has walked it. It is filed `unjudged` with the
-measurement named, not `noise`. The rest of the paragraph stands: one line
-moved in six releases, and that line is this one.
-
-So the volatile surface is the **flag string**, not the maps, and that already
-has its mechanism: `tools/ffr_flags/gen_schema.py` regenerates a version's
-schema from an FF1Lib checkout plus a real ROM, writing both
-`schemas/<v>.json` and `scripts/flags/schema_<v>.lua`, and proves itself — the
-decode has to end exactly on the build SHA with nothing left over. Schemas ship
-for 4-9-2 and 4-9-7; anything else lights the unread-flags warning rather than
-passing defaults off as the seed's settings. A 4.9.9 seed is one command.
-
-The conclusion for the work below: **derive from the cartridge, transcribe
-nothing from C#.** A derived rule set re-derives on a new version. That is the
-version-proofing, and it is worth more than any amount of tracking upstream.
+**And a retraction.** This section read "a shop flag, not topology" for three
+days, about `LefeinSuperStore`, on the strength of the word *store* in its name.
+The call site does not support it, and the review that found it on 2026-09-01
+reclassified the flag `unjudged` rather than fixing anything -- nobody has
+walked it. Filed here because of the shape: a name was read instead of a call
+site, and the wrong answer survived because it was plausible. `docs/ORACLE.md`
+and `docs/FLAG_COVERAGE.md` have where it stands now.
 
 ### The drift measurement, run rather than reasoned
 
-Checked 2026-08-29 by generating a 4.9.8 No-Overworld seed and reading it with
-the same tools. The vendored FF1Randomizer is 4.9.8, `FF1R/Commands/Generate.cs`
-is a working CLI, and `FF1Blazorizer/wwwroot/presets/NOverworld.json` carries
-`GameMode: 2` with Entrances, Towns and Floors all off -- the same settings the
-4.9.2 practice seed was rolled with. So the two are directly comparable:
+The figures are in `docs/NOVERWORLD.md` with the rest of the drift work.
 
-    4.9.2  F258553F   stairs=157  gates=8  empty-handed=45/61  links=124  walkable=117  all-items=54/61
-    4.9.8  F2585540   stairs=157  gates=8  empty-handed=45/61  links=124  walkable=117  all-items=54/61
-
-Identical, across six releases *and* a different seed. The ToFR finding holds on
-both. That is the "derive from the cartridge, transcribe nothing" bet paying
-out: nothing in the topology, the gate NPCs or the routing moved.
-
-The flag string did move, which is the other half of the same story -- 4.9.8
-adds `Tracker`, `ShowGoMode`, `ShowReminders`, `NoTristateSpoilers` and
-`OrbGraphicsInResourcePack`, and drops `AfterHits` and `StartOfHits`: 568
-properties to 571. A 4.9.8 seed genuinely cannot be read with the 4-9-7 schema.
-`gen_schema.py` regenerated it in one command and self-verified, so the "a new
-version is one command" claim holds too.
-
-**No 4-9-8 schema is committed, deliberately.** upstream/master is 4.9.7;
-4.9.8 is upstream/dev and unreleased. A schema records the build SHA it was
-proved against and `ffr_flags.py:102` refuses on mismatch, so one keyed to a
-local fork build would never match a real 4.9.8 seed -- it would be dead weight
-that reads as support. Regenerate from the release checkout when 4.9.8 ships.
-
-Two things worth knowing for anyone repeating this. A locally built FFR stamps
-`beta-SHA`, not a version, because `FFRVersion.cs` has `Sha` and `Branch` as
-placeholders that only FFR's own deploy substitutes; set `Branch = "master"` and
-`Sha` to the checkout's HEAD to get a cartridge that stamps `4-9-8`. And the
-fork the clone sits on (`ap-item-text`) does not touch `FF1Lib/Flags.cs`, so the
-flag layout it produces is upstream's.
+What stays is what it cost to reproduce, for anyone repeating it. A locally
+built FFR stamps `beta-SHA` rather than a version, because `FFRVersion.cs` has
+`Sha` and `Branch` as placeholders that only FFR's own deploy substitutes; set
+`Branch = "master"` and `Sha` to the checkout's HEAD to get a cartridge that
+stamps `4-9-8`. And the fork the clone sits on (`ap-item-text`) does not touch
+`FF1Lib/Flags.cs`, so the flag layout it produces is upstream's.
 
 ### Where the pack stands against that
+
+**A snapshot taken 2026-08-29, kept as one.** Every entry below was true on the
+day of the triage and several have been overtaken since; each says so where it
+has. For what the pack does today, `docs/ARCHITECTURE.md` and "Working today" at
+the head of this file are the current answers, and this is the record of the
+distance that had to be crossed.
 
 - ~~**Both map variants define exactly one tab.**~~ Fixed, commit `17c423d`.
   The dungeon tree moved to `layouts/shared.json` as three `shared_*_tabs` keys
@@ -304,29 +252,16 @@ flag layout it produces is upstream's.
   the references reproduces their previous trees exactly. The 282 markers in
   `locations/overworld.json` now have somewhere to draw, and `maptab.lua`
   follows the player into a dungeon on these variants too.
-- **Maps can be drawn from the cartridge.** `tools/render_maps.py`, added
-  2026-08-29, renders all 61 standard maps out of a ROM using the game's own
-  tile art — CHR, tilesets and per-map palettes, in pure Python, no .NET and no
-  extra dependency. It draws the *seed's* map, so the sealed walls, the 75 new
-  staircases and both of the rooms No-Overworld builds inside Coneria Castle all
-  appear, and it renders the eight towns the pack has never had art for. Every
-  image is 64 tiles at 16 pixels, so tile *n* is pixel *16n* exactly and
-  calibration stops being a thing that gets eyeballed. All 61 come to 2.3 MB,
-  against 3.0 MB for the 53 screenshots shipping now.
+- **Maps can be drawn from the cartridge, and the swap is one command.** Added
+  2026-08-29. `docs/ARCHITECTURE.md`, "The tools", carries what
+  `render_maps.py` and `regen_maps.py` do and why nothing they produce is
+  committed.
 
-  Nothing is committed from it: run it against your own cartridge. That keeps
-  ROM-derived art out of the repo and is also the more correct option, since
-  Waterfall's two staircases are rolled per seed.
-
-- **And the swap is one command.** `tools/regen_maps.py FFR_seed.nes` renders
-  the 61 maps, moves all 254 dungeon markers onto them, and writes maps.json
-  entries and tabs for the ten maps the pack has no art for -- into PopTracker's
-  `user-override/ff1_rando_ap_uat/`, not the checkout, so the repo keeps shipping
-  the screenshots and `--clean` puts it back. Every moved marker is checked
-  against the cartridge's own chest tiles and `npc_positions.json` before
-  anything is written. It caches: a second run on the same cartridge does
-  nothing, and a new seed rewrites only the maps whose pixels differ -- 26 of 66
-  files between two No-Overworld seeds.
+  The reason it was worth building sits here: every rendered image is 64 tiles
+  at 16 pixels, so tile *n* is pixel *16n* exactly, and calibration stops being
+  a thing that gets eyeballed. That is what made markers derivable forward from
+  the cartridge instead of solved by hand, and it is why 61 of 61 maps carry
+  per-chest markers on redrawn art against 36 of 53 on the shipped set.
 
   What this does *not* give you is the shuffle. Of the 56 maps carrying a
   staircase on seed `F258553F`, 21 draw differently from vanilla -- the sealed
@@ -1608,35 +1543,24 @@ Moved to `docs/ISSUES.md`, with the open questions.
 
 ## What Archipelago can and cannot tell the tracker
 
-Worth writing down, because "bring AP to parity with the bridge" sounds like
-pack work and is not. The AP feed carries checked locations in the multiworld
-pool and items received, and nothing else: `worlds/ff1/__init__.py:123`'s
-`fill_slot_data` returns an empty dict. So chests outside the pool, orbs lit,
-turn-in stages, the current map, the seed's flags, the cartridge's identity and
-the run clock are all unavailable over AP by construction, not by omission here.
-Closing that gap means changing the Archipelago world, not this pack. The
-reconcile core already does the right thing with what exists — takes the union
-of both feeds and lets either run alone.
+Moved to `docs/ARCHITECTURE.md`, "The two feeds, and why there are two", which
+carries what each feed reports, the `512 + ObjectId` rule, the fourteen ids and
+the eight NPCs that are not AP locations.
 
-The traffic used to run the other way in exactly one place — the Chaos goal
+What stays here is why it was written down and what it replaced. "Bring AP to
+parity with the bridge" sounds like pack work and is not: the gap is in the
+Archipelago world, a different repository, and no amount of work here closes it.
+
+The traffic used to run the other way in exactly one place -- the Chaos goal
 flag, which only an AP seed carries. It no longer does: the bridge reads the
 kill out of the battle engine, so a solo seed reports the goal too.
 
-**Eight NPCs are not AP locations at all.** This used to be filed under "known
-wrong" as missing `LOCATION_MAPPING` rows for Garland (514), Dr Unne (523) and
-Bahamut (526). Adding rows for them would map to ids the server never sends. An
-AP location id is `512 + ObjectId` (`FF1Lib/Items.cs`), and
-`worlds/ff1/data/locations.json` — identical in all three vendored Archipelago
-clones — holds exactly fourteen ids above 510:
-
-    513 King        516 Bikke     518 Elf Prince   519 Astos
-    520 Nerrick     521 Smith     522 Matoya       525 Sarda
-    527 Lefein      529 CubeBot   530 Princess     531 Fairy
-    533 Canoe Sage  767 Shop Item
-
-The gaps are the NPCs that hold no shuffled item: Garland (514), Princess1
-(515), ElfDoc (517), Unne (523), Vampire (524), Bahamut (526), SubEngineer
-(528) and Titan (532). Lighting them from RAM only is correct, not a hole.
+And the eight NPCs were filed under "known wrong" for weeks as missing
+`LOCATION_MAPPING` rows for Garland, Dr Unne and Bahamut. They were never a
+hole. A row for one of them would map to an id the server never sends, so the
+defect was in the entry rather than in the pack -- the third time a confident
+"known wrong" line survived because nothing checked the source it was asserting
+about.
 
 ## The oracle ran, and the walk was starting in nine places at once
 

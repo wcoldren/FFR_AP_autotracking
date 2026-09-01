@@ -205,7 +205,7 @@ a default No-Overworld seed uses the fixed table above.
 
 Measured rather than assumed. Diffing FFR from the commit that first stamped
 4.9.2 (Nov 2025) to 4.9.8 (May 2026) — six releases — the whole No-Overworld
-surface moved by **one line**, and that line is a shop flag:
+surface moved by **one line**:
 
     FF1Lib/MetroidVaniaMap.cs | 3 ++-
     FF1Lib/Sanity/SCMap.cs        unchanged
@@ -213,8 +213,18 @@ surface moved by **one line**, and that line is a shop flag:
     FF1Lib/StandardMaps.cs        unchanged
     FF1Lib/Enums.cs               unchanged
 
-Generating a 4.9.8 seed and reading it with the same tools gives identical
-numbers across six releases *and* a different seed:
+The line is `ApplyMapMods(..., LefeinSuperStore && ShopKillMode == None)`. It
+read as "a shop flag, not topology" here until 2026-09-01, on the strength of
+the word *store* in the name. `ApplyMapMods` is reached only from
+`NoOverworld()`, and the flag picks between two sets of tile writes to
+`MapIndex.Lefein` — different wall edges and a blob named `lefeinNonteleport`,
+which are walls and a teleport tile in a town the 75-link table was derived from
+with the flag off. It may still change nothing a router can see; nobody has
+walked it. `docs/FLAG_COVERAGE.md` carries it as `unjudged`, not `noise`.
+
+The count stands either way: one line moved in six releases, and that line is
+this one. Generating a 4.9.8 seed and reading it with the same tools gives
+identical numbers across six releases *and* a different seed:
 
     4.9.2  F258553F   stairs=157 gates=8 empty-handed=45/61 links=124 walkable=117 all-items=54/61
     4.9.8  F2585540   stairs=157 gates=8 empty-handed=45/61 links=124 walkable=117 all-items=54/61
