@@ -104,8 +104,11 @@ smaller sheet of just the slots a key item can be in.
 The No-Overworld variants load their own copies from `locations/NOverworld/`.
 Those exist because the *art* differs: a No-Overworld cartridge and a standard
 one disagree about 34 to 39 of the 61 maps, so a marker's pixel coordinate
-differs even when the location is identical. `tests/test_maps.lua` check 6
-compares the two trees location by location so they cannot drift apart.
+differs even when the location is identical. `tests/test_maps.lua` check 6 is
+written to hold the two trees in step, but the committed No-Overworld tree is
+still byte-identical to the standard one, so today the check cannot fail for any
+reason. It starts doing work the moment the trees legitimately diverge. Both the
+copy and the check that cannot bite are in `docs/ISSUES.md`.
 
 A section can carry `access_rules` (is it reachable), `visibility_rules` (does it
 appear at all), `hosted_item` (a toggle it owns), `ref` (a cross-link to another
@@ -273,6 +276,16 @@ Four things to know before trusting any tool that reads maps:
 
 The cheap test that catches most routing mistakes: holding every item, all 61
 maps must be reachable from the doors. `entrance_graph.py --self-check`.
+
+**All 61 is a No-Overworld statement, and on a standard seed a Long-ToFR one.**
+`MetroidVaniaMap.cs` connects all 61 and drops none, so on No-Overworld a map
+the walk cannot find is the tool's own fault -- that is what makes this a
+theorem rather than a measurement. On a standard seed the count follows
+`ToFRMode`: `MidToFR` never wires the two upper Temple floors in, so they are
+not in the dungeon to reach and 61 is unreachable by construction. Quoted
+without either precondition, the oracle reads as a failure on seeds that are
+behaving. `docs/ISSUES.md` has the measurement and the case for deriving the
+expected count from `ToFRMode` rather than hardcoding it.
 
 ### The derivations, and what pins each one
 
