@@ -88,8 +88,12 @@ them, which once left every shard-hunt seed quietly gated on orbs. Use `:find`.
 
 **Selection happens once, at load.** Nothing re-selects a variant at runtime, so
 the player picks the right one from the pack chooser. The cartridge's own
-`GameMode` is decoded (`scripts/autotracking/flag_mapping.lua`) but currently
-only prints a warning when it disagrees with the chosen variant.
+`GameMode` is decoded (`scripts/autotracking/flag_mapping.lua`) and lights the
+`modeMismatch` warning when it disagrees with the chosen variant — reporting the
+mode and the goal together, since a seed can be wrong on both at once. Selecting
+the variant for the player is not expressible: `Tracker.ActiveVariantUID` is
+read-only from Lua and `Pack::setVariant` is called once, from the load path.
+`docs/BRIDGE.md` has the light; `docs/ISSUES.md` has the refusal.
 
 ### The location tree
 
@@ -375,7 +379,7 @@ false greens.
 ```
 tests/run.sh         14 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   19 Python suites for the cartridge-reading tools. Ten of
+tools/tests/run.sh   21 Python suites for the cartridge-reading tools. Ten of
                      them skip, wholly or in part, unless FF1_ROM points at a
                      cartridge — so a bare run passes and checks a good deal
                      less than the count suggests. One slow guard opts in

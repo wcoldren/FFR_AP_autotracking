@@ -77,7 +77,7 @@ root `README.md` is the whole story.
   at once. Written down after the bank bug below and never run until now -- and
   it earned itself immediately, by failing on its own stated invariant. See
   "The gauntlet the mode skips" below.
-- `tests/run.sh` — 13 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
+- `tests/run.sh` — 14 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
   — the cartridge-reading tools' own tests, Python and nothing else; the ones
   that need a cartridge skip unless `FF1_ROM` points at one.
 - `tools/regen_maps.py --verify` — not part of either suite, because it asks
@@ -87,125 +87,47 @@ root `README.md` is the whole story.
 
 ## Nothing noticed a new FFR flag, and now something does
 
-Written 2026-09-01. `docs/FLAG_COVERAGE.md` ended by asking for this in so many
-words: the list of flags FFR's logic consults is a grep, so it can be a test.
+Written 2026-09-01. Moved to `docs/FLAG_COVERAGE.md`, "Keeping this current",
+which holds the counts and the `NOT_MODELLED` status tally, and to
+`docs/ROADMAP.md` section 5.
 
-`tools/tests/test_flag_coverage.py` runs the two greps that page publishes,
-byte for byte, against the vendored 4.9.7 checkout, and fails when a flag they
-find is named nowhere in `flag_mapping.lua`. **54 consulted, 24 of them named
-before this, 54 after.**
+What stays here is why it reads structurally rather than by grep, since that is
+the part a later change could undo. A whole-file search for a quoted string
+counts a name parked in a commented-out entry as modelled -- this pack's oldest
+failure shape -- and gets today's answer wrong the other way too, because
+`GameMode` is read as `flags.GameMode` and is a quoted literal nowhere. Comments
+are stripped with quote state tracked, since the reasons in `NOT_MODELLED`
+contain `--` inside strings, and the reasons themselves are stripped as well:
+prose that cites an identifier is not code that acts on it. Only three of the
+four quoting sites are in `flag_mapping.lua` -- every `ffrFlag("...")` call
+lives in `scripts/logic.lua` or `scripts/autotracking/maptab.lua`, so those two
+are read as well. Scanning the mapping table alone matched nothing at all.
 
-**The case for it was already live rather than hypothetical.** The page is
-compiled by hand out of the same files it is compiled *from*, and it missed two
-of them: `FiendsRefights` and `ShortToFRFiendsRefights`, which decide whether the
-four fiends stand in the Temple of Fiends Revisited at all. It missed them for
-as long as the page has existed. That is the sixth entry in this file where a
-complete, confident answer survived because nothing ran the check that would
-have contradicted it — and the first where the wrong source was a page of our
-own rather than the cartridge.
+The case for building it was live rather than hypothetical. The page is compiled
+by hand out of the same files it is compiled *from*, and it had missed
+`FiendsRefights` and `ShortToFRFiendsRefights` for as long as it had existed --
+the sixth entry in this file where a complete, confident answer survived because
+nothing ran the check that would have contradicted it, and the first where the
+wrong source was a page of our own rather than the cartridge.
 
-**Structurally, not by grep, and the two disagree.** A whole-file search for a
-quoted string counts a name parked in a commented-out entry as modelled. It also
-gets today's answer wrong the other way: `GameMode` is read as `flags.GameMode`
-and is a quoted literal nowhere, so the grep says 31 unnamed where the four
-real quoting sites say 30. Comments are stripped with quote state tracked,
-because the reasons in `NOT_MODELLED` contain `--` inside strings — and the
-reasons themselves are stripped too, since prose that cites an identifier is not
-code that acts on it. Only three of the four quoting sites are in
-`flag_mapping.lua`: every `ffrFlag("...")` call lives in `scripts/logic.lua` or
-`scripts/autotracking/maptab.lua`, so those two files are read as well. Scanning
-the mapping table alone for that pattern matched nothing at all.
-
-**Thirty reasons, and five of them could not honestly be written.**
-`NOT_MODELLED` went from one entry to thirty-one — thirty new ones plus the
-`ExitToFR` that was already there — each with a `status` from the key
-`FLAG_COVERAGE.md` already publishes: ram 7, variant 1, noise 8, unmodellable
-6, decided 4, unjudged 5. A list padded to make the test pass is the test not
-existing, so `NPCItems`, `NPCSwatter`, the two refight flags and
-`LefeinSuperStore` say they are unmeasured and name the measurement that would
-settle them, instead of borrowing a neighbour's argument. Everything else cites
-the line it was read from. `tests/test_flags.lua` holds the list to all of
-that, including a `computed = true` exemption for the eight flags
-`FlagsCompute.cs` derives rather than stores, which have no field in either
-schema.
-
-### The pin was a three-link chain enforced at one hop
-
-`tools/tests/test_ffr_pin.py`. A flag schema means nothing except against the
-FFR build it came from, and `ffr_flags.py:102` already refuses a cartridge whose
-stamped SHA disagrees with the schema. That compares the ROM to the schema.
-Nothing compared either to the checkout on disk:
-
-    pins.yaml pinned_commit == FFRVersion.cs stamped Sha == schema build_sha
-
-**Three links, two independent sources, and calling it a three-way agreement
-was the overstatement.** `gen_schema.py`'s `git_sha()` derives `build_sha` from
-the stamp, so the right-hand pair is one value read twice and cannot disagree
-once a schema has been regenerated from the checkout it names. The term that
-drifts is the left one, `pins.yaml`'s hand-typed `pinned_commit` — FFR
-substitutes `Sha` during its own deploy and leaves the literal in source, so an
-oracle worktree has to stamp it. Holding both right-hand terms against the pin
-is the check.
-
-Ancestry rather than equality for the checkout: both worktrees sit two local
-commits above their pin, so comparing HEADs fails on a tree that is right. The
-comparison is by common prefix, not string equality, because `pins.yaml`
-abbreviates at 7, 8 and 9 characters in different blocks while the ROM's field
-is fixed at 7 — exact equality would go unsatisfiable the day either FFR pin is
-rewritten at git's auto-abbreviated length.
-
-**The loose link turned up while writing it.** `gen_schema.py` took `build_sha`
-from `git rev-parse HEAD`, which on those worktrees is not the commit the
-cartridges claim — regenerating 4-9-7 wrote `b4ec325` where every oracle ROM
-says `1f31434`, and the proof loop then failed against all of them. Loud rather
-than silent, so nothing shipped wrong, but it put the fault in the checker
-instead of the tree and made "a new version is one command" untrue for the two
-trees that matter most. It reads the stamp now.
-
-Every new check was shown to fail before it was believed: a bad status, a
-dropped `computed`, a missing measurement, a name left in a comment, a name left
-only in a reason, and a drifted `build_sha`.
-
-**One of those rows did not demonstrate what it claimed, and the fix is worth
-recording.** "A checkout pointed at the other version's worktree" was asserted
-by `is_ancestor(4-9-7, pin(4-9-2)) and pin(4-9-2) == stamped_sha(4-9-7)`. The
-conjunction came out `False`, so the row passed — but the first term is `True`:
-4.9.2's release commit genuinely is an ancestor of the 4.9.7 worktree, and only
-the stamp ever fired. A 4.9.7 tree rewound to 4.9.2 would have sailed through
-the ancestry check. The two terms bite in opposite directions and now sit on
-separate rows: ancestry against the 4.9.2 tree handed 4.9.7's pin (which really
-is not in its history), and the stamp against the 4.9.7 tree handed 4.9.2's pin.
-A conjunction hides which half fired, which is the whole failure shape here.
-
-Both new tests skip cleanly with no workspace and no checkout, because somebody
-who installed this as a PopTracker pack has neither. `vendor/` is gitignored and
-the FFR trees are `git worktree`s, so a fresh workspace clone has the pins and
-not the trees; the "at least one checkout was compared" guard now says so and
-skips rather than failing, which is what it always claimed to do.
 
 ## Read the maps from the bank FFR actually puts them in
 
-Fixed 2026-08-29, commit `3697da4`. Recorded here because the tools it touches
-were listed as working for weeks while returning invented answers.
+Fixed 2026-08-29, commit `3697da4`. Moved to `docs/ARCHITECTURE.md`, "The
+tools", which carries the bank rule and the talk-table twin.
 
-`tools/extract_chests.py` decompressed standard maps from bank `$04`. Every FFR
-seed moves all 61 of them to bank `$14` and repoints the engine's two
-`#BANK_STANDARDMAPS` constants — `StandardMaps.Write()`, called unconditionally
-from `Randomize.cs:466` whatever the flags say. Banks 4-7 keep their untouched
-vanilla copies, so reading there did not fail: it returned a complete,
-confident, vanilla topology for a cartridge that plays nothing like it. On a
-No-Overworld seed that came out as 11 floor links where the cartridge has 146,
-and the 11 were genuine vanilla stairs, so nothing looked wrong.
+Recorded here because the tools it touches were listed as working for weeks
+while returning invented answers. On a No-Overworld seed the vanilla bank came
+out as 11 floor links where the cartridge has 146, and the 11 were genuine
+vanilla stairs, so nothing looked wrong. `--self-check` gained the two
+invariants that would have caught it: the bank read must match the mirror
+constant at `$1F:D145` and must not be the vanilla bank on an FFR cartridge, and
+a No-Overworld entry map must have a staircase. Both fail on a reintroduced bug.
 
-`standard_map_bank()` now reads the constant at `$1F:D127` and falls back to
-`$04` only for a stock 16-bank image. `--self-check` gained the two invariants
-that would have caught it: the bank read must match the mirror constant at
-`$1F:D145` and must not be the vanilla bank on an FFR cartridge, and a
-No-Overworld entry map must have a staircase. Both fail on a reintroduced bug.
+The lesson worth keeping: the cheap oracle -- with all key items, every map must
+be reachable from the doors -- was already written down and simply never run.
+Run it before believing any routing output.
 
-The lesson worth keeping: the cheap oracle — *with all key items, every map
-must be reachable from the doors* — was already written down and simply never
-run. Run it before believing any routing output.
 
 ## Three things the door map was wrong about
 
@@ -1519,117 +1441,50 @@ test to make it visible.
 
 ## The art on disk now says what it was drawn for
 
-Built 2026-08-31, the detection half of "notice when the drawn maps are for
-another cartridge". `regen_maps.py` renders 61 maps off one seed into
-PopTracker's `user-override/` tree and PopTracker serves that tree ahead of the
-pack's own art, so art rendered from one cartridge and read under another looks
-entirely normal and is wrong about every staircase -- worse than the hand art,
-which at least never claims to be a seed's.
+Built 2026-08-31. Moved to `docs/BRIDGE.md`, "It checks the drawn maps against
+the cartridge".
 
-Nothing in the tracker can notice. PopTracker's Lua has no `io` and no `os`, so
-the pack cannot read the override it is being served from. The bridge can, and
-is already holding the cartridge, so the comparison lands there.
+Three things stay here. **The seed is not an identity and the flag string nearly
+is** -- the three 4.9.7 oracle cartridges all carry seed `3B7E1C8A` and differ
+only in flags, so anything keyed on the seed calls them one cartridge; the flag
+string ends in the FFR build sha, so all three fields matching means the same
+generator on the same settings.
 
-**What the cache could not do, and why the file is new.** `.regen_cache.json`
-already records a sha256 per mode, which is the right identity for the tool and
-unusable by the only reader that matters: Mesen's Lua has neither a sha256 nor a
-JSON parser. So the regen writes a second file, `.regen_stamp`, line-oriented
-and readable with one pattern match, carrying two identities per mode -- the
-sha1 of the `.nes` and the FFRInfo record as `<version>|<seed>|<flags>`.
-
-**The seed is not an identity, and the flag string nearly is.** The three 4.9.7
-oracle cartridges all carry seed `3B7E1C8A` and differ only in their flags, so
-anything keyed on the seed calls them one cartridge. The flag string ends in the
-FFR build sha, so all three fields matching means the same generator on the same
-settings, which is the same bytes.
-
-**The sha1 is only ever allowed to agree.** `docs/IDEAS.md` said "the bridge has
-no sha256, so the cache has to record something cheap", which was true and
-skipped a step: the bridge does have a hash, `emu.getRomInfo().fileSha1Hash`,
-which `readRom()` already spends as the cartridge id. What it covers -- the file
-on disk, or the banks with the iNES header parsed off -- is not written down
-anywhere here, and `bridge/probe_rom_id.lua` is the measurement that would say.
-Until it is run, a sha1 match silences the check and a sha1 mismatch means
-nothing, so a wrong guess about what it covers costs nothing. The sha1 the
-stamp records is of the whole file, header included, and was checked against
-`shasum -a 1` on both oracle modes.
+**The sha1 is only ever allowed to agree**, which is what makes a guess about it
+free. `docs/IDEAS.md` said "the bridge has no sha256", which was true and
+skipped a step: the bridge does have `emu.getRomInfo().fileSha1Hash`, already
+spent as the cartridge id. What that covers -- the file on disk, or the banks
+with the iNES header parsed off -- is written down nowhere, and
+`bridge/probe_rom_id.lua` is the measurement that would say. **It has never been
+run.** Until it is, a match silences the check and a mismatch means nothing.
 
 **Most of the work is the silences.** The failure that ends a warning light is
-not a missed warning but one that fires on art that is current, so four
-different states report "nothing to say": no override installed, no stamp in it,
-a cartridge with no FFRInfo record, and a mode whose art predates the stamp.
-That last one is the interesting case -- the unrecorded mode could be this
-cartridge's and nothing can rule it out, so one `unknown` line makes the whole
-file unable to answer rather than letting the recorded modes speak for it.
-
-`tests/test_bridge_flow.lua` section 20 drives all of it through a simulated
-connection; four of its five silences were confirmed to fail when the guards are
-removed. `tools/tests/test_regen_stamp.py` holds the format, including the
-pattern the bridge matches with, written in the test the way Lua spells it.
-
-**The light.** `artStale` is the fourth LuaItem in `uat.lua` and sits beside
-`flagsUnread` at the end of the key-item grid, which makes that last row six
-wide where the others are five -- deliberate, and the thing to change first if
-it reads badly. Clicking it prints what the art was drawn for and what to do
-about it. `images/flags/artStale.png` is drawn by `make_toggle_icons.py`, which
-now writes five icons: a warning triangle in `flagsUnread.png`'s own amber over
-three marker boxes, so it says "a warning, about the pins on the map art" in
-shapes the pack already uses. It is bridge-only by construction -- an
-Archipelago session never learns anything about the art on disk, the same way it
-never learns the flag string.
-
-Note that adding the cell edits `layouts/shared.json`, which is in
-`INPUT_FILES`. An override written before this serves the old layout and the
-cell will not be on the board at all -- `tools/regen_maps.py --verify` says so,
-and the fix is a regen per mode.
-
-**What is not built.** The execution half: nothing fires a regen. And the
-restart is still irreducible -- PopTracker loads pack images at load time, so no
-amount of detecting or regenerating removes it.
+not a missed warning but one that fires on art that is current, so four states
+report nothing to say: no override installed, no stamp in it, a cartridge with
+no FFRInfo record, and a mode whose art predates the stamp.
 
 
 ## The towns got tabs the party can walk into
 
-Built 2026-08-31, straight after the stale-art detection and deliberately
-before the regen that had to be run for it -- one regen then delivered both.
+Built 2026-08-31. Moved to `docs/IDEAS.md`, "Show the towns when you walk into
+one", and `README.md`.
 
-`maptab.lua` has followed the party between floors since the bridge landed, and
-`MAP_VALUE` is the table that says which tab a map id belongs to. It calls maps
-0-7 "Overworld", which is every town, so walking into Pravoka took you to the
-overworld art.
-
-**The table could not be fixed where it lives.** The pack ships art only for
-what vanilla gives a tab to, and the eight town images exist nowhere but a
-regenerated override -- measured: the override's `maps.json` names 63 tabs to
-the pack's 53, the extra ten being the eight towns plus `con_castle2F` and
+What stays here is why the table could not be fixed where it lives. The pack
+ships art only for what vanilla gives a tab to, and the eight town images exist
+nowhere but a regenerated override -- the override's `maps.json` names 63 tabs
+to the pack's 53, the extra ten being the eight towns plus `con_castle2F` and
 `bahamutB2`. Naming them in the pack's own table would point the shipped tracker
 at tabs it does not contain, and `tests/test_maptab.lua` check 1 fails on
-exactly that, for the right reason.
+exactly that, for the right reason. So the tree that has the art names it, using
+the same override shadowing that makes a stale override serve stale layouts
+(`docs/ISSUES.md`) -- on purpose this time.
 
-**So the tree that has the art names it.** `regen_maps.py` now writes
-`scripts/autotracking/mapValues.lua` into the override alongside the layouts,
-the location files and `maps.json`, and `autotracking.lua:24` loads that table
-by a pack-relative path -- which PopTracker resolves through the override first.
-That is the same shadowing that makes a stale override serve stale layouts
-(`docs/ISSUES.md`), used on purpose this time.
-
-**Rewritten from the pack's file, not emitted from scratch**, so the other 45
-entries flow through untouched and a later edit to any of them needs nothing
-here. The match is narrow on purpose: only an entry still reading the bare
-`"Overworld"` is replaced, so a table someone has already changed by hand stops
-the run rather than being quietly overwritten.
-
-**Which map id is which town is derived, not restated.** `render_maps.MAP_FILES`
-says which image a map id draws into and `TOWN_TABS` says which tab shows that
-image, so the two existing tables are joined rather than a third one written
+Two choices worth not undoing. The file is **rewritten from the pack's**, not
+emitted from scratch, and only an entry still reading the bare `"Overworld"` is
+replaced, so a table already changed by hand stops the run rather than being
+quietly overwritten. And which map id is which town is **derived** by joining
+`render_maps.MAP_FILES` with `TOWN_TABS`, rather than restated in a third table
 that could drift from both.
-
-`tools/tests/test_map_values.py` re-runs `test_maptab.lua`'s check 1 against the
-generated pair -- the pack's check reads the pack's table against the pack's
-layouts, and neither of those is what PopTracker ends up serving, so the eight
-new paths would otherwise be asserted by nothing. It also pins that exactly the
-eight towns moved, that every other entry is byte-identical, and that a
-hand-edited table stops the run.
 
 
 ## The route to walk is drawn on the map
@@ -1923,185 +1778,61 @@ findings and then reported zero divergences. Both are asserted in
 
 ## Seven crops, two causes, and a letter that means two things
 
-Seven maps were flagged by eye as badly cropped. Measured over all 61 maps of the
-std and nov oracle cartridges, they are **two mechanisms, and the fix count is
-two rather than seven**.
+Moved to `docs/ISSUES.md` -- the seam and its table under "Crop boxes are looser
+than the map on several tabs", the formation-keyed marks under "The same enemies
+could carry two different trap letters".
 
-**The seam.** A standard map wraps at 64 tiles -- `AND #$3F`, which
-`entrance_graph.floor_walk` has modelled all along -- and `render_maps.content_box`
-does not. It takes an axis-aligned bounding box in un-rotated coordinates, so a
-map whose content straddles column 0 or row 0 gets framed across the void between
-its halves:
+Two things stay here. **Both cartridges give identical crop numbers**, which is
+the useful part: the wrap is a property of the map and not of the seed, so the
+No-Overworld audit that looked like it might be needed is not. Two of the by-eye
+guesses were backwards -- Melmond was called plain over-crop and is a wrap, Sea
+Shrine B1 was called a wrap and has no empty column anywhere.
 
-    con_castle      64x35 -> 31x35   content cols 62-63 + 0-26, 35 blank between
-    crescent_lake   52x64 -> 53x43   content rows 58-63 + 0-34
-    melmond         45x64 -> 45x46   content rows 51-63 + 0-30
-    elf_castle      28x64 -> 29x35   content row 63 + 0-31, wrapped by one row
+**That retracts a cause, not a number.** `docs/ISSUES.md` had attributed
+`con_castle`'s 35 blank columns to "stray detached tiles out near the boundary";
+the 35 is right and the tiles are not it. The original diagnosis survives for the
+residue -- `onrac`, `lefein` and `seaB1` really are held open by a
+one-to-three-cell sliver spanning the full width, and `iceB2`, `iceB3` and
+`sky4F` are multi-lobe maps where rotating would put the left half on the right.
+Those six go to the insets idea, which predicted them.
 
-**Both cartridges give identical numbers**, which is the useful part: the wrap is
-a property of the map and not of the seed, so the No-Overworld audit that looked
-like it might be needed is not. Two of the by-eye guesses were backwards --
-Melmond was called plain over-crop and is a wrap; Sea Shrine B1 was called a wrap
-and has no empty column anywhere.
+The letter finding surfaced only because the question asked was whether the same
+enemies on two maps *should* share a mark -- not because anyone was looking for
+it. The clutter was what got noticed; the label not identifying the encounter was
+the defect underneath.
 
-That retracts a cause, not a number. `docs/ISSUES.md` attributed `con_castle`'s
-35 blank columns to "stray detached tiles out near the boundary"; the 35 is
-right and the tiles are not it. The original diagnosis survives for the residue
--- `onrac`, `lefein` and `seaB1` really are held open by a one-to-three-cell
-sliver spanning the full width, and `iceB2`, `iceB3` and `sky4F` are multi-lobe
-maps where rotating would put the left half on the right. Those six go to the
-insets idea, which predicted them.
-
-**The letters mean two things at once.** `trap_letters()` numbers by
-`(tileset, tile)` enumeration order rather than by the formation the tile spawns.
-Two consequences, and the second is the one that matters:
-
-- 38 distinct labels on the std cartridge, so everything past index 25 becomes
-  AA..AL. Seven maps carry a two-character label; `tofrChaos` reads AG AH AI AJ
-  across eight tiles in a row. That is the clutter that got noticed.
-- **Three formations are drawn under two different letters each.** On std,
-  formation `$10` is G on `earthB1` and W on `marshB3`; `$1C` is AA and AG; `$4A`
-  is V and X. Same on nov, three again. So the label does not identify the
-  encounter, which is what a label on a fixed-formation tile is for.
-
-The second was not what anyone was looking for. It surfaced only because the
-question asked was whether the same enemies on two maps *should* share a mark --
-the answer being yes, and the measurement then showing that today they sometimes
-do not. The reflex fix, re-lettering per map, would have entrenched it.
-
-Keying the mark to the formation closes both. **32 formations actually stand on a
-map** (31 on nov), against 35 single glyphs available in `0-9A-Z` once `O` is
-dropped -- and `O` is dropped because `tools/font.py` already asserts that `0` and
-`O` are the same glyph in the cartridge's font, which is exactly the kind of trap
-that alphabet would otherwise have walked into.
-
-Two recorded claims do not survive this and are updated rather than left:
-`test_crop.py:179` and `:195` assert `volcB4` is `{M,N}` on named tiles, and the
-"reproduces the shipped art exactly" finding below.
-
-**Landed, and the numbers it came out at.** `trap_marks()` keys to the formation
-and `standing_formations()` supplies the order. Measured over five cartridges --
-vanilla, the std, nov, nov2 and shard oracles -- **every mark is a single glyph
-on all five**, and no formation carries two marks and no mark stands for two
-formations on any of them. Formations standing on a map: 32 vanilla, 32 std, 31
-nov, 32 nov2, 31 shard, against 35 available. The two-character fallback is
-written and no measured cartridge reaches it; it is there because a reused mark
-is a map that lies about which fight is on a tile, which is worse than a label
-too wide for one.
-
-The clutter went with it. `seaB4` read `AB AC AD AE` and now reads `0 1 Y Z`;
-`earthB1` and `marshB3` both read `G` for formation `$10`, which is the same
-fight and now says so.
-
-What this cost is the exact agreement with the art, and the cost is one place
-rather than an unknown. `test_crop.py` asserts the shift **and names its cause**
--- that formation `$00` is fixed, is in the tileset tables five times, and
-stands on no map -- so the check still says something about the derivation
-instead of merely pinning today's output.
-
-**Linked chests, measured while the chest data was open.** Six chest indices sit
-on more than one tile on std and **fourteen on nov** -- Short ToFR duplicates
-indices onto `tofrChaos`. Four same-map groups on both (`25`, `26` on `marshB2`,
-`29` on `marshB3`, `101` on `volcB4`); two cross-map on std against ten on nov.
-Seed-dependent, so any annotation derives per cartridge.
 
 ## Five object gates, twelve items, and one divergence that had been hiding
 
-Written 2026-08-30. `Sanity/SCMap.cs:167-186` gates five object ids by tile in
-one switch, and the walk modelled three: the Rod and Lute plates, and the Black
-Orb once it was read per cartridge. The last two -- SubEngineer `0x10` wanting
-the Oxyale, Titan `0x14` wanting the Ruby -- went in with the vocabulary that
-carries them, because they could not go in without it. A `GATED_OBJECTS` row
-whose item the sweep cannot hold blocks that tile in *every* subset, so
-everything behind it derives as unreachable rather than gated, and the rules
-come out saying nothing instead of saying the wrong thing loudly.
+Written 2026-08-30. Moved to `docs/ISSUES.md`, "The walk models all five object
+gates the cartridge has", and `docs/ORACLE.md` for the grant figures.
 
-**The two are not equally legible on the cartridge, and the reader says so
-rather than flattening them.** Titan's requirement byte is set --
-`NPCs.cs` assigns him `Item.Ruby = 9` -- and his routine opens `AD 29 60`, LDA
-item_ruby, so `talk_item_requirements()` already answered for him: the byte and
-the code naming the same item, which is the two-sources-agree discipline that
-function exists for. SubEngineer's byte is `0x00`. Nothing assigns him one, so
-there is no second source at all and the only signal is `AD 30 60` in the body.
-With one source carrying the answer the shape is pinned hard instead: the body
-must name exactly one address in the `items` array, and two or none is a refusal.
-`items + $11` is excluded from that scan on purpose -- it is item_canoe's
-address and also where FFR's `ShiftEarthOrbDown` puts the Earth Orb, so a body
-naming it means two different things and the scan cannot tell which. The
-requirement byte has no such problem, being an index FFR writes, so only the
-scan drops it.
+What stays here is why the two new rows could not land without the vocabulary,
+and how the reader treats two unequal sources. A `GATED_OBJECTS` row whose item
+the sweep cannot hold blocks that tile in *every* subset, so everything behind it
+derives as unreachable rather than gated -- the rules come out saying nothing
+instead of saying the wrong thing loudly. Row and item have to land in one
+commit.
 
-Verified on five cartridges -- vanilla and all four oracle seeds -- and all five
-read `{$10: oxyale, $14: ruby}`. On vanilla that is the body scan doing the work
-for both, since a stock image has no requirement table at all.
+**The two objects are not equally legible on the cartridge, and the reader says
+so rather than flattening them.** Titan's requirement byte is set and his routine
+opens `AD 29 60`, LDA item_ruby -- the byte and the code naming the same item,
+which is the two-sources-agree discipline `talk_item_requirements()` exists for.
+SubEngineer's byte is `0x00`; nothing assigns him one, so the only signal is
+`AD 30 60` in the body. With one source the shape is pinned hard instead: the
+body must name exactly one address in the `items` array, and two or none is a
+refusal. `items + $11` is excluded from that scan on purpose -- it is
+item_canoe's address and also where `ShiftEarthOrbDown` puts the Earth Orb, so a
+body naming it means two things and the scan cannot tell which. The requirement
+byte has no such problem, being an index FFR writes, so only the scan drops it.
 
-**Each row demonstrates a failure, per the working rule.** On `std`, holding
-every item but the one: the sub engineer closes 32 locations across the five Sea
-Shrine floors, the Titan the 4 in his tunnel. On `nov` the Titan closes the same
-4, and the sub engineer closes nothing at that level -- with everything else in
-hand the Sea Shrine has another way in. So his demonstration is one subset down:
-holding `chime,floater`, his row closes 59 locations across Crescent Lake, the
-Ice Cave and all five Volcano floors. Which is FFR's own shape for those
-locations, `(Chime AND Oxyale AND Sigil) OR (Mark)`, arrived at by walking the
-cartridge rather than by transcribing the export.
+**Each row demonstrates a failure, per the working rule**, and the sub engineer's
+had to be taken one subset down. On `nov`, holding everything else, his row
+closes nothing -- the Sea Shrine has another way in. Holding `chime,floater` it
+closes 59 locations across Crescent Lake, the Ice Cave and all five Volcano
+floors, which is FFR's own shape for them, `(Chime AND Oxyale AND Sigil) OR
+(Mark)`, arrived at by walking the cartridge rather than transcribing the export.
 
-**The sweep is 2^12 and got faster.** 4096 subsets in about 57 seconds against
-1024 in about 85, because `floor_walk` and `reachable_teleports` are memoized on
-`(map, arrival, the part of the held set that floor consults)`. 42 of the 61
-floors on vanilla consult no item at all and are walked once for the whole
-sweep. The filed design memoized only `floor_walk`; `reachable_tiles` calls both,
-so that would have been half a memo.
-
-Those two numbers are different runs, though, and the honest measurement is an
-A/B on one build: memo off, `nov` costs 77.5 ms a subset against 14.0 with it,
-so the sweep would be about 318 seconds rather than 57. **About 5.5x**, and the
-old pre-memo rate -- 85 seconds for 1024, so 83 ms a subset -- lands on the
-unmemoized side of that, which is what says the memo is doing the difference
-rather than the vocabulary change. Only about 4x of it is reuse inside a single
-`reachable_tiles` fixed point; the rest is the cache saturating across the
-sweep, since the whole lattice produces about 188 distinct walks. Method is in
-`docs/IDEAS.md`, and the switch is the `NoMemo` subclass in
-`tools/tests/test_memo_walk.py`.
-
-The key is the whole risk -- one that omits an item the walk consults hands back
-another subset's reachability with nothing failing -- so `test_memo_walk.py`
-guards it twice. The cheap guard runs every time and is still exhaustive: a walk
-reads the held set in exactly two places, so if neither `walkable()` on any of a
-map's property bytes nor `blocking_objects()` on its objects can tell `have` from
-the trimmed key, over all 61 maps and all 4096 subsets, then no walk can. The
-expensive one compares memoized against unmemoized tile for tile over the whole
-lattice; it runs on `FF1_SLOW=1` and passed on `nov`, 4096 of 4096.
-
-**What it bought is on the measurement.** `offvocab_items()` hands both sides
-every item the sweep cannot express, and Oxyale and the Ruby were 161 of the 164
-grants on `nov`. The grant is 5 now -- Herb, Adamant, Bottle, Crystal, Slab, one
-each -- so `nov` goes from 58 genuinely compared to **221 of 226**, and `nov2`
-from 64 to 219. Independent support for the pack's own No-Overworld rules goes
-from **63 of 226 to 215**: the sweep derives a rule for every compared location,
-agrees with FFR at 225 of them, and never parts company with the pack's rule
-where the pack agrees with FFR.
-
-The two baselines did not move -- std 225/225, shard 229/229 -- which is what
-says the new rows describe the cartridge rather than the mode.
-
-**And one thing surfaced that the grant had been hiding.** Lefein is the only
-`--derived` divergence left, on both No-Overworld cartridges. FFR wants
-`(Tnt OR Ruby OR Canoe) AND Floater AND Slab`; the derivation says `floater`.
-Both are right about the geography: Lefein town is two teleports from the start
--- Coneria Castle 1F `(2,8)`, behind the SIGIL barrier, to Waterfall `(57,56)`,
-then Waterfall `(25,28)` to Lefein -- and FFR agrees, wanting only `Sigil` for
-the Waterfall chests. The extra term is the requirement for reaching *Melmond*,
-because the Lefein man wants the Slab translated and `SCLogic.cs:555-557`
-resolves an NPC gated on the Unne flag to Dr Unne's own reachability.
-
-That is a requirement naming another location, and the sweep's vocabulary is
-items -- no amount of widening reaches it. Filed rather than patched, in
-`docs/ISSUES.md`, where it is the strongest argument yet for the propagating
-solver in `docs/IDEAS.md`. It also showed up a rationale that had gone stale:
-`check_logic.WAIVED` said the pack is stricter at Lefein "because Unne is
-reachable whenever Lefein is", which holds on a standard overworld and does not
-hold here. Corrected in the review commit below -- what the waiver concludes was
-right on both worlds, and only the reason it gave was wrong on one.
 
 ## What the review of the object-gate branch found
 
@@ -2202,28 +1933,15 @@ Moved to `docs/ISSUES.md`.
 
 ## The route lane comes off the default
 
-Taken 2026-08-31, ahead of a pass at the pack's variants and a route editor.
+Taken 2026-08-31. Moved to `docs/ROADMAP.md` section 4, which carries all three
+reasons and the editor that replaces the solver.
 
-`--lanes` now defaults to `none`. The router and the drawing both stay
-exactly as they are; what changed is that a regen no longer draws a lane unless
-asked. Three things say the derived lane is not the feature it looked like.
-A map with no chest gets none at all -- `lane.plan` returns `None` before any
-arrival or exit work happens, so only the 38 chest-bearing maps of the 61 get a
-lane on the standard duck cartridge and 37 on the No-Overworld one. The cost
-model is four constants and has no way to know that a chest is not worth the
-detour on this seed, or that this one should come before that one. And the pair
-that shipped is named wrong, which `docs/IDEAS.md` already records.
+Two things stay here. Skipping `route_lanes` takes about 35 seconds off a regen.
+And `tools/lane.py` and `tools/font.py` were **missing from `INPUT_FILES`**, so
+editing the router changed no fingerprint and the next regen would print
+"nothing to do" over stale art. Both added -- this would have bitten on every
+iteration of the editor work.
 
-None of those is a tuning problem, which is the whole point: a solver cannot
-know which chests are worth taking. So the router becomes the pathing primitive
-rather than the feature, and the next step is an editor that takes clicked
-anchors and waypoints and lets `lane.Floor` fill in the walking between them.
-Skipping `route_lanes` also takes about 35 seconds off a regen.
-
-`tools/lane.py` and `tools/font.py` were missing from `INPUT_FILES`, so editing
-the router changed no fingerprint and the next regen would print "nothing to do"
-over stale art. Both added -- this would have bitten on every iteration of the
-editor work.
 
 ## The item grid gets its rows back
 
@@ -2288,469 +2006,169 @@ replacement by authored waypoints, where the visit order is the author's.
 
 ## Three Temple of Fiends flags: two coded, one declined
 
-Built 2026-08-31 and 2026-09-01 on `flags-real-seeds`. Section 1 of the roadmap
-opened with five flags that had no pack code; three of them are Temple of Fiends
-flags, and this branch is all three. Two of them were colouring pins wrong on a
-seed anyone could roll. The third turned out to gate nothing, which is a result
-and not a gap, and the branch had to build somewhere to say so.
+Built 2026-08-31 and 2026-09-01 on `flags-real-seeds`. Moved to
+`docs/FLAG_COVERAGE.md` section C and `docs/NOVERWORLD.md`, which has the Short
+landing and the two hand walks.
 
-**`ChaosRush` lifts the Key half of Chaos's gate.** Its whole body rewrites tile
-`0x3B` in the ToFR tileset, and `0x3B` is the locked door. It is a plain toggle,
-`chaosRush`, and it buys one alternative on the `Chaos` section and one on the
-`ToFR` node: `chaosRush,lute` beside the standing `lute,key`.
+Three things stay here. **The oracle had already said so and nobody had asked
+it** -- `oracle-4.9.2/nov` rolls `ToFRMode 2`, and its `derived_nov.json` gave
+the seven ToFR chests as `[["orbs"]]` all along. No new cartridge was needed for
+any of this; the measurement was sitting in a file the branch could have read on
+day one. Worth remembering the next time a flag looks like it wants a roll.
 
-**`ToFRMode` was holding seven chests red on a Short seed.** `ShortenToFR`
-repoints the Black Orb warp straight at `tofrChaos (15,3)` and lays the seven
-chests at cols 12-18, rows 1-2 -- *in front of* the landing tile, with the
-lute-gated object `0x17` at `(15,5)` two tiles past it. So the party warps in,
-takes seven chests, and only then meets a gate. The pack was asking
-`$canBreakOrb,lute,key` for all seven.
+**`ToFRMode` is an enum, not a tri-state**, so it is a `PROGRESSIVES` row rather
+than a `TOGGLES` one: `setToggle` would write `2` into `Active`, and
+`check_logic`'s `flag_codes` tests `is True`, which an integer fails.
 
-**The oracle had already said so and nobody had asked it.** `oracle-4.9.2/nov`
-rolls `ToFRMode 2`, and its `derived_nov.json` gives ToFR Kary Floor 1-4, Lute
-Plate Room 1-2 and Vanilla Masa as `[["orbs"]]`. No new cartridge was needed for
-any of this -- the measurement was sitting in a file the branch could have read
-on day one. Worth remembering the next time a flag looks like it wants a roll.
+**Only Short moves a rule.** `MidToFR` rewrites the lock door at `[0x16,0x14]`
+and still calls `AddLutePlateToFloor1F`, so Mid asks exactly what Long asks and
+decodes to 0. Random is rolled at generation and the flag string records *that*
+it was rolled rather than where it landed, so the cartridge cannot say and
+strict is the only honest answer. An absent flag reads false from `get()`, which
+is not 2, so that lands strict too.
 
-Two shapes of the flag decode fell out of it. **`ToFRMode` is an enum, not a
-tri-state**, so it is a `PROGRESSIVES` row rather than a `TOGGLES` one:
-`setToggle` would write `2` into `Active`, and `check_logic`'s `flag_codes` tests
-`is True`, which an integer fails. And **only Short moves a rule** -- `MidToFR`
-rewrites the lock door at `[0x16,0x14]` and still calls `AddLutePlateToFloor1F`,
-so Mid asks for exactly what Long asks for and decodes to 0. Random is rolled at
-generation and the flag string records *that* it was rolled rather than where it
-landed, so the cartridge cannot say, and strict is the only honest answer. An
-absent flag reads false from `get()`, which is not 2, so that lands strict too.
-
-**Then the Key half got walked rather than assumed.** The `Chaos` node has always
-gated on `lute,key`, and the open question was whether Short still earns the key
-half or whether the pack was being conservative. Walked from `ShortenToFR`'s own
-landing at `(15,3)` on three Short cartridges -- `duck-104` and
-`practice-72A52C25` standard, `oracle-4.9.2/nov` No-Overworld -- all reading
-identically: nothing reaches 31 maps and stops at row 4, the Key alone reaches
-the same 31, the Lute reaches 33 and stops at row 6, and only Lute + Key reaches
-425 and Chaos at `(15,17-19)`. Both gates stand between the landing and the boss,
-in that order, and the door is `ShortenToFR`'s own: `Put((0x0A, 0x00),
-landingArea)` with row eight `31313030303B3030303131` puts `0x3B` at `(15,7)`,
-two rows past the plate. No rule changed -- the shipped one was right. The write-
-up went to `NOVERWORLD.md` beside the other hand-walked ToFR findings, because
-the oracle cannot see these maps and a walk is the only thing that settles them.
-
-**`ExitToFR` is declined, and the decline needed somewhere to live.** It writes a
-`PortalWarp` at `tofrChaos (15,3)` and nothing else; the tile reads `0x40`,
-`TP_TELE_WARP`, and `reachable_maps` follows only `TP_TELE_NORM`, so it creates
-no way *in*. This pack does not model points of no return, so there is nothing
-for it to gate, and a code for it would be a cell on the board that changes no
-colour. That is worth less than nothing.
-
-The problem is that a flag with no code is ambiguous on its own -- nobody can
-tell "decided against" from "not got to yet", and `FLAG_COVERAGE.md` kept having
-to say which in prose. So `flag_mapping.lua` grew a **`NOT_MODELLED`** table
-carrying the flag name and the reason, `FFR_FLAG_COVERAGE` exports all three
-tables so a coverage list cannot drift unread, and `tests/test_flags.lua` holds
-the result against both shipped schemas: every name in it has to be a real flag,
-and no flag may be claimed by two of the three tables.
-
-**None of the three can be graded by `check_logic`, by construction.**
-`Archipelago.cs:93` drops every ToFR location from the pool unconditionally, so
-ToFR appears zero times in all five exports and a cartridge rolled for any of
-these reproduces the `NoTail` outcome -- an unchanged rule set graded against
-itself. Their evidence is the derived walk and the hand walks above instead. That
-is now written into `FLAG_COVERAGE.md` as the standing reason rather than
-rediscovered per flag.
-
-Two smaller things rode along: a stale `flag_mapping.lua.bak` that had been
-committed into the pack was dropped and `*.bak` added to `.gitignore`, and
-`lane.py`'s comment about what the router does with the exit was corrected to
-describe the code rather than a line number that had already moved.
 
 ## The last two flags without a code, and a preset key that was not there
 
-Built 2026-09-01 on `flags-real-seeds`. `MapAirshipHike` and
-`MapCardiaLandBridge` were the last two entries in `FLAG_COVERAGE.md`'s "Missing
-rows, in one place", and that section now says there are none.
+Built 2026-09-01 on `flags-real-seeds`. Moved to `docs/FLAG_COVERAGE.md` and
+`docs/ORACLE.md`, which holds the cartridges and the before/after figures.
 
-**The thing that made them look hard was not a flag at all.** Both are ordinary
-`bool?` properties on FFR's `Flags` at 4.9.7 (`Flags.cs:326-327`), and both are
-absent from every preset in `seeds/ff1/oracle-4.9.7/flags/` -- all 544 keys of
-`oracle497_std`, which does carry `ShipDrydock`. Read the wrong way round that
-says the corpus build predates them and no cartridge can be rolled. It says
-nothing of the kind: 4.9.7's stock `default.json` omits all three of the
-4.9.7-only flags, Newtonsoft binds a key written in explicitly straight onto
-`Flags`, and `ShipDrydock` is in the preset only because the drydock work put it
-there by hand. `ORACLE.md` now says so where the next reader will hit it.
+Two things stay here. **The thing that made them look hard was not a flag at
+all.** Both are ordinary `bool?` properties on FFR's `Flags` at 4.9.7
+(`Flags.cs:326-327`) and both are absent from every preset in the corpus,
+including all 544 keys of `oracle497_std`. Read the wrong way round that says
+the corpus predates them and no cartridge can be rolled. It says nothing of the
+kind: 4.9.7's stock `default.json` omits all three 4.9.7-only flags, Newtonsoft
+binds a key written in explicitly straight onto `Flags`, and `ShipDrydock` is in
+the preset only because the drydock work put it there by hand.
 
-So each preset is `oracle497_std` plus one key at 545, each cartridge shares
-`std497`'s seed `3B7E1C8A`, and each differs from the baseline in one flag
-value. The flag was confirmed by decoding it back off the finished cartridge
-rather than trusting the preset, which is the rule the drydock pair set.
-
-**Both flags loosen, which is the shape neither `NoTail` nor `ShipDrydock` had.**
-`ShipDrydock` took a route away and the pack went on offering it, showing 53
+**Both flags loosen, which is the shape neither `NoTail` nor `ShipDrydock`
+had.** `ShipDrydock` took a route away and the pack went on offering it, showing
 locations green that FFR calls unreachable. These two add a route the pack did
 not have, so the failure is the mirror image: pins held **red** that FFR calls
-reachable. 134 of them on an airship seed and 46 on a land-bridge one, against
-226 of 226 clean on the baseline they differ from by one flag.
+reachable -- 134 on an airship seed, 46 on a land-bridge one. The rewrites are
+uniform, which is why 134 locations collapse to twelve nodes and 46 to five, and
+why the Floater stands in for having raised the airship where it stands, so the
+pack's alternative is `floater,ship` and not `airship`.
 
-    airship497      90 of 224 agreeing  ->  224 of 224
-    landbridge497  177 of 223 agreeing  ->  223 of 223
-    std497         226 of 226           ->  226 of 226   (unmoved)
-    drydock497     223 of 223           ->  223 of 223   (unmoved)
-    extended497    226 of 226           ->  226 of 226   (unmoved)
-
-The rewrites are uniform, which is why 134 locations collapse to twelve nodes
-and 46 to five. `MapAirshipHike` adds the `AirshipHike` map edit
-(`OverworldMap.cs:62`) and every rule it touches gains `(Floater AND Ship)` --
-the Floater standing in for having raised the airship where it stands, so the
-pack's alternative is `floater,ship` and not `airship`. `MapCardiaLandBridge`
-adds the bridge (`:64`), moves the Cardia and Bahamut overworld teleport
-coordinates with it (`:392`) and suppresses `BahamutCardiaDock` (`:55`); its
-rules gain `(Canoe AND Canal AND Ship)`. Both new alternatives carry
-`$noShipDrydock`, like every other one that names the Ship, because a drydocked
-Ship opens nothing and neither flag changes that.
-
-**Bahamut's Cave is deliberately not in either set.** It is in the Cardia group
-and the land bridge moves `BahamutCave1`'s coordinate, so it looks like it
-belongs -- but Bahamut appears in no exported rule at all, on any of the five
-cartridges, because it is not an Archipelago location. Nothing can grade it
-either way, so it stays strict and is written down here instead of being
-guessed at.
-
-**The suite caught the half that reasoning had missed.** The incentive sheet
-carries its own copy of each slot's rules, and `test_maps.lua` holds the two
-tabs in agreement about every slot. Editing only `overworld.json` broke twenty
-of those checks and named all twenty. Eleven incentive nodes needed the same
-alternatives -- and one of them, the No-Overworld sheet's `sea` slot, is hosted
-under `I: Sea Incentive` rather than the `I: Sea Shrine` node the standard sheet
-uses, so a name-matching pass fixed nineteen and left the twentieth. That last
-one is the argument for the test: nothing else in the tree says the two sheets
-disagree about where a slot lives.
-
-`tests/test_ram.lua` demonstrates both gates on Cardia Forest, the one node
-carrying both new alternatives: out of logic on the items, in with the flag,
-still out with only half the items, and out again when the Ship is drydocked.
-`tests/test_flags.lua` adds them to the cartridge-swap check, because a
-4.9.7-only flag surviving a swap to a 4.9.2 cartridge is the `ShipDrydock` bug
-and these are new members of that class.
-
-One correction fell out of the source read: `FLAG_COVERAGE.md` had
-`MapAirshipHike` marked "also read by `EntrancesFloorsShuffle.cs`". It is not --
-it appears in `OverworldMap.cs:62` and `Flags.cs` and nowhere else.
-`MapCardiaLandBridge` is the one read outside `OverworldMap.cs`, at
-`EntrancesFloorsShuffle.cs:71`.
 
 ## The flag that was on the verify list and belonged on the other one
 
-Built 2026-09-01 on `flags-real-seeds`, straight after the two overworld flags.
-`IsFloaterRemoved` and `ShuffleObjectiveNPCs` were the pair `FLAG_COVERAGE.md`
-said to *verify* rather than add -- the question being whether either actually
-moves logic. Running that check split them, and one of them reopened the section
-the previous entry had just closed.
+Built 2026-09-01 on `flags-real-seeds`. Moved to `docs/FLAG_COVERAGE.md` and
+`docs/ISSUES.md`, "`ShuffleObjectiveNPCs` moved two cells and nothing in the
+pack knew".
 
-**`IsFloaterRemoved` moves no pin, and the source settles it twice over.** It is
-computed rather than stored -- `FlagsCompute.cs:85` gives it as
-`((NoFloater|IsAirshipFree) & !NoOverworld) | DesertOfDeath` -- so it has no
-field in either shipped schema and a pack code could not read it directly;
-`NoFloater` is the field that exists. And its one read inside `FF1Lib/Sanity/` is
-`SanityCheckerV2.cs:178`, which clears `MapChange.Airship` out of
-`requiredMapChanges`. That feeds the `complete` boolean and no per-location rule,
-so no exported rule can move with it.
+Two things stay here. **A cartridge was rolled for `IsFloaterRemoved` anyway and
+refused to generate**: taking the Floater out of the pool leaves item placement
+unable to meet this preset's incentive count (`ItemPlacement.cs:173`), with or
+without `IncentivizeAirship`. Worth recording, because the by-construction
+argument is the one that stands and the next reader should not spend an hour
+rediscovering that the roll is a dead end.
 
-A cartridge was rolled for it anyway and refused to generate: taking the Floater
-out of the pool leaves item placement unable to meet this preset's incentive
-count (`ItemPlacement.cs:173`), with or without `IncentivizeAirship`. Worth
-recording, because the by-construction argument is the one that stands and the
-next reader should not spend an hour rediscovering that the roll is a dead end.
+**The pack scored full marks on a seed it was wrong about.** FFR's export does
+not notice the objective-NPC permutation, so `check_logic` graded `objnpc497`
+clean while `bahamut` was held behind the airship with Bahamut standing in
+Melmond. That is the `NoTail` case again: a green `check_logic` run is not
+evidence a pack-only cell is honest, only that nothing in the export
+contradicts it.
 
-**`ShuffleObjectiveNPCs` does move pins, and nothing that grades the pack could
-see it.** `NPCs.cs:135` runs the shuffle when `ChestsKeyItems` is also on and the
-mode is not Deep Dungeon; `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf
-Doctor across BahamutCave2, Melmond and Elfland Castle. `objnpc497` is `std497`
-plus that one flag, and `tools/extract_npcs.py` read both cartridges:
-
-    bahamut   map 39 (21,3)  ->  map 3  (26,1)     BahamutCave2 -> Melmond
-    unne      map 3  (26,1)  ->  map 39 (21,3)     Melmond -> BahamutCave2
-    elfprince unmoved
-
-Two cells lie on that cartridge, in opposite directions. `bahamut` is hosted
-under `Cardia Islands/Bahamut's Cave` behind the airship while Bahamut stands in
-Melmond and is reachable early; `slabTranslated` is hosted under `Melmond
-Continent/Melmond/Dr Unne` and read reachable while Unne sat behind the airship.
-The second is the over-reporting direction, which is the one that matters.
-
-**FFR's export does not notice, and that is the part worth carrying forward.**
-Of the 204 rules the two exports share exactly one moves, and it is `Shop Item`
--- roll noise, the same row the `ShipDrydock` diff hit for the same reason.
-`Elf Prince` and `Lefein` are byte-identical across the two. So the pack scored
-**224 of 224** on a seed it was wrong about. A green `check_logic` run is not
-evidence a cell is honest; it is evidence FFR exported a rule that could be
-compared. When it exports nothing, the comparison is vacuous and says so in
-neither direction.
-
-### Closed strictly, which is a weaker close than the others on this branch
-
-The permutation is rolled at generation and reaches neither the flag string nor
-the spoiler, so knowing the flag is on does not say where anyone went. The
-answer taken is the Cardia gateway roll's: with the flag on, ask for **all three
-homes at once**.
-
-That collapses. Bahamut's Cave dominates the other two under every one of its
-alternatives -- the airship reaches Melmond and Elf Castle, and `cardiaDock`
-with the Ship and the Canal carries the Ship that opens both, and in
-No-Overworld its `$hasFloater` is strictly stronger than the other two rules
-there. So the strict conjunction is just Bahamut's Cave's own requirement, ANDed
-onto whatever the cell already wanted. `bahamut` needed no change at all, being
-already gated on the home that dominates. Two cells moved, not three, and the
-guard is `$noObjectiveShuffle` mirroring `$noShipDrydock`.
-
-**`check_logic` had to be taught the guard, and finding that out took a green
-suite and a red corpus.** The `$name` calls live in two places -- `logic.lua` for
-the tracker and `LUA_RULES` in `check_logic.py` for the harness -- and adding one
-to the location trees without adding it to the harness makes every alternative
-carrying it fail. Every seed in both corpora lost a location, including seeds
-with the flag off, which is what said the fault was in the harness and not in the
-rule. A guard that only one of the two knows about is worse than no guard,
-because it fails on the seeds it was not written for.
-
-The close is deliberate disagreement rather than agreement, and this is the only
-row on the branch of that kind. On `objnpc497` the pack now holds the Elf Prince
-where FFR opens him, because FFR wrote the seed and its rule names the home the
-roll actually picked. That divergence is in `check_logic`'s `WAIVED` table with
-its reason, so it stays printed rather than disappearing into a pass, and it
-fires only on a seed that rolled the flag. Everything else is unmoved: six of the
-six 4.9.7 cartridges and all five 4.9.2 ones grade exactly as they did.
-
-It also ignores the `ChestsKeyItems` conjunct FFR ANDs in at `NPCs.cs:135`. With
-that flag off the shuffle does not run and the pack is needlessly strict, which
-is the side to be wrong on until there is a code for it.
-
-**The right fix is unbuilt and is shared with the Cardia roll.**
-`tools/extract_npcs.py` already reads the permutation off the cartridge -- it is
-what measured the swap above -- and `regen_maps.py` already reads the cartridge
-per seed. What is missing is the live bridge publishing it, which is the same
-feature as publishing `ff1/gateways`. `ROADMAP.md` now holds the two as one item
-rather than two, because building it twice is the failure mode worth naming
-before either gets started.
 
 ## Gaia, answered off a cartridge instead of argued about
 
-The Gaia node's northern-docks route read
-`northernDocks,hwyOrdeals,gaiaMountain,ship,canal` on the incentive poster and
-dropped `hwyOrdeals` in the dungeon tree. Identical in upstream's `9ed47a4` and
-here, so a rule written twice and never compared rather than drift. It had sat
-in `ISSUES.md` for weeks and was the one slot `test_maps.lua` check 7 waived by
-name, because which of the two is right is not answerable from the location
-files and guessing would be a standard-mode rule change with nothing behind it.
+Moved to `docs/ISSUES.md`, "The two tabs disagreed about how to reach Gaia", and
+`docs/ORACLE.md` for the pair and its figures.
 
-The neighbours do not settle it either: Lefein's northern-docks route carries
-`hwyOrdeals` in both trees and Sky Palace's carries it in neither. So it wanted
-FFR's own answer on a seed where the two versions differ, and that is two
-cartridges rather than one, because the question cannot be asked until the docks
-and the mountain pass are both on.
+Three things stay here. **Why it needed two cartridges rather than one**: the
+question cannot be asked until the docks and the mountain pass are both on, so
+the isolating pair is `gaia497` against `gaiahwy497` rather than either against
+the baseline. Six of the eight 4.9.7 cartridges are one flag from `std497`;
+these two are one flag from *each other*.
 
-    gaia497      docks + pass, highway OFF   Fairy = (Canoe AND Floater AND Bottle)
-    gaiahwy497   docks + pass, highway ON    Fairy = that, plus (Canal AND Ship AND Bottle)
-
-**The poster was right.** Without the highway FFR gives the Fairy no Ship route
-at all, while 79 other rules do move between `gaia497` and `std497` -- so the
-flags are certainly live and the absence is the answer rather than a flag that
-failed to apply. Lefein moves the same way with the highway, which is why its
-northern-docks route always carried `hwyOrdeals` in both trees.
-
-The dungeon tree was over-reporting: on a docks-and-pass seed without the
-highway it opened Gaia on the Ship and the Canal and FFR does not. `gaia497`
-graded 223 of 224 before the fix and 224 of 224 after; `gaiahwy497` graded 225
-of 225 both times, which is what says the fix took the wrong alternative away
-without taking the right one with it.
+**Why the absence is the answer rather than a flag that failed to apply.**
+Without the highway FFR gives the Fairy no Ship route at all, while 79 other
+rules do move between `gaia497` and `std497` -- so the flags are certainly live.
+The neighbours could not settle it either: Lefein's northern-docks route carries
+`hwyOrdeals` in both trees and Sky Palace's carries it in neither.
 
 **The waiver went with it.** `KNOWN` in `test_maps.lua` is empty now, so every
-slot the two trees share has to match, with nothing named as an exception. That
-is the part worth keeping: a waiver that names one slot is a waiver that stops
-being read, and this one had outlived the reason it was written.
+slot the two trees share has to match with nothing named as an exception. A
+waiver that names one slot is a waiver that stops being read, and this one had
+outlived the reason it was written.
 
-The pair is the exception in `ORACLE.md`'s table, and the table now says so. Six
-of the eight 4.9.7 cartridges are one flag from `std497`; these two are one flag
-from *each other*, and it is the pair that isolates rather than either against
-the baseline.
 
 ## The variant cannot be chosen for you, so the board says so instead
 
-`ROADMAP.md` had this as "act on it, or at least light the grid the way unread
-flags do", and `ISSUES.md` suspected the first half might not be expressible.
-The suspicion was right, and it is checked now rather than suspected.
+Moved to `docs/BRIDGE.md`, "It says when the seed is not the game this variant
+tracks", and `docs/ISSUES.md`.
 
-**Auto-selecting the variant is refused, not deferred.** PopTracker exposes
-`Tracker.ActiveVariantUID` read-only and raises `"Tried to write read-only
-property"` on assignment (`core/tracker.cpp:747-749`), and `Pack::setVariant`
-has exactly one caller, `poptracker.cpp:1202`, on the pack-load path. There is
-no runtime path to a variant change at all. Worth stating that way round: an
-item that says "not expressible, here is the source" is one nobody re-scopes,
-and this one had been sitting in the open questions inviting exactly that.
+Three things stay here. **Auto-selecting the variant is refused, not deferred**,
+and stating it that way round is the point: an item that says "not expressible,
+here is the source" is one nobody re-scopes, and this one had been sitting in
+the open questions inviting exactly that.
 
-**What the seed and the variant disagreeing actually costs.** Two things are
-chosen by variant rather than read: `scripts/logic.lua` takes the overworld
-shape from the UID and the goal from it as well. So a No-Overworld seed on a
-standard variant colours every pin with geography the seed does not have, and a
-shard-hunt seed on a standard variant waits on four lit orbs instead of counting
-shards. Both fail quietly, and nothing downstream can correct either.
+**What the disagreement actually costs.** Two things are chosen by variant
+rather than read -- `scripts/logic.lua` takes the overworld shape from the UID
+and the goal from it as well. So a No-Overworld seed on a standard variant
+colours every pin with geography the seed does not have, and a shard-hunt seed
+on a standard variant waits on four lit orbs instead of counting shards. Both
+fail quietly and nothing downstream can correct either.
 
-So `modeMismatch` is the third warning light, beside `flagsUnread` and
-`artStale`, drawn by `tools/make_toggle_icons.py` in the same family -- same
-ground, border, triangle and amber, with the glyph underneath changed from three
-marker boxes to one square and one diamond. The pack's two pin shapes, side by
-side and deliberately not the same shape, which says "these two do not match"
-without inventing a picture of a variant chooser PopTracker does not draw.
+**The icon says "these two do not match" without inventing a picture.** Same
+family as the other two lights -- ground, border, triangle, amber -- with the
+glyph changed to one square and one diamond: the pack's two pin shapes side by
+side and deliberately not the same shape. PopTracker draws no variant chooser,
+so there is nothing else to depict.
 
-**It reports both halves, not the first one.** The mode and the goal can be
-wrong at once, and a chain of `elseif`s would have named the mode and hidden the
-goal. They are collected into a list and joined, and `test_flags.lua` loads a
-standard shard-hunt seed into a No-Overworld variant to hold that.
-
-**Closing it fixed a warning that was firing on seeds that were fine.** The line
-this replaced was `if flags.GameMode ~= 0`, which warned "this seed is not a
-standard game -- load the matching pack variant" on **every No-Overworld seed
-loaded into the No-Overworld variant it belongs in**. GameMode 2 is the mode the
-pack has four variants for; the check never asked what was loaded. It compares
-against the variant now, and Deep Dungeon and any unknown mode are called out by
-name instead of by being non-zero.
-
-Placing the light needed no grid resizing, which was the thing worth checking
-before adding a cell: `shared_item_grid`'s bottom row had two spare slots and
-`NOverworld_item_grid`'s had one, so both grids keep the width and height they
-had. In the No-Overworld tree all three lights sit together; in the standard one
-the new one is at the end of the bottom row rather than beside the other two,
-which is the cost of not widening the item panel to eight.
-
-And, as with every other layout edit: it does not appear on a board with an
-installed override until `regen_maps.py` is re-run per mode, for the reason
-`BRIDGE.md` already gives about the stale-art triangle's own cell.
-
-**Confirmed working on a running tracker, 2026-09-01**, once the override had
-been regenerated for both modes. Worth recording as its own line rather than
-leaving the suite to speak for it: `test_flags.lua` loads a standard shard-hunt
-seed into a No-Overworld variant and asserts the reported string, which proves
-the logic and proves nothing about whether a cell exists on the board a player
-opens. The two are independent, and the gap between them is exactly where the
-paragraph above says the light goes missing -- the suite passes just the same on
-a stale override that never draws it. A green suite is not a sighting.
 
 ## Six of eight variants had no flags grid, and nothing said so
 
-Found while auditing what a board actually shows rather than what the docs
-claim it shows. `shared_flags_grid` was in `standard/tracker.json`,
-`standard/standard_broadcast.json`, `shardHunt/tracker.json` and
-`shardHunt/broadcast.json` -- four of sixteen layout files, two of eight
-variants. Everywhere else the 19-flag seed readout, `Auto-Tab` and the pin
-toggles simply were not on the board.
+Moved to `docs/IDEAS.md` and `README.md`, "Which variant shows what".
 
-**The behaviour was on the whole time, which is what made it invisible.**
-`scripts/init.lua` sets `tab_switch` and `tab_mode` at load for every variant,
-so a No-Overworld player got followed between floors and had no way to stop it,
-and no way to see what the cartridge had rolled. The README meanwhile said
-"`Auto-Tab` in the flags grid turns that off" and "`Overworld Tab` in the flags
-grid decides which", which was true on a quarter of the pack.
-
-The two No-Overworld map variants have it now, on all four of their layouts --
-tracker, shards tracker and both broadcasts -- inserted where the standard
-layouts put it, between Bosses and Incentives.
-
-**They carry `NOverworld_flags_grid` rather than the shared one, over exactly
-one cell.** `Overworld Tab` decides between two overworld tabs those variants do
-not have: `maptab.lua`'s `overworldTab()` returns the incentive poster on the
-first line, before it ever asks `tabMode()`, because the mode replaces the
-overworld with an ocean stub. Shipping the cell there would be a control that
-changes nothing, which is the argument `IDEAS.md` already makes for keeping the
-Pins toggles off the map-less variants.
+Two things stay here. **The behaviour was on the whole time, which is what made
+it invisible.** `scripts/init.lua` sets `tab_switch` and `tab_mode` at load for
+every variant, so a No-Overworld player got followed between floors with no way
+to stop it and no way to see what the cartridge had rolled, while the README
+said "`Auto-Tab` in the flags grid turns that off" -- true on a quarter of the
+pack. Found by auditing what a board actually shows rather than what the docs
+claim it shows.
 
 **Forking a grid over one cell is how two grids start drifting**, so the fork
-comes with a check. `test_mapping.lua` holds the two together: every cell in one
-has to be in the other, `tab_mode` is the single named exception, and the
-exception is asserted in both directions -- it must be absent from the
-No-Overworld grid and present in the standard one, so a fork that has lost its
-reason fails rather than passing quietly. Verified by deleting `objectiveNPCs`
-from one grid and watching it fail.
+came with a check. The two No-Overworld map variants carry
+`NOverworld_flags_grid` rather than the shared one over exactly one cell:
+`Overworld Tab` decides between two overworld tabs those variants do not have,
+because `maptab.lua`'s `overworldTab()` returns the incentive poster before it
+ever asks `tabMode()`. `test_mapping.lua` holds the two grids together -- every
+cell in one must be in the other, `tab_mode` is the single named exception, and
+the exception is asserted in both directions.
 
-No grid changed size for the mode-mismatch light either: both item grids already
-had a short bottom row.
-
-**What the audit corrected in the README.** Two claims were wrong and neither
-was about the flags grid. "Only the two map variants have dungeon tabs to switch
-between" -- `TABBED_VARIANTS` in `maptab.lua` names four, and has since the
-No-Overworld variants got the dungeon tree. And nothing anywhere said what the
-four `NoMap` variants do not have, which is the thing a reader picking from a
-list of eight most needs. There is a "Which variant shows what" section now.
-
-The `NoMap` four stay thin on purpose and are documented as thin. That is still
-the open question `IDEAS.md` names -- whether anyone outside this repo runs the
-pack -- and nothing here settles it.
 
 ## 0.1.0, and the two fields that turned out not to be cosmetic
 
-`manifest.json` had carried upstream's identity across 283 commits. Three fields
-moved on 2026-09-01 and one deliberately did not.
+Moved to `docs/IDEAS.md` and `docs/BRIDGE.md`, "The override directory moved at
+0.1.0", with the upgrade note in `README.md`.
 
-    package_version   1.1b                 ->  0.1.0
-    game_variant      Entroper (V4.8.6)    ->  FFR 4.9.2-4.9.7
-    package_uid       ff1_rando_ap         ->  ff1_rando_ap_uat
-    author            unchanged
-
-`0.1.0` starts a line at the fork rather than continuing a numbering that had
-stopped describing anything. `0.x` carries "much of the roadmap is still open"
-on its own, so it wanted no `-beta` on top -- two markers saying the same thing,
-next to upstream's `1.1b`, would read as a downgrade with an apology attached.
-
-**`IDEAS.md` had scoped this and got one thing wrong, and it was the reassuring
-half.** It said PopTracker "shows the string in the pack list and uses it for
+Three things stay here. **`IDEAS.md` had scoped this and got the reassuring half
+wrong.** It said PopTracker "shows the string in the pack list and uses it for
 nothing else -- no update check, no compatibility gate -- so any value is safe".
-The first clause holds. The conclusion does not: saved state is filed at
+The first clause holds; the conclusion does not. Saved state is filed at
 `<statedir>/<uid>/<version>/<variant>/<name>.json`
 (`core/statemanager.cpp:54-66`), so the version is part of the path a board is
-saved under, and changing it orphans saved boards exactly the way changing the
-uid does. Nothing is lost or corrupted; the old directory stays put and a board
-simply does not come back.
+saved under and changing it orphans saved boards exactly the way changing the
+uid does. Nothing is lost or corrupted -- the old directory stays put and a
+board simply does not come back.
 
-Which changed the shape of the decision rather than the decision. If the version
+That changed the shape of the decision rather than the decision. If the version
 bump already costs one orphaning, moving the uid in the same release costs
-nothing more -- and moving it later would cost a second. So both went together.
+nothing more, and moving it later would cost a second. So both went together,
+and `0.1.0` carries no `-beta`: `0.x` already says the roadmap is open, and two
+markers saying the same thing next to upstream's `1.1b` would read as a
+downgrade with an apology attached. `author` stays -- it credits the five people
+whose pack this started from, and is the one field on the page that is about
+attribution rather than identity.
 
-**The uid reaches further than PopTracker's state directory, and one of the two
-places it reaches could not follow it.** `regen_maps.py` reads it out of the
-manifest and its `--out` default moves on its own. The Mesen bridge cannot:
-`stampPath()` needs `~/PopTracker/user-override/<uid>/.regen_stamp` and that
-script has no JSON parser and no reliable path to the pack, so `PACK_UID` is a
-hardcoded copy. Nothing connected the two.
+**Reading the regen options back out of the cache is the step worth repeating.**
+`--lanes` defaults to `none` and `--npcs` to `none`, so a regen run with bare
+defaults would have quietly taken the lanes and every sprite off a board that
+had them. The override was renamed rather than redrawn: no image moved, because
+the cache key is the ROM plus the options and neither did.
 
-What that would have cost is a *silent* failure, which is why it got a guard
-before the rename rather than after. A uid the override directory no longer uses
-makes `stampPath()` point at nothing, and "no stamp there" is one of the four
-silences the stale-art light deliberately treats as nothing to say. The light
-would have gone out and stayed out, on exactly the seeds it exists to catch.
-`test_bridge.lua` reads `package_uid` straight out of `manifest.json` now and
-holds the constant against it.
-
-**What a player upgrading loses, and what they can keep.** The board does not
-come back, and that is unavoidable. The regenerated art is avoidable: it is
-still on disk under the old directory name, so a rename keeps it and a regen per
-mode redraws it. `regen_maps.py --verify` names which of the two you are in
-without reading a cartridge -- run here, it says the new path has no override
-and the pack's own art is what will be served, which is the failure mode
-described rather than inferred. `BRIDGE.md` carries the rename and the README
-carries the upgrade note.
-
-`author` stays as it is. It credits the five people whose pack this started
-from, and that is the one field on the page that is not about identity but about
-attribution.
-
-**Done here, and it cost no art.** The override was renamed rather than
-redrawn, then regenerated once per mode from the two cartridges it was already
-drawn from -- `duck-weekly-0831` for std and `duck-104` for nov -- with the
-`--npcs all --lanes loot` the installed `.regen_cache.json` recorded, so the
-board keeps the sprites and the route lanes it had. The regen reported changing
-`layouts/shared.json` and the four location files and nothing else: no image was
-redrawn, because the cache key is the ROM plus the options and neither moved.
-`--verify` now says current, 2 modes, 131 files.
-
-Reading the options back out of the cache rather than passing the defaults is
-the step worth repeating. `--lanes` defaults to `none` and `--npcs` to `none`,
-so a regen run with bare defaults would have quietly taken the lanes and every
-sprite off a board that had them.
