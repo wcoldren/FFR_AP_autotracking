@@ -30,3 +30,13 @@ whatever has already been measured attached, so scoping does not start cold.
 
 Figures quoted anywhere here were measured on the cartridges in `ORACLE.md`
 rather than reasoned about. Where a page gives a number, it names the seed.
+
+**One home per fact.** `ORACLE.md` owns every grading figure — cartridge,
+comparison, counts, and the before/after of each flag that moved one.
+`FLAG_COVERAGE.md` owns the per-flag row. `ISSUES.md` owns defects, `IDEAS.md`
+unscoped work, `ROADMAP.md` order, `STATUS.md` the narrative. A page that is not
+the owner names a figure only where that figure is the subject of its sentence;
+otherwise it points. A number kept in five places is a number that gets
+corrected in one of them — this set carried 57 restatements of 26 distinct
+grading figures before the rule was written down, with the page whose whole job
+is the measurements holding the fewest of them.
