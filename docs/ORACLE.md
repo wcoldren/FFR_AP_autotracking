@@ -221,15 +221,28 @@ flag decoder accepts a local build of it unmodified.
 | `objnpc497` | `oracle497_objnpc` | `3B7E1C8A` | the same, plus `ShuffleObjectiveNPCs` | where the three objective NPCs went, which only the cartridge says |
 | `gaia497` | `oracle497_gaia` | `3B7E1C8A` | the same, plus `MapOpenProgressionDocks` and `MapGaiaMountainPass` | whether the northern-docks route to Gaia needs the highway |
 | `gaiahwy497` | `oracle497_gaia` + `MapHighwayToOrdeals` | `3B7E1C8A` | the same three | that it does |
+| `dock497` | `oracle497_dock` | `3B7E1C8A` | the same, plus `MapBahamutCardiaDock` | what the Bahamut dock opens, and what it leaves shut |
+| `dockbridge497` | `oracle497_dock` + `MapCardiaLandBridge` | `3B7E1C8A` | the same two | what the dock and the land bridge do *together* |
+| `hoard497` | `oracle497_hoard` | `3B7E1C8A` | the same, plus `MapDragonsHoard` | that the hoard relocates the Cardia locations, so the export can be asked about Bahamut's Cave at all |
+| `hoarddock497` | `oracle497_hoard` + `MapBahamutCardiaDock` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the dock |
+| `hoardbridge497` | `oracle497_hoard` + `MapCardiaLandBridge` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the land bridge |
+| `hoarddockbridge497` | `oracle497_hoard` + both | `3B7E1C8A` | the same three | Bahamut's Cave's requirement with both, which is not the union |
+| `hoardhike497` | `oracle497_hoard` + `MapAirshipHike` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the hike |
 
-**The first six share `std497`'s seed and differ from it in one flag value.**
-The Gaia pair is the exception and says so: answering that question needs the
-docks and the mountain pass both on, so `gaia497` is two flags from the baseline
-and `gaiahwy497` is one flag from `gaia497`. It is the pair that isolates, not
-either cartridge against `std497`. So anything that moves between an export and `std497`'s is the flag,
-not the roll -- a tighter control than `nov`/`nov2`, which hold the flags still
-and vary the seed. `std497` is the baseline all four are read against, which is
-why its row is the one to protect.
+**Every cartridge here shares `std497`'s seed**, so anything that moves between
+an export and `std497`'s is the flag, not the roll -- a tighter control than
+`nov`/`nov2`, which hold the flags still and vary the seed. `std497` is the
+baseline they are all read against, which is why its row is the one to protect.
+
+**Most of them are one flag from that baseline; the rest say which pair they
+isolate.** `drydock497`, `extended497`, `airship497`, `landbridge497`,
+`objnpc497`, `dock497` and `hoard497` each change one value. The others exist
+because the question needs two flags at once, and then it is the *pair* that
+isolates rather than either cartridge against `std497`: `gaia497` needs the
+docks and the mountain pass together, with `gaiahwy497` one flag further on;
+`dockbridge497` is `dock497` plus the land bridge; and the four `hoard*`
+cartridges are `hoard497` plus the flag whose effect on Bahamut's Cave is being
+read.
 
 **The stock preset omits all three of the 4.9.7-only flags, and that is not the
 same as the build not having them.** 4.9.7's `default.json` names neither
@@ -265,6 +278,49 @@ Last run 2026-09-01.
 | `gaia497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — it was 223 agree, 1 divergence over 1 location before the Gaia fix |
 | `gaiahwy497`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences**, before the fix as well as after |
 | `gaia497` vs `gaiahwy497`, the Fairy | **`(Canoe AND Floater AND Bottle)` -> that plus `(Canal AND Ship AND Bottle)`. Lefein moves the same way** |
+| `dock497`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** |
+| `dockbridge497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** — it was 215 agree, 3 divergences over 11 locations before the dock-and-land-bridge alternative |
+| `hoard497`, pack rules vs FFR | **223 checked, 223 agree, 0 divergences** |
+| `hoarddock497`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** — it was 215 agree, 3 divergences over 10 locations before the `BahamutHoard` alternative |
+| `hoardbridge497`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** |
+| `hoarddockbridge497`, pack rules vs FFR | **227 checked, 227 agree, 0 divergences** — it was 216 agree, 3 divergences over 11 locations |
+| `hoardhike497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
+| `std497` vs `dock497`, the Cardia islands | **unmoved at `(Canoe AND Floater)`. The Bahamut dock opens Bahamut's Cave and nothing else** |
+| `std497` vs `hoard497`, chest placements | **map 39 (BahamutCaveB2) goes 0 -> 13 and no map loses one** (`tools/extract_chests.py`) |
+| Bahamut's Cave's requirement, read through the hoard | **std `(Canoe AND Floater)`; +dock `(Canal AND Ship)` as well; +land bridge `(Canal AND Canoe AND Ship)` as well; +both `(Canal AND Ship)`, not the union; +hike `(Floater AND Ship)` as well** |
+
+### Bahamut's Cave has no location of its own, and the hoard is the way in
+
+**FFR's export never mentions Bahamut's Cave.** Bahamut hands out a class
+change, which is not an Archipelago item, and the cave holds no chest on an
+ordinary seed -- so on `std497` the whole node is absent from the yaml, absent
+from the spoiler's source table, and absent from `check_logic`'s `FFR_SOURCES`.
+Nothing in the corpus graded it, which is why the pack's own rule for it could
+sit a flag behind its three Cardia siblings without a single figure moving.
+
+**`MapDragonsHoard` is what makes it gradeable.** `SMUpdates.cs:534` writes the
+thirteen Cardia chest tiles into `BahamutCaveB2` and then calls
+`ItemLocations.CardiaN.ChangeMapLocation(MapLocation.BahamutCave2)`, so the
+exported rule for every Cardia location becomes *Bahamut's Cave's* requirement.
+Read those rows and you are reading the node the export otherwise hides.
+
+**The relocation was confirmed rather than assumed, because on a plain seed the
+two requirements coincide and prove nothing.** `dock497` is the control:
+`MapBahamutCardiaDock` on and the hoard off leaves the Cardia islands at
+`(Canoe AND Floater)`, because the dock serves Bahamut's Cave alone. Add the
+hoard and the same locations gain `(Canal AND Ship)` -- so the rows really did
+move, and the dock cartridge is what says so.
+
+**The chests are duplicated, not moved, and that is the pack's side of it.**
+`tools/extract_chests.py` across `std497` and `hoard497` puts map 39 at 0 -> 13
+placements with no map losing any, matching the comment at `SMUpdates.cs:537`.
+So with the hoard on, each of the thirteen is reachable from its island *or*
+from Bahamut's Cave, and the pack's Cardia nodes carry a `BahamutHoard`
+alternative for the second route. Only the alternative that adds something is
+written: the airship, the hike and the land bridge already reach both places, so
+the dock is the one route that needed spelling out. **The No-Overworld hoard
+case is not measured** -- no such cartridge was built -- so that alternative is
+guarded `$standardWorld` and claims nothing there.
 
 **`objnpc497` is the row that does not mean what the others mean.** Every other
 line above is the pack agreeing with FFR. This one is the pack agreeing with FFR
@@ -327,7 +383,8 @@ the 53 are not an artefact of it.
 ### Checking the 4.9.7 corpus
 
     O7=<corpus>/oracle-4.9.7
-    for s in std drydock extended airship landbridge objnpc gaia gaiahwy; do
+    for s in std drydock extended airship landbridge objnpc gaia gaiahwy \
+             dock dockbridge hoard hoarddock hoardbridge hoarddockbridge hoardhike; do
         python3 tools/check_logic.py $O7/${s}497/${s}497.nes \
             --ap-rules $O7/${s}497/${s}497.yaml --ff1-world $W
     done
@@ -348,12 +405,13 @@ The recipe below, with three differences:
   plus `ShipDrydock` written explicitly -- `false` in `oracle497_std` and `true`
   in `oracle497_drydock`. The stock preset omits the key entirely; Newtonsoft
   binds it straight onto `Flags`, and the value was confirmed by decoding it back
-  off each finished cartridge rather than trusting the preset. The other three
-  are `oracle497_std` with exactly one value changed in the same way:
-  `MapOpenProgressionExtended`, `MapAirshipHike`, `MapCardiaLandBridge` and
-  `ShuffleObjectiveNPCs`. The first three are keys the stock preset omits;
-  `ShuffleObjectiveNPCs` is present and `false`, so that one is an edit rather
-  than an addition.
+  off each finished cartridge rather than trusting the preset. The remaining
+  presets are `oracle497_std` with one or two values changed in the same way:
+  `MapOpenProgressionExtended`, `MapAirshipHike`, `MapCardiaLandBridge`,
+  `ShuffleObjectiveNPCs`, `MapBahamutCardiaDock` and `MapDragonsHoard`, plus the
+  pairs the table names. `MapOpenProgressionExtended`, `MapAirshipHike` and
+  `MapCardiaLandBridge` are keys the stock preset omits; the other three are
+  present and `false`, so those are edits rather than additions.
 
 Generating one of the newer three, for the record:
 

@@ -106,7 +106,7 @@ Desert`. A Desert seed is warned about, but by `flag_mapping.lua:410`
 | `MapOpenProgressionExtended` | `progressionFlag` stage 2 (`extendedOpen`) | code |
 | `MapOpenProgressionDocks` | `northernDocks` | code |
 | `MapAirshipDock` | `luffyDock` | code |
-| `MapBahamutCardiaDock` | `cardiaDock` | code |
+| `MapBahamutCardiaDock` | `cardiaDock` | code — opens Bahamut's Cave and nothing else (`dock497` leaves the Cardia islands unmoved). With `MapCardiaLandBridge` it also drops the Canoe from the Cardia islands' own rule; both alternatives are in the pack |
 | `MapLefeinRiver` | `lefeinRiver` | code |
 | `MapBridgeLefein` | `lefeinBridge` | code |
 | `MapGaiaMountainPass` | `gaiaMountain` | code |
@@ -114,7 +114,7 @@ Desert`. A Desert seed is warned about, but by `flag_mapping.lua:410`
 | `MapRiverToMelmond` | `melmondRiver` | code |
 | `MapSardasForest` | `sardasForest` | code |
 | `MapAirshipHike` | `airshipHike` | code — 4.9.7+ only. `OverworldMap.cs:62` adds the `AirshipHike` map edit; every rule it rewrites gains a `(Floater AND Ship)` alternative, which is the Floater standing in for having raised the airship where it stands. 124 of the 208 rules `std497` and `airship497` share move (`docs/ORACLE.md`) |
-| `MapCardiaLandBridge` | `cardiaLandBridge` | code — 4.9.7+ only. `OverworldMap.cs:64` adds the land bridge, `:392` moves the Cardia and Bahamut overworld teleport coordinates with it, and `:55` suppresses `BahamutCardiaDock`; the rewritten rules gain `(Canoe AND Canal AND Ship)`. 42 of 206 shared rules move. Also the one of the two read outside `OverworldMap.cs`, at `EntrancesFloorsShuffle.cs:71` |
+| `MapCardiaLandBridge` | `cardiaLandBridge` | code — 4.9.7+ only. `OverworldMap.cs:64` adds the land bridge and `:392` moves the Cardia **and Bahamut** overworld teleport coordinates with it, so Bahamut's Cave gains the alternative too; the rewritten rules gain `(Canoe AND Canal AND Ship)`. 42 of 206 shared rules move. `:55` suppresses `BahamutCardiaDock` — but `:67` lays `CardiaLandBridgeBahamutDock` in its place, so the dock alternative stays live and must **not** be guarded against this flag: see "The land bridge does not cancel the dock" below. Also the one of the two read outside `OverworldMap.cs`, at `EntrancesFloorsShuffle.cs:71` |
 | `ShipDrydock` | `shipDrydock`, through `$noShipDrydock` | code — 4.9.7+ only. Every alternative naming `ship` carries the guard, because a drydocked Ship opens nothing (`docs/ORACLE.md`) |
 | `DisableOWMapModifications` | — | n/a (meta: disables all of the above) |
 
@@ -172,6 +172,36 @@ list rather than this one split them: `IsFloaterRemoved` moves no pin (section
 A), and `ShuffleObjectiveNPCs` moves two, so it joined this list and was closed
 the same day — strictly, which is a weaker close than a graded one and is
 labelled as such below.
+
+### The land bridge does not cancel the dock
+
+`OverworldMap.cs:55` reads as though `MapCardiaLandBridge` switches
+`MapBahamutCardiaDock` off — `if ((bool)flags.MapBahamutCardiaDock &&
+!(bool)flags.MapCardiaLandBridge)`. Twelve lines on, `:67` puts a different edit
+in its place:
+
+    if ((bool)flags.MapCardiaLandBridge)
+    {
+        MapEditsToApply.Add(CardiaLandBridge);
+        if ((bool)flags.MapBahamutCardiaDock) MapEditsToApply.Add(CardiaLandBridgeBahamutDock);
+    }
+
+So with both flags on the dock is **relaid, not dropped** — two `DockBottomMid`
+tiles at `(0x50,0x23)` instead of the original ring at `(0x5f-0x63, 0x33-0x35)`,
+next to where `:392` has just moved `BahamutCave1`. Reading `:55` alone and
+guarding the pack's `cardiaDock` alternative against the land bridge would
+delete a route the cartridge still has. Measured on `hoarddockbridge497`, where
+FFR gives Bahamut's Cave `(Canal AND Ship) OR (Canoe AND Floater)` — the same
+answer as the dock alone, with no Canoe in it.
+
+**The pair is not the union of the two flags, and that is the part worth
+carrying.** The land bridge alone wants `(Canoe AND Canal AND Ship)`; the dock
+alone wants `(Canal AND Ship)`; both together want `(Canal AND Ship)`, because
+the relaid dock lands you on the bridged landmass and the Canoe stops being the
+way across. The same drop happens to the *Cardia islands* on a plain
+`dockbridge497`, which is why they carry their own two-flag alternative. A
+suppression in the source is not a suppression until the lines after it have
+been read.
 
 ### The permutation is the problem, not the flag
 
