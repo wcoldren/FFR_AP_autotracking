@@ -568,3 +568,13 @@ Nothing here is urgent unless it says so.
 
 - **Does anyone outside this repo use the pack?** It decides the four `NoMap`
   variants question in `docs/IDEAS.md`, and nothing else can settle it.
+
+- **Whether Short's Chaos still wants the Key is assumed, not measured.** The
+  `Chaos` section keeps the gate it has always had — `lute,key`, or
+  `chaosRush,lute` — so on a Short seed the boss reads as orbs plus lute plus
+  key. That is no looser than the pack was before `shortToFR` landed, which is
+  the conservative direction for a goal: a wrong red on Chaos costs a player a
+  detour, a wrong green costs them the run. But `ShortenToFR` lays its own
+  landing area, and nobody has walked it to say whether a `0x3B` door stands
+  between the lute gate at `(15,5)` and Chaos. `tools/tofr_diff.py` is the tool
+  that would answer it. Raised 2026-08-31.

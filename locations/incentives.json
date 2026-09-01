@@ -67,12 +67,17 @@
                         "name": "I: ToFR",
                         "access_rules": [
                             "$canBreakOrb,lute,key",
-                            "chaosRush,$canBreakOrb,lute"
+                            "chaosRush,$canBreakOrb,lute",
+                            "shortToFR,$canBreakOrb"
                         ],
                         "sections": [
                             {
                                 "name": "I: Chaos",
-                                "hosted_item": "chaos"
+                                "hosted_item": "chaos",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute"
+                                ]
                             }
                         ],
                         "map_locations": [

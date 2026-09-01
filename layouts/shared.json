@@ -161,14 +161,16 @@
                     "airBoat",
                     "northernDocks",
                     "earlyKing",
-                    "noTail"
+                    "noTail",
+                    "chaosRush"
                 ],
                 [
                     "luffyDock",
                     "cardiaDock",
                     "lefeinRiver",
                     "earlySarda",
-                    "tab_switch"
+                    "tab_switch",
+                    "shortToFR"
                 ],
                 [
                     "lefeinBridge",
@@ -181,8 +183,7 @@
                     "melmondRiver",
                     "sardasForest",
                     "shipDrydock",
-                    "earlyOrdeals",
-                    "chaosRush"
+                    "earlyOrdeals"
                 ]
             ]
         }

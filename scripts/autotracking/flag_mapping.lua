@@ -115,6 +115,29 @@ local PROGRESSIVES = {
     end,
   },
   {
+    code = "shortToFR",
+    -- ToFRMode is Long/Mid/Short/Random = 0..3, an enum rather than a
+    -- tri-state, so it decodes to a number and cannot go through TOGGLES:
+    -- setToggle would write 2 into Active, and check_logic's flag_codes tests
+    -- `is True`, which an integer fails.
+    --
+    -- Only Short moves a rule. MidToFR rewrites the lock door at [0x16,0x14]
+    -- and still calls AddLutePlateToFloor1F, so Mid asks for exactly what Long
+    -- asks for and reads as 0 here. Short is the one that repoints the Black
+    -- Orb warp at Chaos and lays the seven chests in front of the landing tile,
+    -- with the lute gate two tiles past it.
+    --
+    -- Random is rolled at generation -- FF1Lib picks the mode with rng and the
+    -- flag string still records "Random" -- so the cartridge cannot say where
+    -- it landed, and strict is the only honest answer. An absent flag reads
+    -- false from get(), which is not 2, so that lands strict too.
+    stage = function(get)
+      local mode = get("ToFRMode")
+      if mode == nil then return nil, "ToFRMode" end
+      return mode == 2 and 1 or 0
+    end,
+  },
+  {
     code = "airBoat",
     stage = function(get)
       local airBoat = get("AirBoat")

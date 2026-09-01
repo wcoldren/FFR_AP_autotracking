@@ -386,5 +386,68 @@ if rom_path and os.path.exists(rom_path):
            f"{len(bare_wide)} from all doors vs {len(bare_narrow)} from the start")
 
 
+# --------------------------------------------------------------------------
+# The seven ToFR chests on a Short seed, against the corpus rather than the
+# reasoning. This is the case the shortToFR rule was written for, and it needs
+# no new cartridge: oracle-4.9.2/nov rolls ToFRMode 2 and its derived rules are
+# already on disk.
+#
+# Skips when the corpus is absent, the way FF1_ROM does elsewhere.
+# --------------------------------------------------------------------------
+ORACLE = os.path.expanduser("~/repos/AP/seeds/ff1/oracle-4.9.2/nov")
+DERIVED = os.path.join(ORACLE, "derived_nov.json")
+TOFR = ["ToFR Kary Floor 1", "ToFR Kary Floor 2", "ToFR Kary Floor 3",
+        "ToFR Kary Floor 4", "ToFR Lute Plate Room 1", "ToFR Lute Plate Room 2",
+        "ToFR Vanilla Masa"]
+
+if not os.path.exists(DERIVED):
+    print(f"SKIP  no derived rules at {DERIVED}")
+else:
+    import json
+    import check_logic as cl
+
+    derived = json.load(open(DERIVED))["rules"]
+    rom = open(os.path.join(ORACLE, "oracle_nov.nes"), "rb").read()
+    sys.path.insert(0, os.path.join(TOOLS, "ffr_flags"))
+    import ffr_flags
+    _, flags = ffr_flags.decode_rom(rom)
+
+    ok(flags.get("ToFRMode") == 2,
+       "the nov oracle is a Short-ToFR cartridge", f"ToFRMode={flags.get('ToFRMode')}")
+    codes = cl.flag_codes(flags)
+    ok("shortToFR" in codes, "so the pack would be showing shortToFR")
+
+    # Every one of the seven is derived as reachable on the orbs alone.
+    orbs_only = [n for n in TOFR if ["orbs"] in derived.get(n, [])]
+    ok(len(orbs_only) == 7,
+       "all seven are derived reachable on the orbs alone",
+       f"{len(orbs_only)} of 7")
+
+    # And the pack now says the same. The ToFR node's alternatives are read out
+    # of the tree; with shortToFR held, one of them must need nothing but orbs.
+    tree = json.load(open(os.path.join(os.path.dirname(TOOLS), "locations/overworld.json")))
+
+    def find(nodes, name):
+        for n in nodes:
+            if n.get("name") == name:
+                return n
+            hit = find(n.get("children", []), name)
+            if hit:
+                return hit
+
+    node = find(tree, "ToFR")
+    held = {"shortToFR", "orbs"}
+    reach = [a for a in node["access_rules"]
+             if set(cl.alt_terms(a)) <= held]
+    ok(len(reach) == 1,
+       "the pack has an alternative the orbs alone satisfy on a Short seed",
+       reach[0] if reach else "none -- the chests stay red")
+
+    # The gate is still a gate: nothing opens them without shortToFR.
+    bare = [a for a in node["access_rules"] if set(cl.alt_terms(a)) <= {"orbs"}]
+    ok(not bare, "and none they satisfy without it",
+       bare[0] if bare else "none, as it should be")
+
+
 print("\n" + ("FAILURES: " + ", ".join(fails) if fails else "ALL PASS"))
 sys.exit(1 if fails else 0)

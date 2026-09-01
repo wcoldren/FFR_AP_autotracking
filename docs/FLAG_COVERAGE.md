@@ -135,8 +135,8 @@ either. The eleven above them are in both schemas.
 |---|---|---|
 | `OrbsRequiredCount`, `OrbsRequiredMode` | `logic.lua:153-154` reads `ffrFlag()` directly | code |
 | `ShardCount` | `hasEnoughShards()` | code |
-| `ToFRMode` | none; oracle notes the AP export drops ToFR anyway | **missing** — ToFR rules differ by mode |
-| `ChaosRush` | none | **missing** — collapses ToFR to the Chaos fight |
+| `ToFRMode` | `shortToFR` progressive; `shortToFR,$canBreakOrb` on the ToFR node | code — only Short moves a rule |
+| `ChaosRush` | `chaosRush` toggle; `chaosRush,$canBreakOrb,lute` on the ToFR node | code |
 | `ExitToFR` | `NOT_MODELLED` in `flag_mapping.lua` | **decided against** — it opens nothing; see below |
 
 ## D. Placement-only (large group, all n/a for colours)
@@ -154,8 +154,13 @@ Reachability flags with no pack code today:
 
 1. `MapAirshipHike`
 2. `MapCardiaLandBridge`
-3. `ToFRMode`
-4. `ChaosRush`
+
+**`ToFRMode` and `ChaosRush` landed 2026-08-31.** Neither can be graded by
+`check_logic` — `Archipelago.cs:93` drops every ToFR location from the pool, so
+rolling a cartridge for either reproduces the `NoTail` outcome by construction,
+an unchanged rule set graded against itself. Their evidence is the derived walk
+instead: `oracle-4.9.2/nov` rolls `ToFRMode 2` and derives all seven ToFR chests
+as `[["orbs"]]`, which the pack contradicted until now.
 
 **`ExitToFR` was the fifth, and is now decided rather than pending.** It writes
 an exit portal and nothing else: `0x40`, `TP_TELE_WARP`, and `reachable_maps`
@@ -176,10 +181,10 @@ flag being declared in `IVictoryConditionFlags` does not mean `SanityCheckerV2`
 reads it.** Section A' is what running that grep over the rest produced, and it
 moved seven rows out of section A.
 
-Each of the four wants a `TOGGLES`/`PROGRESSIVES` row in `flag_mapping.lua`, a
+Each of the two wants a `TOGGLES`/`PROGRESSIVES` row in `flag_mapping.lua`, a
 code in `items/flags.json`, the affected `access_rules` alternatives, and one
-oracle seed rolled with the flag on so `check_logic` grades the branch. That is
-four codes, not twenty-five, and none is a redesign.
+oracle seed rolled with the flag on so `check_logic` grades the branch. Both are
+4.9.7-only and want a cartridge rolled there; neither is a redesign.
 
 **Rolling the seed can also show the branch is ungradeable, and that is a
 result.** `NoTail`'s cartridge proved the flag rewrites no rule FFR hands

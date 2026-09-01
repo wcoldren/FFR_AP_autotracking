@@ -208,13 +208,57 @@ local function ruleHolds(rule)
   return true
 end
 
--- PopTracker takes a location as reachable if ANY of its access_rules holds.
-local function inLogic(name)
-  local node = findLocation(OVERWORLD, name)
-  if not node then error("no location named " .. name .. " in overworld.json") end
-  if not node.access_rules or #node.access_rules == 0 then return true end
-  for _, rule in ipairs(node.access_rules) do
-    if ruleHolds(rule) then return true end
+-- The chain of nodes from the tree root down to `name`, or nil.
+local function chainTo(nodes, name, acc)
+  for _, node in ipairs(nodes or {}) do
+    acc[#acc + 1] = node
+    if node.name == name then return acc end
+    if chainTo(node.children, name, acc) then return acc end
+    acc[#acc] = nil
+  end
+end
+
+-- PopTracker takes a location as reachable if ANY of its access_rules holds --
+-- but a child's rules are not its own. At load it builds the cross product of
+-- its parent's alternatives with its own, appending the terms
+-- (PopTracker src/core/location.cpp:103-134): AND within an alternative, OR
+-- across them, all the way down. A node with no rules of its own inherits its
+-- parent's unchanged.
+--
+-- Reading only the named node's rules is what this did until 2026-08-31, and it
+-- made every check on a rule-less node vacuous: the seven ToFR chests hang off
+-- a parent that carries the whole gate, so inLogic on one of them answered
+-- "reachable" no matter what was held. A check that cannot fail is worth
+-- nothing, and these are the checks the ToFR work needs.
+--
+-- `sectionRules` is the extra alternatives a section carries; PopTracker merges
+-- those the same way, which is how a section is gated more tightly than the
+-- node it sits on.
+local function inLogic(name, sectionRules)
+  local chain = chainTo(OVERWORLD, name, {})
+  if not chain then error("no location named " .. name .. " in overworld.json") end
+  local alts = {{}}
+  local function mergeIn(rules)
+    if not rules or #rules == 0 then return end
+    local out = {}
+    for _, old in ipairs(alts) do
+      for _, rule in ipairs(rules) do
+        local merged = {}
+        for _, t in ipairs(old) do merged[#merged + 1] = t end
+        merged[#merged + 1] = rule
+        out[#out + 1] = merged
+      end
+    end
+    alts = out
+  end
+  for _, node in ipairs(chain) do mergeIn(node.access_rules) end
+  mergeIn(sectionRules)
+  for _, alt in ipairs(alts) do
+    local held = true
+    for _, rule in ipairs(alt) do
+      if not ruleHolds(rule) then held = false break end
+    end
+    if held then return true end
   end
   return false
 end
@@ -359,6 +403,63 @@ applyRamRules(byteAt)
 byCode["chaosRush"].Active = true
 check("chaosRush does not replace the lute", inLogic("ToFR"), false)
 byCode["chaosRush"].Active = false
+
+------------------------------------------------------------------
+-- ToFRMode = Short. ShortenToFR repoints the Black Orb warp straight at
+-- tofrChaos (15,3) and lays the seven chests at cols 12-18, rows 1-2 -- in
+-- front of the landing tile, with the lute-gated object 23 at (15,5) two tiles
+-- past it (NOVERWORLD.md, "what the shortcut drops you into", measured on two
+-- Short cartridges). So the chests want the orbs and nothing else, while Chaos
+-- is still behind the gate.
+--
+-- The oracle agrees and needs no new cartridge: oracle-4.9.2/nov rolls
+-- ToFRMode 2, and its derived_nov.json gives all seven [["orbs"]].
+------------------------------------------------------------------
+local TOFR_CHESTS = {
+  "ToFR Kary Floor 1", "ToFR Kary Floor 2", "ToFR Kary Floor 3",
+  "ToFR Kary Floor 4", "ToFR Lute Plate Room 1", "ToFR Lute Plate Room 2",
+  "ToFR Vanilla Masa",
+}
+
+-- Chaos is a section of the ToFR node, so its gate is the node's alternatives
+-- crossed with its own. Read them out of the tree rather than restating them,
+-- so this tracks the file.
+local function chaosRules()
+  local node = findLocation(OVERWORLD, "ToFR")
+  for _, sec in ipairs(node.sections or {}) do
+    if sec.name == "Chaos" then return sec.access_rules end
+  end
+  error("no Chaos section on the ToFR node")
+end
+
+local function allChests()
+  for _, name in ipairs(TOFR_CHESTS) do
+    if not inLogic(name) then return false end
+  end
+  return true
+end
+
+reset()
+MEM[0x6031], MEM[0x6032], MEM[0x6033], MEM[0x6034] = 1, 1, 1, 1   -- four orbs lit
+applyRamRules(byteAt)
+check("orbs alone: no ToFR chest is in logic", allChests(), false)
+check("and Chaos is not either", inLogic("ToFR", chaosRules()), false)
+
+byCode["shortToFR"].CurrentStage = 1
+check("Short: the orbs alone reach all seven chests", allChests(), true)
+check("but Short does not open Chaos", inLogic("ToFR", chaosRules()), false)
+
+MEM[0x6021], MEM[0x6025] = 1, 1                  -- Lute and Key
+applyRamRules(byteAt)
+check("Short: lute and key open Chaos", inLogic("ToFR", chaosRules()), true)
+
+-- Long and Mid ask for exactly the same thing, so a non-Short seed is unmoved.
+reset()
+MEM[0x6031], MEM[0x6032], MEM[0x6033], MEM[0x6034] = 1, 1, 1, 1
+applyRamRules(byteAt)
+byCode["shortToFR"].CurrentStage = 0
+check("not Short: the orbs alone still reach nothing", allChests(), false)
+byCode["shortToFR"].CurrentStage = 0
 
 ------------------------------------------------------------------
 -- RAM is authoritative, in both directions. This used to be raise-only, which

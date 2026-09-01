@@ -326,6 +326,12 @@ def gating(term):
 LUA_ITEM_RULES = {
     "$hasCanoe": "canoe",
     "$hasFloater": "floater",
+    # Breaking the Black Orb is what FFR's export calls "orbs". This has never
+    # bitten only because Archipelago.cs:93 drops every ToFR location from the
+    # pool, so the alternatives it appears in are never compared -- but with it
+    # missing the term read as neither a rule nor an item, and any comparison
+    # that did reach ToFR would have graded the pack as ungated there.
+    "$canBreakOrb": "orbs",
 }
 
 
@@ -407,6 +413,12 @@ def flag_codes(flags, pack=PACK):
             codes.add("extendedOpen")
     if flags.get("AirBoat") is True:
         codes.add("airBoat")
+    # ToFRMode is an enum, not a tri-state: 2 is Short, and only Short moves a
+    # rule. Mid keeps the lock door and the lute plate, so it reads as Long.
+    # Random (3) is rolled at generation and the string does not say where it
+    # landed, so it grades strict.
+    if flags.get("ToFRMode") == 2:
+        codes.add("shortToFR")
     if flags.get("IncentivizeCardia") is True:
         codes.add("cardiaIsIncentive")
     if flags.get("MapDragonsHoard") is True:

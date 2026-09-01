@@ -42,6 +42,16 @@
 		"codes" : "chaosRush"
 	},
 	{
+		"name" : "Short ToFR",
+		"type" : "progressive",
+		"stages" : [
+			{
+				"img" : "images/misc/chaos.png",
+				"codes" : "shortToFR"
+			}
+		]
+	},
+	{
 		"name" : "AirBoat",
 		"type" : "progressive",
 		"stages" : [
