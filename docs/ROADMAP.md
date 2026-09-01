@@ -368,10 +368,13 @@ Stated once so nobody re-derives them.
 Where things stand on the day this was written. `git log trunk..` is what
 actually says where a branch is.
 
-- `trunk` carries the route-lane work and is **ten commits ahead of
-  `origin/trunk`**, unpushed, as of 2026-09-01. `noverworld-logic`,
-  `visibility-toggles` and `route-lanes` are merged.
-- **`flags-real-seeds` is the whole of section 1 and is ready to merge**: the
+- `trunk` is **ahead of `origin/trunk` and unpushed**, as of 2026-09-01.
+  `noverworld-logic`, `visibility-toggles`, `route-lanes` and `flags-real-seeds`
+  are all merged. Nothing is in flight. No number here on purpose: `00dffd4`
+  took a count out of this section for going wrong twice, and the one that
+  briefly replaced it went wrong inside the commit that wrote it —
+  `git rev-list --count origin/trunk..trunk` is the answer.
+- **`flags-real-seeds` merged 2026-09-01**, and was the whole of section 1: the
   `ChaosRush` and `ToFRMode` codes and the `ExitToFR` decision, then
   `MapAirshipHike` and `MapCardiaLandBridge` graded on a cartridge each, the two
   verify flags answered, `ShuffleObjectiveNPCs` closed strictly, Gaia settled
@@ -389,4 +392,6 @@ actually says where a branch is.
 
   This entry said "the review gate has not run on it yet" for a day after it
   had, which is the same way a closed `ISSUES.md` entry goes stale: nothing
-  re-reads a line once it is written. Say the gate ran on the day it runs.
+  re-reads a line once it is written. Say the gate ran on the day it runs, and
+  say a branch merged on the day it merges — this line went stale twice in two
+  days, in both directions.
