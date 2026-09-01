@@ -1,124 +1,67 @@
 # What is next, in order
 
-Forward-only. Finished work lives in `STATUS.md`; defects in `docs/ISSUES.md`;
-unscoped ideas in `docs/IDEAS.md`. This file says what gets built next and why,
-ordered by what a player sees.
+This file says what gets built next and why, ordered by what a player sees.
+
+**Forward-only means ordered by what is next, not that finished work vanishes
+from here.** A closed item stays, dated, shrunk to its conclusion and a pointer
+to where its evidence lives; it leaves the page when the section it sits in is
+superseded. Deleting a close outright is the failure this page keeps hitting
+from the other side — nothing re-reads a line once it is written, so an item
+that goes quiet outlives its own answer. Defects live in `docs/ISSUES.md`,
+unscoped ideas in `docs/IDEAS.md`, the narrative in `STATUS.md`.
 
 The triage rule, from 2026-08-30: **does it change a colour, add a box, or save
-a click?** If yes it is product and goes in sections 1–4. If no it is tooling
-and goes in 5, where it earns its place by keeping 1–4 true.
-
-**Amended 2026-09-01, when section 1 closed.** The rule sorts tooling last by
-construction, and that was right while section 1 was open. It is not now. Every
-section-1 close cost one hand-rolled cartridge, one hand-written rule and one
-grading run, and that is the standing per-flag price at the next FFR version
-bump — so the machinery that lowers it, all of which sits in section 5, stops
-being what comes after the product work. Concretely: **nothing today notices a
-new FFR flag.** Section 5's first two bullets are what keep section 1 closed,
-and they come before section 2.
-
-**Both closed 2026-09-01**, and section 2 is what comes next. What they left
-behind is four flags filed `unjudged` — named in section 5 rather than here,
-because none is known to move a pin yet.
+a click?** If yes it is product and goes in sections 1-4. If no it is tooling
+and goes in 5, where it earns its place by keeping 1-4 true. **Amended
+2026-09-01, when sections 1 and 5's first two bullets all closed**: the rule
+sorts tooling last by construction, which was right while section 1 was open and
+is not now. Every section-1 close cost one hand-rolled cartridge, one
+hand-written rule and one grading run, and that is the standing per-flag price
+at the next FFR version bump. Section 2 is what comes next.
 
 The parity target for every rule is FFR's `SanityCheckerV2` + `SCLogic`, with
 the Archipelago export as the graded truth table. `docs/FLAG_COVERAGE.md` is the
-table of every flag that logic consults and how the pack models it.
+table of every flag that logic consults and how the pack models it;
+`docs/ORACLE.md` holds the cartridges and every grading figure.
 
 ## 1. Colours that are wrong on real seeds
 
-**Closed 2026-09-01, and left standing rather than deleted.** Every bullet below
-is answered; the section is kept because each one records what the answer cost
-and how it was reached, and because "closed" is a claim that should be readable
-next to its evidence. The next thing that makes a pin lie goes here, under the
-same rule.
+Each item here is a pin that lied on a seed someone could roll. Each wants a
+code, the affected `access_rules` alternatives, and **one oracle seed rolled
+with the flag on** so `check_logic --ap-rules` grades the branch. A rule without
+its oracle seed is a hand transcription, which is what section 5 is meant to end.
 
-Each item here was a pin that lied on a seed someone could roll. Each
-wants: a code, the affected `access_rules` alternatives, and **one oracle seed
-rolled with the flag on** so `check_logic --ap-rules` grades the branch. A rule
-without its oracle seed is a hand transcription, which is what section 5 is
-meant to end.
+**Closed 2026-09-01.** Every flag that made a pin lie now has a code or a
+recorded decision, and the last two — `MapAirshipHike` and `MapCardiaLandBridge`
+— were graded on a cartridge each. The per-flag rows are `docs/FLAG_COVERAGE.md`;
+the cartridges and their before/after figures are `docs/ORACLE.md`; how each was
+found is `STATUS.md`. The next thing that makes a pin lie goes here, under the
+rule above.
 
-Two of the answers below are **strict** rather than graded, and the difference
-matters: `ShuffleObjectiveNPCs` and the Cardia roll are permutations chosen at
-generation that no file the pack can read records, so the pack deliberately
-disagrees with FFR there instead of agreeing with it. Both are waived by name in
-`check_logic` so the disagreement stays printed.
+Two of the closes are **strict** rather than graded, and the difference matters.
+`ShuffleObjectiveNPCs` and the Cardia roll are permutations chosen at generation
+that no file the pack can read records, so the pack deliberately disagrees with
+FFR there instead of agreeing with it. Both are waived by name in `check_logic`
+so the disagreement stays printed. `ExitToFR` is a third kind: decided against
+rather than pending, because it writes an exit portal and nothing else and this
+pack does not model points of no return. It sits in `NOT_MODELLED`, where a flag
+with no code can be told apart from one nobody has got to.
 
-- **No flags without a code are left. Closed 2026-09-01.** `MapAirshipHike` and
-  `MapCardiaLandBridge` were the last two; both are 4.9.7-only, both were rolled
-  on their own cartridge, and both graded the branch outright — 90 of 224
-  agreeing before and 224 of 224 after on `airship497`, 177 of 223 before and
-  223 of 223 after on `landbridge497`. `ToFRMode` and `ChaosRush` landed
-  2026-08-31; `ExitToFR` is decided against rather than pending, because it
-  writes an exit portal and nothing else and this pack does not model points of
-  no return — it sits in `NOT_MODELLED`, where a flag with no code can be told
-  apart from one nobody has got to.
-
-  Running the verify pair on 2026-09-01 put one of them back on the list.
-  `IsFloaterRemoved` moves no pin — it is computed rather than stored, and its
-  one read inside `FF1Lib/Sanity/` relaxes the completion test rather than any
-  location's rule. **`ShuffleObjectiveNPCs` does move pins**, and is the bullet
-  below.
-
-  `NoTail` and `ShipDrydock` mark out both ends of the rule above. `NoTail`'s
-  oracle seed proved the flag rewrites no exported rule at all, so the seed
-  graded the branch by showing there was nothing there to grade — the code was
-  still needed, because a `check_logic` pass is not evidence a pack-only cell is
-  honest. `ShipDrydock` is the other end: it rewrites 51 exported rules and the
-  pack was showing 53 locations green that FFR calls unreachable, so its
-  cartridge graded the branch outright, 170 of 223 before and 223 of 223 after.
-  The three Temple of Fiends flags are `NoTail`'s case again, but by
-  construction rather than by accident: `Archipelago.cs:93` drops every ToFR
-  location from the pool, so no cartridge rolled for one of them can grade
-  anything. Their evidence is the derived walk instead — `oracle-4.9.2/nov`
-  rolls `ToFRMode 2` and derives all seven ToFR chests as `[["orbs"]]`, which
-  the pack contradicted until now. All of them are in
-  `docs/FLAG_COVERAGE.md`; the cartridges are in `docs/ORACLE.md`.
-- **`ShuffleObjectiveNPCs`. Closed strictly 2026-09-01.** It permutes Bahamut,
-  Dr Unne and the Elf Doctor across their three homes (`NPCs.cs:277`), and on
-  `objnpc497` Bahamut and Unne swapped outright — so `bahamut` was held behind
-  the airship while Bahamut stood in Melmond, and `slabTranslated` read
-  reachable while Unne sat behind the airship. FFR's export does not notice, so
-  the pack scored 224 of 224 on a seed it was wrong about: the `NoTail` case.
-
-  With the flag on, the two cells that move now ask for all three homes at
-  once, which collapses to Bahamut's Cave. `$noObjectiveShuffle` is the guard.
-  This is the weaker kind of close — the pack deliberately disagrees with FFR
-  on a shuffled seed rather than agreeing with it — and the divergence is in
-  `check_logic`'s `WAIVED` table so it stays printed.
-- **Gaia. Closed 2026-09-01.** The two tabs disagreed about how to reach it and
-  the oracle said which: the dungeon tree's northern-docks route was missing
-  `hwyOrdeals` and opened Gaia on a seed FFR does not. Two cartridges one flag
-  apart settled it — `gaia497` and `gaiahwy497` in `docs/ORACLE.md`. The
-  `fairy` waiver in `tests/test_maps.lua` went with it.
-- **The two rolls the bridge should read, not guess at.** Both are permutations
-  chosen at generation that reach neither the flag string nor the spoiler, and
-  both are answered today by being deliberately strict. They want one feature
-  between them, not two.
+- **The two rolls the bridge should read, not guess at.** The one open item left
+  in this section. Both are permutations chosen at generation that reach neither
+  the flag string nor the spoiler, and both are answered today by being
+  deliberately strict. They want one feature between them, not two.
 
   The **Cardia roll** is the gateway permutation (`MetroidVaniaMap.cs:726`); the
-  bridge publishes `ff1/gateways` next to `ff1/flags` and the rule reads it. The
-  **objective-NPC roll** is the same shape one flag along, and
+  bridge would publish `ff1/gateways` next to `ff1/flags` and the rule reads it.
+  The **objective-NPC roll** is the same shape one flag along, and
   `tools/extract_npcs.py` already knows how to find it — it is what measured the
   Bahamut/Unne swap in the first place. `regen_maps.py` reads the cartridge per
   seed already; the live bridge does not publish NPC positions.
 
   Until then both stay strict, which costs six Cardia Forest locations on a
   No-Overworld seed and the Elf Prince plus Dr Unne on a shuffled one.
-- **Variant from `GameMode`. Closed 2026-09-01, and the ambitious half is
-  refused rather than deferred.** Auto-selecting the variant is not expressible:
-  `Tracker.ActiveVariantUID` is read-only from Lua and raises if written
-  (PopTracker `core/tracker.cpp:747-749`), and `Pack::setVariant` is called once
-  from the load path (`poptracker.cpp:1202`). There is no runtime path to it, so
-  this is not something to come back to.
 
-  What landed is the fallback this bullet named: a third warning light,
-  `modeMismatch`, beside the unread-flags and stale-art triangles. It reports
-  the mode and the goal together rather than in a chain, because a seed can be
-  wrong on both at once. It also fixed a warning that fired on seeds that were
-  fine — the old line warned on any non-zero `GameMode`, which meant every
-  No-Overworld seed loaded into the No-Overworld variant it belongs in.
 
 ## 2. Boxes that do not exist
 
@@ -260,77 +203,49 @@ actually left.
 
 ## 5. Tooling that keeps 1–4 true
 
-**The first two bullets come before section 2**, per the amended triage rule at
-the top of this file. They are what keeps section 1 from decaying, and nothing
-else on this page does that.
+**Section 5's first two bullets closed 2026-09-01** and are the two dated
+closes below. What stops section 1 decaying is now a test rather than a habit,
+and section 2 is what comes next.
 
 - **The flag-coverage test. Closed 2026-09-01.**
-  `tools/tests/test_flag_coverage.py` runs the two greps `docs/FLAG_COVERAGE.md`
-  publishes against the vendored 4.9.7 checkout and fails when a flag they find
-  is named nowhere in `flag_mapping.lua`. **54 consulted, 24 named before it, 54
-  after.** A flag FFR adds is a failing test now rather than a habit.
+  `tools/tests/test_flag_coverage.py` fails when FFR grows a flag nothing in
+  `flag_mapping.lua` models. It reads structurally rather than by grep, which
+  closes the hole a grep leaves in both directions: `GameMode` is a quoted
+  literal nowhere and a grep calls it unnamed, and a name left in a
+  commented-out entry satisfies a grep while modelling nothing — this pack's
+  oldest failure shape, which the test demonstrates rather than asserts about.
+  The counts and the `NOT_MODELLED` status tally are `docs/FLAG_COVERAGE.md`,
+  "Keeping this current".
 
-  The figures this bullet predicted held exactly — 54 distinct names, 11 absent
-  from `FLAG_COVERAGE.md` — with one correction. **It is 30 unnamed, not 31.**
-  The difference is `GameMode`, which is read as `flags.GameMode` and is a
-  quoted literal nowhere, so a grep calls it unnamed and the structural pass
-  correctly calls it named. Reading structurally also closes the hole the other
-  way: a name left in a commented-out entry satisfies a grep and models nothing,
-  which is this pack's oldest failure shape, and the test demonstrates that case
-  rather than asserting about it.
+- **Five flags are filed `unjudged`, and that is the open work.** `NPCItems`,
+  `NPCSwatter`, `FiendsRefights`, `ShortToFRFiendsRefights` and
+  `LefeinSuperStore` say they are unmeasured and name the measurement that
+  would settle them, rather than borrowing a neighbour's reason. A list padded
+  to make the test pass is the test not existing. Each is a section-1 candidate
+  if it turns out to move a pin.
 
-  **Writing the thirty reasons was the work, as predicted, and five of them
-  could not honestly be written.** `NOT_MODELLED` entries carry a `status` from
-  the key `FLAG_COVERAGE.md` already publishes — ram 7, variant 1, noise 8,
-  unmodellable 6, decided 4, unjudged 5, thirty-one in all because `ExitToFR`
-  was already there — and `unjudged` is the one that matters. A list padded to
-  make the test pass is the test not existing, so `NPCItems`, `NPCSwatter`,
-  `FiendsRefights`, `ShortToFRFiendsRefights` and `LefeinSuperStore` say they
-  are unmeasured and name the measurement that would settle them. **Those five
-  are the open work this bullet leaves behind**, and they are section-1
-  candidates if any of them turns out to move a pin.
+  **`LefeinSuperStore` is the live one.** It was filed `noise` — "a shop edit" —
+  on the strength of the word *store* in its name. Its only use is
+  `ApplyMapMods`, reached only from `NoOverworld()`, where it picks between two
+  sets of tile writes to `MapIndex.Lefein`: different wall edges, and a blob
+  called `lefeinNonteleport`. That is walls and a teleport tile in a town the
+  hand-authored 75-link table was derived from with the flag off, and nobody has
+  walked it. The reason cited the call site and did not read it.
 
-  `LefeinSuperStore` joined them on review rather than on the first pass, and it
-  is the one worth naming. It was filed `noise` — "a shop edit" — on the
-  strength of the word *store* in its name. Its only use is `ApplyMapMods`,
-  reached only from `NoOverworld()`, where it picks between two sets of tile
-  writes to `MapIndex.Lefein`: different wall edges, and a blob called
-  `lefeinNonteleport`. That is walls and a teleport tile in a town the
-  hand-authored 75-link table was derived from with the flag off. The reason
-  cited the call site and did not read it.
-
-  The two refight flags were the argument for building this and are now the
-  first thing it produced. `FLAG_COVERAGE.md` had never listed either, having
-  been compiled by hand out of the files it was compiled from.
+  The two refight flags are the argument for building the test above, and were
+  the first thing it produced — `FLAG_COVERAGE.md` had never listed either,
+  having been compiled by hand out of the files it was compiled from.
 
 - **Pin the FFR revision. Closed 2026-09-01.** `tools/tests/test_ffr_pin.py`
   holds the chain that was true and enforced nowhere: the schema's `build_sha`,
-  the `pinned_commit` in `pins.yaml`, and the SHA stamped into `FFRVersion.cs`
-  on the worktree. Three links, but only two independent sources — `git_sha()`
-  derives `build_sha` from the stamp, so those two are one value read twice,
-  and the term that can actually drift is the hand-typed pin. The base is
-  resolved rather than compared, as this bullet asked — both worktrees sit
-  exactly two local commits above their pin, so a HEAD comparison fails on a
-  tree that is right.
+  the `pinned_commit` in `pins.yaml`, and the SHA stamped into `FFRVersion.cs`.
+  It found the loose link on the way — `gen_schema.py` derived `build_sha` from
+  `git rev-parse HEAD`, which on the pinned worktrees is not the commit the
+  cartridges claim, so it reads the stamp now. `STATUS.md`, "Nothing noticed a
+  new FFR flag, and now something does", has both, and the lesson the review
+  drew from its one bad row: a conjunction that comes out false demonstrates
+  neither conjunct.
 
-  **It found the loose link on the way.** `gen_schema.py` derived `build_sha`
-  from `git rev-parse HEAD`, which on those worktrees is not the commit the
-  cartridges claim: regenerating 4-9-7 wrote `b4ec325` where every oracle ROM
-  says `1f31434`, and the proof loop then failed against all of them. Loud
-  rather than silent, so nothing shipped wrong — but it put the fault in the
-  checker rather than the tree, and made "a new version is one command" untrue
-  for the two trees where it matters most. It reads the stamp now, with HEAD as
-  the fallback for an unstamped checkout, cut to the seven characters the ROM
-  carries on both paths — the fallback always truncated and the stamp did not,
-  which would have written a `build_sha` no cartridge could match.
-
-  **One of its rows did not demonstrate what it claimed**, found on review.
-  "A pin from the wrong FFR version is not an ancestor" was a conjunction of
-  ancestry and the stamp, and only the stamp ever fired: 4.9.2's release commit
-  genuinely *is* an ancestor of the 4.9.7 worktree, so a 4.9.7 tree rewound to
-  4.9.2 would have passed the ancestry half. The two terms bite in opposite
-  directions and are separate rows now. Same lesson as the gate rows: a
-  conjunction that comes out false is not a demonstration of either conjunct.
 
 - **An export-vs-export diff, `tools/export_diff.py`.** Roll two cartridges one
   flag apart, diff the exports, attribute the moved rules to the flag — which is
@@ -366,12 +281,11 @@ else on this page does that.
   deliberately, in its own session, against one stated criterion: is the
   cartridge sweep alone enough cover?** Nothing here gets built before that; the
   export diff above is what to build meanwhile.
-- ~~**More oracle seeds.**~~ **Obsolete 2026-09-01.** This said "two flagsets is
-  thin" and predates the 4-9-7 corpus. There are twenty cartridges now, five at
-  4.9.2 and fifteen at 4.9.7, all inventoried in `docs/ORACLE.md`. What is still
-  ungraded is not a seed-count problem and is named elsewhere: the three ToFR
-  flags the export cannot see, `Shop Item`, and the two permutation rolls closed
-  strictly rather than graded.
+- ~~**More oracle seeds.**~~ **Obsolete 2026-09-01.** It said "two flagsets is
+  thin" and predates the 4-9-7 corpus; `docs/ORACLE.md` has the inventory. What
+  is still ungraded is not a seed-count problem and is named elsewhere: the
+  three ToFR flags the export cannot see, `Shop Item`, and the two permutation
+  rolls closed strictly rather than graded.
 - **Two location trees, one rule set.** `isNoOverworld()` landed. **The
   byte-identical claim is true of the overworld pair only** —
   `locations/overworld.json` and `locations/NOverworld/overworld.json` share an
