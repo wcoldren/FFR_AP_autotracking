@@ -598,6 +598,35 @@ check("a No-Overworld variant on a standard shard seed says both",
 
 Tracker.ActiveVariantUID = "5standard"
 
+-- Every path that resets the grid also has to blow the mode light out.
+--
+-- The light is decided from a decoded flag string, so a record that is absent,
+-- malformed or undecodable says nothing about the mode -- and one left burning
+-- describes the cartridge that just came out. uat.lua's swap cleanup does not
+-- cover this: checkRom returns early when the emulator reports no rom at all,
+-- which is exactly when the empty record arrives.
+local mismatchCalls = {}
+setModeMismatch = function(why) mismatchCalls[#mismatchCalls + 1] = { why = why } end
+
+for _, case in ipairs({
+      { "an absent record",    "" },
+      { "a malformed record",  "no pipe in this one" },
+      { "an undecodable one",  "4-9-7|!!!!!!!!" },
+    }) do
+  mismatchCalls = {}
+  FFR_FLAGS_SOURCE = nil
+  capture(function() applyFFRFlags(SHARD_RECORD) end)
+  local lit = mismatchCalls[#mismatchCalls]
+  check(case[1] .. ": the light is on to start", lit ~= nil and lit.why ~= nil, true)
+
+  mismatchCalls = {}
+  FFR_FLAGS_SOURCE = nil
+  capture(function() applyFFRFlags(case[2]) end)
+  local after = mismatchCalls[#mismatchCalls]
+  check("  and " .. case[1] .. " puts it out", after ~= nil and after.why == nil, true)
+end
+setModeMismatch = nil
+
 ------------------------------------------------------------------
 -- The two flags the overworld tab falls back on.
 --

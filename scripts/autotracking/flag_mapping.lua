@@ -410,6 +410,11 @@ function applyFFRFlags(record)
     if setFlagsUnread then
       setFlagsUnread("this cartridge carries no flag record")
     end
+    -- No flag record says nothing about the mode either, so the light from the
+    -- last cartridge has to go out rather than stand. checkRom returns early
+    -- when the emulator reports no rom at all, so the swap cleanup there cannot
+    -- be relied on to have cleared it.
+    if setModeMismatch then setModeMismatch(nil) end
     return false
   end
 
@@ -419,6 +424,8 @@ function applyFFRFlags(record)
           .. " -- the flag grid is back to defaults")
     resetFlagsToDefaults()
     if setFlagsUnread then setFlagsUnread("the cartridge's flag record is malformed") end
+    -- Same as above: a record we cannot split names no mode.
+    if setModeMismatch then setModeMismatch(nil) end
     FFR_FLAGS_SOURCE = record   -- said once, and reset once, not every scan
     return false
   end
