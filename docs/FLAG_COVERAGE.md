@@ -351,14 +351,13 @@ out to have the export footprint `NoTail` did not — it rewrites 51 of the 207
 rules the two exports share, every one of them by taking the `Ship` alternative
 away, and
 the pack was over-reporting 53 locations as reachable on such a seed. It has a
-code now, graded on that cartridge: 170 of 223 agreeing before, 223 of 223
-after. `MapAirshipHike` and `MapCardiaLandBridge` were rollable there
-too, and are measured now. `MapAirshipHike` and `MapCardiaLandBridge` were rolled the
-same way on 2026-09-01 and behaved like `ShipDrydock` rather than `NoTail`,
-except that both **loosen**: the pack was over-strict, holding 134 and 46
-locations red that FFR calls reachable, and grades 224 of 224 and 223 of 223
-after. Figures, mechanism and the build deltas are in `docs/ORACLE.md`, "The
-second corpus: 4.9.7".
+code now, graded on that cartridge. `MapAirshipHike` and `MapCardiaLandBridge`
+were rolled the same way on 2026-09-01 and behaved like `ShipDrydock` rather
+than `NoTail`, except that both **loosen**: where `ShipDrydock` took a route
+away and left the pack over-reporting 53 locations as reachable, these two add a
+route the pack did not have, so it was over-strict instead — holding 134 and 46
+locations red that FFR calls reachable. Every figure, the mechanism and the
+build deltas are in `docs/ORACLE.md`, "The second corpus: 4.9.7".
 
 The three ToFR flags still want something other than the export;
 `tools/tofr_diff.py` is the tool that covers ToFR by comparison instead.

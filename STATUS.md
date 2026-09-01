@@ -1638,8 +1638,9 @@ The gaps are the NPCs that hold no shuffled item: Garland (514), Princess1
 The derivation shipped with its own gate written into its commit message: the
 rules are emitted, applying them is a separate change, and `check_logic.py`
 against FFR's own logic is what should decide. That check had never run. It has
-now. It failed, it named one cause, and the rules agree with FFR on 216 of 218
-comparable locations once that cause is fixed.
+now. It failed, it named one cause, and once that cause is fixed the rules
+agree with FFR on all but two comparable locations — the figure is below, and in
+`docs/ORACLE.md`.
 
 **Getting a ground truth at all was most of the work.** `check_logic` needs an
 FFR spoiler or an Archipelago export beside the cartridge, and not one of the

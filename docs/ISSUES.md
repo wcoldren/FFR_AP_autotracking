@@ -550,11 +550,10 @@ Nothing here is urgent unless it says so.
   compare. Largely closed 2026-08-30.** `check_logic --derived` hands every
   off-vocabulary item to both sides before comparing (`offvocab_items()`), so a
   location whose FFR rule is entirely granted is counted as agreeing without
-  being tested. On the corpus as it stood that was **164 of `nov`'s 222
-  comparisons and 156 of `nov2`'s 220**, so "222 of 222 agree" described **58**
-  locations. The concentration was one item — **oxyale x129, ruby x32** on
-  `nov` — and neither was in the swept vocabulary because the SubEngineer and
-  Titan gate rows were missing.
+  being tested. On the corpus as it stood that was most of them, and the
+  concentration was one item — the Oxyale and the Ruby, neither in the swept
+  vocabulary, because the SubEngineer and Titan gate rows were missing. The
+  counts, before and after those rows landed, are in `docs/ORACLE.md`.
 
   Both rows landed with the vocabulary that carries them. The grant is now **5
   of `nov`'s 226 and 5 of `nov2`'s 224** — one each for Herb, Adamant, Bottle,
