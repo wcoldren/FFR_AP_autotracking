@@ -1,89 +1,24 @@
-# Where this pack is
+# Where this pack was, to 2026-09-01
 
-The working log: what was built, why, and what each decision cost. Kept as a
-narrative so a fresh session can pick a thread up cold -- the measurements are
-here, and so is the reasoning that was tried and rejected.
+**Closed. The log continues in [`STATUS-2.md`](STATUS-2.md).**
 
-Last updated 2026-09-01.
+This is the working log of the first build-out -- what was made, why, and what
+each decision cost -- covering 2026-08-18 to 2026-09-01. It is kept as a
+narrative so a thread can be picked up cold: the reasoning that was tried and
+rejected is here, which is the half no settled page has room for.
 
-If you are looking for something specific, it is probably not in here. This is
-the log; the settled half was lifted out of it into `docs/`, and `docs/README.md`
-says which page holds what. To use the tracker rather than read about it, the
-root `README.md` is the whole story.
+It is closed rather than deleted because a log that grows without a ceiling
+stops being readable, and because a file nothing appends to cannot go stale at
+the end while looking current at the top. Nothing living is left in it: the
+capability inventory that used to head this file moved to `STATUS-2.md`, where
+it can be kept true.
 
-> The NOverworld variants are the current focus and are further behind than the
-> rest of this document implies. They have their own section below.
+**Sections here are dated and several were overtaken.** Where a claim was
+superseded the entry says so and names what replaced it; where the settled form
+was lifted into `docs/`, the section is a pointer plus the part that is only
+ever going to live in a log. `docs/README.md` says which page owns what. To use
+the tracker rather than read about it, the root `README.md` is the whole story.
 
-## Working today
-
-- Two autotracking feeds, reconciled rather than merged: Archipelago over the
-  wire, and a Mesen Lua bridge that mirrors `$6000-$62FF` over UAT. Either alone
-  or both at once. `scripts/autotracking/reconcile.lua` takes the union and
-  preserves hand clears.
-- Chests, NPC and event flags, orbs, key items and every turn-in stage, vehicles,
-  shard count, seed-swap detection, and a Resync button.
-- A run clock drawn on the emulator's screen, counted in frames so it pauses
-  when emulation does, kept per cartridge across a power cycle.
-- The flags grid configures itself from the FFR flag string stamped in the ROM.
-  Schemas ship for FFR 4-9-7 and 4-9-2; a seed on any other version lights the
-  unread-flags warning in the grid rather than letting the defaults pass as the
-  seed's own settings.
-- A Bosses row for the five fights that have a real signal: Garland, the
-  Vampire, Astos, Bikke and Chaos.
-- Both overworld tabs show every slot there is. A slot the seed did not
-  incentivize reports `AccessibilityLevel.Inspect` and draws blue instead of
-  having its pin dropped, and a slot the seed did incentivize gets a gold
-  `Highlight.Priority` ring on both tabs. Green still means reachable and red
-  still means not: Inspect only sets `inspectOnly`, so a slot that is both
-  skipped and out of logic comes out red.
-- An `Overworld Tab` item that cycles Auto / Incentive / Full. Auto reads the
-  Archipelago pool where there is one and the cartridge otherwise — `ShardHunt`
-  or `ChestsKeyItems` and it lands on the full map. A bridge-only shard hunt
-  used to land on the incentive map, which hid nearly every check it had.
-- The Chaos kill read out of the battle engine — a battle running (`$60FC`),
-  Chaos's formation in `btlformation` (`$6A`), `btl_result` (`$6B86`) set to
-  `$FF` — rather than off `$62FE` bit 0x02, which FFR only writes on an
-  Archipelago seed. It is the same instant the Archipelago patch sets its bit,
-  so no seed's split moved. Feeds the run clock, the `chaos`/`clock` lines in
-  `ffr_times.log`, and `ff1/goal`, which the pack now reads for
-  `LOCATION_MAPPING[766]`.
-- Map tabs follow the player. On the shipped hand-drawn art, 36 of 53 dungeon
-  maps are calibrated and carry per-chest markers; on art redrawn from a
-  cartridge, all 61 do, because those markers are built from the ROM's own
-  chest tiles rather than moved from a hand-solved pixel.
-- Redrawn maps are cropped to the part of each floor that is actually map and
-  filed by the cartridge's game mode, so a standard tracker and a No-Overworld
-  one each show their own set. `tools/regen_maps.py` keeps both in one override
-  tree.
-- Offline tools that read a cartridge directly: the flag decoder, an
-  entrance/floor shuffle reader and router, an HTML door map, an overworld
-  reachability walk, a map renderer that can draw the NPCs standing on a map,
-  and a logic checker that diffs the pack's access rules against FFR's own
-  spoiler. The map-reading half of that was wrong until
-  2026-08-29 — see "Read the maps from the bank FFR actually puts them in"
-  below.
-- The door map is walkable by clicking. Every floor name on the page is a
-  `#map-<id>` link, and a focus panel driven by `hashchange` lists that floor's
-  ways in and staircases on, so you follow the shuffle a room at a time instead
-  of scrolling two tables; Back retraces. Works the same on a No-Overworld
-  cartridge, which is the point — the mode shuffles through the same teleport
-  tables the page already reads.
-- An all-items reachability oracle in `entrance_graph.py --self-check`: holding
-  every item, all 61 maps must be reachable from the doors. A theorem on
-  No-Overworld and only there, since `MetroidVaniaMap.cs` connects all 61 and
-  drops none, so a map the walk cannot find is the tool's own fault. It is the
-  cheapest test of the whole routing stack -- map decompression, tile
-  properties, both teleport tables, the doors and the gates all have to be right
-  at once. Written down after the bank bug below and never run until now -- and
-  it earned itself immediately, by failing on its own stated invariant. See
-  "The gauntlet the mode skips" below.
-- `tests/run.sh` — 14 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
-  — the cartridge-reading tools' own tests, Python and nothing else; the ones
-  that need a cartridge skip unless `FF1_ROM` points at one.
-- `tools/regen_maps.py --verify` — not part of either suite, because it asks
-  about this machine's PopTracker install rather than about the code. Run it
-  when the tracker looks wrong: it says whether the installed override predates
-  the checkout, which is a failure with no visible symptom. `docs/ISSUES.md`.
 
 ## Nothing noticed a new FFR flag, and now something does
 
@@ -680,15 +615,16 @@ agreeing with itself:
 An AND would demand the Floater for the second. It ships free, which is right:
 opening any one copy clears the lot, so the party needs only the easiest.
 
-**A retraction, so it is not cited again.** A first pass at checking this
-printed an "if it ANDed instead" column beside each location and it agreed with
-the shipped rule everywhere, which looked like confirmation. It was computed
-over the already-filtered live-tile list, so it reproduced the OR answer by
-construction and could not have disagreed. It is evidence of nothing. The claim
-rests on the per-tile rules above instead, where the tiles genuinely differ.
+The claim rests on the per-tile rules above, where the tiles genuinely differ,
+and not on the check that was written for it first: an "if it ANDed instead"
+column that agreed everywhere and was computed over the already-filtered
+live-tile list, so it reproduced the OR answer by construction and could not
+have disagreed. `docs/ISSUES.md` carries that retraction with the defect it
+belongs to -- nothing tests the multi-tile OR, and the union rests on a comment
+in `derive()` and on the measurements above.
 
-Nothing tests the multi-tile OR. It rests on a comment in `derive()` and on
-these measurements.
+The shape is the one this file keeps finding: a check that cannot fail reads
+exactly like a check that passed.
 
 ## Ideas from playing on the rendered maps
 
@@ -717,6 +653,10 @@ Finished 2026-08-29. The gate NPCs draw where they stand:
 corridor on Castle Ordeals 1F instead of leaving it a line of `--gates` output.
 `tools/sprites.py` is the library and the CLI; `tools/tests/test_sprites.py`
 runs in `tools/tests/run.sh`.
+
+The settled statement of the sheet origin, and of what pins it, is in
+`docs/ARCHITECTURE.md`, "The derivations, and what pins each one". Below is how
+it was found and what it was wrong about first.
 
 The half that was open -- the sheet origin -- came from the engine's own path,
 `LoadMapObjCHR` at `bank_0F.asm:$E99E`, not from sliding offsets. The graphic
@@ -986,6 +926,11 @@ Found 2026-08-29 by looking at the unroofed maps in PopTracker: rooms came out
 as white voids with the furniture floating in them, and an NPC drawn there
 looked pasted on.
 
+Unroofing's settled form -- a palette test and an art test, each size-guarded on
+its own components, neither allowed to define a region alone -- is in
+`docs/ARCHITECTURE.md`, "The derivations". What stays here is the mechanism that
+was tried first and the reason it was wrong.
+
 The first fix substituted the corridor floor into the blank cells, choosing the
 tile by a vote over a six-tile radius. It looked better and it was the wrong
 mechanism -- a guess, where the cartridge had the answer. Replaced the same day.
@@ -1115,6 +1060,9 @@ specification instead of as a coordinate surface.
 Both landed 2026-08-29, as one change, because they are the same piece of
 plumbing: a crop is a per-map offset, a mode is a per-map path, and every
 dungeon marker's pixel depends on both.
+
+`content_box()` and its guard are stated once in `docs/ARCHITECTURE.md`, "The
+derivations". This is the log of building it.
 
 **The crop.** A 64x64 render is mostly not map -- the filler is one tile
 repeated, the out-of-bounds void in a dungeon and the warp-out field around a
@@ -1296,7 +1244,8 @@ here pass, with the standard seeds genuinely exercised rather than skipped.
 
 Finished 2026-08-29, phase 3 of the rendered-map order. The reserved band now
 carries a `Map Key`, and every fixed-formation trap tile is lettered where it
-stands.
+stands. The font base and the two independent sources that pin it are in
+`docs/ARCHITECTURE.md`, "The derivations".
 
 **The font is read, not drawn.** There is no Pillow in these tools and there is
 now no hand-made bitmap font either. `LoadMenuCHR` (`bank_0F.asm:9856-9863`)
@@ -2102,3 +2051,6 @@ defaults would have quietly taken the lanes and every sprite off a board that
 had them. The override was renamed rather than redrawn: no image moved, because
 the cache key is the ROM plus the options and neither did.
 
+---
+
+*The log continues in [`STATUS-2.md`](STATUS-2.md), opened 2026-09-01.*

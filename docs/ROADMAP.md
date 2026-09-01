@@ -8,7 +8,7 @@ to where its evidence lives; it leaves the page when the section it sits in is
 superseded. Deleting a close outright is the failure this page keeps hitting
 from the other side — nothing re-reads a line once it is written, so an item
 that goes quiet outlives its own answer. Defects live in `docs/ISSUES.md`,
-unscoped ideas in `docs/IDEAS.md`, the narrative in `STATUS.md`.
+unscoped ideas in `docs/IDEAS.md`, the narrative in the `STATUS` log.
 
 The triage rule, from 2026-08-30: **does it change a colour, add a box, or save
 a click?** If yes it is product and goes in sections 1-4. If no it is tooling
@@ -166,13 +166,11 @@ actually left.
   instead would drop a goal the published objective names beside treasure.
 
   **What is left is the shortest-to-the-exit flavour, and it is more than a
-  missing extra: the pair that shipped is named wrong.** "Optimal Route" means
-  the walk through a floor collecting *nothing*, and "for loot" already implies
-  the key rather than needing a lane of its own. What is drawn today is one loot
-  lane in two halves. `IDEAS.md` has the correction and what it costs to fix.
-  Also open: a loot lane still walks to a linked chest whose twin it would have
-  collected on an earlier floor, which needs a run-wide order the router has
-  no notion of.
+  missing extra: the pair that shipped is named wrong**, so the genuinely useful
+  traversal lane does not exist anywhere in the tracker. `IDEAS.md` has the
+  correction, what each name should mean and what it costs to fix. Also open: a
+  loot lane still walks to a linked chest whose twin it would have collected on
+  an earlier floor, which needs a run-wide order the router has no notion of.
 
   **The by-eye pass is the other half.**
   The reference is the acceptance test, not the input: DarkmoonEX's lanes are

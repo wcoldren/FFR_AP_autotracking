@@ -211,6 +211,54 @@ check("every path:line citation names a line its file has", bad_line, [])
 check("and the symbol the sentence names is still near it", bad_symbol, [])
 check("every repo path a document names exists", bad_path, [])
 
+# --------------------------------------------------------------------- 2b
+# The drain replaced whole sections with `PAGE.md`, "Heading" pointers, so a
+# renamed heading now silently strands a reader the way a moved line number
+# used to. Same rule, applied to the other half of a citation.
+SECTION = re.compile(r"`([A-Za-z0-9_./-]+\.md)`[,:]?\s*\n?\s*\"([^\"\n]{4,90})\"")
+HEADING = re.compile(r"^#{1,6}\s+(.*?)\s*$", re.M)
+# `ISSUES.md` and `IDEAS.md` anchor their entries on a bolded bullet lead rather
+# than a heading, and pointers name those the same way. Both are anchors.
+BOLD_LEAD = re.compile(r"^\s*(?:[-*] )?\*\*(.+?)\*\*", re.M | re.S)
+
+
+def headings(rel):
+    body = "\n".join(read(rel))
+    out = {h.strip().strip("*`.,").lower() for h in HEADING.findall(body)}
+    for lead in BOLD_LEAD.findall(body):
+        out.add(" ".join(lead.split()).strip("*`.,").lower())
+    return out
+
+
+bad_section = []
+for doc in DOCS:
+    lines = read(doc)
+    body = "\n".join(lines)
+    for m in SECTION.finditer(body):
+        target = m.group(1)
+        if target.startswith("../"):
+            target = os.path.normpath(os.path.join(os.path.dirname(doc), target))
+        elif resolve(target) is None and "/" not in target:
+            # `ISSUES.md` from a sibling page means `docs/ISSUES.md`
+            sibling = os.path.join(os.path.dirname(doc), target)
+            target = sibling if sibling in TRACKED else target
+        target = resolve(target) or target
+        if target not in TRACKED:
+            continue
+        want = m.group(2).strip().strip("*`").lower()
+        have = headings(target)
+        if want in have:
+            continue
+        # A pointer often names the heading's distinctive opening rather than
+        # all of it. Accept a prefix, and only a long one.
+        if len(want) >= 12 and any(h.startswith(want) for h in have):
+            continue
+        line = body[:m.start()].count("\n") + 1
+        bad_section.append('%s:%d  %s, "%s"' % (doc, line, m.group(1), m.group(2)))
+
+check("every section a document points at still has that heading",
+      bad_section, [])
+
 # ------------------------------------------------------------------------ 3
 def runner_suites(runner, prefix, suffix):
     """The `for t in ...` list, and the suites actually sitting beside it."""
@@ -291,6 +339,10 @@ check("a path relative to the doc resolves",
       names_something_real("docs/README.md", "../STATUS.md"), True)
 check("but a file that is genuinely gone does not",
       names_something_real("docs/ISSUES.md", "tools/deleted_tool.py"), False)
+check("a heading a page really has is found",
+      "the docs" in headings("docs/README.md"), True)
+check("and one it does not have is not",
+      "a heading no page carries" in headings("docs/README.md"), False)
 
 for f in fails:
     print("     " + f)
