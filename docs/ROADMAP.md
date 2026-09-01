@@ -82,7 +82,8 @@ actually left.
   box would light itself. Unne holds no shuffled item and the four fiends are
   spiked battle tiles that write no flag in vanilla or FFR — the orb byte is set
   by the altar, not the kill — so all five would be manual-click forever
-  (`ISSUES.md:170`, `:542`). That is a decision, and it is taken here rather
+  (`ISSUES.md`, "Six NPCs the cartridge places have no box anywhere" and "The
+  four Fiends and the ToFR refights cannot be autotracked at all"). That is a decision, and it is taken here rather
   than left as a gap somebody re-opens.
 
   What Titan still wants is **a fresh hosted code**, because `titan` is spent:
@@ -93,14 +94,14 @@ actually left.
 - **`shopItem` has no incentive toggle because FFR has no such flag.** This
   bullet used to read as missing wiring. It is not: there is no
   `IncentivizeShopItem` anywhere in the 4-9-7 schema, and
-  `docs/FLAG_COVERAGE.md:222` records `Shop Item` as tracking where the shop
-  landed — roll noise, not a flag. Nothing to map, so the honest close is to say
+  `docs/FLAG_COVERAGE.md` records `Shop Item` as tracking where the shop landed — roll noise, not a flag. Nothing to map, so the honest close is to say
   so on the board's Map Key rather than to build a toggle.
 
   **The real defect on that pin is a different one and is already filed**:
   `I: Shop Item` carries no access rule at all, so it is green on a seed that
   put it behind a vehicle, and `check_logic` cannot even grade it —
-  `docs/ISSUES.md:437`. That is the entry to work from.
+  `docs/ISSUES.md`, "`I: Shop Item` carries no rule at all". That is the entry
+  to work from.
 - **ToFR floor modelling.** The rules are *not* unwritten, which is what this
   bullet used to claim: `locations/overworld.json:410` carries three
   alternatives on the `ToFR` node and the seven chests inherit them. What is
@@ -196,7 +197,8 @@ actually left.
   **The `nerrick` slot is splittable and need not wait.** It is a real
   Archipelago location on this mode and both dungeon trees carry it. One slot,
   not two — `airship`'s absence is correct and is not to be re-derived as a pair
-  (`docs/ISSUES.md:573`). Adding it against the existing JPEG is a hand edit
+  (`docs/ISSUES.md`, "The No-Overworld incentive poster is missing one slot,
+  not two"). Adding it against the existing JPEG is a hand edit
   plus bumping the nov count 20 → 21 in `SHEET_RULED`,
   `tests/test_pins.lua:146`.
 - **Boss names in the Map Key**, from the formation ids already in hand.
