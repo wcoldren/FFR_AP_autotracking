@@ -151,6 +151,20 @@ either. The eleven above them are in both schemas.
 | `ToFRMode` | `shortToFR` progressive; `shortToFR,$canBreakOrb` on the ToFR node | code — only Short moves a rule |
 | `ChaosRush` | `chaosRush` toggle; `chaosRush,$canBreakOrb,lute` on the ToFR node | code |
 | `ExitToFR` | `NOT_MODELLED` in `flag_mapping.lua` | **decided against** — it opens nothing; see below |
+| `FiendsRefights` | `NOT_MODELLED`, status `unjudged` | **unmeasured** — decides whether the four fiends stand in ToFR and on which paths (`TempleOfFiends.cs:53`, `:93`, `:100`) |
+| `ShortToFRFiendsRefights` | `NOT_MODELLED`, status `unjudged` | **unmeasured** — the same decision for a shortened ToFR, with seven arrangements rather than three (`:54`, `:207-332`) |
+
+**These two rows are why the test below exists, and they were added by it.**
+This page had never listed either flag. It is compiled by hand out of the same
+files it is compiled *from*, and it missed two of them in there — for as long as
+the page has existed. Neither can be graded the usual way:
+`archipelago/Archipelago.cs:93` drops every ToFR location from the pool, so a
+cartridge rolled for one reproduces the `NoTail` outcome by construction. They
+want `tools/tofr_diff.py` on a pair, which is the measurement their
+`NOT_MODELLED` entries name.
+
+They are filed `unjudged` rather than settled deliberately. Closing them on the
+day they were found would draw exactly the wrong lesson from having found them.
 
 ## D. Placement-only (large group, all n/a for colours)
 
@@ -351,12 +365,39 @@ The three ToFR flags still want something other than the export;
 Both names that were on the verify list are answered: `IsFloaterRemoved` moves
 no pin (section A), and `ShuffleObjectiveNPCs` moves two (above).
 
-## Keeping this current
+## Keeping this current — built 2026-09-01
 
-The list of flags the logic consults is a grep, so it can be a test. Vendor the
-FFR revision the schemas are generated from, run the two greps above in
-`tools/tests`, and fail when a flag appears in `OverworldMap.cs`, `NPCs.cs`,
-`MetroidVaniaMap.cs`, `TempleOfFiends.cs` or `IVictoryConditionFlags` that is in
-neither `flag_mapping.lua` nor an explicit `NOT_MODELLED` list. That turns
-"follow updates to the logic engine" from a habit into a failing test on the
-day FFR adds a flag.
+`tools/tests/test_flag_coverage.py` runs the two greps above against the
+vendored 4.9.7 checkout and fails when a flag they find is named nowhere in
+`flag_mapping.lua`. **54 consulted; 24 of them were named before this, 54
+after.** A flag FFR adds is now a failing test rather than a habit.
+
+`tools/tests/test_ffr_pin.py` is the other half: the schema's `build_sha`, the
+`pinned_commit` in the workspace's `pins.yaml`, and the SHA stamped into
+`FFRVersion.cs` on the worktree all have to agree, and the pin has to be an
+ancestor of the checkout's HEAD — ancestry rather than equality, because both
+oracle worktrees sit two local commits above their pin.
+
+**The named half is read structurally, and the two readings disagree.** A
+whole-file grep for a quoted string counts a name parked in a commented-out
+entry as modelled, which is this pack's oldest failure shape. It also gets
+today's answer wrong in the other direction: `GameMode` is read as
+`flags.GameMode` and appears as a quoted literal nowhere, so the grep says 31
+unnamed where the structural pass says **30**. The four quoting sites that
+count are `ffr = "..."`, `get("...")` inside a progressive's stage closure,
+`ffrFlag("...")`, and `flags.Name`.
+
+**What the thirty became.** `NOT_MODELLED` in `flag_mapping.lua` carries a
+`status` drawn from the key at the top of this page, so an entry and its row
+here can be checked against each other:
+
+    ram 7   variant 1   noise 9   unmodellable 6   decided 4   unjudged 4
+
+`unjudged` is the status that keeps the list usable. A list padded to make the
+test pass is the test not existing, so `NPCItems`, `NPCSwatter` and the two
+refight flags above say they are unmeasured and name the measurement, rather
+than borrowing a neighbour's reason. `tests/test_flags.lua` holds all of it:
+a known status, a real reason, a measurement on anything `unjudged`, and a
+`computed = true` exemption for the eight flags `FlagsCompute.cs` derives rather
+than stores — which have no field in either schema, so the existing "every named
+flag is a real flag" check would otherwise have failed on them.

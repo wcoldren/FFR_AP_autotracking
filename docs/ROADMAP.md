@@ -17,6 +17,10 @@ being what comes after the product work. Concretely: **nothing today notices a
 new FFR flag.** Section 5's first two bullets are what keep section 1 closed,
 and they come before section 2.
 
+**Both closed 2026-09-01**, and section 2 is what comes next. What they left
+behind is four flags filed `unjudged` — named in section 5 rather than here,
+because none is known to move a pin yet.
+
 The parity target for every rule is FFR's `SanityCheckerV2` + `SCLogic`, with
 the Archipelago export as the graded truth table. `docs/FLAG_COVERAGE.md` is the
 table of every flag that logic consults and how the pack models it.
@@ -260,42 +264,51 @@ actually left.
 the top of this file. They are what keeps section 1 from decaying, and nothing
 else on this page does that.
 
-- **The flag-coverage test.** Fail when a flag the logic consults appears that
-  is in neither `flag_mapping.lua` nor an explicit not-modelled list. Most of
-  the machinery is already there: `flag_mapping.lua` exports
-  `FFR_FLAG_COVERAGE` for exactly this, and `tests/test_flags.lua` already
-  consumes it — what is missing is the grep, which wants a Python home in
-  `tools/tests/` since Lua would have to shell out.
+- **The flag-coverage test. Closed 2026-09-01.**
+  `tools/tests/test_flag_coverage.py` runs the two greps `docs/FLAG_COVERAGE.md`
+  publishes against the vendored 4.9.7 checkout and fails when a flag they find
+  is named nowhere in `flag_mapping.lua`. **54 consulted, 24 named before it, 54
+  after.** A flag FFR adds is a failing test now rather than a habit.
 
-  **Measured 2026-09-01 against the vendored 4-9-7 tree**, running the greps
-  this page's sibling `docs/FLAG_COVERAGE.md` already names: 54 distinct flag
-  names, of which **31 are not quoted in `flag_mapping.lua`** and **11 are not
-  in `FLAG_COVERAGE.md` at all**. So `NOT_MODELLED` goes from its one entry to
-  around thirty, and **writing an honest reason for each is the work** — a list
-  padded to make the test pass is the test not existing.
+  The figures this bullet predicted held exactly — 54 distinct names, 11 absent
+  from `FLAG_COVERAGE.md` — with one correction. **It is 30 unnamed, not 31.**
+  The difference is `GameMode`, which is read as `flags.GameMode` and is a
+  quoted literal nowhere, so a grep calls it unnamed and the structural pass
+  correctly calls it named. Reading structurally also closes the hole the other
+  way: a name left in a commented-out entry satisfies a grep and models nothing,
+  which is this pack's oldest failure shape, and the test demonstrates that case
+  rather than asserting about it.
 
-  **Nine of those eleven are noise and two are not, which is the argument for
-  building this.** The nine share those files without reaching logic — the four
-  `BossScale*`, `SeparateBossHPScaling`, `EvadeCap`, `IncludeMorale`,
-  `ChaosFloorEncounters`, `LefeinSuperStore`. The two are `FiendsRefights` and
-  `ShortToFRFiendsRefights`, which decide whether the four fiends stand in the
-  Temple of Fiends Revisited at all, and **the coverage page has never listed
-  them**. A page compiled by hand missed two flags in the file it was compiled
-  from; that is the failure this test exists to make impossible, and it was
-  already live before the test was written.
-- **Pin the FFR revision.** The schemas already carry a build SHA and
-  `pins.yaml` already matches them; what is missing is the assertion that they
-  agree. It shares a repo handle with the bullet above, so it is the same
-  branch.
+  **Writing the thirty reasons was the work, as predicted, and four of them
+  could not honestly be written.** `NOT_MODELLED` entries carry a `status` from
+  the key `FLAG_COVERAGE.md` already publishes — ram 7, variant 1, noise 9,
+  unmodellable 6, decided 4, unjudged 4 — and `unjudged` is the one that matters.
+  A list padded to make the test pass is the test not existing, so `NPCItems`,
+  `NPCSwatter`, `FiendsRefights` and `ShortToFRFiendsRefights` say they are
+  unmeasured and name the measurement that would settle them. **Those four are
+  the open work this bullet leaves behind**, and they are section-1 candidates
+  if any of them turns out to move a pin.
 
-  Two things to hold. The worktree HEADs are **two local commits above** the
-  pinned commits (the FF1R Archipelago-export commit and the `FFRVersion.Sha`
-  stamp), so a check must resolve the base — `git merge-base --is-ancestor
-  1f31434 HEAD` — rather than compare HEAD and fail on a tree that is correct.
-  And this bullet used to say `FLAG_COVERAGE.md` was compiled against trunk
-  `0f91e97` because `1f31434` "was not reachable", **which stopped being true on
-  2026-08-31**: `docs/FLAG_COVERAGE.md` is grepped at the schema build now. The
-  re-run this asked for has happened; only the assertion is outstanding.
+  The two refight flags were the argument for building this and are now the
+  first thing it produced. `FLAG_COVERAGE.md` had never listed either, having
+  been compiled by hand out of the files it was compiled from.
+
+- **Pin the FFR revision. Closed 2026-09-01.** `tools/tests/test_ffr_pin.py`
+  holds the three-way agreement that was true and enforced nowhere: the schema's
+  `build_sha`, the `pinned_commit` in `pins.yaml`, and the SHA stamped into
+  `FFRVersion.cs` on the worktree. The base is resolved rather than compared, as
+  this bullet asked — both worktrees sit exactly two local commits above their
+  pin, so a HEAD comparison fails on a tree that is right.
+
+  **It found the loose link on the way.** `gen_schema.py` derived `build_sha`
+  from `git rev-parse HEAD`, which on those worktrees is not the commit the
+  cartridges claim: regenerating 4-9-7 wrote `b4ec325` where every oracle ROM
+  says `1f31434`, and the proof loop then failed against all of them. Loud
+  rather than silent, so nothing shipped wrong — but it put the fault in the
+  checker rather than the tree, and made "a new version is one command" untrue
+  for the two trees where it matters most. It reads the stamp now, with HEAD as
+  the fallback for an unstamped checkout.
+
 - **An export-vs-export diff, `tools/export_diff.py`.** Roll two cartridges one
   flag apart, diff the exports, attribute the moved rules to the flag — which is
   how every flag row in `docs/ORACLE.md` was produced, about fifteen times, by

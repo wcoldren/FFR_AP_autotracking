@@ -4,7 +4,7 @@ The working log: what was built, why, and what each decision cost. Kept as a
 narrative so a fresh session can pick a thread up cold -- the measurements are
 here, and so is the reasoning that was tried and rejected.
 
-Last updated 2026-08-31.
+Last updated 2026-09-01.
 
 If you are looking for something specific, it is probably not in here. This is
 the log; the settled half was lifted out of it into `docs/`, and `docs/README.md`
@@ -84,6 +84,71 @@ root `README.md` is the whole story.
   about this machine's PopTracker install rather than about the code. Run it
   when the tracker looks wrong: it says whether the installed override predates
   the checkout, which is a failure with no visible symptom. `docs/ISSUES.md`.
+
+## Nothing noticed a new FFR flag, and now something does
+
+Written 2026-09-01. `docs/FLAG_COVERAGE.md` ended by asking for this in so many
+words: the list of flags FFR's logic consults is a grep, so it can be a test.
+
+`tools/tests/test_flag_coverage.py` runs the two greps that page publishes,
+byte for byte, against the vendored 4.9.7 checkout, and fails when a flag they
+find is named nowhere in `flag_mapping.lua`. **54 consulted, 24 of them named
+before this, 54 after.**
+
+**The case for it was already live rather than hypothetical.** The page is
+compiled by hand out of the same files it is compiled *from*, and it missed two
+of them: `FiendsRefights` and `ShortToFRFiendsRefights`, which decide whether the
+four fiends stand in the Temple of Fiends Revisited at all. It missed them for
+as long as the page has existed. That is the sixth entry in this file where a
+complete, confident answer survived because nothing ran the check that would
+have contradicted it — and the first where the wrong source was a page of our
+own rather than the cartridge.
+
+**Structurally, not by grep, and the two disagree.** A whole-file search for a
+quoted string counts a name parked in a commented-out entry as modelled. It also
+gets today's answer wrong the other way: `GameMode` is read as `flags.GameMode`
+and is a quoted literal nowhere, so the grep says 31 unnamed where the four
+real quoting sites say 30. Comments are stripped with quote state tracked,
+because the reasons in `NOT_MODELLED` contain `--` inside strings.
+
+**Thirty reasons, and four of them could not honestly be written.**
+`NOT_MODELLED` went from one entry to thirty-one, each with a `status` from the
+key `FLAG_COVERAGE.md` already publishes — ram 7, variant 1, noise 9,
+unmodellable 6, decided 4, unjudged 4. A list padded to make the test pass is
+the test not existing, so `NPCItems`, `NPCSwatter` and the two refight flags say
+they are unmeasured and name the measurement that would settle them, instead of
+borrowing a neighbour's argument. Everything else cites the line it was read
+from. `tests/test_flags.lua` holds the list to all of that, including a
+`computed = true` exemption for the eight flags `FlagsCompute.cs` derives rather
+than stores, which have no field in either schema.
+
+### The pin was a three-way agreement enforced at one hop
+
+`tools/tests/test_ffr_pin.py`. A flag schema means nothing except against the
+FFR build it came from, and `ffr_flags.py:102` already refuses a cartridge whose
+stamped SHA disagrees with the schema. That compares the ROM to the schema.
+Nothing compared either to the checkout on disk:
+
+    pins.yaml pinned_commit == FFRVersion.cs stamped Sha == schema build_sha
+
+The middle term is hand-typed, because FFR substitutes `Sha` during its own
+deploy and leaves the literal in source, so an oracle worktree has to stamp it.
+Ancestry rather than equality for the checkout: both worktrees sit two local
+commits above their pin, so comparing HEADs fails on a tree that is right.
+
+**The loose link turned up while writing it.** `gen_schema.py` took `build_sha`
+from `git rev-parse HEAD`, which on those worktrees is not the commit the
+cartridges claim — regenerating 4-9-7 wrote `b4ec325` where every oracle ROM
+says `1f31434`, and the proof loop then failed against all of them. Loud rather
+than silent, so nothing shipped wrong, but it put the fault in the checker
+instead of the tree and made "a new version is one command" untrue for the two
+trees that matter most. It reads the stamp now.
+
+Every new check was shown to fail before it was believed: a bad status, a
+dropped `computed`, a missing measurement, a name left in a comment, a drifted
+`build_sha`, and a checkout pointed at the other version's worktree. Both new
+tests skip cleanly with no workspace and no checkout, because somebody who
+installed this as a PopTracker pack has neither.
 
 ## Read the maps from the bank FFR actually puts them in
 
