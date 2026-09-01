@@ -2445,3 +2445,44 @@ per seed. What is missing is the live bridge publishing it, which is the same
 feature as publishing `ff1/gateways`. `ROADMAP.md` now holds the two as one item
 rather than two, because building it twice is the failure mode worth naming
 before either gets started.
+
+## Gaia, answered off a cartridge instead of argued about
+
+The Gaia node's northern-docks route read
+`northernDocks,hwyOrdeals,gaiaMountain,ship,canal` on the incentive poster and
+dropped `hwyOrdeals` in the dungeon tree. Identical in upstream's `9ed47a4` and
+here, so a rule written twice and never compared rather than drift. It had sat
+in `ISSUES.md` for weeks and was the one slot `test_maps.lua` check 7 waived by
+name, because which of the two is right is not answerable from the location
+files and guessing would be a standard-mode rule change with nothing behind it.
+
+The neighbours do not settle it either: Lefein's northern-docks route carries
+`hwyOrdeals` in both trees and Sky Palace's carries it in neither. So it wanted
+FFR's own answer on a seed where the two versions differ, and that is two
+cartridges rather than one, because the question cannot be asked until the docks
+and the mountain pass are both on.
+
+    gaia497      docks + pass, highway OFF   Fairy = (Canoe AND Floater AND Bottle)
+    gaiahwy497   docks + pass, highway ON    Fairy = that, plus (Canal AND Ship AND Bottle)
+
+**The poster was right.** Without the highway FFR gives the Fairy no Ship route
+at all, while 79 other rules do move between `gaia497` and `std497` -- so the
+flags are certainly live and the absence is the answer rather than a flag that
+failed to apply. Lefein moves the same way with the highway, which is why its
+northern-docks route always carried `hwyOrdeals` in both trees.
+
+The dungeon tree was over-reporting: on a docks-and-pass seed without the
+highway it opened Gaia on the Ship and the Canal and FFR does not. `gaia497`
+graded 223 of 224 before the fix and 224 of 224 after; `gaiahwy497` graded 225
+of 225 both times, which is what says the fix took the wrong alternative away
+without taking the right one with it.
+
+**The waiver went with it.** `KNOWN` in `test_maps.lua` is empty now, so every
+slot the two trees share has to match, with nothing named as an exception. That
+is the part worth keeping: a waiver that names one slot is a waiver that stops
+being read, and this one had outlived the reason it was written.
+
+The pair is the exception in `ORACLE.md`'s table, and the table now says so. Six
+of the eight 4.9.7 cartridges are one flag from `std497`; these two are one flag
+from *each other*, and it is the pair that isolates rather than either against
+the baseline.

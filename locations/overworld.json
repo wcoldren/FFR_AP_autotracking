@@ -4768,7 +4768,7 @@
                 "access_rules": [
                     "$standardWorld,airship",
                     "$standardWorld,$noShipDrydock,gaiaMountain,ship,canoe,lefeinRiver,canal",
-                    "$standardWorld,$noShipDrydock,gaiaMountain,northernDocks,ship,canal",
+                    "$standardWorld,$noShipDrydock,gaiaMountain,northernDocks,hwyOrdeals,ship,canal",
                     "$standardWorld,$noShipDrydock,gaiaMountain,hwyOrdeals,ship,canal,canoe",
                     "$standardWorld,lefeinBridge,gaiaMountain,bridge",
                     "airshipHike,$standardWorld,$noShipDrydock,floater,ship",

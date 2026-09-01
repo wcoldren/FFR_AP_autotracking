@@ -62,8 +62,11 @@ meant to end.
   rolls `ToFRMode 2` and derives all seven ToFR chests as `[["orbs"]]`, which
   the pack contradicted until now. All of them are in
   `docs/FLAG_COVERAGE.md`; the cartridges are in `docs/ORACLE.md`.
-- **Gaia.** The two tabs disagree about how to reach it (`ISSUES.md`). One is
-  wrong; the oracle says which.
+- **Gaia. Closed 2026-09-01.** The two tabs disagreed about how to reach it and
+  the oracle said which: the dungeon tree's northern-docks route was missing
+  `hwyOrdeals` and opened Gaia on a seed FFR does not. Two cartridges one flag
+  apart settled it — `gaia497` and `gaiahwy497` in `docs/ORACLE.md`. The
+  `fairy` waiver in `tests/test_maps.lua` went with it.
 - **The two rolls the bridge should read, not guess at.** Both are permutations
   chosen at generation that reach neither the flag string nor the spoiler, and
   both are answered today by being deliberately strict. They want one feature

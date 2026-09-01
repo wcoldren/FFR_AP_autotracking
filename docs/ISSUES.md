@@ -577,17 +577,28 @@ Nothing here is urgent unless it says so.
   poster with no overworld is the same question as deriving the rest of the
   pins, so it stays filed with `docs/ROADMAP.md` item 3.
 
-- **The two tabs disagree about how to reach Gaia.** The Gaia node's
-  northern-docks route reads `northernDocks,hwyOrdeals,gaiaMountain,ship,canal`
-  in `locations/incentives.json` and drops `hwyOrdeals` in
-  `locations/overworld.json`. Identical in upstream's `9ed47a4` and here, so it
-  is not drift — it is a rule that was written twice and never compared. It is
-  the one slot `tests/test_maps.lua` check 7 waives by name; every other slot the
-  two trees share now has to match. Which of the two is right is not answerable
-  from the location files, and the neighbouring rules do not settle it either:
-  Lefein's northern-docks route carries `hwyOrdeals` in both trees and Sky
-  Palace's carries it in neither. Deciding it wants FFR's own logic for the
-  Fairy on a seed where the two differ.
+- **The two tabs disagreed about how to reach Gaia. Closed 2026-09-01: the
+  poster was right.** The Gaia node's northern-docks route read
+  `northernDocks,hwyOrdeals,gaiaMountain,ship,canal` in
+  `locations/incentives.json` and dropped `hwyOrdeals` in
+  `locations/overworld.json` — identical in upstream's `9ed47a4` and here, so a
+  rule written twice and never compared rather than drift.
+
+  It was not answerable from the location files, so it was answered off a
+  cartridge. Two seeds one flag apart: `oracle-4.9.7/gaia497` rolls
+  `MapOpenProgressionDocks` and `MapGaiaMountainPass` with `MapHighwayToOrdeals`
+  **off**, and FFR still gives the Fairy as `(Canoe AND Floater AND Bottle)` —
+  no Ship route at all, while 79 other rules do move, so the flags are certainly
+  live. `gaiahwy497` turns the highway on and the rule gains `(Canal AND Ship
+  AND Bottle)`. Lefein moves with it, which is why its northern-docks route
+  always carried `hwyOrdeals` in both trees.
+
+  So the dungeon tree was over-reporting: on a docks-and-pass seed without the
+  highway it opened Gaia with the Ship and the Canal and FFR does not. Fixed in
+  both `overworld.json` trees, graded 223 of 224 before and 224 of 224 after.
+
+  `tests/test_maps.lua` check 7 waived `fairy` by name and now waives nothing —
+  every slot the two trees share has to match.
 
 - **What a diamond means is unsettled.** Square and diamond are the same size,
   centre, colours and click target; the only difference is that a diamond leaves

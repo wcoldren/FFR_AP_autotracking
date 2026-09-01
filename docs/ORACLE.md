@@ -219,9 +219,14 @@ flag decoder accepts a local build of it unmodified.
 | `airship497` | `oracle497_airship` | `3B7E1C8A` | the same, plus `MapAirshipHike` | what `MapAirshipHike` does to the rules FFR exports |
 | `landbridge497` | `oracle497_landbridge` | `3B7E1C8A` | the same, plus `MapCardiaLandBridge` | what `MapCardiaLandBridge` does to the same |
 | `objnpc497` | `oracle497_objnpc` | `3B7E1C8A` | the same, plus `ShuffleObjectiveNPCs` | where the three objective NPCs went, which only the cartridge says |
+| `gaia497` | `oracle497_gaia` | `3B7E1C8A` | the same, plus `MapOpenProgressionDocks` and `MapGaiaMountainPass` | whether the northern-docks route to Gaia needs the highway |
+| `gaiahwy497` | `oracle497_gaia` + `MapHighwayToOrdeals` | `3B7E1C8A` | the same three | that it does |
 
-**Every one of them shares `std497`'s seed and differs from it in one flag
-value.** So anything that moves between an export and `std497`'s is the flag,
+**The first six share `std497`'s seed and differ from it in one flag value.**
+The Gaia pair is the exception and says so: answering that question needs the
+docks and the mountain pass both on, so `gaia497` is two flags from the baseline
+and `gaiahwy497` is one flag from `gaia497`. It is the pair that isolates, not
+either cartridge against `std497`. So anything that moves between an export and `std497`'s is the flag,
 not the roll -- a tighter control than `nov`/`nov2`, which hold the flags still
 and vary the seed. `std497` is the baseline all four are read against, which is
 why its row is the one to protect.
@@ -257,6 +262,9 @@ Last run 2026-09-01.
 | `objnpc497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — one of them waived rather than agreed, and see below |
 | `std497` vs `objnpc497`, exported rules | **204 in both, 1 differs, and it is `Shop Item` — roll noise, not the flag. `Elf Prince` and `Lefein` are byte-identical across the two** |
 | `std497` vs `objnpc497`, NPC placement | **Bahamut `map 39 (21,3)` -> `map 3 (26,1)`, Unne the reverse; the Elf Doctor unmoved** (`tools/extract_npcs.py`) |
+| `gaia497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — it was 223 agree, 1 divergence over 1 location before the Gaia fix |
+| `gaiahwy497`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences**, before the fix as well as after |
+| `gaia497` vs `gaiahwy497`, the Fairy | **`(Canoe AND Floater AND Bottle)` -> that plus `(Canal AND Ship AND Bottle)`. Lefein moves the same way** |
 
 **`objnpc497` is the row that does not mean what the others mean.** Every other
 line above is the pack agreeing with FFR. This one is the pack agreeing with FFR
@@ -319,12 +327,12 @@ the 53 are not an artefact of it.
 ### Checking the 4.9.7 corpus
 
     O7=<corpus>/oracle-4.9.7
-    for s in std drydock extended airship landbridge objnpc; do
+    for s in std drydock extended airship landbridge objnpc gaia gaiahwy; do
         python3 tools/check_logic.py $O7/${s}497/${s}497.nes \
             --ap-rules $O7/${s}497/${s}497.yaml --ff1-world $W
     done
 
-No `--derived` on any of them: the sweep derives No-Overworld rules and all six
+No `--derived` on any of them: the sweep derives No-Overworld rules and all eight
 are standard seeds.
 
 ### Rebuilding the 4.9.7 corpus

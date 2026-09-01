@@ -627,14 +627,17 @@ do
     return out
   end
 
-  -- Known, and older than this check. The Gaia node's northern-docks route
-  -- reads "northernDocks,hwyOrdeals,gaiaMountain,ship,canal" on the incentive
-  -- poster and drops hwyOrdeals in the dungeon tree, identically in upstream's
-  -- 9ed47a4 and here, so it is neither drift nor anything this pack did.
-  -- Which of the two is right is not answerable from the location files, and
-  -- guessing would be a standard-mode rule change with nothing behind it.
-  -- Filed in docs/ISSUES.md; named here so the rest of the check can be strict.
-  local KNOWN = { fairy = true }
+  -- Nothing is waived any more. The Gaia node's northern-docks route used to
+  -- read "northernDocks,hwyOrdeals,gaiaMountain,ship,canal" on the incentive
+  -- poster and drop hwyOrdeals in the dungeon tree, identically in upstream's
+  -- 9ed47a4 and here. That was not answerable from the location files, so it
+  -- sat here by name; it was answered off a cartridge on 2026-09-01 instead.
+  -- oracle-4.9.7/gaia497 rolls the docks and the mountain pass with the
+  -- highway off and FFR still gives the Fairy as Canoe AND Floater AND Bottle;
+  -- gaiahwy497 turns the highway on and the rule gains Canal AND Ship AND
+  -- Bottle. The poster was right, the dungeon tree was over-reporting, and the
+  -- trees agree now -- so every slot they share has to match.
+  local KNOWN = {}
 
   -- The four orb-lit slots are the incentive poster's own: they light the orb
   -- panel from a flag and there is no dungeon location behind them, so they
