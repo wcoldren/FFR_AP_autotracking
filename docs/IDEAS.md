@@ -724,14 +724,29 @@ the existing flags grid.
 None urgent, none decided. Grouped because they are the same kind of question — a
 label chosen for what this was, still attached to what it has become.
 
-**`package_version: "1.1b"`** is upstream's, and what is on `trunk` shares little
-with the pack that carried it. PopTracker shows the string in the pack list and
-uses it for nothing else — no update check, no compatibility gate — so any value
-is safe, which makes the only question what a reader should learn from it.
-Continuing upstream's numbering claims a lineage the tree no longer has; a fresh
-scheme, or a date, says "this is a fork" more honestly. Whatever it becomes
-should probably move the `author` line too, which credits five people for the
-pack this started from.
+**`package_version` was `1.1b`, which was upstream's, on a tree sharing little
+with the pack that carried it. Changed to `0.1.0` on 2026-09-01**, a fresh line
+starting at the fork rather than a claim on a lineage that had stopped being
+true. `0.x` says the honest thing about how much of `ROADMAP.md` is still open,
+so it needs no second marker on top of it.
+
+**One thing in that reasoning was wrong and is worth keeping written down.** It
+said PopTracker "uses it for nothing else — no update check, no compatibility
+gate — so any value is safe". The first half holds; the conclusion does not.
+Saved state is filed at `<statedir>/<uid>/<version>/<variant>/<name>.json`
+(`core/statemanager.cpp:54-66`), so the version string is part of the path a
+board is saved under and **changing it orphans saved boards** exactly the way
+changing the uid does. Nothing is lost or corrupted — the old directory stays
+where it is — but a board does not come back. That is a cost worth paying once
+and not worth paying twice, which is the argument for moving the uid in the same
+release rather than later.
+
+`game_variant` went with it, from `Entroper (V4.8.6)` to the versions the pack
+actually models. Nothing in the pack reads that field; it was simply three minor
+versions stale.
+
+The `author` line is deliberately unchanged: it credits the five people whose
+pack this started from, and that is what it is for.
 
 **The repo is called `FFR_AP_autotracking`, and most of it is not AP.** The
 Archipelago feed carries checked locations and items received and nothing else;

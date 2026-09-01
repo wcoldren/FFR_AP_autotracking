@@ -1,9 +1,9 @@
 {
     "name": "Final Fantasy 1 Randomizer",
     "game_name": "Final Fantasy",
-    "game_variant": "Entroper (V4.8.6)",
+    "game_variant": "FFR 4.9.2-4.9.7",
     "platform": "nes",
-    "package_version": "1.1b",
+    "package_version": "0.1.0",
     "package_uid": "ff1_rando_ap",
     "min_poptracker_version": "0.35.1",
     "author": "jat2980, DarkmoonEX, HaateXIII, SunflashRune, meklin89",
