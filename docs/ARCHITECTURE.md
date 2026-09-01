@@ -389,6 +389,13 @@ false greens.
 
 ## Tests
 
+`./verify.sh` is the whole gate in one command: both suites, `check_logic` on a
+No-Overworld and a standard cartridge, and whether the installed override still
+matches the checkout. Stages that need something this machine has not got --
+the oracle corpus, an Archipelago checkout -- report SKIP rather than failing,
+and the summary says a skip is not a pass. That is the thing to run before
+calling anything done; what follows is what it runs.
+
 ```
 tests/run.sh         14 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
@@ -401,6 +408,14 @@ tools/tests/run.sh   21 Python suites for the cartridge-reading tools. Ten of
 ```
 
 Both are fast and neither needs a network. Run them before believing anything.
+
+`check_logic` is the third stage because the access rules are one set serving
+both game modes since the `noverworld-logic` merge: a change that satisfies the
+standard tree can break the No-Overworld one, and only running both says which.
+It exits non-zero when it finds a divergence, and `nov` is expected to find one
+(`docs/ROADMAP.md`, "Five object gates, twelve items, and one divergence that
+had been hiding"), so `verify.sh` compares the count against what the corpus is
+known to produce rather than gating on the exit status.
 
 ## Where the docs are
 

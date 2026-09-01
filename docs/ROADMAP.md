@@ -313,23 +313,23 @@ Stated once so nobody re-derives them.
 - **Names that have drifted** and **the four `NoMap` variants** stay in
   `IDEAS.md` until there is a user to ask.
 
-## Branch queue
+## What each branch landed
 
-Where things stand on the day this was written. `git log trunk..` is what
-actually says where a branch is.
+**This section no longer says where any branch stands, because it could not be
+kept true.** It carried a standing status line that was wrong about a branch
+four times in four days, in both directions — claiming unpushed work that was
+pushed and pushed work that was not — and twice carried a commit count that went
+wrong, once inside the commit that wrote it. A line nothing re-reads outlives
+its subject, and this page has documented that failure about `ISSUES.md` while
+reproducing it here.
 
-- `trunk` is **ahead of `origin/trunk` and unpushed**, as of 2026-09-01.
-  `noverworld-logic`, `visibility-toggles`, `route-lanes`, `flags-real-seeds`
-  and `flag-coverage` are all merged. Nothing is in flight. No number here on
-  purpose: `00dffd4` took a count out of this section for going wrong twice, and
-  the one that briefly replaced it went wrong inside the commit that wrote it —
-  `git rev-list --count origin/trunk..trunk` is the answer.
+Ask git instead. `git log trunk..<branch>` says whether a branch has anything
+left in it; `git rev-list --count origin/trunk..trunk` says how far ahead trunk
+is; `git fetch` first, because a merge done on GitHub outside a session makes a
+local count a lie.
 
-  This line has now been wrong about where a branch stands four times in four
-  days, in both directions — it has claimed unpushed work that was pushed and
-  pushed work that was not. The lesson the entries below keep drawing is the
-  only fix: **say it on the day it happens**, and carry no count, because a
-  count rots a commit after it is written.
+What stays is the record of what each merged branch was for, dated on the day it
+merged. That is a fact about the past and cannot go stale.
 - **`flag-coverage` merged 2026-09-01**, and was the whole of section 5's
   first two bullets: `test_flag_coverage.py`, which fails when FFR grows a flag
   nothing here models, and `test_ffr_pin.py`, which holds the schemas to the
