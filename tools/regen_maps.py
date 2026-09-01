@@ -1151,11 +1151,18 @@ def main():
     # tools drew it, and the next run of that mode said "nothing to do". A
     # cache written before this has no per-mode fingerprint, so it reads as
     # stale and that mode redraws once -- which is the right answer for it.
+    #
+    # Every flag that changes what gets drawn belongs in this key, or switching
+    # it prints "nothing to do" over art drawn the other way: inputs_fingerprint
+    # hashes pack files, not the command line. `lanes` reads as "none" when the
+    # slot predates it, so art from before the lane pass redraws rather than
+    # being trusted -- the safe direction.
     was = (cache or {}).get("modes", {}).get(mode, {})
     if (not args.force and cache
             and was.get("rom") == rom_sha
             and was.get("inputs") == inputs_sha
             and was.get("npcs", "none") == args.npcs
+            and was.get("lanes", "none") == args.lanes
             and was.get("marker") == [args.marker_size, args.marker_border]
             and outputs_intact(out_dir, cache)):
         print(f"up to date: {len(cache['outputs'])} files in {out_dir}")
@@ -1571,6 +1578,7 @@ def main():
     if not args.dry_run:
         modes = dict((cache or {}).get("modes", {}))
         modes[mode] = {"rom": rom_sha, "npcs": args.npcs,
+                       "lanes": args.lanes,
                        "inputs": inputs_sha,
                        "marker": [args.marker_size, args.marker_border],
                        **ident}
