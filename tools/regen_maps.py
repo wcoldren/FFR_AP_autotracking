@@ -127,6 +127,8 @@ MODE_DIRS = {"std": "standard", "nov": "No-Overworld"}
 INPUT_FILES = [
     "tools/regen_maps.py",
     "tools/render_maps.py",
+    "tools/lane.py",
+    "tools/font.py",
     "tools/render_overworld.py",
     "tools/overworld_pins.py",
     "tools/sprites.py",
@@ -1089,12 +1091,14 @@ def main():
                          "townspeople, orbs and bats are what make a town read "
                          "as a town; --npcs none suppresses them, and --npcs "
                          "gates keeps only the NPCs that stand in a doorway")
-    ap.add_argument("--lanes", choices=("none", "loot"), default="loot",
+    ap.add_argument("--lanes", choices=("none", "loot"), default="none",
                     help="draw the route to walk on each map that carries a "
-                         "chest: the with-loot lane and, where the floor gates "
-                         "on something, the walk holding it (default), or "
-                         "nothing. Adds about 35 seconds to a regen -- the "
-                         "visit order is an exact tour")
+                         "chest: --lanes loot gives the with-loot lane and, "
+                         "where the floor gates on something, the walk holding "
+                         "it. Off by default: a solver cannot know which "
+                         "chests are worth the detour, and a map with no chest "
+                         "gets no lane at all. Adds about 35 seconds to a "
+                         "regen -- the visit order is an exact tour")
     ap.add_argument("--force", action="store_true",
                     help="regenerate even if nothing changed")
     ap.add_argument("--dry-run", action="store_true",

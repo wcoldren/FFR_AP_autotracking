@@ -86,11 +86,24 @@ share work with section 1, which is why they come second and not later.
   these are the top map item for a No-Overworld or entrance-rando player; the
   design is in `STATUS.md`, "Designed, not started". First increment is the
   bridge's edge log plus a console print, display half after.
-- **Routes on regenerated maps — the with-loot lane is built (2026-08-31).**
+- **Routes on regenerated maps — built, and off by default (2026-08-31).**
   `tools/lane.py` routes it and `render_maps.draw_lanes` draws it, baked at
   render time in `regen_maps` because the PopTracker tab is a static image.
-  One colour per lane across all 61 with the key in the Map Key band, `--lanes
-  loot` on by default. `STATUS.md`, "The route to walk is drawn on the map".
+  One colour per lane with the key in the Map Key band. `STATUS.md`, "The route
+  to walk is drawn on the map".
+
+  **`--lanes` now defaults to `none`, and the next step is an editor rather
+  than a better solver.** Three things say the derived lane is the wrong
+  product: a map with no chest gets no lane at all (`lane.plan` returns `None`
+  at `tools/lane.py:482-484`, so only the 38 chest-bearing maps of the 61 get
+  one on the standard duck cartridge, and 37 on the No-Overworld one); the cost
+  model is four constants and has no notion of which chests are worth the
+  detour on a given seed, nor of visiting this one before that one; and the
+  pair that shipped is named wrong. None of those is a tuning problem. A solver
+  cannot know which chests are worth taking, so the route wants a person in the
+  loop: an editor that takes clicked anchors and waypoints and lets
+  `lane.Floor` fill in the walking between them. The router stays exactly as it
+  is — it becomes the pathing primitive instead of the whole feature.
 
   **The spoiler question is settled: a lane ends at the nearest exit.** On both
   duck cartridges most chest-bearing maps have several — 33 of 38 standard, 34

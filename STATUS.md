@@ -2103,3 +2103,28 @@ file stays a working log and the defect list lives in `docs/ISSUES.md`.
 ## Open questions
 
 Moved to `docs/ISSUES.md`.
+
+## The route lane comes off the default
+
+Taken 2026-08-31, ahead of a pass at the pack's variants and a route editor.
+
+`--lanes` now defaults to `none`. The router and the drawing both stay
+exactly as they are; what changed is that a regen no longer draws a lane unless
+asked. Three things say the derived lane is not the feature it looked like.
+A map with no chest gets none at all -- `lane.plan` returns `None` before any
+arrival or exit work happens, so only the 38 chest-bearing maps of the 61 get a
+lane on the standard duck cartridge and 37 on the No-Overworld one. The cost
+model is four constants and has no way to know that a chest is not worth the
+detour on this seed, or that this one should come before that one. And the pair
+that shipped is named wrong, which `docs/IDEAS.md` already records.
+
+None of those is a tuning problem, which is the whole point: a solver cannot
+know which chests are worth taking. So the router becomes the pathing primitive
+rather than the feature, and the next step is an editor that takes clicked
+anchors and waypoints and lets `lane.Floor` fill in the walking between them.
+Skipping `route_lanes` also takes about 35 seconds off a regen.
+
+`tools/lane.py` and `tools/font.py` were missing from `INPUT_FILES`, so editing
+the router changed no fingerprint and the next regen would print "nothing to do"
+over stale art. Both added -- this would have bitten on every iteration of the
+editor work.
