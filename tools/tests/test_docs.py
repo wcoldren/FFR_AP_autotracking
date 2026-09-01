@@ -7,7 +7,7 @@ sent somewhere wrong, and each is enforced by remembering to. The pack's own
 standard for a rule is stricter than that: a check that cannot fail is
 worthless, and so is a rule that cannot bite.
 
-So this holds the prose to four things a commit can break, chosen because each
+So this holds the prose to five things a commit can break, chosen because each
 one has already gone wrong here at least once:
 
   1. A `path:line` citation names a line the file still has, and the symbol the
@@ -26,6 +26,11 @@ one has already gone wrong here at least once:
      both 4.9.2, both GameMode 2, both ToFRMode 2, differing in two characters
      -- and only one of them was in the inventory while the other was cited
      twenty-two times. Nothing could have told by eye.
+  5. `docs/README.md` lists every page sitting beside it. It is the ownership
+     map, hand-maintained the same way the runner lists in (3) are, and it
+     carried eight of the nine pages: `FLAG_COVERAGE.md` had no row, while the
+     same file's own "one home per fact" paragraph named it as an owner. A page
+     the index does not list is a page a reader does not find.
 
 The symbol check in (1) is deliberately generous: it fires only when the citing
 paragraph names an identifier or quotes a phrase, matches case-insensitively,
@@ -388,6 +393,37 @@ check("every cartridge a document names is in ORACLE.md",
 for seed in sorted(unlisted):
     print("       %s  %s" % (seed, ", ".join(unlisted[seed][:4])))
 
+# ------------------------------------------------------------------------ 5
+# `docs/README.md` is the ownership map, and it is hand-maintained exactly the
+# way the runner lists in 3 are -- so it rots the same way. It listed eight of
+# the nine pages beside it for as long as `FLAG_COVERAGE.md` existed: a page
+# its own "one home per fact" paragraph names as an owner, and that
+# `ROADMAP.md` sends readers to, with no row saying it is there. Nothing
+# caught it because every row the table *did* carry resolved. Same rule as 3,
+# one level up: the index lists every page sitting beside it, and lists no
+# page that is gone.
+INDEX = "docs/README.md"
+LINK = re.compile(r"\]\(([A-Za-z0-9_./-]+\.md)\)")
+
+
+def linked(rel):
+    """The pages an index links, as paths from the pack root."""
+    out = set()
+    for m in LINK.finditer("\n".join(read(rel))):
+        joined = os.path.join(os.path.dirname(rel), m.group(1))
+        out.add(os.path.normpath(joined).replace(os.sep, "/"))
+    return out
+
+
+indexed = linked(INDEX)
+# Only the pages beside the index. The table also reaches up to the two logs at
+# the pack root, which is a pointer rather than something it is answerable for.
+beside = {d for d in DOCS if os.path.dirname(d) == "docs" and d != INDEX}
+
+check("docs/README.md lists every page beside it", sorted(beside - indexed), [])
+check("and lists no page that is gone",
+      sorted(p for p in indexed if p not in TRACKED), [])
+
 # ------------------------------------------------------------------------
 # Each row above has to be able to fail, or this file is the thing it was
 # written to catch. These four exercise the machinery on inputs whose answer
@@ -443,6 +479,13 @@ check("a heading a page really has is found",
       "the docs" in headings("docs/README.md"), True)
 check("and one it does not have is not",
       "a heading no page carries" in headings("docs/README.md"), False)
+check("a table row resolves to the page it names",
+      LINK.findall("| [`ORACLE.md`](ORACLE.md) | the figures |"), ["ORACLE.md"])
+check("a row reaching out of docs/ normalises to the pack root",
+      linked("docs/README.md") >= {"STATUS.md"}, True)
+# The trap `tracked()` documents, one row down: an empty left-hand set makes
+# this row pass having compared nothing, which is the defect it exists to find.
+check("the page set the index is held to is not empty", len(beside) >= 5, True)
 
 for f in fails:
     print("     " + f)
