@@ -35,7 +35,7 @@ the tab.
 
 **Insets, the way the hand art does them.** Three shipped maps are composites of
 disjoint pieces at unrelated offsets: `cardia` in 3 regions, `marshB2` and
-`seaB3` in 2. The calibration format already carries that and `make_markers`
+`seaB3` in 2. The calibration format already carries that and `region_for`
 already reads it, so a renderer that split a map into connected components and
 laid them out would reproduce the effect — and would also dissolve the loose crop
 boxes in `docs/ISSUES.md`, by laying disjoint components out separately instead
@@ -398,7 +398,7 @@ images otherwise" is not work; only the trigger is.
 **There are two mismatches to detect, not one.** The cartridge can change, which
 is what this entry was raised about; the *pack* can also change under a fixed
 cartridge, and that is the case that has actually bitten. `INPUT_FILES`
-(`regen_maps.py:99-112`) lists `layouts/shared.json` and the four location files,
+(`regen_maps.py:126-151`) lists `layouts/shared.json` and the four location files,
 so the `inputs` fingerprint already moves the moment one is edited. That half is
 done: `regen_maps.py --verify` compares it, reads no cartridge and exits 1
 naming the stale modes. What it cannot do is fire at the moment it matters,

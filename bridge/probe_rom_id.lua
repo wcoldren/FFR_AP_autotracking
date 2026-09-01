@@ -12,13 +12,21 @@
 --
 -- Measures only. Writes one file and runs no command.
 --
+-- It does not read the FFRInfo record. `ffr_uat_bridge.lua` is the one reader
+-- of that record on the Lua side, so a second parse here would be a second
+-- statement of where the record sits and what its fields are called -- the
+-- duplication that `9148fdd` removed on the Python side. What it attaches
+-- with is not all three fields: `readFlags` logs "seed flags: FFR <version>,
+-- seed <seed>, <n> characters", so the version and the seed are in the log
+-- and the flag string is there only as a length. The string itself reaches
+-- the pack as `ff1/flags`, not through the log. Run the bridge for those and
+-- this for the hash.
+--
 -- Load in Mesen: Debug -> Script Window -> open this file -> Run, with any FFR
 -- cartridge in the slot -- it identifies whichever one that is. Output goes to
 -- the log and to /tmp/ffr_rom_id.txt, so it survives the window being closed.
 
 local OUT = "/tmp/ffr_rom_id.txt"
-local FLAGS_ROM_OFF, FLAGS_ROM_LEN = 0x7BE00, 512   -- as the bridge reads them
-
 local lines = {}
 
 local function say(text)
@@ -41,35 +49,6 @@ else
   table.sort(keys)
   for _, k in ipairs(keys) do
     say(string.format("%-18s = %s", k, tostring(info[k])))
-  end
-end
-
--- The FFRInfo record, which is the fallback comparator if the hash turns out
--- to cover something a script cannot reproduce. The bridge already reads Flags
--- and Version off this; Seed is the field it does not.
---
--- Read through emu.read(.., PRG) exactly as EMU.readRom does, so a failure
--- here is a failure the bridge would have had too.
-local prg = emu.memType and emu.memType.nesPrgRom or nil
-if not prg then
-  say("no emu.memType.nesPrgRom -- cannot read the FFRInfo record")
-else
-  local bytes = {}
-  for i = 0, FLAGS_ROM_LEN - 1 do
-    local b = emu.read(FLAGS_ROM_OFF + i, prg)
-    if type(b) ~= "number" then
-      break
-    end
-    bytes[#bytes + 1] = string.char(b & 0xFF)
-  end
-  local raw = table.concat(bytes)
-  if raw:sub(1, 7) ~= "FFRInfo" then
-    say("no FFRInfo record at 0x7BE00 -- not an FFR cartridge")
-  else
-    local record = raw:match("^[^%z]*")
-    say(string.format("%-18s = %s", "FFRInfo Seed", tostring(record:match("|Seed: ([^|]+)"))))
-    say(string.format("%-18s = %s", "FFRInfo Version", tostring(record:match("|Version: ([A-Za-z0-9%.%-]+)"))))
-    say(string.format("%-18s = %s", "FFRInfo Flags", tostring(record:match("|Flags: ([A-Za-z0-9%.%-]+)"))))
   end
 end
 

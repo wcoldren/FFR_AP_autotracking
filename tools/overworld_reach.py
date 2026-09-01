@@ -70,14 +70,22 @@ crosses. Ocean and river coordinates are rejected or answered False on purpose.
 """
 
 import argparse
+import os
 import sys
 from collections import deque
 
-INES_HEADER = 0x10
-BANK_SIZE = 0x4000
-OW_PTR_TBL = INES_HEADER + BANK_SIZE          # lut_OWPtrTbl, bank 1 at $8000
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# `decompress_ow` used to be a second copy here, differing from the one in
+# entrance_graph only in whether it took a Rom or its bytes -- along with a
+# second, independent statement of where lut_OWPtrTbl is. Re-exported rather
+# than merely imported: render_overworld and two tool tests reach it as
+# `overworld_reach.decompress_ow`.
+from extract_chests import (                                  # noqa: E402
+    INES_HEADER, OW_PTR_TBL, OW_DIM, decompress_ow,
+)
+
 OW_TILESET_PROP = INES_HEADER                 # lut_OWTileset, bank 0 at $8000
-OW_DIM = 256
 OW_TILES = 128
 
 # The vehicle bits, which are also the "may not enter" bits in property byte 0.
@@ -95,29 +103,6 @@ PLACES = {
     "GurguVolcano": (188, 205), "IceCave": (197, 183), "Cardia1": (92, 48),
     "BahamutCave": (96, 51),
 }
-
-
-def decompress_ow(rom):
-    """256 rows: <$80 literal, $FF fills the rest of the row with ocean,
-    otherwise (tile | $80) then a run length where 0 means 256."""
-    rows = []
-    for i in range(OW_DIM):
-        ptr = int.from_bytes(rom[OW_PTR_TBL + 2 * i:OW_PTR_TBL + 2 * i + 2], "little")
-        raw = rom[INES_HEADER + ptr - 0x4000:]
-        row, j = [], 0
-        while len(row) < OW_DIM:
-            t = raw[j]
-            if t < 0x80:
-                row.append(t)
-                j += 1
-            elif t == 0xFF:
-                row += [0x17] * (OW_DIM - len(row))
-            else:
-                run = raw[j + 1] or 256
-                row += [t - 0x80] * run
-                j += 2
-        rows.append(row[:OW_DIM])
-    return rows
 
 
 class Overworld:

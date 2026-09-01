@@ -1,89 +1,24 @@
-# Where this pack is
+# Where this pack was, to 2026-09-01
 
-The working log: what was built, why, and what each decision cost. Kept as a
-narrative so a fresh session can pick a thread up cold -- the measurements are
-here, and so is the reasoning that was tried and rejected.
+**Closed. The log continues in [`STATUS-2.md`](STATUS-2.md).**
 
-Last updated 2026-09-01.
+This is the working log of the first build-out -- what was made, why, and what
+each decision cost -- covering 2026-08-18 to 2026-09-01. It is kept as a
+narrative so a thread can be picked up cold: the reasoning that was tried and
+rejected is here, which is the half no settled page has room for.
 
-If you are looking for something specific, it is probably not in here. This is
-the log; the settled half was lifted out of it into `docs/`, and `docs/README.md`
-says which page holds what. To use the tracker rather than read about it, the
-root `README.md` is the whole story.
+It is closed rather than deleted because a log that grows without a ceiling
+stops being readable, and because a file nothing appends to cannot go stale at
+the end while looking current at the top. Nothing living is left in it: the
+capability inventory that used to head this file moved to `STATUS-2.md`, where
+it can be kept true.
 
-> The NOverworld variants are the current focus and are further behind than the
-> rest of this document implies. They have their own section below.
+**Sections here are dated and several were overtaken.** Where a claim was
+superseded the entry says so and names what replaced it; where the settled form
+was lifted into `docs/`, the section is a pointer plus the part that is only
+ever going to live in a log. `docs/README.md` says which page owns what. To use
+the tracker rather than read about it, the root `README.md` is the whole story.
 
-## Working today
-
-- Two autotracking feeds, reconciled rather than merged: Archipelago over the
-  wire, and a Mesen Lua bridge that mirrors `$6000-$62FF` over UAT. Either alone
-  or both at once. `scripts/autotracking/reconcile.lua` takes the union and
-  preserves hand clears.
-- Chests, NPC and event flags, orbs, key items and every turn-in stage, vehicles,
-  shard count, seed-swap detection, and a Resync button.
-- A run clock drawn on the emulator's screen, counted in frames so it pauses
-  when emulation does, kept per cartridge across a power cycle.
-- The flags grid configures itself from the FFR flag string stamped in the ROM.
-  Schemas ship for FFR 4-9-7 and 4-9-2; a seed on any other version lights the
-  unread-flags warning in the grid rather than letting the defaults pass as the
-  seed's own settings.
-- A Bosses row for the five fights that have a real signal: Garland, the
-  Vampire, Astos, Bikke and Chaos.
-- Both overworld tabs show every slot there is. A slot the seed did not
-  incentivize reports `AccessibilityLevel.Inspect` and draws blue instead of
-  having its pin dropped, and a slot the seed did incentivize gets a gold
-  `Highlight.Priority` ring on both tabs. Green still means reachable and red
-  still means not: Inspect only sets `inspectOnly`, so a slot that is both
-  skipped and out of logic comes out red.
-- An `Overworld Tab` item that cycles Auto / Incentive / Full. Auto reads the
-  Archipelago pool where there is one and the cartridge otherwise — `ShardHunt`
-  or `ChestsKeyItems` and it lands on the full map. A bridge-only shard hunt
-  used to land on the incentive map, which hid nearly every check it had.
-- The Chaos kill read out of the battle engine — a battle running (`$60FC`),
-  Chaos's formation in `btlformation` (`$6A`), `btl_result` (`$6B86`) set to
-  `$FF` — rather than off `$62FE` bit 0x02, which FFR only writes on an
-  Archipelago seed. It is the same instant the Archipelago patch sets its bit,
-  so no seed's split moved. Feeds the run clock, the `chaos`/`clock` lines in
-  `ffr_times.log`, and `ff1/goal`, which the pack now reads for
-  `LOCATION_MAPPING[766]`.
-- Map tabs follow the player. On the shipped hand-drawn art, 36 of 53 dungeon
-  maps are calibrated and carry per-chest markers; on art redrawn from a
-  cartridge, all 61 do, because those markers are built from the ROM's own
-  chest tiles rather than moved from a hand-solved pixel.
-- Redrawn maps are cropped to the part of each floor that is actually map and
-  filed by the cartridge's game mode, so a standard tracker and a No-Overworld
-  one each show their own set. `tools/regen_maps.py` keeps both in one override
-  tree.
-- Offline tools that read a cartridge directly: the flag decoder, an
-  entrance/floor shuffle reader and router, an HTML door map, an overworld
-  reachability walk, a map renderer that can draw the NPCs standing on a map,
-  and a logic checker that diffs the pack's access rules against FFR's own
-  spoiler. The map-reading half of that was wrong until
-  2026-08-29 — see "Read the maps from the bank FFR actually puts them in"
-  below.
-- The door map is walkable by clicking. Every floor name on the page is a
-  `#map-<id>` link, and a focus panel driven by `hashchange` lists that floor's
-  ways in and staircases on, so you follow the shuffle a room at a time instead
-  of scrolling two tables; Back retraces. Works the same on a No-Overworld
-  cartridge, which is the point — the mode shuffles through the same teleport
-  tables the page already reads.
-- An all-items reachability oracle in `entrance_graph.py --self-check`: holding
-  every item, all 61 maps must be reachable from the doors. A theorem on
-  No-Overworld and only there, since `MetroidVaniaMap.cs` connects all 61 and
-  drops none, so a map the walk cannot find is the tool's own fault. It is the
-  cheapest test of the whole routing stack -- map decompression, tile
-  properties, both teleport tables, the doors and the gates all have to be right
-  at once. Written down after the bank bug below and never run until now -- and
-  it earned itself immediately, by failing on its own stated invariant. See
-  "The gauntlet the mode skips" below.
-- `tests/run.sh` — 14 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
-  — the cartridge-reading tools' own tests, Python and nothing else; the ones
-  that need a cartridge skip unless `FF1_ROM` points at one.
-- `tools/regen_maps.py --verify` — not part of either suite, because it asks
-  about this machine's PopTracker install rather than about the code. Run it
-  when the tracker looks wrong: it says whether the installed override predates
-  the checkout, which is a failure with no visible symptom. `docs/ISSUES.md`.
 
 ## Nothing noticed a new FFR flag, and now something does
 
@@ -192,110 +127,58 @@ The sections below are the log of how that was found and what it cost.
 ### The gauntlet the mode skips
 
 Found 2026-08-29, the first time the all-items reachability oracle was run
-against a cartridge. It failed, and it was right to: seven maps cannot be
-reached from the doors holding every item -- the Temple of Fiends Revisited
-floors 1F, 2F, 3F, Earth, Fire, Water and Air.
+against a cartridge. It failed, and it was right to. Moved to
+`docs/NOVERWORLD.md`, "The Temple of Fiends Revisited is orphaned", which
+carries the seven maps, the stripped `TP_SPEC_4ORBS` special and what the oracle
+excepts.
 
-Not a bug in the walk. The cartridge really does orphan them:
-
-- On a **vanilla** cartridge `TempleOfFiends (20,17)` carries both a
-  `TP_SPEC_4ORBS` special and a normal teleport. That pair is the time warp:
-  the special gates the step on the four Orbs, the teleport moves you.
-- On a **No-Overworld** seed the special is **stripped** and the teleport points
-  straight at `TempleOfFiendsRevisitedChaos`. The mode skips the gauntlet and
-  drops you at the Chaos fight.
-- Nothing else on the cartridge teleports into those seven, of any teleport
-  kind, and `MetroidVaniaMap.cs` gives them a backdrop (`:942-948`) and a
-  tileset (`:1108-1114`) but no entry in its teleporter table. The chain runs
-  1F -> Earth -> Fire -> Water -> Air -> Chaos and 1F -> 2F -> 3F, all of it
-  flowing toward Chaos, with no way in.
-
-So the oracle's invariant was wrong as first written, not the cartridge. It now
-excepts those seven by name and checks the reason instead of waving it through:
-Chaos's own room still has to be reachable, since the shortcut is what makes the
-seven unreachable. A seed that wires the gauntlet up passes too -- an excepted
-map being reachable was never the failure.
-
-Worth keeping: the oracle's first real run corrected a claim this document had
-been making for weeks. Cheap tests of stated invariants find the invariants that
-were never true.
+What stays here is the lesson, which is not about this mode. The oracle's first
+real run corrected a claim this document had been making for weeks: the
+invariant was wrong as written, not the cartridge. Cheap tests of stated
+invariants find the invariants that were never true, and this one had been
+written down and left unrun long enough to be believed.
 
 ### Version drift, and why it is not the thing to worry about
 
 Measured 2026-08-29 rather than guessed, because all of this is being built
-against 4.9.2 (the practice seed) while the tournament runs 4.9.7.
+against 4.9.2 while the tournament runs 4.9.7. Moved to `docs/NOVERWORLD.md`,
+"Version drift is not the thing to worry about", which carries the six-release
+diff, the two cartridges' identical figures and why no 4-9-8 schema is
+committed.
 
-Diffing the vendored FFR from the commit that first stamped 4.9.2 (`371e38ed`,
-Nov 2025) to 4.9.8 (May 2026) — six releases — the whole No-Overworld surface
-moved by **one line**:
+Two things stay here.
 
-    FF1Lib/MetroidVaniaMap.cs | 3 ++-
-    FF1Lib/Sanity/SCMap.cs        unchanged
-    FF1Lib/Teleporters.cs         unchanged
-    FF1Lib/StandardMaps.cs        unchanged
-    FF1Lib/Enums.cs               unchanged
+**The conclusion the rest of the work was built on**: derive from the cartridge,
+transcribe nothing from C#. A derived rule set re-derives on a new version. That
+is the version-proofing, and it is worth more than any amount of tracking
+upstream.
 
-and the line is `ApplyMapMods(..., LefeinSuperStore && ShopKillMode == None)`.
-The 75-link table, the gate NPCs and the map indices did not move at all.
-
-**"A shop flag, not topology" is what this said until 2026-09-01, and the call
-site does not support it.** `ApplyMapMods` is reached only from
-`NoOverworld()`, and at `MetroidVaniaMap.cs:260` the flag picks between two
-different sets of tile writes to `MapIndex.Lefein` — different wall edges, and
-a blob named `lefeinNonteleport`. Those are walls and a teleport tile in a town
-the 75-link table was hand-derived from with the flag off. It may still change
-nothing a router can see; nobody has walked it. It is filed `unjudged` with the
-measurement named, not `noise`. The rest of the paragraph stands: one line
-moved in six releases, and that line is this one.
-
-So the volatile surface is the **flag string**, not the maps, and that already
-has its mechanism: `tools/ffr_flags/gen_schema.py` regenerates a version's
-schema from an FF1Lib checkout plus a real ROM, writing both
-`schemas/<v>.json` and `scripts/flags/schema_<v>.lua`, and proves itself — the
-decode has to end exactly on the build SHA with nothing left over. Schemas ship
-for 4-9-2 and 4-9-7; anything else lights the unread-flags warning rather than
-passing defaults off as the seed's settings. A 4.9.9 seed is one command.
-
-The conclusion for the work below: **derive from the cartridge, transcribe
-nothing from C#.** A derived rule set re-derives on a new version. That is the
-version-proofing, and it is worth more than any amount of tracking upstream.
+**And a retraction.** This section read "a shop flag, not topology" for three
+days, about `LefeinSuperStore`, on the strength of the word *store* in its name.
+The call site does not support it, and the review that found it on 2026-09-01
+reclassified the flag `unjudged` rather than fixing anything -- nobody has
+walked it. Filed here because of the shape: a name was read instead of a call
+site, and the wrong answer survived because it was plausible. `docs/ORACLE.md`
+and `docs/FLAG_COVERAGE.md` have where it stands now.
 
 ### The drift measurement, run rather than reasoned
 
-Checked 2026-08-29 by generating a 4.9.8 No-Overworld seed and reading it with
-the same tools. The vendored FF1Randomizer is 4.9.8, `FF1R/Commands/Generate.cs`
-is a working CLI, and `FF1Blazorizer/wwwroot/presets/NOverworld.json` carries
-`GameMode: 2` with Entrances, Towns and Floors all off -- the same settings the
-4.9.2 practice seed was rolled with. So the two are directly comparable:
+The figures are in `docs/NOVERWORLD.md` with the rest of the drift work.
 
-    4.9.2  F258553F   stairs=157  gates=8  empty-handed=45/61  links=124  walkable=117  all-items=54/61
-    4.9.8  F2585540   stairs=157  gates=8  empty-handed=45/61  links=124  walkable=117  all-items=54/61
-
-Identical, across six releases *and* a different seed. The ToFR finding holds on
-both. That is the "derive from the cartridge, transcribe nothing" bet paying
-out: nothing in the topology, the gate NPCs or the routing moved.
-
-The flag string did move, which is the other half of the same story -- 4.9.8
-adds `Tracker`, `ShowGoMode`, `ShowReminders`, `NoTristateSpoilers` and
-`OrbGraphicsInResourcePack`, and drops `AfterHits` and `StartOfHits`: 568
-properties to 571. A 4.9.8 seed genuinely cannot be read with the 4-9-7 schema.
-`gen_schema.py` regenerated it in one command and self-verified, so the "a new
-version is one command" claim holds too.
-
-**No 4-9-8 schema is committed, deliberately.** upstream/master is 4.9.7;
-4.9.8 is upstream/dev and unreleased. A schema records the build SHA it was
-proved against and `ffr_flags.py:102` refuses on mismatch, so one keyed to a
-local fork build would never match a real 4.9.8 seed -- it would be dead weight
-that reads as support. Regenerate from the release checkout when 4.9.8 ships.
-
-Two things worth knowing for anyone repeating this. A locally built FFR stamps
-`beta-SHA`, not a version, because `FFRVersion.cs` has `Sha` and `Branch` as
-placeholders that only FFR's own deploy substitutes; set `Branch = "master"` and
-`Sha` to the checkout's HEAD to get a cartridge that stamps `4-9-8`. And the
-fork the clone sits on (`ap-item-text`) does not touch `FF1Lib/Flags.cs`, so the
-flag layout it produces is upstream's.
+What stays is what it cost to reproduce, for anyone repeating it. A locally
+built FFR stamps `beta-SHA` rather than a version, because `FFRVersion.cs` has
+`Sha` and `Branch` as placeholders that only FFR's own deploy substitutes; set
+`Branch = "master"` and `Sha` to the checkout's HEAD to get a cartridge that
+stamps `4-9-8`. And the fork the clone sits on (`ap-item-text`) does not touch
+`FF1Lib/Flags.cs`, so the flag layout it produces is upstream's.
 
 ### Where the pack stands against that
+
+**A snapshot taken 2026-08-29, kept as one.** Every entry below was true on the
+day of the triage and several have been overtaken since; each says so where it
+has. For what the pack does today, `docs/ARCHITECTURE.md` and `STATUS-2.md`,
+"Working today" are the current answers, and this is the record of the distance
+that had to be crossed.
 
 - ~~**Both map variants define exactly one tab.**~~ Fixed, commit `17c423d`.
   The dungeon tree moved to `layouts/shared.json` as three `shared_*_tabs` keys
@@ -304,29 +187,21 @@ flag layout it produces is upstream's.
   the references reproduces their previous trees exactly. The 282 markers in
   `locations/overworld.json` now have somewhere to draw, and `maptab.lua`
   follows the player into a dungeon on these variants too.
-- **Maps can be drawn from the cartridge.** `tools/render_maps.py`, added
-  2026-08-29, renders all 61 standard maps out of a ROM using the game's own
-  tile art — CHR, tilesets and per-map palettes, in pure Python, no .NET and no
-  extra dependency. It draws the *seed's* map, so the sealed walls, the 75 new
-  staircases and both of the rooms No-Overworld builds inside Coneria Castle all
-  appear, and it renders the eight towns the pack has never had art for. Every
-  image is 64 tiles at 16 pixels, so tile *n* is pixel *16n* exactly and
-  calibration stops being a thing that gets eyeballed. All 61 come to 2.3 MB,
-  against 3.0 MB for the 53 screenshots shipping now.
+- **Maps can be drawn from the cartridge, and the swap is one command.** Added
+  2026-08-29. `docs/ARCHITECTURE.md`, "The tools", carries what
+  `render_maps.py` and `regen_maps.py` do and why nothing they produce is
+  committed.
 
-  Nothing is committed from it: run it against your own cartridge. That keeps
-  ROM-derived art out of the repo and is also the more correct option, since
-  Waterfall's two staircases are rolled per seed.
+  The reason it was worth building sits here: every rendered image is 64 tiles
+  at 16 pixels, so tile *n* is pixel *16n* exactly, and calibration stops being
+  a thing that gets eyeballed. That is what made markers derivable forward from
+  the cartridge instead of solved by hand, and it is why 61 of 61 maps carry
+  per-chest markers on redrawn art against 36 of 53 on the shipped set.
 
-- **And the swap is one command.** `tools/regen_maps.py FFR_seed.nes` renders
-  the 61 maps, moves all 254 dungeon markers onto them, and writes maps.json
-  entries and tabs for the ten maps the pack has no art for -- into PopTracker's
-  `user-override/ff1_rando_ap_uat/`, not the checkout, so the repo keeps shipping
-  the screenshots and `--clean` puts it back. Every moved marker is checked
-  against the cartridge's own chest tiles and `npc_positions.json` before
-  anything is written. It caches: a second run on the same cartridge does
-  nothing, and a new seed rewrites only the maps whose pixels differ -- 26 of 66
-  files between two No-Overworld seeds.
+  The figures, which no settled page carries: all 61 renders come to 2.3 MB
+  against 3.0 MB for the 53 screenshots that ship; one run moves 254 dungeon
+  markers onto them; and the cache means a second seed rewrites only what
+  differs -- 26 of 66 files between two No-Overworld cartridges.
 
   What this does *not* give you is the shuffle. Of the 56 maps carrying a
   staircase on seed `F258553F`, 21 draw differently from vanilla -- the sealed
@@ -341,15 +216,18 @@ flag layout it produces is upstream's.
   28% the linear size, JPEG-ringed, on nearest-neighbour-upscaled source. With
   `location_size: 80` a single pin covers about 27% of that castle's width.
   Re-encoding cannot help; the source pixels are not there.
-- **The logic is the standard-overworld logic.** `scripts/logic.lua` branches on
-  `shardHunt` and nothing else, and access rules come from the shared
-  `locations/overworld.json`, so a No-Overworld seed is gated on vanilla
-  ship/canoe/canal/floater reachability — for a mode with no overworld, whose
-  canoe and floater are not vehicles at all. Counted: of the distinct rules in
-  that file, roughly thirty are overworld geography — `ship`, `canoe`, `canal`,
-  `airship`, `bridge`, `northernDocks`, `lefeinBridge`, `hwyOrdeals`,
-  `gaiaMountain`, `melmondRiver`, `luffyDock`, `cardiaDock` — and mean nothing
-  in a mode where ship and bridge are free.
+- **The logic was the standard-overworld logic. Superseded 2026-08-30** by the
+  `noverworld-logic` merge; `docs/ISSUES.md` carries the close. As written:
+  `scripts/logic.lua` branched on `shardHunt` and nothing else, and access rules
+  came from the shared `locations/overworld.json`, so a No-Overworld seed was
+  gated on vanilla ship/canoe/canal/floater reachability — for a mode with no
+  overworld, whose canoe and floater are not vehicles at all. Counted: of the
+  distinct rules in that file, roughly thirty are overworld geography — `ship`,
+  `canoe`, `canal`, `airship`, `bridge`, `northernDocks`, `lefeinBridge`,
+  `hwyOrdeals`, `gaiaMountain`, `melmondRiver`, `luffyDock`, `cardiaDock` — and
+  mean nothing in a mode where ship and bridge are free. That count is the
+  reason the fix was a second rule set rather than a patch to this one, so it
+  stays here.
 
   **The gates are readable off the cartridge now**, which is the half of a
   No-Overworld branch that had to come first. `entrance_graph.py --gates` reads
@@ -395,8 +273,10 @@ flag layout it produces is upstream's.
   assignment commented out -- and `SCMap.cs:214` gates it on TNT for every mode.
   So a standard cartridge's router walks through Nerrick too. Changing that
   moves standard-mode answers and belongs in its own pass.
-- **Mode detection already works and drives nothing.** `flag_mapping.lua:393`
-  reads `GameMode` and prints a warning.
+- **Mode detection worked and drove nothing. Superseded 2026-09-01**, when it
+  became the board's mode-mismatch light — `docs/BRIDGE.md`. As written,
+  `applyFFRFlags()` in `scripts/autotracking/flag_mapping.lua` read `GameMode`
+  and printed a warning.
 
 ### The shape of the fix, not yet a plan
 
@@ -740,15 +620,16 @@ agreeing with itself:
 An AND would demand the Floater for the second. It ships free, which is right:
 opening any one copy clears the lot, so the party needs only the easiest.
 
-**A retraction, so it is not cited again.** A first pass at checking this
-printed an "if it ANDed instead" column beside each location and it agreed with
-the shipped rule everywhere, which looked like confirmation. It was computed
-over the already-filtered live-tile list, so it reproduced the OR answer by
-construction and could not have disagreed. It is evidence of nothing. The claim
-rests on the per-tile rules above instead, where the tiles genuinely differ.
+The claim rests on the per-tile rules above, where the tiles genuinely differ,
+and not on the check that was written for it first: an "if it ANDed instead"
+column that agreed everywhere and was computed over the already-filtered
+live-tile list, so it reproduced the OR answer by construction and could not
+have disagreed. `docs/ISSUES.md` carries that retraction with the defect it
+belongs to -- nothing tests the multi-tile OR, and the union rests on a comment
+in `derive()` and on the measurements above.
 
-Nothing tests the multi-tile OR. It rests on a comment in `derive()` and on
-these measurements.
+The shape is the one this file keeps finding: a check that cannot fail reads
+exactly like a check that passed.
 
 ## Ideas from playing on the rendered maps
 
@@ -777,6 +658,10 @@ Finished 2026-08-29. The gate NPCs draw where they stand:
 corridor on Castle Ordeals 1F instead of leaving it a line of `--gates` output.
 `tools/sprites.py` is the library and the CLI; `tools/tests/test_sprites.py`
 runs in `tools/tests/run.sh`.
+
+The settled statement of the sheet origin, and of what pins it, is in
+`docs/ARCHITECTURE.md`, "The derivations, and what pins each one". Below is how
+it was found and what it was wrong about first.
 
 The half that was open -- the sheet origin -- came from the engine's own path,
 `LoadMapObjCHR` at `bank_0F.asm:$E99E`, not from sliding offsets. The graphic
@@ -1046,6 +931,11 @@ Found 2026-08-29 by looking at the unroofed maps in PopTracker: rooms came out
 as white voids with the furniture floating in them, and an NPC drawn there
 looked pasted on.
 
+Unroofing's settled form -- a palette test and an art test, each size-guarded on
+its own components, neither allowed to define a region alone -- is in
+`docs/ARCHITECTURE.md`, "The derivations". What stays here is the mechanism that
+was tried first and the reason it was wrong.
+
 The first fix substituted the corridor floor into the blank cells, choosing the
 tile by a vote over a six-tile radius. It looked better and it was the wrong
 mechanism -- a guess, where the cartridge had the answer. Replaced the same day.
@@ -1175,6 +1065,9 @@ specification instead of as a coordinate surface.
 Both landed 2026-08-29, as one change, because they are the same piece of
 plumbing: a crop is a per-map offset, a mode is a per-map path, and every
 dungeon marker's pixel depends on both.
+
+`content_box()` and its guard are stated once in `docs/ARCHITECTURE.md`, "The
+derivations". This is the log of building it.
 
 **The crop.** A 64x64 render is mostly not map -- the filler is one tile
 repeated, the out-of-bounds void in a dungeon and the warp-out field around a
@@ -1356,7 +1249,8 @@ here pass, with the standard seeds genuinely exercised rather than skipped.
 
 Finished 2026-08-29, phase 3 of the rendered-map order. The reserved band now
 carries a `Map Key`, and every fixed-formation trap tile is lettered where it
-stands.
+stands. The font base and the two independent sources that pin it are in
+`docs/ARCHITECTURE.md`, "The derivations".
 
 **The font is read, not drawn.** There is no Pillow in these tools and there is
 now no hand-made bitmap font either. `LoadMenuCHR` (`bank_0F.asm:9856-9863`)
@@ -1603,35 +1497,24 @@ Moved to `docs/ISSUES.md`, with the open questions.
 
 ## What Archipelago can and cannot tell the tracker
 
-Worth writing down, because "bring AP to parity with the bridge" sounds like
-pack work and is not. The AP feed carries checked locations in the multiworld
-pool and items received, and nothing else: `worlds/ff1/__init__.py:123`'s
-`fill_slot_data` returns an empty dict. So chests outside the pool, orbs lit,
-turn-in stages, the current map, the seed's flags, the cartridge's identity and
-the run clock are all unavailable over AP by construction, not by omission here.
-Closing that gap means changing the Archipelago world, not this pack. The
-reconcile core already does the right thing with what exists — takes the union
-of both feeds and lets either run alone.
+Moved to `docs/ARCHITECTURE.md`, "The two feeds, and why there are two", which
+carries what each feed reports, the `512 + ObjectId` rule, the fourteen ids and
+the eight NPCs that are not AP locations.
 
-The traffic used to run the other way in exactly one place — the Chaos goal
+What stays here is why it was written down and what it replaced. "Bring AP to
+parity with the bridge" sounds like pack work and is not: the gap is in the
+Archipelago world, a different repository, and no amount of work here closes it.
+
+The traffic used to run the other way in exactly one place -- the Chaos goal
 flag, which only an AP seed carries. It no longer does: the bridge reads the
 kill out of the battle engine, so a solo seed reports the goal too.
 
-**Eight NPCs are not AP locations at all.** This used to be filed under "known
-wrong" as missing `LOCATION_MAPPING` rows for Garland (514), Dr Unne (523) and
-Bahamut (526). Adding rows for them would map to ids the server never sends. An
-AP location id is `512 + ObjectId` (`FF1Lib/Items.cs`), and
-`worlds/ff1/data/locations.json` — identical in all three vendored Archipelago
-clones — holds exactly fourteen ids above 510:
-
-    513 King        516 Bikke     518 Elf Prince   519 Astos
-    520 Nerrick     521 Smith     522 Matoya       525 Sarda
-    527 Lefein      529 CubeBot   530 Princess     531 Fairy
-    533 Canoe Sage  767 Shop Item
-
-The gaps are the NPCs that hold no shuffled item: Garland (514), Princess1
-(515), ElfDoc (517), Unne (523), Vampire (524), Bahamut (526), SubEngineer
-(528) and Titan (532). Lighting them from RAM only is correct, not a hole.
+And the eight NPCs were filed under "known wrong" for weeks as missing
+`LOCATION_MAPPING` rows for Garland, Dr Unne and Bahamut. They were never a
+hole. A row for one of them would map to an id the server never sends, so the
+defect was in the entry rather than in the pack -- the third time a confident
+"known wrong" line survived because nothing checked the source it was asserting
+about.
 
 ## The oracle ran, and the walk was starting in nine places at once
 
@@ -2173,3 +2056,6 @@ defaults would have quietly taken the lanes and every sprite off a board that
 had them. The override was renamed rather than redrawn: no image moved, because
 the cache key is the ROM plus the options and neither did.
 
+---
+
+*The log continues in [`STATUS-2.md`](STATUS-2.md), opened 2026-09-01.*

@@ -134,6 +134,59 @@ def decompress_map(rom, start):
     return out
 
 
+# ------------------------------------------------------------------- overworld
+#
+# The overworld is not a standard map and does not go through DecompressMap. It
+# lives here anyway, beside the reader it is most often confused with, because
+# both are "decompress a map out of a bank" and keeping them apart is what let
+# two copies of this one drift.
+
+BANK_OWMAP = 0x01       # Constants.inc:89
+OW_DIM = 256            # 256x256 tiles, one RLE'd row per pointer
+OW_OCEAN = 0x17         # the tile $FF fills the rest of a row with
+
+
+def _swap_bank_off(bank, addr):
+    """File offset of a $8000-based address in a swappable PRG bank.
+
+    Not `_fixed_bank_off`: that one is for the $C000-$FFFF fixed bank, and
+    using it here is off by $4000.
+    """
+    return INES_HEADER + bank * BANK_SIZE + (addr - 0x8000)
+
+
+OW_PTR_TBL = _swap_bank_off(BANK_OWMAP, 0x8000)   # lut_OWPtrTbl, Constants.inc:449
+
+
+def decompress_ow(rom):
+    """The overworld: 256 rows, each RLE'd and pointed to from lut_OWPtrTbl.
+
+    Row encoding differs from DecompressMap, which is why this is its own
+    reader: <$80 is a literal tile, $FF fills the rest of the row with ocean,
+    and anything else is (tile | $80) followed by a run length where 0 means
+    256. Takes raw bytes, like `decompress_map`.
+    """
+    rows = []
+    for i in range(OW_DIM):
+        ptr = int.from_bytes(rom[OW_PTR_TBL + 2 * i:OW_PTR_TBL + 2 * i + 2],
+                             "little")
+        raw = rom[INES_HEADER + ptr - 0x4000:]
+        row, j = [], 0
+        while len(row) < OW_DIM:
+            t = raw[j]
+            if t < 0x80:
+                row.append(t)
+                j += 1
+            elif t == 0xFF:
+                row += [OW_OCEAN] * (OW_DIM - len(row))
+            else:
+                run = raw[j + 1] or 256
+                row += [t - 0x80] * run
+                j += 2
+        rows.append(row[:OW_DIM])
+    return rows
+
+
 def chest_tiles(rom, tileset_id):
     """tile_id -> chest_index, for every treasure tile in this tileset."""
     base = TILESET_PROP + tileset_id * PROP_STRIDE

@@ -80,7 +80,6 @@ import entrance_graph
 import extract_chests
 import extract_npcs
 import lane
-import make_markers
 import overworld_pins
 import pin_visibility
 import pngio
@@ -135,7 +134,6 @@ INPUT_FILES = [
     "tools/entrance_graph.py",
     "tools/extract_chests.py",
     "tools/extract_npcs.py",
-    "tools/make_markers.py",
     "tools/pin_visibility.py",
     "tools/incentive_slots.py",
     "tools/split_locations.py",
@@ -347,6 +345,22 @@ def legend_rows(rom, lanes=None):
         out[name] = render_maps.legend_rows_for(len(set(used.values())),
                                                 len(keys))
     return out
+
+
+def region_for(cal_entry, col, row):
+    """The calibration region a tile falls in, or None if none covers it.
+
+    From `make_markers.py`, which is otherwise gone: its own job -- writing
+    `tools/marker_positions.json` -- was taken over by `marker_tiles` below,
+    which derives markers forward from the cartridge's chest tiles instead of
+    from a hand-solved pixel. This helper is all of it that stayed live.
+    """
+    for r in cal_entry["regions"]:
+        rlo, rhi = r.get("rows", (0, 63))
+        clo, chi = r.get("cols", (0, 63))
+        if rlo <= row <= rhi and clo <= col <= chi:
+            return r
+    return None
 
 
 def _axis_regions(shift, origin, span):
@@ -761,7 +775,7 @@ def place_locations(cal, tiles_by_name, path, sprite_cells=None):
 
     def pixels(map_id, col, row):
         for name, entry in by_rom.get(map_id, []):
-            region = make_markers.region_for(entry, col, row)
+            region = region_for(entry, col, row)
             if region is None:
                 continue
             half = entry["tile_px"] // 2

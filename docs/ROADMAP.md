@@ -8,7 +8,7 @@ to where its evidence lives; it leaves the page when the section it sits in is
 superseded. Deleting a close outright is the failure this page keeps hitting
 from the other side — nothing re-reads a line once it is written, so an item
 that goes quiet outlives its own answer. Defects live in `docs/ISSUES.md`,
-unscoped ideas in `docs/IDEAS.md`, the narrative in `STATUS.md`.
+unscoped ideas in `docs/IDEAS.md`, the narrative in the `STATUS` log.
 
 The triage rule, from 2026-08-30: **does it change a colour, add a box, or save
 a click?** If yes it is product and goes in sections 1-4. If no it is tooling
@@ -166,13 +166,11 @@ actually left.
   instead would drop a goal the published objective names beside treasure.
 
   **What is left is the shortest-to-the-exit flavour, and it is more than a
-  missing extra: the pair that shipped is named wrong.** "Optimal Route" means
-  the walk through a floor collecting *nothing*, and "for loot" already implies
-  the key rather than needing a lane of its own. What is drawn today is one loot
-  lane in two halves. `IDEAS.md` has the correction and what it costs to fix.
-  Also open: a loot lane still walks to a linked chest whose twin it would have
-  collected on an earlier floor, which needs a run-wide order the router has
-  no notion of.
+  missing extra: the pair that shipped is named wrong**, so the genuinely useful
+  traversal lane does not exist anywhere in the tracker. `IDEAS.md` has the
+  correction, what each name should mean and what it costs to fix. Also open: a
+  loot lane still walks to a linked chest whose twin it would have collected on
+  an earlier floor, which needs a run-wide order the router has no notion of.
 
   **The by-eye pass is the other half.**
   The reference is the acceptance test, not the input: DarkmoonEX's lanes are
@@ -188,7 +186,7 @@ actually left.
 
   **The incentive sheet moved here from section 2 on 2026-09-01, because it
   cannot be built before this is.** Deriving its 28 pins needs a surface to
-  resolve them against, and `tools/regen_maps.py:1315` gives `nov` mode no
+  resolve them against, and `regen_maps.py`'s `main` gives `nov` mode no
   overworld render *by design* — "a No-Overworld cartridge gets no overworld
   render, so there is nothing to resolve, stamp or measure". Until this lands
   those 28 pins stay hand-placed pixels on a JPEG. Section 2 listed the sheet as
@@ -315,23 +313,23 @@ Stated once so nobody re-derives them.
 - **Names that have drifted** and **the four `NoMap` variants** stay in
   `IDEAS.md` until there is a user to ask.
 
-## Branch queue
+## What each branch landed
 
-Where things stand on the day this was written. `git log trunk..` is what
-actually says where a branch is.
+**This section no longer says where any branch stands, because it could not be
+kept true.** It carried a standing status line that was wrong about a branch
+four times in four days, in both directions — claiming unpushed work that was
+pushed and pushed work that was not — and twice carried a commit count that went
+wrong, once inside the commit that wrote it. A line nothing re-reads outlives
+its subject, and this page has documented that failure about `ISSUES.md` while
+reproducing it here.
 
-- `trunk` is **ahead of `origin/trunk` and unpushed**, as of 2026-09-01.
-  `noverworld-logic`, `visibility-toggles`, `route-lanes`, `flags-real-seeds`
-  and `flag-coverage` are all merged. Nothing is in flight. No number here on
-  purpose: `00dffd4` took a count out of this section for going wrong twice, and
-  the one that briefly replaced it went wrong inside the commit that wrote it —
-  `git rev-list --count origin/trunk..trunk` is the answer.
+Ask git instead. `git log trunk..<branch>` says whether a branch has anything
+left in it; `git rev-list --count origin/trunk..trunk` says how far ahead trunk
+is; `git fetch` first, because a merge done on GitHub outside a session makes a
+local count a lie.
 
-  This line has now been wrong about where a branch stands four times in four
-  days, in both directions — it has claimed unpushed work that was pushed and
-  pushed work that was not. The lesson the entries below keep drawing is the
-  only fix: **say it on the day it happens**, and carry no count, because a
-  count rots a commit after it is written.
+What stays is the record of what each merged branch was for, dated on the day it
+merged. That is a fact about the past and cannot go stale.
 - **`flag-coverage` merged 2026-09-01**, and was the whole of section 5's
   first two bullets: `test_flag_coverage.py`, which fails when FFR grows a flag
   nothing here models, and `test_ffr_pin.py`, which holds the schemas to the

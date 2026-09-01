@@ -205,7 +205,7 @@ a default No-Overworld seed uses the fixed table above.
 
 Measured rather than assumed. Diffing FFR from the commit that first stamped
 4.9.2 (Nov 2025) to 4.9.8 (May 2026) — six releases — the whole No-Overworld
-surface moved by **one line**, and that line is a shop flag:
+surface moved by **one line**:
 
     FF1Lib/MetroidVaniaMap.cs | 3 ++-
     FF1Lib/Sanity/SCMap.cs        unchanged
@@ -213,16 +213,28 @@ surface moved by **one line**, and that line is a shop flag:
     FF1Lib/StandardMaps.cs        unchanged
     FF1Lib/Enums.cs               unchanged
 
-Generating a 4.9.8 seed and reading it with the same tools gives identical
-numbers across six releases *and* a different seed:
+The line is `ApplyMapMods(..., LefeinSuperStore && ShopKillMode == None)`. It
+read as "a shop flag, not topology" here until 2026-09-01, on the strength of
+the word *store* in the name. `ApplyMapMods` is reached only from
+`NoOverworld()`, and the flag picks between two sets of tile writes to
+`MapIndex.Lefein` — different wall edges and a blob named `lefeinNonteleport`,
+which are walls and a teleport tile in a town the 75-link table was derived from
+with the flag off. It may still change nothing a router can see; nobody has
+walked it. `docs/FLAG_COVERAGE.md` carries it as `unjudged`, not `noise`.
+
+The count stands either way: one line moved in six releases, and that line is
+this one. Generating a 4.9.8 seed and reading it with the same tools gives
+identical numbers across six releases *and* a different seed:
 
     4.9.2  F258553F   stairs=157 gates=8 empty-handed=45/61 links=124 walkable=117 all-items=54/61
     4.9.8  F2585540   stairs=157 gates=8 empty-handed=45/61 links=124 walkable=117 all-items=54/61
 
-The volatile surface is the **flag string**, not the topology — 4.9.8 adds five
-properties and drops two, so a 4.9.8 seed genuinely cannot be read with the 4-9-7
-schema. That has its own mechanism (`tools/ffr_flags/gen_schema.py`) and
-regenerating is one command.
+The volatile surface is the **flag string**, not the topology. 4.9.8 takes
+`FF1Lib.Flags` from 568 properties to 571 — adding `Tracker`, `ShowGoMode`,
+`ShowReminders`, `NoTristateSpoilers` and `OrbGraphicsInResourcePack`, dropping
+`AfterHits` and `StartOfHits` — so a 4.9.8 seed genuinely cannot be read with
+the 4-9-7 schema. That has its own mechanism (`tools/ffr_flags/gen_schema.py`)
+and regenerating is one command.
 
 **No 4-9-8 schema is committed, deliberately.** A schema records the build SHA it
 was proved against and the decoder refuses on mismatch, so one keyed to a local
@@ -244,9 +256,14 @@ tracking upstream.
   the check worth keeping: gates must not move that answer. Still 54 after the
   SubEngineer and Titan rows landed on 2026-08-30, and `test_gate_objects.py`
   asserts it rather than leaving it to a rerun.
-- **The logic is still the standard-overworld logic.** `scripts/logic.lua`
-  branches on shard hunt and nothing else, so a No-Overworld seed is gated on
-  vanilla ship/canoe/canal/floater reachability — for a mode with no overworld,
-  whose canoe and floater are not vehicles. This is the open defect; see
-  `docs/ROADMAP.md`.
-- Mode detection works and drives nothing but a warning.
+- **The logic branches on the mode.** `isNoOverworld()` in `scripts/logic.lua`
+  matches `Tracker.ActiveVariantUID`, and `noOverworld()` and `standardWorld()`
+  feed the region rules that replaced the overworld geography, so one rule set
+  serves both modes rather than two trees that must agree and never get
+  compared. This was the open defect on this page until the `noverworld-logic`
+  merge on 2026-08-30; `docs/ISSUES.md` carries the close and why the entry is
+  kept rather than deleted.
+- Mode detection drives the board's mode-mismatch light — `docs/BRIDGE.md`, "It
+  says when the seed is not the game this variant tracks". `applyFFRFlags()` in
+  `scripts/autotracking/flag_mapping.lua` collects every way a seed and a
+  variant can disagree; it printed a warning and nothing else until 2026-09-01.

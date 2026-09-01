@@ -80,6 +80,7 @@ from extract_chests import (
     INES_HEADER, BANK_SIZE, SM_BANK_VANILLA, SM_BANK_CONST_MIRROR,
     TILESET_PROP, TILESET_LUT, MAP_COUNT, MAP_DIM, PROP_STRIDE,
     decompress_map, map_data_base, standard_map_bank, _fixed_bank_off,
+    OW_PTR_TBL, OW_DIM, decompress_ow,
 )
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -92,17 +93,15 @@ def bank_off(bank, addr):
 
 BANK_TELEPORTINFO = 0x00
 BANK_EXTTELEPORTINFO = 0x0F
-BANK_OWMAP = 0x01
 
 ENTR_TELE_X, ENTR_TELE_Y, ENTR_TELE_MAP = 0xAC00, 0xAC20, 0xAC40
 EXIT_TELE_X, EXIT_TELE_Y = 0xAC60, 0xAC70
 NORM_TELE_X, NORM_TELE_Y, NORM_TELE_MAP = 0xAD00, 0xAD40, 0xAD80
 NORM_TELE_X_EXT, NORM_TELE_Y_EXT, NORM_TELE_MAP_EXT = 0xB000, 0xB100, 0xB200
 
-OW_PTR_TBL = bank_off(BANK_OWMAP, 0x8000)
 OW_TILESET_PROP = INES_HEADER + 0x0000    # lut_OWTileset, $8000 in bank 0
-OW_DIM = 256
 OW_TILES = 128
+# OW_PTR_TBL and OW_DIM come from extract_chests, with decompress_ow.
 
 ENTR_COUNT = 32
 EXIT_COUNT = 16
@@ -722,33 +721,6 @@ def ffr_info(rom):
 
 # ------------------------------------------------------------- overworld doors
 
-def decompress_ow(rom):
-    """The overworld is 256 rows, each RLE'd and pointed to from lut_OWPtrTbl.
-
-    Row encoding differs from DecompressMap: <$80 is a literal tile, $FF fills
-    the rest of the row with ocean, and anything else is (tile | $80) followed
-    by a run length (0 means 256).
-    """
-    rows = []
-    for i in range(OW_DIM):
-        ptr = int.from_bytes(rom.data[OW_PTR_TBL + 2 * i:OW_PTR_TBL + 2 * i + 2], "little")
-        raw = rom.data[INES_HEADER + ptr - 0x4000:]
-        row, j = [], 0
-        while len(row) < OW_DIM:
-            t = raw[j]
-            if t < 0x80:
-                row.append(t)
-                j += 1
-            elif t == 0xFF:
-                row += [0x17] * (OW_DIM - len(row))
-            else:
-                run = raw[j + 1] or 256
-                row += [t - 0x80] * run
-                j += 2
-        rows.append(row[:OW_DIM])
-    return rows
-
-
 def door_positions(rom):
     """entrance id -> [(x, y), ...] overworld tiles that open it.
 
@@ -764,7 +736,7 @@ def door_positions(rom):
             tele[t] = b1 & 0x3F
     if not tele:
         return {}
-    grid = decompress_ow(rom)
+    grid = decompress_ow(rom.data)
     out = {}
     for y in range(OW_DIM):
         for x in range(OW_DIM):
