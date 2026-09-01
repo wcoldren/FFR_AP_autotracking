@@ -244,9 +244,14 @@ tracking upstream.
   the check worth keeping: gates must not move that answer. Still 54 after the
   SubEngineer and Titan rows landed on 2026-08-30, and `test_gate_objects.py`
   asserts it rather than leaving it to a rerun.
-- **The logic is still the standard-overworld logic.** `scripts/logic.lua`
-  branches on shard hunt and nothing else, so a No-Overworld seed is gated on
-  vanilla ship/canoe/canal/floater reachability — for a mode with no overworld,
-  whose canoe and floater are not vehicles. This is the open defect; see
-  `docs/ROADMAP.md`.
-- Mode detection works and drives nothing but a warning.
+- **The logic branches on the mode.** `isNoOverworld()` in `scripts/logic.lua`
+  matches `Tracker.ActiveVariantUID`, and `noOverworld()` and `standardWorld()`
+  feed the region rules that replaced the overworld geography, so one rule set
+  serves both modes rather than two trees that must agree and never get
+  compared. This was the open defect on this page until the `noverworld-logic`
+  merge on 2026-08-30; `docs/ISSUES.md` carries the close and why the entry is
+  kept rather than deleted.
+- Mode detection drives the board's mode-mismatch light — `docs/BRIDGE.md`, "It
+  says when the seed is not the game this variant tracks". `applyFFRFlags()` in
+  `scripts/autotracking/flag_mapping.lua` collects every way a seed and a
+  variant can disagree; it printed a warning and nothing else until 2026-09-01.

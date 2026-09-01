@@ -341,15 +341,18 @@ flag layout it produces is upstream's.
   28% the linear size, JPEG-ringed, on nearest-neighbour-upscaled source. With
   `location_size: 80` a single pin covers about 27% of that castle's width.
   Re-encoding cannot help; the source pixels are not there.
-- **The logic is the standard-overworld logic.** `scripts/logic.lua` branches on
-  `shardHunt` and nothing else, and access rules come from the shared
-  `locations/overworld.json`, so a No-Overworld seed is gated on vanilla
-  ship/canoe/canal/floater reachability — for a mode with no overworld, whose
-  canoe and floater are not vehicles at all. Counted: of the distinct rules in
-  that file, roughly thirty are overworld geography — `ship`, `canoe`, `canal`,
-  `airship`, `bridge`, `northernDocks`, `lefeinBridge`, `hwyOrdeals`,
-  `gaiaMountain`, `melmondRiver`, `luffyDock`, `cardiaDock` — and mean nothing
-  in a mode where ship and bridge are free.
+- **The logic was the standard-overworld logic. Superseded 2026-08-30** by the
+  `noverworld-logic` merge; `docs/ISSUES.md` carries the close. As written:
+  `scripts/logic.lua` branched on `shardHunt` and nothing else, and access rules
+  came from the shared `locations/overworld.json`, so a No-Overworld seed was
+  gated on vanilla ship/canoe/canal/floater reachability — for a mode with no
+  overworld, whose canoe and floater are not vehicles at all. Counted: of the
+  distinct rules in that file, roughly thirty are overworld geography — `ship`,
+  `canoe`, `canal`, `airship`, `bridge`, `northernDocks`, `lefeinBridge`,
+  `hwyOrdeals`, `gaiaMountain`, `melmondRiver`, `luffyDock`, `cardiaDock` — and
+  mean nothing in a mode where ship and bridge are free. That count is the
+  reason the fix was a second rule set rather than a patch to this one, so it
+  stays here.
 
   **The gates are readable off the cartridge now**, which is the half of a
   No-Overworld branch that had to come first. `entrance_graph.py --gates` reads
@@ -395,8 +398,10 @@ flag layout it produces is upstream's.
   assignment commented out -- and `SCMap.cs:214` gates it on TNT for every mode.
   So a standard cartridge's router walks through Nerrick too. Changing that
   moves standard-mode answers and belongs in its own pass.
-- **Mode detection already works and drives nothing.** `flag_mapping.lua:393`
-  reads `GameMode` and prints a warning.
+- **Mode detection worked and drove nothing. Superseded 2026-09-01**, when it
+  became the board's mode-mismatch light — `docs/BRIDGE.md`. As written,
+  `applyFFRFlags()` in `scripts/autotracking/flag_mapping.lua` read `GameMode`
+  and printed a warning.
 
 ### The shape of the fix, not yet a plan
 
