@@ -1246,6 +1246,8 @@
                                 "access_rules": [
                                     "herb,$noObjectiveShuffle",
                                     "herb,objectiveNPCs,$standardWorld,airship",
+                                    "herb,objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship",
+                                    "herb,objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                                     "herb,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
                                     "herb,objectiveNPCs,$noOverworld,$hasFloater"
                                 ],
@@ -2624,6 +2626,8 @@
                         "access_rules": [
                             "$noObjectiveShuffle",
                             "objectiveNPCs,$standardWorld,airship",
+                            "objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship",
+                            "objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                             "objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
                             "objectiveNPCs,$noOverworld,$hasFloater"
                         ],
@@ -4030,6 +4034,8 @@
                 "name": "Bahamut's Cave",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
+                    "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
                     "$noOverworld,$hasFloater"
                 ],

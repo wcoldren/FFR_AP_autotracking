@@ -201,6 +201,8 @@
                         "access_rules": [
                             "herb,$noObjectiveShuffle,^$incentiveSlot|fetchQuestsAreIncentive",
                             "herb,objectiveNPCs,$standardWorld,airship,^$incentiveSlot|fetchQuestsAreIncentive",
+                            "herb,objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship,^$incentiveSlot|fetchQuestsAreIncentive",
+                            "herb,objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship,^$incentiveSlot|fetchQuestsAreIncentive",
                             "herb,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal,^$incentiveSlot|fetchQuestsAreIncentive",
                             "herb,objectiveNPCs,$noOverworld,$hasFloater,^$incentiveSlot|fetchQuestsAreIncentive"
                         ],
@@ -402,6 +404,8 @@
                         "access_rules": [
                             "^$incentiveSlot|fetchQuestsAreIncentive,$noObjectiveShuffle",
                             "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,$standardWorld,airship",
+                            "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship",
+                            "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                             "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
                             "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,$noOverworld,$hasFloater"
                         ],
@@ -559,6 +563,8 @@
                 "name": "I: Bahamut's Cave",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
+                    "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
                     "$noOverworld,$hasFloater"
                 ],
