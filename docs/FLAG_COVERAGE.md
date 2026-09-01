@@ -51,9 +51,22 @@ Ten names, and this is all of them:
 | `IsAirshipFree` | Airship at start | `floater` stage 2 from inventory | RAM |
 | `FreeLute` | Lute at start | `lute` from inventory | RAM |
 | `FreeRod` | Rod at start | `rod` from inventory | RAM |
-| `IsFloaterRemoved` | Airship placed as an item; no Floater/desert step | `floater` progressive assumes Floater->Airship | probably RAM (airship byte lights stage 2); **verify** |
+| `IsFloaterRemoved` | Read once, at `SanityCheckerV2.cs:178`, and only to clear `MapChange.Airship` out of `requiredMapChanges` — which feeds the `complete` boolean and no per-location rule | `floater` progressive assumes Floater->Airship | n/a for colours — verified 2026-09-01, see below |
 | `AirBoat` | Ship doubles as airship after Floater | `airBoat` progressive, rules use it | code |
 | `GameMode` | Compared against `DeepDungeon` and nothing else (`SanityCheckerV2.cs:183,779`) | `isNoOverworld()` from variant UID | variant (warning printed on mismatch) |
+
+**`IsFloaterRemoved` was on the verify list and is now answered: it moves no
+pin.** Two facts settle it and both are in the source. It is *computed*, not
+stored -- `FlagsCompute.cs:85` gives it as `((NoFloater|IsAirshipFree) &
+!NoOverworld) | DesertOfDeath` -- so it has no field in either shipped schema
+and a pack code could not read it directly anyway; `NoFloater` is the field that
+exists. And its single read inside `FF1Lib/Sanity/` relaxes the *completion*
+requirement rather than any location's rule, so no exported rule can move with
+it. A cartridge would say the same thing, and one was attempted: a `NoFloater`
+seed will not roll against this corpus's preset at all, because removing the
+Floater from the pool leaves item placement unable to meet the incentive count
+(`ItemPlacement.cs:173`), with or without `IncentivizeAirship`. The by-
+construction argument is what stands, and it is the stronger of the two.
 
 The `GameMode` row reads differently once you look at its two call sites. The
 checker branches on Deep Dungeon; it never asks whether the seed is
@@ -117,7 +130,7 @@ either. The eleven above them are in both schemas.
 | `EarlySarda` | `earlySarda` | code |
 | `EarlySage` | `earlySage` | code |
 | `NoTail` | `noTail` | code — declared in `IVictoryConditionFlags` and never read there; see section A' |
-| `ShuffleObjectiveNPCs` | — | **check**: if it moves which NPC holds which objective, it moves logic |
+| `ShuffleObjectiveNPCs` | — | **missing**, and confirmed to move pins on 2026-09-01. `NPCs.cs:135` runs it when `ChestsKeyItems` is also on and the mode is not Deep Dungeon; `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf Doctor across BahamutCave2, Melmond and Elfland Castle. Measured on `objnpc497`: Bahamut and Unne swapped outright. It rewrites **no** exported rule, so `check_logic` cannot see it — see "The permutation is the problem" below |
 | `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks |
 | `NPCSwatter` | — | n/a |
 
@@ -150,13 +163,59 @@ whether Titan's Trove exists as a check — presentation, not reachability.
 
 ## Missing rows, in one place
 
-**There are none left.** Every reachability flag the logic consults now has a
-pack code or a recorded reason for not having one. `MapAirshipHike` and
-`MapCardiaLandBridge` were the last two and landed 2026-09-01, graded on a
-cartridge each — see their rows in section B and `docs/ORACLE.md`.
+Reachability flags with no pack code today:
 
-Two remain to **verify** rather than add: `IsFloaterRemoved` and
-`ShuffleObjectiveNPCs`. Neither is a missing row until the grep says it is one.
+1. `ShuffleObjectiveNPCs`
+
+**Every flag that was on this list by name is done.** `MapAirshipHike` and
+`MapCardiaLandBridge` were the last two and landed 2026-09-01, graded on a
+cartridge each — see their rows in section B and `docs/ORACLE.md`. What replaced
+them is the one entry above, which was on the *verify* list rather than this one
+and turned out to belong here.
+
+`IsFloaterRemoved` was the other name on the verify list and is answered in
+section A: it moves no pin.
+
+### The permutation is the problem, not the flag
+
+`ShuffleObjectiveNPCs` is in both shipped schemas, so the pack can see that it
+is on. That is not enough to colour anything, because **where the three NPCs
+went is rolled at generation and reaches neither the flag string nor the
+spoiler** — the same shape as the Cardia gateway roll, and the reason both sit
+here rather than being a morning's work.
+
+Measured rather than argued. `objnpc497` is `std497` plus this one flag, and
+`tools/extract_npcs.py` reads both cartridges:
+
+    bahamut   map 39 (21,3)  ->  map 3  (26,1)     BahamutCave2 -> Melmond
+    unne      map 3  (26,1)  ->  map 39 (21,3)     Melmond -> BahamutCave2
+    elfprince unchanged
+
+FFR's export does not notice. Of the 204 rules the two exports share exactly one
+moves, and it is `Shop Item`, which tracks where the shop landed and is roll
+noise rather than the flag (the `ShipDrydock` diff hit the same row for the same
+reason). `Elf Prince` and `Lefein` are byte-identical across the two. So the
+pack grades **224 of 224** on `objnpc497` while being wrong, which makes this
+the `NoTail` case: the export cannot grade the branch, and the lying cell is the
+pack's own.
+
+**Two cells lie on that cartridge, in opposite directions.** The pack hosts
+`bahamut` under `Cardia Islands/Bahamut's Cave`, gated on the airship, and
+`slabTranslated` under `Melmond Continent/Melmond/Dr Unne`. With the two swapped,
+`bahamut` is held red while Bahamut stands in Melmond and is reachable early,
+and `slabTranslated` reads reachable while Unne sits behind the airship. The
+second is the over-reporting direction and is the one that matters.
+
+Two ways to close it, and they are not equivalent:
+
+- **Strict.** With the flag on, gate all three objective NPCs on reaching all
+  three of their possible homes. Honest, cheap, and dominated by Bahamut's Cave,
+  so in practice it means "needs the airship". This is what the Cardia roll got.
+- **Read it off the cartridge.** `tools/extract_npcs.py` already finds the
+  answer, and `regen_maps.py` already reads the cartridge per seed; the live
+  bridge does not publish NPC positions today. This is the same feature as
+  publishing `ff1/gateways` for the Cardia roll and should be built once, for
+  both.
 
 **`ToFRMode` and `ChaosRush` landed 2026-08-31.** Neither can be graded by
 `check_logic` — `Archipelago.cs:93` drops every ToFR location from the pool, so
@@ -245,7 +304,8 @@ second corpus: 4.9.7".
 The three ToFR flags still want something other than the export;
 `tools/tofr_diff.py` is the tool that covers ToFR by comparison instead.
 
-Two to verify rather than add: `IsFloaterRemoved`, `ShuffleObjectiveNPCs`.
+Both names that were on the verify list are answered: `IsFloaterRemoved` moves
+no pin (section A), and `ShuffleObjectiveNPCs` moves two (above).
 
 ## Keeping this current
 

@@ -30,9 +30,25 @@ meant to end.
   no return — it sits in `NOT_MODELLED`, where a flag with no code can be told
   apart from one nobody has got to.
 
-  Two are still to **verify** rather than add: `IsFloaterRemoved`,
-  `ShuffleObjectiveNPCs`. Until that grep is run this bullet is closed on the
-  flags that were known to be missing, not on the whole question.
+  Running the verify pair on 2026-09-01 put one of them back on the list.
+  `IsFloaterRemoved` moves no pin — it is computed rather than stored, and its
+  one read inside `FF1Lib/Sanity/` relaxes the completion test rather than any
+  location's rule. **`ShuffleObjectiveNPCs` does move pins**, and is the bullet
+  below.
+- **`ShuffleObjectiveNPCs`.** It permutes Bahamut, Dr Unne and the Elf Doctor
+  across their three homes (`NPCs.cs:277`), and on `objnpc497` Bahamut and Unne
+  swapped outright — so `bahamut` is held behind the airship while Bahamut
+  stands in Melmond, and `slabTranslated` reads reachable while Unne sits behind
+  the airship. FFR's export does not notice: the pack grades 224 of 224 on that
+  cartridge while being wrong, which makes this the `NoTail` case.
+
+  It shares its shape, and its fix, with the Cardia roll below: the flag is in
+  the string but **the permutation is rolled at generation** and reaches neither
+  the flag string nor the spoiler. Either be strict — gate all three on reaching
+  all three homes, which in practice means the airship — or teach the bridge to
+  publish what `tools/extract_npcs.py` can already read. The second closes both
+  bullets at once and should not be built twice. `docs/FLAG_COVERAGE.md` has the
+  measurement.
 
   `NoTail` and `ShipDrydock` mark out both ends of the rule above. `NoTail`'s
   oracle seed proved the flag rewrites no exported rule at all, so the seed

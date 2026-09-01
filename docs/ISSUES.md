@@ -125,6 +125,32 @@ Nothing here is urgent unless it says so.
   permissive rule is the worse of the two, and it argues for widening the swept
   vocabulary before trusting the "225 of 226 agree" figure as coverage.
 
+- **`ShuffleObjectiveNPCs` moves two cells and nothing in the pack knows.**
+  Found 2026-09-01. `NPCs.cs:135` runs the shuffle when `ChestsKeyItems` is also
+  on and the mode is not Deep Dungeon, and `NPCs.cs:277` permutes Bahamut, Dr
+  Unne and the Elf Doctor across BahamutCave2, Melmond and Elfland Castle.
+  Measured on `objnpc497` — `std497` plus this one flag — with
+  `tools/extract_npcs.py`: Bahamut moved to Melmond and Unne to BahamutCave2,
+  the Elf Doctor stayed.
+
+  The pack hosts `bahamut` under `Cardia Islands/Bahamut's Cave`, gated on the
+  airship, and `slabTranslated` under `Melmond Continent/Melmond/Dr Unne`. On
+  that cartridge the first is held red while Bahamut is reachable early and the
+  second reads reachable while Unne is behind the airship. **The second is the
+  over-reporting direction**, which is the one that matters.
+
+  Nothing grades it. Of the 204 rules `std497` and `objnpc497` share, exactly one
+  moves, and it is `Shop Item` — roll noise, the same row the `ShipDrydock` diff
+  hit for the same reason. `Elf Prince` and `Lefein` are byte-identical across
+  the two, so the pack scores 224 of 224 on a seed it is wrong about. This is the
+  `NoTail` case: the export cannot see the branch and the lying cell is the
+  pack's own.
+
+  Not closed here because the fix is a choice rather than a transcription, and
+  because the honest cheap answer and the right answer are different things —
+  `docs/ROADMAP.md` and `docs/FLAG_COVERAGE.md` carry both, and the second shares
+  a fix with the Cardia gateway roll.
+
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so a
   Locations-grid cell needs a new hosted toggle under a different code. It would
   be a bridge-only cell — Titan is not an Archipelago location either.
