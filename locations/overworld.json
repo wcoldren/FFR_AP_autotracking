@@ -4083,6 +4083,7 @@
                     "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "cardiaLandBridge,cardiaDock,$standardWorld,$noShipDrydock,ship,canal",
+                    "BahamutHoard,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,chime,$hasFloater,oxyale"
                 ],
@@ -4180,6 +4181,7 @@
                     "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "cardiaLandBridge,cardiaDock,$standardWorld,$noShipDrydock,ship,canal",
+                    "BahamutHoard,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
                     "$noOverworld,$hasCanoe,rod",
                     "$noOverworld,rod,ruby",
                     "$noOverworld,rod,tnt"
@@ -4278,6 +4280,7 @@
                     "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "cardiaLandBridge,cardiaDock,$standardWorld,$noShipDrydock,ship,canal",
+                    "BahamutHoard,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
                     "$noOverworld,$hasCanoe,$hasFloater",
                     "$noOverworld,chime,$hasFloater,oxyale"
                 ],

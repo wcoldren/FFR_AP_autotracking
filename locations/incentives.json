@@ -601,6 +601,7 @@
                     "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "cardiaLandBridge,cardiaDock,$standardWorld,$noShipDrydock,ship,canal",
+                    "BahamutHoard,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
                     "$noOverworld,$hasCanoe,$hasFloater",
                     "$noOverworld,chime,$hasFloater,oxyale"
                 ],
