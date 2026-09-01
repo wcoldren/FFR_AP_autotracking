@@ -159,35 +159,29 @@
                 [
                     "extendedOpen",
                     "airBoat",
-                    "tab_switch"
-                ],
-                [
                     "northernDocks",
-                    "luffyDock",
-                    "earlyKing"
+                    "earlyKing",
+                    "noTail"
                 ],
                 [
+                    "luffyDock",
                     "cardiaDock",
                     "lefeinRiver",
-                    "earlySarda"
+                    "earlySarda",
+                    "tab_switch"
                 ],
                 [
                     "lefeinBridge",
                     "gaiaMountain",
-                    "earlySage"
-                ],
-                [
                     "hwyOrdeals",
-                    "melmondRiver",
-                    "earlyOrdeals"
+                    "earlySage",
+                    "tab_mode"
                 ],
                 [
+                    "melmondRiver",
                     "sardasForest",
                     "shipDrydock",
-                    "noTail"
-                ],
-                [
-                    "tab_mode"
+                    "earlyOrdeals"
                 ]
             ]
         }
