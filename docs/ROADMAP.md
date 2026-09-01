@@ -188,7 +188,7 @@ actually left.
 
   **The incentive sheet moved here from section 2 on 2026-09-01, because it
   cannot be built before this is.** Deriving its 28 pins needs a surface to
-  resolve them against, and `tools/regen_maps.py:1315` gives `nov` mode no
+  resolve them against, and `regen_maps.py`'s `main` gives `nov` mode no
   overworld render *by design* — "a No-Overworld cartridge gets no overworld
   render, so there is nothing to resolve, stamp or measure". Until this lands
   those 28 pins stay hand-placed pixels on a JPEG. Section 2 listed the sheet as

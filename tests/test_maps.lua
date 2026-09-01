@@ -232,7 +232,13 @@ if badRef == 0 then print("ok   every section ref resolves") end
 
 -- 4b. every per-chest marker must equal what tools/marker_positions.json says
 --     for that chest. This is what makes the coordinates reproducible without a
---     ROM: regenerate them and the JSON has to still agree.
+--     ROM: the JSON and the location files have to still agree.
+--
+--     That JSON is now a frozen snapshot with no generator. It was written by
+--     make_markers.py, which is gone: markers are derived forward from the
+--     cartridge's own chest tiles by regen_maps.marker_tiles, into the override
+--     rather than into this file. It is kept because Lua has no cartridge, so
+--     this is the only fixed thing this check can hold the pack against.
 do
   local mk = json.load(PACK .. "/tools/marker_positions.json")
   dofile(PACK .. "/scripts/autotracking/location_mapping.lua")
@@ -277,7 +283,7 @@ end
 -- 4c. the same reproducibility guarantee for the NPC turn-ins that carry a
 --     dungeon marker. Chests come out of the map tile data; NPCs come out of
 --     lut_MapObjects, so they get their own extractor and their own file, but
---     the pixel maths is the one in tools/make_markers.py and the answer has to
+--     the pixel maths is regen_maps.region_for's and the answer has to
 --     agree with what is in the location JSON.
 do
   local npcs = json.load(PACK .. "/tools/npc_positions.json")
@@ -315,7 +321,7 @@ do
         fails(string.format("%s is on ROM map %d but %s is calibrated for %d",
           want.npc, pos.map_id, want.map, entry.rom_map_id))
       else
-        -- make_markers.py: offset + tile * tile_px + half
+        -- regen_maps.pixels: offset + tile * tile_px + half
         local r = entry.regions[1]
         local half = entry.tile_px // 2
         local x = r.offset_x + pos.tile_col * entry.tile_px + half
@@ -368,7 +374,7 @@ do
         fails(string.format("%s has %d regions; a derived entry describes one",
           map, #entry.regions))
       else
-        -- make_markers.py: offset + tile * tile_px + half
+        -- regen_maps.pixels: offset + tile * tile_px + half
         local r = entry.regions[1]
         local half = entry.tile_px // 2
         local x = r.offset_x + pos.tile_col * entry.tile_px + half

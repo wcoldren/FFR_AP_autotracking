@@ -35,7 +35,7 @@ the tab.
 
 **Insets, the way the hand art does them.** Three shipped maps are composites of
 disjoint pieces at unrelated offsets: `cardia` in 3 regions, `marshB2` and
-`seaB3` in 2. The calibration format already carries that and `make_markers`
+`seaB3` in 2. The calibration format already carries that and `region_for`
 already reads it, so a renderer that split a map into connected components and
 laid them out would reproduce the effect — and would also dissolve the loose crop
 boxes in `docs/ISSUES.md`, by laying disjoint components out separately instead
