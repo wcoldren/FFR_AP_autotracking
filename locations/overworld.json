@@ -408,7 +408,8 @@
                     {
                         "name": "ToFR",
                         "access_rules": [
-                            "$canBreakOrb,lute,key"
+                            "$canBreakOrb,lute,key",
+                            "chaosRush,$canBreakOrb,lute"
                         ],
                         "sections": [
                             {

@@ -330,6 +330,37 @@ check("canBreakOrb 1 with all four lit", canBreakOrb(), 1)
 check("I: Earth Orb incentive marker clears", markerCleared("earthorblit"), true)
 
 ------------------------------------------------------------------
+-- ChaosRush. ToFR's chests and the Chaos fight sit behind the lute plate and
+-- a key-locked door; EnableChaosRush rewrites that door's tile properties as
+-- an ordinary door (FF1Lib/TempleOfFiends.cs:496-500, tileset ToFR only), so
+-- the Key stops being the thing that opens the floor. The Lute is not touched
+-- -- the plate is an object gate, not this tile.
+------------------------------------------------------------------
+reset()
+MEM[0x6031], MEM[0x6032], MEM[0x6033], MEM[0x6034] = 1, 1, 1, 1   -- four orbs lit
+MEM[0x6021] = 1                                  -- Lute
+applyRamRules(byteAt)
+check("orbs and lute, no key: ToFR out of logic", inLogic("ToFR"), false)
+byCode["chaosRush"].Active = true
+check("chaosRush opens ToFR without the key", inLogic("ToFR"), true)
+
+-- And the ordinary route is untouched: the Key still opens it on a seed that
+-- did not roll the flag.
+byCode["chaosRush"].Active = false
+MEM[0x6025] = 1                                  -- Key
+applyRamRules(byteAt)
+check("the key still opens ToFR without chaosRush", inLogic("ToFR"), true)
+
+-- The Lute is not what ChaosRush buys, so it is still required either way.
+reset()
+MEM[0x6031], MEM[0x6032], MEM[0x6033], MEM[0x6034] = 1, 1, 1, 1
+MEM[0x6025] = 1                                  -- Key but no Lute
+applyRamRules(byteAt)
+byCode["chaosRush"].Active = true
+check("chaosRush does not replace the lute", inLogic("ToFR"), false)
+byCode["chaosRush"].Active = false
+
+------------------------------------------------------------------
 -- RAM is authoritative, in both directions. This used to be raise-only, which
 -- is how a finished seed's orbs, key items and turn-ins survived into the next
 -- one: the new game's zeroed bytes had no way to take them back down.

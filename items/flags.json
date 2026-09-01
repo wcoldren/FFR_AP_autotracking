@@ -36,6 +36,12 @@
 		"codes" : "noTail"
 	},
 	{
+		"name" : "Chaos Rush",
+		"type" : "toggle",
+		"img" : "images/items/key.png",
+		"codes" : "chaosRush"
+	},
+	{
 		"name" : "AirBoat",
 		"type" : "progressive",
 		"stages" : [

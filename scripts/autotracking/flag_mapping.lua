@@ -46,6 +46,7 @@ local TOGGLES = {
   { ffr = "EarlySage",               code = "earlySage", default = true },
   { ffr = "EarlyOrdeals",            code = "earlyOrdeals", default = true },
   { ffr = "NoTail",                  code = "noTail" },
+  { ffr = "ChaosRush",               code = "chaosRush" },
   { ffr = "IncentivizeFreeNPCs",     code = "npcsAreIncentive", default = true },
   { ffr = "IncentivizeFetchNPCs",    code = "fetchQuestsAreIncentive", default = true },
   { ffr = "IncentivizeIceCave",      code = "iceCaveIsIncentive", default = true },
