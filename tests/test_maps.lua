@@ -343,7 +343,7 @@ end
 
 -- 4d. the calibration entries derived from an upstream pixel instead of solved
 --     from chest sprites. Their maps hold no chest, so 4b can never reach them
---     and solve_calibration.py reports "ok 0/0" for each. What is still
+--     and the chest-sprite solver had nothing to fit. What is still
 --     checkable is the correspondence they were built on: the NPC's tile comes
 --     off the cartridge (npc_positions.json) and the pixel comes from
 --     upstream's art, and the offset is the only thing that joins the two. If
