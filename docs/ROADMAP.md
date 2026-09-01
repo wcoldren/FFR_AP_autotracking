@@ -47,18 +47,6 @@ disagrees with FFR there instead of agreeing with it. Both are waived by name in
   one read inside `FF1Lib/Sanity/` relaxes the completion test rather than any
   location's rule. **`ShuffleObjectiveNPCs` does move pins**, and is the bullet
   below.
-- **`ShuffleObjectiveNPCs`. Closed strictly 2026-09-01.** It permutes Bahamut,
-  Dr Unne and the Elf Doctor across their three homes (`NPCs.cs:277`), and on
-  `objnpc497` Bahamut and Unne swapped outright — so `bahamut` was held behind
-  the airship while Bahamut stood in Melmond, and `slabTranslated` read
-  reachable while Unne sat behind the airship. FFR's export does not notice, so
-  the pack scored 224 of 224 on a seed it was wrong about: the `NoTail` case.
-
-  With the flag on, the two cells that move now ask for all three homes at
-  once, which collapses to Bahamut's Cave. `$noObjectiveShuffle` is the guard.
-  This is the weaker kind of close — the pack deliberately disagrees with FFR
-  on a shuffled seed rather than agreeing with it — and the divergence is in
-  `check_logic`'s `WAIVED` table so it stays printed.
 
   `NoTail` and `ShipDrydock` mark out both ends of the rule above. `NoTail`'s
   oracle seed proved the flag rewrites no exported rule at all, so the seed
@@ -74,6 +62,18 @@ disagrees with FFR there instead of agreeing with it. Both are waived by name in
   rolls `ToFRMode 2` and derives all seven ToFR chests as `[["orbs"]]`, which
   the pack contradicted until now. All of them are in
   `docs/FLAG_COVERAGE.md`; the cartridges are in `docs/ORACLE.md`.
+- **`ShuffleObjectiveNPCs`. Closed strictly 2026-09-01.** It permutes Bahamut,
+  Dr Unne and the Elf Doctor across their three homes (`NPCs.cs:277`), and on
+  `objnpc497` Bahamut and Unne swapped outright — so `bahamut` was held behind
+  the airship while Bahamut stood in Melmond, and `slabTranslated` read
+  reachable while Unne sat behind the airship. FFR's export does not notice, so
+  the pack scored 224 of 224 on a seed it was wrong about: the `NoTail` case.
+
+  With the flag on, the two cells that move now ask for all three homes at
+  once, which collapses to Bahamut's Cave. `$noObjectiveShuffle` is the guard.
+  This is the weaker kind of close — the pack deliberately disagrees with FFR
+  on a shuffled seed rather than agreeing with it — and the divergence is in
+  `check_logic`'s `WAIVED` table so it stays printed.
 - **Gaia. Closed 2026-09-01.** The two tabs disagreed about how to reach it and
   the oracle said which: the dungeon tree's northern-docks route was missing
   `hwyOrdeals` and opened Gaia on a seed FFR does not. Two cartridges one flag
