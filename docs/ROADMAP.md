@@ -20,18 +20,28 @@ rolled with the flag on** so `check_logic --ap-rules` grades the branch. A rule
 without its oracle seed is a hand transcription, which is what section 5 is
 meant to end.
 
-- **The five flags with no code.** `MapAirshipHike`, `MapCardiaLandBridge`,
-  `ToFRMode`, `ChaosRush`, `ExitToFR`. Two to verify before deciding:
-  `IsFloaterRemoved`, `ShuffleObjectiveNPCs`. `NoTail` and `ShipDrydock` are
-  done, and between them they mark out both ends of the rule above. `NoTail`'s
+- **Two flags with no code**, down from five. `MapAirshipHike` and
+  `MapCardiaLandBridge`, both 4.9.7-only. `ToFRMode` and `ChaosRush` landed
+  2026-08-31; `ExitToFR` is decided against rather than pending, because it
+  writes an exit portal and nothing else and this pack does not model points of
+  no return — it sits in `NOT_MODELLED`, where a flag with no code can be told
+  apart from one nobody has got to. Two still to verify before deciding:
+  `IsFloaterRemoved`, `ShuffleObjectiveNPCs`.
+
+  `NoTail` and `ShipDrydock` mark out both ends of the rule above. `NoTail`'s
   oracle seed proved the flag rewrites no exported rule at all, so the seed
   graded the branch by showing there was nothing there to grade — the code was
   still needed, because a `check_logic` pass is not evidence a pack-only cell is
   honest. `ShipDrydock` is the other end: it rewrites 51 exported rules and the
   pack was showing 53 locations green that FFR calls unreachable, so its
   cartridge graded the branch outright, 170 of 223 before and 223 of 223 after.
-  Both are in `docs/FLAG_COVERAGE.md`; the two cartridges that isolate the
-  second are in `docs/ORACLE.md`.
+  The three Temple of Fiends flags are `NoTail`'s case again, but by
+  construction rather than by accident: `Archipelago.cs:93` drops every ToFR
+  location from the pool, so no cartridge rolled for one of them can grade
+  anything. Their evidence is the derived walk instead — `oracle-4.9.2/nov`
+  rolls `ToFRMode 2` and derives all seven ToFR chests as `[["orbs"]]`, which
+  the pack contradicted until now. All of them are in
+  `docs/FLAG_COVERAGE.md`; the cartridges are in `docs/ORACLE.md`.
 - **Gaia.** The two tabs disagree about how to reach it (`ISSUES.md`). One is
   wrong; the oracle says which.
 - **The Cardia roll.** The gateway permutation is rolled per seed and reaches
@@ -175,6 +185,9 @@ Stated once so nobody re-derives them.
 Where things stand on the day this was written. `git log trunk..` is what
 actually says where a branch is.
 
-- `trunk` is level with `origin/trunk` and clean as of 2026-08-31.
-  `noverworld-logic` and `visibility-toggles` are merged.
-- Nothing is in flight.
+- `trunk` carries the route-lane work and is **ten commits ahead of
+  `origin/trunk`**, unpushed, as of 2026-09-01. `noverworld-logic`,
+  `visibility-toggles` and `route-lanes` are merged.
+- **`flags-real-seeds` is in flight**, six commits past `trunk`. It is the
+  section 1 work: `ChaosRush` and `ToFRMode` codes, the `ExitToFR` decision, and
+  the tests that hold them. The review gate has not run on it yet.

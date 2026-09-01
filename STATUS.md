@@ -2199,3 +2199,81 @@ chest is already a stop -- and because charging it means a heading in the DP
 state, four times a table that already has a real ceiling, for the last term in
 the order. Not worth it with `--lanes` off by default and the tour headed for
 replacement by authored waypoints, where the visit order is the author's.
+
+## Three Temple of Fiends flags: two coded, one declined
+
+Built 2026-08-31 and 2026-09-01 on `flags-real-seeds`. Section 1 of the roadmap
+opened with five flags that had no pack code; three of them are Temple of Fiends
+flags, and this branch is all three. Two of them were colouring pins wrong on a
+seed anyone could roll. The third turned out to gate nothing, which is a result
+and not a gap, and the branch had to build somewhere to say so.
+
+**`ChaosRush` lifts the Key half of Chaos's gate.** Its whole body rewrites tile
+`0x3B` in the ToFR tileset, and `0x3B` is the locked door. It is a plain toggle,
+`chaosRush`, and it buys one alternative on the `Chaos` section and one on the
+`ToFR` node: `chaosRush,lute` beside the standing `lute,key`.
+
+**`ToFRMode` was holding seven chests red on a Short seed.** `ShortenToFR`
+repoints the Black Orb warp straight at `tofrChaos (15,3)` and lays the seven
+chests at cols 12-18, rows 1-2 -- *in front of* the landing tile, with the
+lute-gated object `0x17` at `(15,5)` two tiles past it. So the party warps in,
+takes seven chests, and only then meets a gate. The pack was asking
+`$canBreakOrb,lute,key` for all seven.
+
+**The oracle had already said so and nobody had asked it.** `oracle-4.9.2/nov`
+rolls `ToFRMode 2`, and its `derived_nov.json` gives ToFR Kary Floor 1-4, Lute
+Plate Room 1-2 and Vanilla Masa as `[["orbs"]]`. No new cartridge was needed for
+any of this -- the measurement was sitting in a file the branch could have read
+on day one. Worth remembering the next time a flag looks like it wants a roll.
+
+Two shapes of the flag decode fell out of it. **`ToFRMode` is an enum, not a
+tri-state**, so it is a `PROGRESSIVES` row rather than a `TOGGLES` one:
+`setToggle` would write `2` into `Active`, and `check_logic`'s `flag_codes` tests
+`is True`, which an integer fails. And **only Short moves a rule** -- `MidToFR`
+rewrites the lock door at `[0x16,0x14]` and still calls `AddLutePlateToFloor1F`,
+so Mid asks for exactly what Long asks for and decodes to 0. Random is rolled at
+generation and the flag string records *that* it was rolled rather than where it
+landed, so the cartridge cannot say, and strict is the only honest answer. An
+absent flag reads false from `get()`, which is not 2, so that lands strict too.
+
+**Then the Key half got walked rather than assumed.** The `Chaos` node has always
+gated on `lute,key`, and the open question was whether Short still earns the key
+half or whether the pack was being conservative. Walked from `ShortenToFR`'s own
+landing at `(15,3)` on three Short cartridges -- `duck-104` and
+`practice-72A52C25` standard, `oracle-4.9.2/nov` No-Overworld -- all reading
+identically: nothing reaches 31 maps and stops at row 4, the Key alone reaches
+the same 31, the Lute reaches 33 and stops at row 6, and only Lute + Key reaches
+425 and Chaos at `(15,17-19)`. Both gates stand between the landing and the boss,
+in that order, and the door is `ShortenToFR`'s own: `Put((0x0A, 0x00),
+landingArea)` with row eight `31313030303B3030303131` puts `0x3B` at `(15,7)`,
+two rows past the plate. No rule changed -- the shipped one was right. The write-
+up went to `NOVERWORLD.md` beside the other hand-walked ToFR findings, because
+the oracle cannot see these maps and a walk is the only thing that settles them.
+
+**`ExitToFR` is declined, and the decline needed somewhere to live.** It writes a
+`PortalWarp` at `tofrChaos (15,3)` and nothing else; the tile reads `0x40`,
+`TP_TELE_WARP`, and `reachable_maps` follows only `TP_TELE_NORM`, so it creates
+no way *in*. This pack does not model points of no return, so there is nothing
+for it to gate, and a code for it would be a cell on the board that changes no
+colour. That is worth less than nothing.
+
+The problem is that a flag with no code is ambiguous on its own -- nobody can
+tell "decided against" from "not got to yet", and `FLAG_COVERAGE.md` kept having
+to say which in prose. So `flag_mapping.lua` grew a **`NOT_MODELLED`** table
+carrying the flag name and the reason, `FFR_FLAG_COVERAGE` exports all three
+tables so a coverage list cannot drift unread, and `tests/test_flags.lua` holds
+the result against both shipped schemas: every name in it has to be a real flag,
+and no flag may be claimed by two of the three tables.
+
+**None of the three can be graded by `check_logic`, by construction.**
+`Archipelago.cs:93` drops every ToFR location from the pool unconditionally, so
+ToFR appears zero times in all five exports and a cartridge rolled for any of
+these reproduces the `NoTail` outcome -- an unchanged rule set graded against
+itself. Their evidence is the derived walk and the hand walks above instead. That
+is now written into `FLAG_COVERAGE.md` as the standing reason rather than
+rediscovered per flag.
+
+Two smaller things rode along: a stale `flag_mapping.lua.bak` that had been
+committed into the pack was dropped and `*.bak` added to `.gitignore`, and
+`lane.py`'s comment about what the router does with the exit was corrected to
+describe the code rather than a line number that had already moved.
