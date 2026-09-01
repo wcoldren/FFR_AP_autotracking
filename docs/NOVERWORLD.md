@@ -158,6 +158,23 @@ routine ANDs the four orb bytes, a shard-hunt seed compares a count instead, and
 the reader refuses the latter rather than gating on orbs the seed never wants.
 All seven now derive `orbs`.
 
+**Chaos is behind both gates, and the key one is the second.** Walked
+2026-09-01 from the same landing at `(15,3)`, on three Short cartridges —
+`duck-104` and `practice-72A52C25` standard, `oracle-4.9.2/nov` No-Overworld —
+all reading identically:
+
+    holding      reaches   column 15 stops at
+    nothing      31        row 4    the lute plate, object 0x17 at (15,5)
+    key          31        row 4    the same; the Key alone buys nothing
+    lute         33        row 6    the `0x3B` door at (15,7)
+    lute + key   425       row 31   Chaos, objects 0x18-0x1a at (15,17-19)
+
+`ShortenToFR` lays that door itself: `Put((0x0A, 0x00), landingArea)` with row
+eight `31313030303B3030303131`, which puts `0x3B` at `(15,7)`, two rows past
+the lute plate. So the shipped `lute,key` on the `Chaos` node is measured and
+not conservative, and `EnableChaosRush` — whose whole body rewrites tile `0x3B`
+in the ToFR tileset — is what lifts the Key half of it.
+
 **The exit portal is an exit and nothing more.** `ExitToFR` is on in every
 oracle cartridge, and on Short ToFR it writes a `PortalWarp` at
 `tofrChaos (15,3)` (`TempleOfFiends.cs:398-409`) — which is exactly where the
