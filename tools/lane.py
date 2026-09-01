@@ -353,6 +353,19 @@ class Floor:
             cur = nxt
         order.reverse()
 
+        # Each leg is planned from a standing stop: search() seeds (start,
+        # None), so the heading you arrived on is dropped and the first step of
+        # the next leg is never charged a turn. The DP prices legs the same way
+        # -- cost_to() folds dist() across headings -- so the tour and the walk
+        # it reconstructs agree with each other, and both undercount the turns
+        # that turns() then reports on the finished path.
+        #
+        # Left that way deliberately. The turn term is there because holding a
+        # direction until the map stops you needs no counting (IDEAS.md, "the
+        # turn tie-break"), and opening a chest is already a stop -- there is no
+        # held direction at a node to lose. Charging it would mean carrying the
+        # heading into the DP state, which is four times the table for a term
+        # that is last in the lexicographic order. ISSUES.md keeps the question.
         walk, at = [start], start
         for j, k in order:
             seg = self.path(at, nodes[j][1][k])
@@ -515,7 +528,12 @@ def plan(rom, graph, map_id, chests=None):
         # box on anyway. Worse on a No-Overworld ConeriaCastle1F, where the
         # arrival (2, 8) is the tile the gate NPC stands on: keyless you cannot
         # be there at all, so the one-tile "lane" is a walk the game refuses.
-        if got:
+        # Hence the walkable(start) half: a region whose every arrival is a
+        # gate tile gets no plain lane even when it collects something, because
+        # there is no keyless walk out of a door you cannot keylessly stand in.
+        # The key lane still draws, rooted at the same arrival, which holding
+        # the key is a legal place to be.
+        if got and bare.walkable(start):
             runs.append(Run("plain", start, walk, frozenset(bare.trap),
                             got, miss))
         # The second lane prefers the first one's tiles, so the two coincide

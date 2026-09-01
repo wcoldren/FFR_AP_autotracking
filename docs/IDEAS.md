@@ -86,7 +86,7 @@ a per-map one. Filed rather than guessed at.
 
 **Routes drawn on the map. Built 2026-08-31** -- the with-loot flavour, baked
 into the regenerated art by `tools/lane.py` and `render_maps.draw_lanes`, keyed
-in the Map Key band, on by default and off with `--lanes none`. `STATUS.md`,
+in the Map Key band, drawn on request with `--lanes loot`. `STATUS.md`,
 "The route to walk is drawn on the map", has what the port found wrong with the
 prototype and what the three open questions were settled by. The shortest-to-
 the-exit flavour is still unbuilt; everything below is kept as written, because

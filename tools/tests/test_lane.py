@@ -54,16 +54,72 @@ def shape(lanes):
         (r.label, r.start, len(r.path), tuple(r.got)) for r in lanes.runs]
 
 
+def regions_do_not_share_edges():
+    """A key lane in one region must not subtract another region's plain lane.
+
+    plan() emits [plain?, key?] per region and drops the plain run wherever a
+    region collects nothing keyless, so a second region can arrive at
+    draw_lanes as a bare key run. Regions overlap in tiles -- search()
+    reachability is asymmetric across staircase arrivals -- so the edges the
+    two share are real steps of both, and subtracting the first region's set
+    from the second's lane erases the middle of a line that is drawn as
+    continuous.
+
+    Needs no cartridge: draw_lanes takes a frame, a crop and the runs, and the
+    colours it writes are the whole answer. Runs both ways round, because a
+    check that only passes after the fix says nothing about what it protects --
+    the first case is the behaviour that must survive the second.
+    """
+    fails = []
+    crop = rm.Crop(box=(0, 9, 0, 9))
+    w, h = 10 * rm.TILE_PX, 10 * rm.TILE_PX
+    plain = rm.NES_PALETTE[rm.LANE_PLAIN]
+    purple = rm.NES_PALETTE[rm.LANE_KEY]
+
+    def run(label, path):
+        return L.Run(label, path[0], list(path), frozenset(), [1], [])
+
+    # Region A walks the corridor keyless and its key lane extends it by one
+    # tile. Region B is key-only and walks the same corridor.
+    a_plain = run("plain", [(1, 1), (2, 1), (3, 1), (4, 1)])
+    a_key = run("key", [(1, 1), (2, 1), (3, 1), (4, 1), (4, 2)])
+    b_key = run("key", [(1, 1), (2, 1), (3, 1)])
+
+    def corridor_colour(runs):
+        out = bytearray(w * h * 3)
+        rm.draw_lanes(out, w, h, crop, L.Lanes(list(runs), []))
+        # Midway between (2,1) and (3,1), on the centre line both lanes walk.
+        x, y = 3 * rm.TILE_PX, 1 * rm.TILE_PX + rm.TILE_PX // 2
+        i = (y * w + x) * 3
+        return tuple(out[i:i + 3])
+
+    def check(label, got, want):
+        if got != want:
+            fails.append(f"{label}: got {got!r}, want {want!r}")
+        print(f"{'ok  ' if got == want else 'FAIL'} {label}")
+
+    # The shared corridor stays the colour of the walk you can always do.
+    check("a key lane adds nothing where it follows its own plain lane",
+          corridor_colour([a_plain, a_key]), plain)
+    # And a second region's key lane still draws over it.
+    check("a second region's key lane is not subtracted by the first's",
+          corridor_colour([a_plain, a_key, b_key]), purple)
+    return fails
+
+
 def main():
+    fails = regions_do_not_share_edges()
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):
-        print("SKIP  set FF1_ROM to a Final Fantasy cartridge to run this")
-        return 0
+        print("SKIP  set FF1_ROM to a Final Fantasy cartridge for the rest")
+        for f in fails:
+            print("     " + f)
+        print("ALL PASS" if not fails else f"{len(fails)} FAILED")
+        return 1 if fails else 0
     with open(path, "rb") as f:
         rom = f.read()
     graph = eg.Graph(eg.Rom.of(rom, path))
     chests = ec.extract(rom)[0]
-    fails = []
 
     def check(label, got, want):
         if got != want:

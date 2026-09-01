@@ -318,7 +318,15 @@ def route_lanes(rom, graph):
     out = {}
     chests = extract_chests.extract(rom)[0]
     for map_id, name in render_maps.MAP_FILES.items():
-        got = lane.plan(rom, graph, map_id, chests)
+        # Floor.lane raises for a floor over MAX_EXACT checks or a table over
+        # MAX_ENTRIES. That is a bound on this router, not a broken cartridge,
+        # and it lands minutes into a run: let the one map go without a lane
+        # and say so, rather than throwing away every other map's art.
+        try:
+            got = lane.plan(rom, graph, map_id, chests)
+        except ValueError as e:
+            print(f"  {name}: no lane ({e})")
+            continue
         if got is not None:
             out[name] = got
     return out
@@ -1211,6 +1219,9 @@ def main():
     elif was and was.get("npcs", "none") != args.npcs:
         print(f"--npcs changed from {was.get('npcs', 'none')} to {args.npcs} "
               "since the last run")
+    elif was and was.get("lanes", "none") != args.lanes:
+        print(f"--lanes changed from {was.get('lanes', 'none')} to "
+              f"{args.lanes} since the last run")
 
     bank = extract_chests.standard_map_bank(rom)
     print(f"reading standard maps from bank ${bank:02X}")

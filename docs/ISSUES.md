@@ -410,6 +410,26 @@ Nothing here is urgent unless it says so.
 
 ## Open questions
 
+- **A stop at a chest re-orients for free, and nothing says whether it
+  should.** `Floor.lane` chains its legs with `path()`, and `search()` seeds
+  `(start, None)`, so the heading a leg arrives on is dropped and the first
+  step of the next leg is never charged `TURN`. The DP prices legs the same
+  way, since `cost_to()` folds `dist()` across headings, so the tour and the
+  walk it reconstructs agree with each other -- but `turns()`, which the CLI
+  report prints, counts the junction turns on the finished path, so the two
+  numbers describe different walks at up to eighteen nodes on a floor.
+
+  The case for leaving it: the turn term exists because holding a direction
+  until the map stops you needs no counting, and opening a chest is already a
+  stop, so there is no held direction to lose. The case against: the term is
+  meant to be a real cost and this exempts it wherever the errand touches. The
+  fix is a heading in the DP state, which is four times the table -- against
+  `MAX_ENTRIES`, that is a real ceiling, not a formality -- for a term that is
+  last in the lexicographic order. Not worth it while `--lanes` is off by
+  default and the tour is headed for replacement by authored waypoints, where
+  the visit order is the author's and the free re-orientation is correct.
+  Raised by review 2026-08-31.
+
 - **The agreement figures used to grant away most of what they appeared to
   compare. Largely closed 2026-08-30.** `check_logic --derived` hands every
   off-vocabulary item to both sides before comparing (`offvocab_items()`), so a

@@ -1629,10 +1629,10 @@ instead of 339; `MarshCaveB3` walks 170 either way and crosses 135 instead of
 142. What it does spend is turns -- 33 against 22 on that floor -- which is the
 published order working as stated, since counted turns are the last term.
 
-`--lanes loot` is the default and `--lanes none` turns it off. It adds about 35
-seconds to a regen: 38 maps carry a chest on the standard cartridge and the
-visit order is an exact tour, a third of that time being `GurguVolcanoB2`'s
-eighteen checks. **The plan said the largest floor was thirteen** and named the
+`--lanes loot` draws it and `--lanes none`, the default since "The route lane
+comes off the default" below, does not. Drawing it adds about 35 seconds to a
+regen: 38 maps carry a chest on the standard cartridge and the visit order is
+an exact tour, a third of that time being `GurguVolcanoB2`'s eighteen checks. **The plan said the largest floor was thirteen** and named the
 wrong maps; that figure was chest tiles on the maps that had been looked at
 rather than checks over all of them.
 
@@ -2149,3 +2149,53 @@ carries its own reasoning.
 Decided off the cell lists rather than a screenshot, so it still wants looking
 at on a real board. If it reads badly the thing to move is the tiling, not the
 row count.
+
+## What the review of the route-lane branch found
+
+Seven findings over the nine commits. Six fixed, one recorded and left.
+
+**Two were latent and fire on no cartridge here**, which is why they wanted
+finding by reading rather than by running. `draw_lanes` initialised its
+`shared` edge set once and only reassigned it on a plain run, so on a map where
+one region emits a plain lane and the next emits only a key lane -- which
+`plan()` does wherever a region collects nothing keyless -- the second region's
+lane had the first region's edges subtracted from it. Regions overlap in tiles,
+so those are steps the second lane genuinely walks, and the drawing lost the
+middle of a line that is meant to be continuous. And `plan()` picked its start
+with `max(..., key=(walkable, checks))`, which only *prefers* a keyless-walkable
+arrival: a region whose every arrival is a gate tile but which still collects
+something keyless got a plain lane rooted on a tile the party cannot stand on.
+The comment above it already described the hole; nothing enforced it.
+
+The first of those now has a check that needs no cartridge -- `draw_lanes`
+takes a frame, a crop and the runs, and the colours it writes are the whole
+answer. It runs both ways round: the shared corridor must stay cyan where a key
+lane follows its own plain lane, and must go purple where a second region's key
+lane crosses it. Reverted, the second goes red with `(0, 235, 219)` where
+`(248, 184, 248)` was wanted, and the first stays green -- so it guards the
+behaviour and not just the patch.
+
+**One would have thrown away a whole regen.** `Floor.lane` raises for a floor
+over `MAX_EXACT` checks, and `route_lanes` ran the entire cartridge inside no
+handler, so a 21-check floor on some future seed would end minutes of work in a
+traceback with every other map's art lost. Caught, named and skipped, which is
+what `6ae3c46` did for a markless cartridge.
+
+**Two were docs this branch made wrong.** `IDEAS.md` and the older `STATUS.md`
+section both still said the lane was on by default, which stopped being true
+one commit earlier. `ROADMAP.md` had been corrected and these had not.
+
+**One was a missing line rather than a bug**: `--lanes` is in the cache key but
+the chain of "why is this redrawing" messages stopped at `--npcs`, so flipping
+it triggered a full redraw that said nothing about why.
+
+**The seventh is left, and `ISSUES.md` now carries it.** Each leg of the tour is
+planned from a standing stop, so the heading a leg arrives on is dropped and the
+first step of the next leg is never charged a turn. The tour and the walk it
+reconstructs agree with each other; `turns()`, which only the CLI report prints,
+counts those junction turns and so describes a different walk. Left because the
+turn term exists for holding a direction until the map stops you, and opening a
+chest is already a stop -- and because charging it means a heading in the DP
+state, four times a table that already has a real ceiling, for the last term in
+the order. Not worth it with `--lanes` off by default and the tour headed for
+replacement by authored waypoints, where the visit order is the author's.
