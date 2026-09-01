@@ -2352,3 +2352,96 @@ One correction fell out of the source read: `FLAG_COVERAGE.md` had
 it appears in `OverworldMap.cs:62` and `Flags.cs` and nowhere else.
 `MapCardiaLandBridge` is the one read outside `OverworldMap.cs`, at
 `EntrancesFloorsShuffle.cs:71`.
+
+## The flag that was on the verify list and belonged on the other one
+
+Built 2026-09-01 on `flags-real-seeds`, straight after the two overworld flags.
+`IsFloaterRemoved` and `ShuffleObjectiveNPCs` were the pair `FLAG_COVERAGE.md`
+said to *verify* rather than add -- the question being whether either actually
+moves logic. Running that check split them, and one of them reopened the section
+the previous entry had just closed.
+
+**`IsFloaterRemoved` moves no pin, and the source settles it twice over.** It is
+computed rather than stored -- `FlagsCompute.cs:85` gives it as
+`((NoFloater|IsAirshipFree) & !NoOverworld) | DesertOfDeath` -- so it has no
+field in either shipped schema and a pack code could not read it directly;
+`NoFloater` is the field that exists. And its one read inside `FF1Lib/Sanity/` is
+`SanityCheckerV2.cs:178`, which clears `MapChange.Airship` out of
+`requiredMapChanges`. That feeds the `complete` boolean and no per-location rule,
+so no exported rule can move with it.
+
+A cartridge was rolled for it anyway and refused to generate: taking the Floater
+out of the pool leaves item placement unable to meet this preset's incentive
+count (`ItemPlacement.cs:173`), with or without `IncentivizeAirship`. Worth
+recording, because the by-construction argument is the one that stands and the
+next reader should not spend an hour rediscovering that the roll is a dead end.
+
+**`ShuffleObjectiveNPCs` does move pins, and nothing that grades the pack could
+see it.** `NPCs.cs:135` runs the shuffle when `ChestsKeyItems` is also on and the
+mode is not Deep Dungeon; `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf
+Doctor across BahamutCave2, Melmond and Elfland Castle. `objnpc497` is `std497`
+plus that one flag, and `tools/extract_npcs.py` read both cartridges:
+
+    bahamut   map 39 (21,3)  ->  map 3  (26,1)     BahamutCave2 -> Melmond
+    unne      map 3  (26,1)  ->  map 39 (21,3)     Melmond -> BahamutCave2
+    elfprince unmoved
+
+Two cells lie on that cartridge, in opposite directions. `bahamut` is hosted
+under `Cardia Islands/Bahamut's Cave` behind the airship while Bahamut stands in
+Melmond and is reachable early; `slabTranslated` is hosted under `Melmond
+Continent/Melmond/Dr Unne` and read reachable while Unne sat behind the airship.
+The second is the over-reporting direction, which is the one that matters.
+
+**FFR's export does not notice, and that is the part worth carrying forward.**
+Of the 204 rules the two exports share exactly one moves, and it is `Shop Item`
+-- roll noise, the same row the `ShipDrydock` diff hit for the same reason.
+`Elf Prince` and `Lefein` are byte-identical across the two. So the pack scored
+**224 of 224** on a seed it was wrong about. A green `check_logic` run is not
+evidence a cell is honest; it is evidence FFR exported a rule that could be
+compared. When it exports nothing, the comparison is vacuous and says so in
+neither direction.
+
+### Closed strictly, which is a weaker close than the others on this branch
+
+The permutation is rolled at generation and reaches neither the flag string nor
+the spoiler, so knowing the flag is on does not say where anyone went. The
+answer taken is the Cardia gateway roll's: with the flag on, ask for **all three
+homes at once**.
+
+That collapses. Bahamut's Cave dominates the other two under every one of its
+alternatives -- the airship reaches Melmond and Elf Castle, and `cardiaDock`
+with the Ship and the Canal carries the Ship that opens both, and in
+No-Overworld its `$hasFloater` is strictly stronger than the other two rules
+there. So the strict conjunction is just Bahamut's Cave's own requirement, ANDed
+onto whatever the cell already wanted. `bahamut` needed no change at all, being
+already gated on the home that dominates. Two cells moved, not three, and the
+guard is `$noObjectiveShuffle` mirroring `$noShipDrydock`.
+
+**`check_logic` had to be taught the guard, and finding that out took a green
+suite and a red corpus.** The `$name` calls live in two places -- `logic.lua` for
+the tracker and `LUA_RULES` in `check_logic.py` for the harness -- and adding one
+to the location trees without adding it to the harness makes every alternative
+carrying it fail. Every seed in both corpora lost a location, including seeds
+with the flag off, which is what said the fault was in the harness and not in the
+rule. A guard that only one of the two knows about is worse than no guard,
+because it fails on the seeds it was not written for.
+
+The close is deliberate disagreement rather than agreement, and this is the only
+row on the branch of that kind. On `objnpc497` the pack now holds the Elf Prince
+where FFR opens him, because FFR wrote the seed and its rule names the home the
+roll actually picked. That divergence is in `check_logic`'s `WAIVED` table with
+its reason, so it stays printed rather than disappearing into a pass, and it
+fires only on a seed that rolled the flag. Everything else is unmoved: six of the
+six 4.9.7 cartridges and all five 4.9.2 ones grade exactly as they did.
+
+It also ignores the `ChestsKeyItems` conjunct FFR ANDs in at `NPCs.cs:135`. With
+that flag off the shuffle does not run and the pack is needlessly strict, which
+is the side to be wrong on until there is a code for it.
+
+**The right fix is unbuilt and is shared with the Cardia roll.**
+`tools/extract_npcs.py` already reads the permutation off the cartridge -- it is
+what measured the swap above -- and `regen_maps.py` already reads the cartridge
+per seed. What is missing is the live bridge publishing it, which is the same
+feature as publishing `ff1/gateways`. `ROADMAP.md` now holds the two as one item
+rather than two, because building it twice is the failure mode worth naming
+before either gets started.

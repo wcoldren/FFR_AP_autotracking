@@ -35,20 +35,18 @@ meant to end.
   one read inside `FF1Lib/Sanity/` relaxes the completion test rather than any
   location's rule. **`ShuffleObjectiveNPCs` does move pins**, and is the bullet
   below.
-- **`ShuffleObjectiveNPCs`.** It permutes Bahamut, Dr Unne and the Elf Doctor
-  across their three homes (`NPCs.cs:277`), and on `objnpc497` Bahamut and Unne
-  swapped outright — so `bahamut` is held behind the airship while Bahamut
-  stands in Melmond, and `slabTranslated` reads reachable while Unne sits behind
-  the airship. FFR's export does not notice: the pack grades 224 of 224 on that
-  cartridge while being wrong, which makes this the `NoTail` case.
+- **`ShuffleObjectiveNPCs`. Closed strictly 2026-09-01.** It permutes Bahamut,
+  Dr Unne and the Elf Doctor across their three homes (`NPCs.cs:277`), and on
+  `objnpc497` Bahamut and Unne swapped outright — so `bahamut` was held behind
+  the airship while Bahamut stood in Melmond, and `slabTranslated` read
+  reachable while Unne sat behind the airship. FFR's export does not notice, so
+  the pack scored 224 of 224 on a seed it was wrong about: the `NoTail` case.
 
-  It shares its shape, and its fix, with the Cardia roll below: the flag is in
-  the string but **the permutation is rolled at generation** and reaches neither
-  the flag string nor the spoiler. Either be strict — gate all three on reaching
-  all three homes, which in practice means the airship — or teach the bridge to
-  publish what `tools/extract_npcs.py` can already read. The second closes both
-  bullets at once and should not be built twice. `docs/FLAG_COVERAGE.md` has the
-  measurement.
+  With the flag on, the two cells that move now ask for all three homes at
+  once, which collapses to Bahamut's Cave. `$noObjectiveShuffle` is the guard.
+  This is the weaker kind of close — the pack deliberately disagrees with FFR
+  on a shuffled seed rather than agreeing with it — and the divergence is in
+  `check_logic`'s `WAIVED` table so it stays printed.
 
   `NoTail` and `ShipDrydock` mark out both ends of the rule above. `NoTail`'s
   oracle seed proved the flag rewrites no exported rule at all, so the seed
@@ -66,10 +64,20 @@ meant to end.
   `docs/FLAG_COVERAGE.md`; the cartridges are in `docs/ORACLE.md`.
 - **Gaia.** The two tabs disagree about how to reach it (`ISSUES.md`). One is
   wrong; the oracle says which.
-- **The Cardia roll.** The gateway permutation is rolled per seed and reaches
-  neither the flag string nor the spoiler log (`MetroidVaniaMap.cs:726`). The
-  bridge publishes `ff1/gateways` next to `ff1/flags`, the rule reads it. Until
-  then the pack stays deliberately strict there.
+- **The two rolls the bridge should read, not guess at.** Both are permutations
+  chosen at generation that reach neither the flag string nor the spoiler, and
+  both are answered today by being deliberately strict. They want one feature
+  between them, not two.
+
+  The **Cardia roll** is the gateway permutation (`MetroidVaniaMap.cs:726`); the
+  bridge publishes `ff1/gateways` next to `ff1/flags` and the rule reads it. The
+  **objective-NPC roll** is the same shape one flag along, and
+  `tools/extract_npcs.py` already knows how to find it — it is what measured the
+  Bahamut/Unne swap in the first place. `regen_maps.py` reads the cartridge per
+  seed already; the live bridge does not publish NPC positions.
+
+  Until then both stay strict, which costs six Cardia Forest locations on a
+  No-Overworld seed and the Elf Prince plus Dr Unne on a shuffled one.
 - **Variant from `GameMode`.** A No-Overworld seed loaded into a standard
   variant colours every pin wrong and only prints a warning. Mode detection
   exists; act on it, or at least light the grid the way unread flags do.

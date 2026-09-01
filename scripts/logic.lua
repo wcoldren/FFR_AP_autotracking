@@ -52,6 +52,32 @@ function noShipDrydock()
   return 1
 end
 
+-- ShuffleObjectiveNPCs permutes Bahamut, Dr Unne and the Elf Doctor across
+-- BahamutCave2, Melmond and Elfland Castle (NPCs.cs:277). The flag says the
+-- shuffle happened; it does not say where anyone went, because the permutation
+-- is rolled at generation and reaches neither the flag string nor the spoiler.
+--
+-- So with it on, "can I reach Dr Unne" has to mean "can I reach anywhere Dr
+-- Unne might be", which is all three homes. Bahamut's Cave dominates the other
+-- two under every one of its alternatives -- the airship reaches Melmond and
+-- Elf Castle, and cardiaDock with the Ship and the Canal carries the Ship that
+-- opens both -- so the conjunction of the three collapses to Bahamut's Cave's
+-- own requirement, and that is what the two moved cells ask for.
+--
+-- This is the strict direction on purpose, the same call the Cardia gateway
+-- roll got: a check held red that turns out reachable, rather than a green one
+-- that is not. It also ignores the ChestsKeyItems conjunct FFR ANDs in at
+-- NPCs.cs:135 -- with that flag off the shuffle does not run and this is
+-- needlessly strict, which is the side to be wrong on until there is a code
+-- for it.
+function noObjectiveShuffle()
+  local flag = Tracker:FindObjectForCode("objectiveNPCs")
+  if flag and flag.Active then
+    return 0
+  end
+  return 1
+end
+
 -- Shard hunt: the goal is a count of shards rather than four lit orbs.
 --
 -- The variants are named in manifest.json, and the UID carries a leading digit

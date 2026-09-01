@@ -130,7 +130,7 @@ either. The eleven above them are in both schemas.
 | `EarlySarda` | `earlySarda` | code |
 | `EarlySage` | `earlySage` | code |
 | `NoTail` | `noTail` | code — declared in `IVictoryConditionFlags` and never read there; see section A' |
-| `ShuffleObjectiveNPCs` | — | **missing**, and confirmed to move pins on 2026-09-01. `NPCs.cs:135` runs it when `ChestsKeyItems` is also on and the mode is not Deep Dungeon; `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf Doctor across BahamutCave2, Melmond and Elfland Castle. Measured on `objnpc497`: Bahamut and Unne swapped outright. It rewrites **no** exported rule, so `check_logic` cannot see it — see "The permutation is the problem" below |
+| `ShuffleObjectiveNPCs` | `objectiveNPCs`, through `$noObjectiveShuffle` | code — deliberately strict. `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf Doctor across their three homes and the roll reaches no file the pack can read, so with the flag on the two cells that move ask for all three homes at once. See "The permutation is the problem" below |
 | `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks |
 | `NPCSwatter` | — | n/a |
 
@@ -163,18 +163,15 @@ whether Titan's Trove exists as a check — presentation, not reachability.
 
 ## Missing rows, in one place
 
-Reachability flags with no pack code today:
+**There are none.** Every reachability flag the logic consults has a pack code
+or a recorded reason for not having one, as of 2026-09-01.
 
-1. `ShuffleObjectiveNPCs`
-
-**Every flag that was on this list by name is done.** `MapAirshipHike` and
-`MapCardiaLandBridge` were the last two and landed 2026-09-01, graded on a
-cartridge each — see their rows in section B and `docs/ORACLE.md`. What replaced
-them is the one entry above, which was on the *verify* list rather than this one
-and turned out to belong here.
-
-`IsFloaterRemoved` was the other name on the verify list and is answered in
-section A: it moves no pin.
+`MapAirshipHike` and `MapCardiaLandBridge` were the last two named here and
+landed graded on a cartridge each. Verifying the two that were on the *verify*
+list rather than this one split them: `IsFloaterRemoved` moves no pin (section
+A), and `ShuffleObjectiveNPCs` moves two, so it joined this list and was closed
+the same day — strictly, which is a weaker close than a graded one and is
+labelled as such below.
 
 ### The permutation is the problem, not the flag
 
@@ -206,16 +203,33 @@ pack's own.
 and `slabTranslated` reads reachable while Unne sits behind the airship. The
 second is the over-reporting direction and is the one that matters.
 
-Two ways to close it, and they are not equivalent:
+**Closed strictly, 2026-09-01.** With the flag on, the two cells that move ask
+for all three of the NPCs' homes at once. That collapses to Bahamut's Cave,
+which dominates the other two under every one of its alternatives — the airship
+reaches Melmond and Elf Castle, and `cardiaDock` with the Ship and the Canal
+carries the Ship that opens both — so the rule is Bahamut's Cave's own
+requirement, ANDed onto whatever the cell already wanted. `bahamut` needs no
+change, because it is already gated on the home that dominates.
 
-- **Strict.** With the flag on, gate all three objective NPCs on reaching all
-  three of their possible homes. Honest, cheap, and dominated by Bahamut's Cave,
-  so in practice it means "needs the airship". This is what the Cardia roll got.
-- **Read it off the cartridge.** `tools/extract_npcs.py` already finds the
-  answer, and `regen_maps.py` already reads the cartridge per seed; the live
-  bridge does not publish NPC positions today. This is the same feature as
-  publishing `ff1/gateways` for the Cardia roll and should be built once, for
-  both.
+The guard is `$noObjectiveShuffle` in `scripts/logic.lua`, mirroring
+`$noShipDrydock`, and `tools/check_logic.py` answers it the same way. It ignores
+the `ChestsKeyItems` conjunct FFR ANDs in at `NPCs.cs:135`: with that flag off
+the shuffle does not run and the pack is needlessly strict, which is the side to
+be wrong on until there is a code for it.
+
+**This is a weaker close than a graded one, and the difference is worth naming.**
+Every other row here was settled by making `check_logic` agree with FFR. This
+one deliberately *disagrees*: on `objnpc497` the pack now holds the Elf Prince
+where FFR opens him, because FFR wrote the seed and knows where the Elf Doctor
+went. That divergence is in `check_logic`'s `WAIVED` table with the reason, so
+it is printed rather than hidden, and it fires only on a seed that rolled the
+flag.
+
+**The better fix is still open, and it is shared.** `tools/extract_npcs.py`
+already reads the permutation straight off the cartridge, and `regen_maps.py`
+already reads the cartridge per seed; the live bridge does not publish NPC
+positions today. Teaching it to is the same feature as publishing `ff1/gateways`
+for the Cardia roll, and it should be built once, for both.
 
 **`ToFRMode` and `ChaosRush` landed 2026-08-31.** Neither can be graded by
 `check_logic` — `Archipelago.cs:93` drops every ToFR location from the pool, so

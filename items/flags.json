@@ -158,6 +158,12 @@
         "codes" : "cardiaLandBridge"
     },
     {
+        "name" : "Shuffle Objective NPCs",
+        "type" : "toggle",
+        "img" : "images/items/slab-translated.png",
+        "codes" : "objectiveNPCs"
+    },
+    {
         "name": "NPCs are Incentive",
         "type": "toggle",
         "img": "images/locations/king.png",

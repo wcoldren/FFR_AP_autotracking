@@ -125,8 +125,8 @@ Nothing here is urgent unless it says so.
   permissive rule is the worse of the two, and it argues for widening the swept
   vocabulary before trusting the "225 of 226 agree" figure as coverage.
 
-- **`ShuffleObjectiveNPCs` moves two cells and nothing in the pack knows.**
-  Found 2026-09-01. `NPCs.cs:135` runs the shuffle when `ChestsKeyItems` is also
+- **`ShuffleObjectiveNPCs` moved two cells and nothing in the pack knew. Closed
+  strictly 2026-09-01, the day it was found.** Found and closed 2026-09-01. `NPCs.cs:135` runs the shuffle when `ChestsKeyItems` is also
   on and the mode is not Deep Dungeon, and `NPCs.cs:277` permutes Bahamut, Dr
   Unne and the Elf Doctor across BahamutCave2, Melmond and Elfland Castle.
   Measured on `objnpc497` — `std497` plus this one flag — with
@@ -146,10 +146,22 @@ Nothing here is urgent unless it says so.
   `NoTail` case: the export cannot see the branch and the lying cell is the
   pack's own.
 
-  Not closed here because the fix is a choice rather than a transcription, and
-  because the honest cheap answer and the right answer are different things —
-  `docs/ROADMAP.md` and `docs/FLAG_COVERAGE.md` carry both, and the second shares
-  a fix with the Cardia gateway roll.
+  **The close is the strict one and not the right one.** With the flag on, both
+  cells now ask for all three homes at once, which collapses to Bahamut's Cave
+  because it dominates the other two under every one of its alternatives.
+  `$noObjectiveShuffle` in `scripts/logic.lua` is the guard, `check_logic`
+  answers it the same way, and `tests/test_ram.lua` demonstrates it opening and
+  closing.
+
+  What that costs: on a shuffled seed the pack now holds the Elf Prince where
+  FFR opens him, because FFR wrote the seed and knows where the Elf Doctor went.
+  That is a deliberate disagreement rather than an agreement, so it lives in
+  `check_logic`'s `WAIVED` table and stays printed. `bahamut` needed no change —
+  it was already gated on the home that dominates.
+
+  The right fix is unbuilt and is shared with the Cardia gateway roll: teach the
+  bridge to publish the permutation that `tools/extract_npcs.py` already reads.
+  `docs/ROADMAP.md` holds it as one item rather than two.
 
 - **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so a
   Locations-grid cell needs a new hosted toggle under a different code. It would

@@ -218,6 +218,7 @@ flag decoder accepts a local build of it unmodified.
 | `extended497` | `oracle497_extended` | `3B7E1C8A` | the same, plus `MapOpenProgressionExtended` | that the `extendedOpen` code describes the flag |
 | `airship497` | `oracle497_airship` | `3B7E1C8A` | the same, plus `MapAirshipHike` | what `MapAirshipHike` does to the rules FFR exports |
 | `landbridge497` | `oracle497_landbridge` | `3B7E1C8A` | the same, plus `MapCardiaLandBridge` | what `MapCardiaLandBridge` does to the same |
+| `objnpc497` | `oracle497_objnpc` | `3B7E1C8A` | the same, plus `ShuffleObjectiveNPCs` | where the three objective NPCs went, which only the cartridge says |
 
 **Every one of them shares `std497`'s seed and differs from it in one flag
 value.** So anything that moves between an export and `std497`'s is the flag,
@@ -231,8 +232,9 @@ same as the build not having them.** 4.9.7's `default.json` names neither
 three are ordinary `bool?` properties on `Flags` at that commit
 (`Flags.cs:326-327`, and `ShipDrydock` beside them). Newtonsoft binds a key
 written in explicitly straight onto `Flags`, so every preset here writes
-`ShipDrydock` -- `oracle497_std` and the three built from it are 544 keys --
-and `oracle497_airship` and `oracle497_landbridge` add their own on top, at 545.
+`ShipDrydock` -- `oracle497_std`, `oracle497_drydock`, `oracle497_extended` and
+`oracle497_objnpc` are 544 keys -- and `oracle497_airship` and
+`oracle497_landbridge` add their own on top, at 545.
 Every value was confirmed by decoding it back off the finished cartridge rather
 than trusting the preset. An absent key is not an absent flag; that is the trap
 this paragraph exists to stop, and it is the only thing that made the last two
@@ -252,6 +254,23 @@ Last run 2026-09-01.
 | `std497` vs `drydock497`, exported rules | **207 locations in both exports, 52 rules differ; 51 lose a `Ship` alternative and not one gains anything. The 52nd is `Shop Item` and is not the flag — see below** |
 | `std497` vs `airship497`, exported rules | **208 in both, 124 differ; every one of them gains `(Floater AND Ship)` and none loses anything** |
 | `std497` vs `landbridge497`, exported rules | **206 in both, 42 differ; every one gains `(Canoe AND Canal AND Ship)`** |
+| `objnpc497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — one of them waived rather than agreed, and see below |
+| `std497` vs `objnpc497`, exported rules | **204 in both, 1 differs, and it is `Shop Item` — roll noise, not the flag. `Elf Prince` and `Lefein` are byte-identical across the two** |
+| `std497` vs `objnpc497`, NPC placement | **Bahamut `map 39 (21,3)` -> `map 3 (26,1)`, Unne the reverse; the Elf Doctor unmoved** (`tools/extract_npcs.py`) |
+
+**`objnpc497` is the row that does not mean what the others mean.** Every other
+line above is the pack agreeing with FFR. This one is the pack agreeing with FFR
+on 223 locations and deliberately disagreeing on the Elf Prince, waived with its
+reason in `check_logic`'s `WAIVED` table. FFR wrote the seed, so its rule names
+the home the roll actually picked; the pack cannot read that roll and asks for
+all three homes instead. The two rows under it are why the cartridge was worth
+building at all: the export cannot see this flag, and `extract_npcs.py` can.
+
+A `NoFloater` cartridge was attempted alongside it and is not here. Removing the
+Floater from the pool leaves item placement unable to meet this preset's
+incentive count (`ItemPlacement.cs:173`), with or without `IncentivizeAirship`,
+so the seed does not generate. `IsFloaterRemoved` did not need it --
+`FLAG_COVERAGE.md` section A settles that flag from the source.
 
 `std497`'s 226/226 is `std`'s 225/225 one version later, and it is the row that
 says the corpus itself is sound: the harness works against a 4.9.7 export and the
@@ -300,12 +319,12 @@ the 53 are not an artefact of it.
 ### Checking the 4.9.7 corpus
 
     O7=<corpus>/oracle-4.9.7
-    for s in std drydock extended airship landbridge; do
+    for s in std drydock extended airship landbridge objnpc; do
         python3 tools/check_logic.py $O7/${s}497/${s}497.nes \
             --ap-rules $O7/${s}497/${s}497.yaml --ff1-world $W
     done
 
-No `--derived` on any of them: the sweep derives No-Overworld rules and all five
+No `--derived` on any of them: the sweep derives No-Overworld rules and all six
 are standard seeds.
 
 ### Rebuilding the 4.9.7 corpus
@@ -322,8 +341,11 @@ The recipe below, with three differences:
   in `oracle497_drydock`. The stock preset omits the key entirely; Newtonsoft
   binds it straight onto `Flags`, and the value was confirmed by decoding it back
   off each finished cartridge rather than trusting the preset. The other three
-  are `oracle497_std` with exactly one more key written in the same way:
-  `MapOpenProgressionExtended`, `MapAirshipHike` and `MapCardiaLandBridge`.
+  are `oracle497_std` with exactly one value changed in the same way:
+  `MapOpenProgressionExtended`, `MapAirshipHike`, `MapCardiaLandBridge` and
+  `ShuffleObjectiveNPCs`. The first three are keys the stock preset omits;
+  `ShuffleObjectiveNPCs` is present and `false`, so that one is an edit rather
+  than an addition.
 
 Generating one of the newer three, for the record:
 

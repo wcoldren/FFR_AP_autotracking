@@ -208,7 +208,10 @@
                     {
                         "name": "I: Elf Prince",
                         "access_rules": [
-                            "herb,^$incentiveSlot|fetchQuestsAreIncentive"
+                            "herb,$noObjectiveShuffle,^$incentiveSlot|fetchQuestsAreIncentive",
+                            "herb,objectiveNPCs,$standardWorld,airship,^$incentiveSlot|fetchQuestsAreIncentive",
+                            "herb,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal,^$incentiveSlot|fetchQuestsAreIncentive",
+                            "herb,objectiveNPCs,$noOverworld,$hasFloater,^$incentiveSlot|fetchQuestsAreIncentive"
                         ],
                         "hosted_item": "elfprince"
                     }
@@ -428,7 +431,10 @@
                     {
                         "name": "I: Dr Unne",
                         "access_rules": [
-                            "^$incentiveSlot|fetchQuestsAreIncentive"
+                            "^$incentiveSlot|fetchQuestsAreIncentive,$noObjectiveShuffle",
+                            "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,$standardWorld,airship",
+                            "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
+                            "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,$noOverworld,$hasFloater"
                         ],
                         "hosted_item": "slabTranslated"
                     }

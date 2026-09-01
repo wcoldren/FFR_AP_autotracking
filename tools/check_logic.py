@@ -118,6 +118,12 @@ FREE_FLAGS = {
 LUA_RULES = {
     "$noSardasForest": lambda flags: flags.get("MapSardasForest") is not True,
     "$noShipDrydock": lambda flags: flags.get("ShipDrydock") is not True,
+    # ShuffleObjectiveNPCs moves Bahamut, Dr Unne and the Elf Doctor between
+    # their three homes, and the permutation is rolled at generation rather
+    # than written into the flag string. The pack answers that by requiring
+    # all three homes, which is Bahamut's Cave, and this is the guard that
+    # switches it off on a seed that did not roll the flag.
+    "$noObjectiveShuffle": lambda flags: flags.get("ShuffleObjectiveNPCs") is not True,
     # The mode guards. One set of rules serves both modes by carrying both
     # modes' alternatives and letting these two decide which are live, so for
     # any one seed exactly one of them is pinned and the other mode's
@@ -141,6 +147,15 @@ WAIVED = {
     ("Inner Sea/Coneria Castle/Coneria Castle Sara/Sara", "strict"):
         "the pack wants Garland beaten before the princess is back; FFR folds"
         " that in, because Garland is beatable from the start",
+    ("Inner Sea/Elf Castle/Elf Castle Elf Prince/Elf Prince", "strict"):
+        "ShuffleObjectiveNPCs is on, and the pack does not know where the Elf"
+        " Doctor went. FFR does -- it wrote the seed -- so its rule names the"
+        " one home the roll picked and does not move at all between a shuffled"
+        " export and an unshuffled one. The permutation reaches neither the"
+        " flag string nor the spoiler, so the pack asks for all three homes"
+        " instead, which is Bahamut's Cave. Deliberately strict, the same call"
+        " the Cardia gateway roll got, and it only fires on a seed that rolled"
+        " the flag",
 }
 
 # FFR spoiler "Source" column against the pack's hosted-item codes. This is the

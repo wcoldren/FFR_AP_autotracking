@@ -1244,7 +1244,10 @@
                             {
                                 "name": "Elf Prince",
                                 "access_rules": [
-                                    "herb"
+                                    "herb,$noObjectiveShuffle",
+                                    "herb,objectiveNPCs,$standardWorld,airship",
+                                    "herb,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
+                                    "herb,objectiveNPCs,$noOverworld,$hasFloater"
                                 ],
                                 "item_count": 1,
                                 "hosted_item": "elfprince"
@@ -2618,6 +2621,12 @@
                 "sections": [
                     {
                         "name": "Dr Unne",
+                        "access_rules": [
+                            "$noObjectiveShuffle",
+                            "objectiveNPCs,$standardWorld,airship",
+                            "objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
+                            "objectiveNPCs,$noOverworld,$hasFloater"
+                        ],
                         "hosted_item": "slabTranslated"
                     }
                 ],

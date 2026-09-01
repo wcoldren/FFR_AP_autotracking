@@ -671,6 +671,62 @@ byCode["cardiaLandBridge"].Active = false
 
 
 ------------------------------------------------------------------
+-- ShuffleObjectiveNPCs. FFR permutes Bahamut, Dr Unne and the Elf Doctor
+-- across BahamutCave2, Melmond and Elfland Castle (NPCs.cs:277) and writes the
+-- permutation nowhere the pack can read: not the flag string, not the spoiler.
+-- Measured on oracle-4.9.7/objnpc497, which is std497 plus this one flag --
+-- Bahamut and Unne swapped outright there.
+--
+-- So the pack asks for all three homes, which collapses to Bahamut's Cave
+-- because that dominates the other two under every one of its alternatives.
+-- Deliberately strict: a check held red that turns out reachable, rather than
+-- a green one that is not.
+------------------------------------------------------------------
+-- Read the section's own rules out of the tree rather than restating them, so
+-- this tracks the file the way the ToFR checks do.
+local function sectionRules(nodeName, sectionName)
+  local node = findLocation(OVERWORLD, nodeName)
+  for _, sec in ipairs(node.sections or {}) do
+    if sec.name == sectionName then return sec.access_rules end
+  end
+  error("no " .. sectionName .. " section on " .. nodeName)
+end
+
+local elfPrince = sectionRules("Elf Castle Elf Prince", "Elf Prince")
+local drUnne = sectionRules("Melmond", "Dr Unne")
+
+reset()
+MEM[0x600C] = 1                                  -- canal not dug
+MEM[0x6024] = 1                                  -- Herb
+MEM[0x6000] = 1                                  -- Ship, which opens Elf Castle
+applyRamRules(byteAt)
+check("herb and ship: the Elf Prince is in logic",
+      inLogic("Elf Castle Elf Prince", elfPrince), true)
+byCode["objectiveNPCs"].Active = true
+check("the shuffle closes him, because he may not be in Elf Castle",
+      inLogic("Elf Castle Elf Prince", elfPrince), false)
+
+-- And reaching every home he could be in opens him again. Bahamut's Cave is
+-- the hard one, so the airship is what does it.
+MEM[0x602B], MEM[0x6004] = 1, 1                  -- Floater, airship raised
+applyRamRules(byteAt)
+check("reaching all three homes opens him again",
+      inLogic("Elf Castle Elf Prince", elfPrince), true)
+byCode["objectiveNPCs"].Active = false
+
+-- Dr Unne is the other cell that moves, and the over-reporting direction: with
+-- the shuffle on he can be behind the airship while Melmond is not.
+reset()
+MEM[0x600C] = 0                                  -- canal dug
+MEM[0x6000] = 1                                  -- Ship
+MEM[0x6028] = 1                                  -- Slab, which Melmond's node wants
+applyRamRules(byteAt)
+check("ship, canal and slab: Dr Unne is in logic", inLogic("Melmond", drUnne), true)
+byCode["objectiveNPCs"].Active = true
+check("the shuffle closes Dr Unne too", inLogic("Melmond", drUnne), false)
+byCode["objectiveNPCs"].Active = false
+
+------------------------------------------------------------------
 -- Sanity on the rule table itself
 ------------------------------------------------------------------
 local unknown = {}
