@@ -145,9 +145,10 @@ local NOT_MODELLED = {
   {
     ffr = "FreeLute",
     status = "ram",
-    why = "starting inventory (StartingItems.cs:62). The Lute is an inventory "
-      .. "item and reads the same whether the seed handed it over or the "
-      .. "party found it.",
+    why = "starting inventory (FF1Lib/StartingItems/StartingItems.cs:59 -- "
+      .. "the path matters, there is a second StartingItems.cs under "
+      .. "FF1Lib/Data/). The Lute is an inventory item and reads the same "
+      .. "whether the seed handed it over or the party found it.",
   },
   {
     ffr = "FreeRod",
@@ -193,12 +194,16 @@ local NOT_MODELLED = {
   {
     ffr = "ChestsKeyItems",
     status = "decided",
-    why = "reaches the pack only as a conjunct FFR ANDs onto "
-      .. "ShuffleObjectiveNPCs (NPCs.cs:135). With it off the shuffle does "
+    why = "already read, just not through a flag item: "
+      .. "cartridgeChestsAreChecks() in scripts/autotracking/maptab.lua:87 "
+      .. "asks ffrFlag for it directly, and that answer reaches "
+      .. "chestsAreChecks() and logic.lua's showPin(). What it carries no "
+      .. "code for is its second role, the conjunct FFR ANDs onto "
+      .. "ShuffleObjectiveNPCs (NPCs.cs:135): with it off the shuffle does "
       .. "not run and the $noObjectiveShuffle guard is needlessly strict, "
-      .. "which is the side to be wrong on: strict holds a pin red where FFR "
-      .. "opens it, and the pack already prints that divergence rather than "
-      .. "hiding it. A code would only relax it.",
+      .. "which is the side to be wrong on -- strict holds a pin red where "
+      .. "FFR opens it, and the pack already prints that divergence rather "
+      .. "than hiding it. A code would only relax it.",
   },
   {
     ffr = "BossScaleHpHigh",
@@ -253,14 +258,6 @@ local NOT_MODELLED = {
     why = "puts random encounters on the Chaos floor (TempleOfFiends.cs:60, "
       .. ":65, :112). It adds fights to a floor the party is already "
       .. "standing on and moves no teleport, chest or gate.",
-  },
-  {
-    ffr = "LefeinSuperStore",
-    status = "noise",
-    why = "a shop edit, passed to ApplyMapMods at MetroidVaniaMap.cs:58. "
-      .. "Worth naming rather than passing over: diffing FFR 4.9.2 to 4.9.8 "
-      .. "moved the whole No-Overworld surface by one line, and this flag is "
-      .. "that line. Six releases of drift, and none of it was topology.",
   },
   {
     ffr = "Entrances",
@@ -353,6 +350,29 @@ local NOT_MODELLED = {
       .. "cannot grade either one: archipelago/Archipelago.cs:93 drops every "
       .. "ToFR location from the pool, so this wants the derived walk or "
       .. "tofr_diff.py, not a graded cartridge.",
+  },
+  {
+    ffr = "LefeinSuperStore",
+    status = "unjudged",
+    measure = "walk Lefein on a No-Overworld pair one flag apart -- the town "
+      .. "layout is in the decompressed map, so this is a diff of two "
+      .. "cartridges rather than a graded export",
+    why = "not only a shop. Its one use is ApplyMapMods "
+      .. "(MetroidVaniaMap.cs:58), which is called only from NoOverworld() "
+      .. "(:47-58), and at :260 it chooses between two different sets of "
+      .. "tile writes to MapIndex.Lefein -- on, lefeinNorthedge2 at "
+      .. "(0x24,0x02), lefeinSouthedge2 at (0x00,0x01), a blob named "
+      .. "lefeinNonteleport at (0x00,0x02) and 0x0E at [0x01,0x33] and "
+      .. "[0x01,0x3F]; off, lefeinNorthedge at (0x26,0x02), lefeinNorthedge2 "
+      .. "at (0x3C,0x02), lefeinSouthedge2 at (0x00,0x02) and 0x0E at "
+      .. "[0x01,0x39]. Walls and a teleport tile, in a town the "
+      .. "hand-authored 75-link No-Overworld topology was derived from with "
+      .. "the flag off. Held as noise until 2026-09-01 on the strength of "
+      .. "the word 'store' in the name, which is the reading the call site "
+      .. "does not support. Whether the walk still holds with it on is the "
+      .. "open question; the 4.9.2-to-4.9.8 diff moving the whole "
+      .. "No-Overworld surface by exactly this line is a reason to measure "
+      .. "it rather than a reason to pass over it.",
   },
 }
 

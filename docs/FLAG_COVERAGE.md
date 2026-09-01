@@ -131,7 +131,7 @@ either. The eleven above them are in both schemas.
 | `EarlySage` | `earlySage` | code |
 | `NoTail` | `noTail` | code — declared in `IVictoryConditionFlags` and never read there; see section A' |
 | `ShuffleObjectiveNPCs` | `objectiveNPCs`, through `$noObjectiveShuffle` | code — deliberately strict. `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf Doctor across their three homes and the roll reaches no file the pack can read, so with the flag on the two cells that move ask for all three homes at once. See "The permutation is the problem" below |
-| `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks |
+| `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks. `ChestsKeyItems` is read directly — `maptab.lua:87`'s `cartridgeChestsAreChecks()` asks `ffrFlag` for it, and that answer reaches `chestsAreChecks()` and `logic.lua`'s `showPin()` |
 | `NPCSwatter` | — | n/a |
 
 ### No-Overworld / entrance shuffle (`MetroidVaniaMap.cs`, `EntrancesFloorsShuffle.cs`)
@@ -141,12 +141,13 @@ either. The eleven above them are in both schemas.
 | `EarlyOrdeals` | `earlyOrdeals` | code |
 | `Entrances`, `Floors`, `Towns`, `EntrancesMixedWithTowns`, `IncludeConeria`, `AllowDeepCastles` | — | unmodellable by toggle; `regen_maps` reads the result off the cartridge |
 | `OwMapExchange`, `OwShuffledAccess` | — | unmodellable; `flag_mapping` already warns |
+| `LefeinSuperStore` | `NOT_MODELLED`, status `unjudged` | **unmeasured** — passed to `ApplyMapMods` (`MetroidVaniaMap.cs:58`), which runs only under `NoOverworld()`, and at `:260` it picks between two sets of tile writes to `MapIndex.Lefein`: different wall edges, plus a blob named `lefeinNonteleport`. Walls and a teleport tile in a town the 75-link table was derived from with the flag off. Filed `noise` until 2026-09-01 on the word *store* in its name |
 
 ## C. Goal and Temple of Fiends (`TempleOfFiends.cs`)
 
 | FFR flag | Pack | Status |
 |---|---|---|
-| `OrbsRequiredCount`, `OrbsRequiredMode` | `logic.lua:153-154` reads `ffrFlag()` directly | code |
+| `OrbsRequiredCount`, `OrbsRequiredMode` | `logic.lua:202-203` reads `ffrFlag()` directly | code |
 | `ShardCount` | `hasEnoughShards()` | code |
 | `ToFRMode` | `shortToFR` progressive; `shortToFR,$canBreakOrb` on the ToFR node | code — only Short moves a rule |
 | `ChaosRush` | `chaosRush` toggle; `chaosRush,$canBreakOrb,lute` on the ToFR node | code |
@@ -389,15 +390,17 @@ count are `ffr = "..."`, `get("...")` inside a progressive's stage closure,
 
 **What the thirty became.** `NOT_MODELLED` in `flag_mapping.lua` carries a
 `status` drawn from the key at the top of this page, so an entry and its row
-here can be checked against each other:
+here can be checked against each other. The tally below is 31 rather than 30
+because `ExitToFR` was already there — the thirty are the ones this added:
 
-    ram 7   variant 1   noise 9   unmodellable 6   decided 4   unjudged 4
+    ram 7   variant 1   noise 8   unmodellable 6   decided 4   unjudged 5
 
 `unjudged` is the status that keeps the list usable. A list padded to make the
-test pass is the test not existing, so `NPCItems`, `NPCSwatter` and the two
-refight flags above say they are unmeasured and name the measurement, rather
-than borrowing a neighbour's reason. `tests/test_flags.lua` holds all of it:
-a known status, a real reason, a measurement on anything `unjudged`, and a
-`computed = true` exemption for the eight flags `FlagsCompute.cs` derives rather
-than stores — which have no field in either schema, so the existing "every named
-flag is a real flag" check would otherwise have failed on them.
+test pass is the test not existing, so `NPCItems`, `NPCSwatter`, the two
+refight flags above and `LefeinSuperStore` say they are unmeasured and name the
+measurement, rather than borrowing a neighbour's reason. `tests/test_flags.lua`
+holds all of it: a known status, a real reason, a measurement on anything
+`unjudged`, and a `computed = true` exemption for the eight flags
+`FlagsCompute.cs` derives rather than stores — which have no field in either
+schema, so the existing "every named flag is a real flag" check would otherwise
+have failed on them.

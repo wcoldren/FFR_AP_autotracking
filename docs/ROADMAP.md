@@ -279,15 +279,25 @@ else on this page does that.
   which is this pack's oldest failure shape, and the test demonstrates that case
   rather than asserting about it.
 
-  **Writing the thirty reasons was the work, as predicted, and four of them
+  **Writing the thirty reasons was the work, as predicted, and five of them
   could not honestly be written.** `NOT_MODELLED` entries carry a `status` from
-  the key `FLAG_COVERAGE.md` already publishes — ram 7, variant 1, noise 9,
-  unmodellable 6, decided 4, unjudged 4 — and `unjudged` is the one that matters.
-  A list padded to make the test pass is the test not existing, so `NPCItems`,
-  `NPCSwatter`, `FiendsRefights` and `ShortToFRFiendsRefights` say they are
-  unmeasured and name the measurement that would settle them. **Those four are
-  the open work this bullet leaves behind**, and they are section-1 candidates
-  if any of them turns out to move a pin.
+  the key `FLAG_COVERAGE.md` already publishes — ram 7, variant 1, noise 8,
+  unmodellable 6, decided 4, unjudged 5, thirty-one in all because `ExitToFR`
+  was already there — and `unjudged` is the one that matters. A list padded to
+  make the test pass is the test not existing, so `NPCItems`, `NPCSwatter`,
+  `FiendsRefights`, `ShortToFRFiendsRefights` and `LefeinSuperStore` say they
+  are unmeasured and name the measurement that would settle them. **Those five
+  are the open work this bullet leaves behind**, and they are section-1
+  candidates if any of them turns out to move a pin.
+
+  `LefeinSuperStore` joined them on review rather than on the first pass, and it
+  is the one worth naming. It was filed `noise` — "a shop edit" — on the
+  strength of the word *store* in its name. Its only use is `ApplyMapMods`,
+  reached only from `NoOverworld()`, where it picks between two sets of tile
+  writes to `MapIndex.Lefein`: different wall edges, and a blob called
+  `lefeinNonteleport`. That is walls and a teleport tile in a town the
+  hand-authored 75-link table was derived from with the flag off. The reason
+  cited the call site and did not read it.
 
   The two refight flags were the argument for building this and are now the
   first thing it produced. `FLAG_COVERAGE.md` had never listed either, having

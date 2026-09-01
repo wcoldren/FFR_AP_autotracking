@@ -111,16 +111,18 @@ and is a quoted literal nowhere, so the grep says 31 unnamed where the four
 real quoting sites say 30. Comments are stripped with quote state tracked,
 because the reasons in `NOT_MODELLED` contain `--` inside strings.
 
-**Thirty reasons, and four of them could not honestly be written.**
-`NOT_MODELLED` went from one entry to thirty-one, each with a `status` from the
-key `FLAG_COVERAGE.md` already publishes — ram 7, variant 1, noise 9,
-unmodellable 6, decided 4, unjudged 4. A list padded to make the test pass is
-the test not existing, so `NPCItems`, `NPCSwatter` and the two refight flags say
-they are unmeasured and name the measurement that would settle them, instead of
-borrowing a neighbour's argument. Everything else cites the line it was read
-from. `tests/test_flags.lua` holds the list to all of that, including a
-`computed = true` exemption for the eight flags `FlagsCompute.cs` derives rather
-than stores, which have no field in either schema.
+**Thirty reasons, and five of them could not honestly be written.**
+`NOT_MODELLED` went from one entry to thirty-one — thirty new ones plus the
+`ExitToFR` that was already there — each with a `status` from the key
+`FLAG_COVERAGE.md` already publishes: ram 7, variant 1, noise 8, unmodellable
+6, decided 4, unjudged 5. A list padded to make the test pass is the test not
+existing, so `NPCItems`, `NPCSwatter`, the two refight flags and
+`LefeinSuperStore` say they are unmeasured and name the measurement that would
+settle them, instead of borrowing a neighbour's argument. Everything else cites
+the line it was read from. `tests/test_flags.lua` holds the list to all of
+that, including a `computed = true` exemption for the eight flags
+`FlagsCompute.cs` derives rather than stores, which have no field in either
+schema.
 
 ### The pin was a three-way agreement enforced at one hop
 
@@ -280,9 +282,18 @@ moved by **one line**:
     FF1Lib/StandardMaps.cs        unchanged
     FF1Lib/Enums.cs               unchanged
 
-and the line is `ApplyMapMods(..., LefeinSuperStore && ShopKillMode == None)` —
-a shop flag, not topology. The 75-link table, the gate NPCs and the map indices
-did not move at all.
+and the line is `ApplyMapMods(..., LefeinSuperStore && ShopKillMode == None)`.
+The 75-link table, the gate NPCs and the map indices did not move at all.
+
+**"A shop flag, not topology" is what this said until 2026-09-01, and the call
+site does not support it.** `ApplyMapMods` is reached only from
+`NoOverworld()`, and at `MetroidVaniaMap.cs:260` the flag picks between two
+different sets of tile writes to `MapIndex.Lefein` — different wall edges, and
+a blob named `lefeinNonteleport`. Those are walls and a teleport tile in a town
+the 75-link table was hand-derived from with the flag off. It may still change
+nothing a router can see; nobody has walked it. It is filed `unjudged` with the
+measurement named, not `noise`. The rest of the paragraph stands: one line
+moved in six releases, and that line is this one.
 
 So the volatile surface is the **flag string**, not the maps, and that already
 has its mechanism: `tools/ffr_flags/gen_schema.py` regenerates a version's
