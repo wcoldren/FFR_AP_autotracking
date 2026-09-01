@@ -223,6 +223,63 @@ else
                       gridSeen, #layoutFiles))
 end
 
+-- 4b'. the two flags grids have to stay the same grid.
+--
+--     The No-Overworld map variants carry NOverworld_flags_grid rather than
+--     shared_flags_grid, because Overworld Tab decides between two overworld
+--     tabs that those variants do not have -- maptab.lua's overworldTab()
+--     returns the incentive poster before it ever asks tabMode(). Shipping the
+--     cell there would be a control that changes nothing.
+--
+--     One inert cell is a good reason to fork a grid. It is not a good reason
+--     to let the two drift, and a flag added to one and forgotten in the other
+--     is exactly the failure 4c below exists for -- except 4c is satisfied by
+--     either grid, so it would not notice. This is the check that would.
+do
+  local function cells(key)
+    local grid = docs[key]
+    assert(grid, "no layout named " .. key)
+    local out, seen = {}, {}
+    for _, row in ipairs(grid.content.rows) do
+      for _, code in ipairs(row) do
+        if not seen[code] then seen[code] = true; out[#out + 1] = code end
+      end
+    end
+    return out, seen
+  end
+  local INERT = { tab_mode = true }
+  local stdCells, std = cells("shared_flags_grid")
+  local novCells, nov = cells("NOverworld_flags_grid")
+  local missing, extra = {}, {}
+  for _, code in ipairs(stdCells) do
+    if not nov[code] and not INERT[code] then missing[#missing + 1] = code end
+  end
+  for _, code in ipairs(novCells) do
+    if not std[code] then extra[#extra + 1] = code end
+  end
+  table.sort(missing); table.sort(extra)
+  if #missing > 0 then
+    fails("NOverworld_flags_grid is missing: " .. table.concat(missing, ", "))
+  end
+  if #extra > 0 then
+    fails("NOverworld_flags_grid has cells shared_flags_grid does not: "
+          .. table.concat(extra, ", "))
+  end
+  for code in pairs(INERT) do
+    if nov[code] then
+      fails("NOverworld_flags_grid carries " .. code .. ", which does nothing there")
+    end
+    if not std[code] then
+      fails("shared_flags_grid has lost " .. code .. ", so the fork has no reason")
+    end
+  end
+  if #missing == 0 and #extra == 0 then
+    print(string.format(
+      "ok   the two flags grids agree on all %d cells, minus tab_mode",
+      #novCells))
+  end
+end
+
 -- 4c. and the same check the other way round: every flag reaches a grid.
 --
 --     4b catches a cell naming nothing. It cannot catch the reverse, and the

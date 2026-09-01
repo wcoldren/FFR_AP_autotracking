@@ -780,11 +780,23 @@ facts, gathered rather than assumed, because most of the answer turns out to be
   tabs has no pins to switch off, so parity here would mean adding a control that
   does nothing.
 
-So the bridge-less experience is fine and mostly documented. What is missing is
+  **The Flags group was not map-only and had no such reason. Fixed 2026-09-01.**
+  It was in the standard and shard-hunt layouts and nowhere else, so six of the
+  eight variants showed no seed settings at all while `scripts/init.lua` went on
+  setting `tab_switch` and `tab_mode` for them — the behaviour on, the controls
+  invisible, and the README describing both as though they were there. The two
+  No-Overworld map variants have it now, on `NOverworld_flags_grid`: the same
+  grid minus `tab_mode`, which is the one cell that genuinely does nothing there
+  because `maptab.lua`'s `overworldTab()` returns the incentive poster before it
+  ever asks. `tests/test_mapping.lua` holds the two grids together so the fork
+  cannot drift. The four `NoMap` variants stay thin, for the reason above.
+
+So the bridge-less experience is fine and mostly documented. What was missing was
 one sentence saying it: that the map tabs work out of the box on hand-drawn art,
 that rendering them from your own cartridge is an optional upgrade, and that the
-emulator feed is what the extra boxes need. Everything above is a README
-paragraph rather than a feature.
+emulator feed is what the extra boxes need. That paragraph is in the README now,
+along with a "Which variant shows what" section, since the honest answer to that
+turned out to be shorter than the investigation.
 
 The open question underneath is the one the `NoMap` entry above already names —
 nobody knows whether anyone outside this repo runs the pack — and it is worth

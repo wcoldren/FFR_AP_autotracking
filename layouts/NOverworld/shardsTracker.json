@@ -40,6 +40,15 @@
                         },
                         {
                             "type": "group",
+                            "header": "Flags",
+                            "dock": "left",
+                            "content": {
+                                "type": "layout",
+                                "key": "NOverworld_flags_grid"
+                            }
+                        },
+                        {
+                            "type": "group",
                             "header": "Incentives",
                             "dock": "left",
                             "content": {

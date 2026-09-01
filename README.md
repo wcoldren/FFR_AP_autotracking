@@ -110,7 +110,7 @@ The bridge reports which map you are standing on, so the map tab follows you int
 whichever floor you just walked into. `Auto-Tab` in the flags grid turns that off
 if you would rather stay on the floor you are reading; it is on by default. This
 needs the emulator bridge -- Archipelago on its own does not report your position
--- and only the two map variants have dungeon tabs to switch between.
+-- and only the four map variants have dungeon tabs to switch between.
 
 If you have run `tools/regen_maps.py`, the eight towns have tabs of their own
 under `Other > Towns`, and walking into one brings its tab up like any dungeon
@@ -126,6 +126,19 @@ asked what is in its pool, and a bridge-only one is asked what the cartridge
 rolled -- a shard hunt, or key items allowed in chests, and it lands on the full
 map, because on those seeds the chests are the run. Click it round to pin either
 tab if you would rather decide yourself.
+
+`Overworld Tab` is on the standard and shard-hunt map variants only. The
+No-Overworld ones have no full overworld tab to choose -- the mode replaces the
+overworld with an ocean stub -- so the cell is not there rather than there and
+inert.
+
+## Which variant shows what
+
+The four map variants all carry the flags grid: the settings your seed rolled,
+`Auto-Tab`, and the pin toggles. The four `NoMap` variants are the thin ones --
+no map tabs, and no flags, incentives or pin toggles either, because those are
+controls for things a map-less board has not got. Autotracking works the same on
+all eight; what changes is how much of it you can see and adjust.
 
 ## What the pin colours mean
 

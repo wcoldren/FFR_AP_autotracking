@@ -193,6 +193,61 @@
             ]
         }
     },
+    "NOverworld_flags_grid": {
+        "//": [
+            "shared_flags_grid without tab_mode. Overworld Tab decides which of",
+            "the two overworld tabs a seed lands on, and the No-Overworld",
+            "variants have neither: scripts/autotracking/maptab.lua's",
+            "overworldTab() returns the incentive poster before it ever asks",
+            "tabMode(), because the mode replaces the overworld with an ocean",
+            "stub. Shipping the cell here would be a control that changes",
+            "nothing, which is what the Pins-on-NoMap note in docs/IDEAS.md",
+            "argues against.",
+            "Every other cell is the same, in the same place, and",
+            "tests/test_mapping.lua holds the two grids together so a flag",
+            "added to one cannot go missing from the other."
+        ],
+        "type": "container",
+        "content": {
+            "type": "itemgrid",
+            "h_alignment": "center",
+            "v_alignment": "center",
+            "item_margin": "1,2",
+            "rows": [
+                [
+                    "extendedOpen",
+                    "airBoat",
+                    "northernDocks",
+                    "earlyKing",
+                    "noTail",
+                    "chaosRush"
+                ],
+                [
+                    "luffyDock",
+                    "cardiaDock",
+                    "lefeinRiver",
+                    "earlySarda",
+                    "tab_switch",
+                    "shortToFR"
+                ],
+                [
+                    "lefeinBridge",
+                    "gaiaMountain",
+                    "hwyOrdeals",
+                    "earlySage",
+                    "objectiveNPCs"
+                ],
+                [
+                    "melmondRiver",
+                    "sardasForest",
+                    "shipDrydock",
+                    "earlyOrdeals",
+                    "airshipHike",
+                    "cardiaLandBridge"
+                ]
+            ]
+        }
+    },
     "shared_display_grid": {
         "type": "container",
         "content": {

@@ -2538,3 +2538,53 @@ which is the cost of not widening the item panel to eight.
 And, as with every other layout edit: it does not appear on a board with an
 installed override until `regen_maps.py` is re-run per mode, for the reason
 `BRIDGE.md` already gives about the stale-art triangle's own cell.
+
+## Six of eight variants had no flags grid, and nothing said so
+
+Found while auditing what a board actually shows rather than what the docs
+claim it shows. `shared_flags_grid` was in `standard/tracker.json`,
+`standard/standard_broadcast.json`, `shardHunt/tracker.json` and
+`shardHunt/broadcast.json` -- four of sixteen layout files, two of eight
+variants. Everywhere else the 19-flag seed readout, `Auto-Tab` and the pin
+toggles simply were not on the board.
+
+**The behaviour was on the whole time, which is what made it invisible.**
+`scripts/init.lua` sets `tab_switch` and `tab_mode` at load for every variant,
+so a No-Overworld player got followed between floors and had no way to stop it,
+and no way to see what the cartridge had rolled. The README meanwhile said
+"`Auto-Tab` in the flags grid turns that off" and "`Overworld Tab` in the flags
+grid decides which", which was true on a quarter of the pack.
+
+The two No-Overworld map variants have it now, on all four of their layouts --
+tracker, shards tracker and both broadcasts -- inserted where the standard
+layouts put it, between Bosses and Incentives.
+
+**They carry `NOverworld_flags_grid` rather than the shared one, over exactly
+one cell.** `Overworld Tab` decides between two overworld tabs those variants do
+not have: `maptab.lua`'s `overworldTab()` returns the incentive poster on the
+first line, before it ever asks `tabMode()`, because the mode replaces the
+overworld with an ocean stub. Shipping the cell there would be a control that
+changes nothing, which is the argument `IDEAS.md` already makes for keeping the
+Pins toggles off the map-less variants.
+
+**Forking a grid over one cell is how two grids start drifting**, so the fork
+comes with a check. `test_mapping.lua` holds the two together: every cell in one
+has to be in the other, `tab_mode` is the single named exception, and the
+exception is asserted in both directions -- it must be absent from the
+No-Overworld grid and present in the standard one, so a fork that has lost its
+reason fails rather than passing quietly. Verified by deleting `objectiveNPCs`
+from one grid and watching it fail.
+
+No grid changed size for the mode-mismatch light either: both item grids already
+had a short bottom row.
+
+**What the audit corrected in the README.** Two claims were wrong and neither
+was about the flags grid. "Only the two map variants have dungeon tabs to switch
+between" -- `TABBED_VARIANTS` in `maptab.lua` names four, and has since the
+No-Overworld variants got the dungeon tree. And nothing anywhere said what the
+four `NoMap` variants do not have, which is the thing a reader picking from a
+list of eight most needs. There is a "Which variant shows what" section now.
+
+The `NoMap` four stay thin on purpose and are documented as thin. That is still
+the open question `IDEAS.md` names -- whether anyone outside this repo runs the
+pack -- and nothing here settles it.
