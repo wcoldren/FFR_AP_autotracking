@@ -95,7 +95,7 @@ share work with section 1, which is why they come second and not later.
   **`--lanes` now defaults to `none`, and the next step is an editor rather
   than a better solver.** Three things say the derived lane is the wrong
   product: a map with no chest gets no lane at all (`lane.plan` returns `None`
-  at `tools/lane.py:482-484`, so only the 38 chest-bearing maps of the 61 get
+  on an empty `chest_groups`, so only the 38 chest-bearing maps of the 61 get
   one on the standard duck cartridge, and 37 on the No-Overworld one); the cost
   model is four constants and has no notion of which chests are worth the
   detour on a given seed, nor of visiting this one before that one; and the

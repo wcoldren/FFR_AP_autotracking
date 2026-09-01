@@ -424,8 +424,12 @@ def exits(f, not_at=()):
 
     His goal list is "treasure rooms, the stairs to the next floor, and/or the
     boss", so a lane that stops at the last chest has stopped short: the walk
-    back out is part of the errand and picking the right staircase to end on can
-    change which order the chests want to be in.
+    back out is part of the errand. Floor.lane appends it to the *finished*
+    tour rather than solving the two together, so the exit is chosen from
+    wherever the round happened to end and cannot pull the chest order towards
+    itself. Charging the walk out inside the DP's final min would let it, at no
+    extra table -- it is a choice about what the lane means, not a cost, and it
+    would move drawn lanes, so it waits for the editor ROADMAP.md describes.
 
     Which staircase it ends on is the *nearest*, not the one that progresses --
     a shuffled cartridge decides that, and this drawing never reads it. Of the
