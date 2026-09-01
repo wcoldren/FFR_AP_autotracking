@@ -320,7 +320,9 @@ else on this page does that.
   rather than silent, so nothing shipped wrong — but it put the fault in the
   checker rather than the tree, and made "a new version is one command" untrue
   for the two trees where it matters most. It reads the stamp now, with HEAD as
-  the fallback for an unstamped checkout.
+  the fallback for an unstamped checkout, cut to the seven characters the ROM
+  carries on both paths — the fallback always truncated and the stamp did not,
+  which would have written a `build_sha` no cartridge could match.
 
   **One of its rows did not demonstrate what it claimed**, found on review.
   "A pin from the wrong FFR version is not an ancestor" was a conjunction of

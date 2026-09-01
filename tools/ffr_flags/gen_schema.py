@@ -7,10 +7,12 @@
 Needs the .NET SDK and a checkout of FiendsOfTheElements/FF1Randomizer at the
 tag or branch that built the ROM (master is the released version; dev is ahead).
 
-The build SHA comes from the checkout's git HEAD -- FFRVersion.Sha is a
-placeholder in source and only gets substituted during FFR's own build. The ROM
-decode then has to end on that same SHA with nothing left over, which is what
-says the property order and radixes are right rather than merely plausible.
+The build SHA comes from the stamp in FFRVersion.cs, falling back to the
+checkout's git HEAD -- FFRVersion.Sha is a placeholder in source and only gets
+substituted during FFR's own build, so a locally built oracle stamps it by hand.
+Either way it is cut to the seven characters the ROM carries. The ROM decode
+then has to end on that same SHA with nothing left over, which is what says the
+property order and radixes are right rather than merely plausible.
 
 Writes tools/ffr_flags/schemas/<version>.json for the offline tools and
 scripts/flags/schema_<version>.lua for the pack.
@@ -19,15 +21,19 @@ scripts/flags/schema_<version>.lua for the pack.
 import argparse
 import json
 import os
-import re
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import ffr_flags  # noqa: E402
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 PACK_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+
+sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.dirname(HERE))
+import ffr_flags  # noqa: E402
+# One regex ties a built ROM to a schema, and it lives in ffr_source. It was
+# copied here, docstring and all, and two copies of that regex is the shape
+# that drifts -- so this imports it the way both tool tests do.
+from ffr_source import stamped_sha  # noqa: E402
 
 
 def run_dumper(ff1lib):
@@ -42,22 +48,12 @@ def run_dumper(ff1lib):
     return json.loads(proc.stdout)
 
 
-def stamped_sha(checkout):
-    """The SHA hardcoded into FFRVersion.cs, or None if it is still upstream's.
-
-    FFR substitutes `Sha` during its own deploy and leaves the literal "SHA" in
-    source, so a locally built oracle cartridge has to stamp it by hand or the
-    flag decoder refuses the ROM. That stamp is what the cartridge carries, so
-    it is what the schema has to record -- see the comment in git_sha.
-    """
-    src = os.path.join(checkout, "FF1Lib", "FFRVersion.cs")
-    if not os.path.isfile(src):
-        return None
-    with open(src, encoding="utf-8", errors="replace") as handle:
-        m = re.search(r'\bSha\s*=\s*"([^"]+)"', handle.read())
-    if not m or m.group(1) == "SHA":
-        return None
-    return m.group(1)
+# The ROM carries exactly this many characters of SHA: ffr_flags.SHA_DIVISOR
+# sizes the field as 255**7, so a build_sha of any other length is one no
+# cartridge can ever match. The HEAD fallback below always truncated; the stamp
+# path did not, which meant an over-long stamp produced a schema that decoded
+# nothing and said nothing about why.
+SHA_CHARS = 7
 
 
 def git_sha(checkout):
@@ -76,12 +72,17 @@ def git_sha(checkout):
     """
     stamped = stamped_sha(checkout)
     if stamped:
-        return stamped
+        if len(stamped) < SHA_CHARS:
+            raise SystemExit(
+                "FFRVersion.cs stamps %r, which is shorter than the %d "
+                "characters the ROM carries -- no cartridge could match it"
+                % (stamped, SHA_CHARS))
+        return stamped[:SHA_CHARS]
     proc = subprocess.run(["git", "-C", checkout, "rev-parse", "HEAD"],
                           capture_output=True, text=True)
     if proc.returncode != 0:
         raise SystemExit("not a git checkout: " + checkout)
-    return proc.stdout.strip()[:7]
+    return proc.stdout.strip()[:SHA_CHARS]
 
 
 def lua_str(text):
