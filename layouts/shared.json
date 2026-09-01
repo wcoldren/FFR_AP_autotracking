@@ -12,7 +12,9 @@
                     "earthorb",
                     "fireorb",
                     "waterorb",
-                    "airorb"
+                    "airorb",
+                    "flagsUnread",
+                    "artStale"
                 ],
                 [
                     "key",
@@ -20,15 +22,15 @@
                     "oxyale",
                     "chime",
                     "cube",
-                    "bridge",
-                    "ship"
+                    "adamant",
+                    "tnt"
                 ],
                 [
+                    "bridge",
+                    "ship",
                     "canal",
                     "canoe",
                     "floater",
-                    "adamant",
-                    "tnt",
                     "crown",
                     "crystal"
                 ],
@@ -37,9 +39,7 @@
                     "ruby",
                     "tail",
                     "slab",
-                    "bottle",
-                    "flagsUnread",
-                    "artStale"
+                    "bottle"
                 ]
             ]
         }

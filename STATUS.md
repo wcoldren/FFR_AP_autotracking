@@ -2128,3 +2128,24 @@ Skipping `route_lanes` also takes about 35 seconds off a regen.
 the router changed no fingerprint and the next regen would print "nothing to do"
 over stale art. Both added -- this would have bitten on every iteration of the
 editor work.
+
+## The item grid gets its rows back
+
+`shared_item_grid` is re-tiled. The four-grid reflow in `c5e0752` shortened
+the docked strip so the maps get the height, which is right, but it re-tiled the
+standard item grid without regard to what its rows meant: the vehicles ended up
+split across two rows with the key items running into them. It now leads each
+row with a group -- orbs, key items, vehicles -- and parks the two warning
+lights at the end of row 1. Same 26 cells, same width, still four rows, because
+the row count is what stops Flags setting the strip's height.
+
+The other three grids that reflow touched were checked and left alone:
+`NOverworld_item_grid` has no vehicles to split, `shared_locations_grid` still
+leads with the NPCs and keeps the four fiend dungeons on one row, and
+`shared_incentives_grid` kept its dungeon and fiend rows whole. The flags grid
+going seven-by-three to four-by-five was a different change, `2b0ff32`, and
+carries its own reasoning.
+
+Decided off the cell lists rather than a screenshot, so it still wants looking
+at on a real board. If it reads badly the thing to move is the tiling, not the
+row count.
