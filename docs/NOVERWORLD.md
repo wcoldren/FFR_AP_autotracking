@@ -229,10 +229,12 @@ identical numbers across six releases *and* a different seed:
     4.9.2  F258553F   stairs=157 gates=8 empty-handed=45/61 links=124 walkable=117 all-items=54/61
     4.9.8  F2585540   stairs=157 gates=8 empty-handed=45/61 links=124 walkable=117 all-items=54/61
 
-The volatile surface is the **flag string**, not the topology — 4.9.8 adds five
-properties and drops two, so a 4.9.8 seed genuinely cannot be read with the 4-9-7
-schema. That has its own mechanism (`tools/ffr_flags/gen_schema.py`) and
-regenerating is one command.
+The volatile surface is the **flag string**, not the topology. 4.9.8 takes
+`FF1Lib.Flags` from 568 properties to 571 — adding `Tracker`, `ShowGoMode`,
+`ShowReminders`, `NoTristateSpoilers` and `OrbGraphicsInResourcePack`, dropping
+`AfterHits` and `StartOfHits` — so a 4.9.8 seed genuinely cannot be read with
+the 4-9-7 schema. That has its own mechanism (`tools/ffr_flags/gen_schema.py`)
+and regenerating is one command.
 
 **No 4-9-8 schema is committed, deliberately.** A schema records the build SHA it
 was proved against and the decoder refuses on mismatch, so one keyed to a local

@@ -176,9 +176,9 @@ stamps `4-9-8`. And the fork the clone sits on (`ap-item-text`) does not touch
 
 **A snapshot taken 2026-08-29, kept as one.** Every entry below was true on the
 day of the triage and several have been overtaken since; each says so where it
-has. For what the pack does today, `docs/ARCHITECTURE.md` and "Working today" at
-the head of this file are the current answers, and this is the record of the
-distance that had to be crossed.
+has. For what the pack does today, `docs/ARCHITECTURE.md` and `STATUS-2.md`,
+"Working today" are the current answers, and this is the record of the distance
+that had to be crossed.
 
 - ~~**Both map variants define exactly one tab.**~~ Fixed, commit `17c423d`.
   The dungeon tree moved to `layouts/shared.json` as three `shared_*_tabs` keys
@@ -197,6 +197,11 @@ distance that had to be crossed.
   a thing that gets eyeballed. That is what made markers derivable forward from
   the cartridge instead of solved by hand, and it is why 61 of 61 maps carry
   per-chest markers on redrawn art against 36 of 53 on the shipped set.
+
+  The figures, which no settled page carries: all 61 renders come to 2.3 MB
+  against 3.0 MB for the 53 screenshots that ship; one run moves 254 dungeon
+  markers onto them; and the cache means a second seed rewrites only what
+  differs -- 26 of 66 files between two No-Overworld cartridges.
 
   What this does *not* give you is the shuffle. Of the 56 maps carrying a
   staircase on seed `F258553F`, 21 draw differently from vanilla -- the sealed

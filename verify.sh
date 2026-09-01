@@ -170,10 +170,27 @@ if out=$("$PY" "$ROOT/tools/regen_maps.py" --verify 2>&1); then
     fi
 else
     echo "$out" | head -6
-    echo "  (not a code failure: the drawn art predates the checkout. Re-run"
-    echo "   regen_maps.py once per mode, reading --npcs and --lanes back out"
-    echo "   of .regen_cache.json first -- both default to none.)"
-    record FAIL "override is stale"
+    # --verify exits 1 for three different things and a crash exits some other
+    # way entirely, so the exit status alone does not say "the art is behind
+    # the checkout". Calling all of them stale asserts a comparison that never
+    # happened -- the mistake stage 3 above takes care not to make. Match what
+    # it actually said.
+    if echo "$out" | grep -q "the pack changed since this override was written\|files the last run wrote have been changed"; then
+        echo "  (not a code failure: the drawn art predates the checkout. Re-run"
+        echo "   regen_maps.py once per mode, reading --npcs and --lanes back out"
+        echo "   of .regen_cache.json first -- both default to none.)"
+        record FAIL "override is stale"
+    elif echo "$out" | grep -q "written by an older version of this tool\|holds no "; then
+        echo "  (the override is there but cannot say what it was built from,"
+        echo "   so this is not a comparison either. Re-run regen_maps.py once"
+        echo "   per mode, or --clean to drop it.)"
+        record FAIL "override cannot be compared"
+    else
+        echo "  (regen_maps.py --verify did not answer: it crashed, or its"
+        echo "   output changed shape. This stage compared nothing, so it"
+        echo "   must not report which way the comparison came out.)"
+        record FAIL "override check did not run"
+    fi
 fi
 
 # ---------------------------------------------------------------- summary

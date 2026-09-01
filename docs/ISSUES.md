@@ -392,7 +392,7 @@ Nothing here is urgent unless it says so.
 
   **Detected on demand since 2026-08-30**, by the comparison that was already
   sitting in the cache: `.regen_cache.json` stores `inputs`, a sha256 over
-  `INPUT_FILES` (`regen_maps.py:99-112`), which lists `layouts/shared.json` and
+  `INPUT_FILES` (`regen_maps.py:126-151`), which lists `layouts/shared.json` and
   all four location files, so the fingerprint moves on exactly this edit.
 
   **`inputs` was one fingerprint for both modes until 2026-08-29, and that was a

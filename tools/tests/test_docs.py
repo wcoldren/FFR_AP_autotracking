@@ -35,9 +35,12 @@ one has already gone wrong here at least once:
 The symbol check in (1) is deliberately generous: it fires only when the citing
 paragraph names an identifier or quotes a phrase, matches case-insensitively,
 and allows a window either side of the cited line, because a citation drifting
-by a line or two as code moves around it is not what this is for. A citation
-that names nothing is bounds-checked and otherwise let through -- there is
-nothing to compare it against.
+by a line or two as code moves around it is not what this is for. Another
+file's path in the same bullet does not count as a symbol: a code citation
+beside a pointer to a sibling page is the house style here, and counting the
+pointer made the row fail on prose that was right. A citation that names
+nothing is bounds-checked and otherwise let through -- there is nothing to
+compare it against.
 
 Needs nothing but the checkout. The untracked `*.local.md` notes are checked too
 when they are present, and skipped when they are not, so somebody who installed
@@ -73,7 +76,7 @@ def walked():
 
 
 def tracked():
-    """Every file in the pack: from git where there is one, else off disk.
+    """Every file in the pack, and whether git answered: `(files, from_git)`.
 
     An installed pack is a directory, not a checkout, and `git ls-files` there
     exits non-zero with empty output. Taking that as the answer emptied every
@@ -85,18 +88,36 @@ def tracked():
     out = subprocess.run(["git", "-C", PACK, "ls-files"],
                          capture_output=True, text=True)
     if out.returncode == 0 and out.stdout.strip():
-        return set(out.stdout.split("\n")) - {""}
-    return walked()
+        return set(out.stdout.split("\n")) - {""}, True
+    return walked(), False
 
 
-TRACKED = tracked()
+TRACKED, FROM_GIT = tracked()
 BY_BASE = {}
 for _t in TRACKED:
     BY_BASE.setdefault(os.path.basename(_t), []).append(_t)
 
+# Which documents belong to the pack. In a checkout git answers this exactly;
+# off a walk it cannot, and taking every `.md` on disk checked files the pack
+# does not own -- a local working note beside the checkout, or anything a
+# reader dropped in the pack directory. That fails the promise at the head of
+# this file and turns `verify.sh` stage 2 red for someone who changed nothing,
+# which is how a check gets switched off. So off a walk the shape is named
+# rather than discovered, and the self-test at the foot holds the naming to
+# what git returns.
+STATUS_LOG = re.compile(r"^STATUS(-\d+)?\.md$")
+
+
+def is_pack_doc(rel):
+    """A page under `docs/`, the root README and logs, or a tool's own README."""
+    return (rel.startswith("docs/") or rel == "README.md"
+            or bool(STATUS_LOG.match(rel)) or rel.endswith("/README.md"))
+
+
 # The prose set: every tracked document, plus the local notes when this is a
 # working checkout rather than an installed pack.
-DOCS = sorted(t for t in TRACKED if t.endswith(".md"))
+DOCS = sorted(t for t in TRACKED if t.endswith(".md")
+              and (FROM_GIT or is_pack_doc(t)))
 # Not `+=` unconditionally: the disk fallback in `tracked()` already sees the
 # untracked ones, and checking a document twice reports every failure twice.
 DOCS += [f for f in ("FINDINGS.local.md", "WORKING-RULES.local.md")
@@ -256,6 +277,16 @@ for doc in DOCS:
             for tick in IDENT.findall(ctx):
                 if tick == m.group(1) + m.group(2):
                     continue
+                # Another file's path is not a symbol this citation is
+                # answerable for. Dropping it is not tidying: when a pointer
+                # to a sibling page is the *only* other backtick in the
+                # bullet, its words become the whole test, and a correct
+                # citation fails because `docs` and `IDEAS` are nowhere near
+                # the cited line. A code citation beside a page pointer is
+                # the house style across these documents, so leaving them in
+                # over-fires on prose that is right.
+                if PATH.fullmatch("`%s`" % tick) or CITE.fullmatch("`%s`" % tick):
+                    continue
                 names.update(w.lower() for w in WORD.findall(tick))
             names -= {w.lower() for w in WORD.findall(m.group(1))}
             phrases = [flatten(q) for q in QUOTED.findall(ctx)]
@@ -403,7 +434,10 @@ for seed in sorted(unlisted):
 # one level up: the index lists every page sitting beside it, and lists no
 # page that is gone.
 INDEX = "docs/README.md"
-LINK = re.compile(r"\]\(([A-Za-z0-9_./-]+\.md)\)")
+# The anchor is optional and not part of the path. Without it a deep link --
+# `](ORACLE.md#the-cartridges)` -- matches nothing, and the row reports a page
+# the index does list as missing from it.
+LINK = re.compile(r"\]\(([A-Za-z0-9_./-]+\.md)(?:#[A-Za-z0-9_-]+)?\)")
 
 
 def linked(rel):
@@ -486,6 +520,25 @@ check("a row reaching out of docs/ normalises to the pack root",
 # The trap `tracked()` documents, one row down: an empty left-hand set makes
 # this row pass having compared nothing, which is the defect it exists to find.
 check("the page set the index is held to is not empty", len(beside) >= 5, True)
+check("an anchored link still names its page",
+      LINK.findall("| [`ORACLE.md`](ORACLE.md#the-cartridges) |"), ["ORACLE.md"])
+check("a sibling-page pointer is not read as a symbol",
+      bool(PATH.fullmatch("`docs/IDEAS.md`")), True)
+check("nor is a citation into another file",
+      bool(CITE.fullmatch("`tools/pngio.py:3`")), True)
+check("but an identifier still is",
+      bool(PATH.fullmatch("`applyFFRFlags()`")
+           or CITE.fullmatch("`applyFFRFlags()`")), False)
+if FROM_GIT:
+    # Held this way round on purpose. `is_pack_doc` is a naming, and a tracked
+    # document landing outside it would simply stop being checked off a walk --
+    # silently, which is the defect this whole file exists to catch. Git is the
+    # authority while there is one, so it gets to fail the naming.
+    check("every document git tracks is one the walk would check too",
+          sorted(d for d in TRACKED
+                 if d.endswith(".md") and not is_pack_doc(d)), [])
+else:
+    print("note not a checkout: the pack-document shape was not held to git")
 
 for f in fails:
     print("     " + f)
