@@ -56,10 +56,32 @@ def check(label, got, want):
     print("%s %-58s %s" % ("ok  " if got == want else "FAIL", label, got))
 
 
+def walked():
+    """The file list off disk, for a checkout git cannot answer for."""
+    out = set()
+    for root, dirs, files in os.walk(PACK):
+        dirs[:] = [d for d in dirs if d not in (".git", "__pycache__")]
+        for f in files:
+            rel = os.path.relpath(os.path.join(root, f), PACK)
+            out.add(rel.replace(os.sep, "/"))
+    return out
+
+
 def tracked():
+    """Every file in the pack: from git where there is one, else off disk.
+
+    An installed pack is a directory, not a checkout, and `git ls-files` there
+    exits non-zero with empty output. Taking that as the answer emptied every
+    set below, and all four substantive rows then passed having compared
+    nothing -- a check that cannot fail, in the file written to catch those.
+    The docstring above promises an installed pack sees the same result, so
+    the fallback is a walk rather than a skip.
+    """
     out = subprocess.run(["git", "-C", PACK, "ls-files"],
                          capture_output=True, text=True)
-    return set(out.stdout.split("\n")) - {""}
+    if out.returncode == 0 and out.stdout.strip():
+        return set(out.stdout.split("\n")) - {""}
+    return walked()
 
 
 TRACKED = tracked()
@@ -70,8 +92,10 @@ for _t in TRACKED:
 # The prose set: every tracked document, plus the local notes when this is a
 # working checkout rather than an installed pack.
 DOCS = sorted(t for t in TRACKED if t.endswith(".md"))
+# Not `+=` unconditionally: the disk fallback in `tracked()` already sees the
+# untracked ones, and checking a document twice reports every failure twice.
 DOCS += [f for f in ("FINDINGS.local.md", "WORKING-RULES.local.md")
-         if os.path.exists(os.path.join(PACK, f))]
+         if f not in DOCS and os.path.exists(os.path.join(PACK, f))]
 
 # Extensions worth resolving. `.cs` is left out on purpose: those citations are
 # into the vendored FFR checkout, which is `managed: optional` in pins.yaml and
@@ -127,9 +151,52 @@ def names_something_real(doc, named):
     return bool(BY_BASE.get(os.path.basename(named)))
 
 
+# Our own top-level directories. A path under one of these is ours, and a
+# document naming one that is gone is rot.
+OURS = ("tools", "tests", "scripts", "bridge", "docs", "locations",
+        "layouts", "items", "maps", "images")
+def path_is_rot(doc, named):
+    """Does this document name a file of ours that is not there?
+
+    Two shapes count. A path under one of our own directories, and a bare
+    basename carrying one of our own extensions -- the second because a
+    citation that stops naming a line number stops naming a directory too.
+    ``regen_maps.py``'s `main` is how one reads afterwards, and the
+    directory list alone could not see it, so deleting the file would have
+    left the sentence unchecked. `.cs` never reaches here: FFR's files are
+    not in `SRC`, because FFR is not on disk for most readers.
+
+    No allowlist for other repos' bare basenames, because none of these
+    documents carries one and an allowlist nothing reaches is machinery that
+    later suppresses a real deletion. A sentence that wants to name
+    Archipelago's `Generate.py` should give its path or drop the backticks;
+    that is what this row will ask for the first time one does.
+    """
+    if names_something_real(doc, named):
+        return False
+    if named.split("/")[0] in OURS:
+        return True
+    return ("/" not in named
+            and os.path.splitext(named)[1] in (".py", ".lua", ".sh"))
+
+
 def read(rel):
+    """A file's lines.
+
+    A trailing newline ends the last line rather than adding an empty one.
+    Counting it made `len(read(f))` one more than the file's line count, and
+    let a citation one line past the end through the bounds check below.
+    """
     with open(os.path.join(PACK, rel), encoding="utf-8") as fh:
-        return fh.read().split("\n")
+        lines = fh.read().split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()
+    return lines
+
+
+def in_bounds(src, lo, hi):
+    """Does a `path:lo-hi` citation name lines the file actually has?"""
+    return 1 <= lo <= hi <= len(src)
 
 
 BULLET = re.compile(r"^\s*[-*] ")
@@ -175,7 +242,7 @@ for doc in DOCS:
             span = m.group(2)[1:].split("-")
             lo, hi = int(span[0]), int(span[-1])
             src = read(target)
-            if lo < 1 or hi > len(src):
+            if not in_bounds(src, lo, hi):
                 bad_line.append("%s:%d  %s  -- %s has %d lines"
                                 % (doc, i + 1, m.group(0), target, len(src)))
                 continue
@@ -197,15 +264,8 @@ for doc in DOCS:
                               % (doc, i + 1, m.group(0), WINDOW, target, lo))
 
         for m in PATH.finditer(line):
-            named = m.group(1)
-            if names_something_real(doc, named):
-                continue
-            # Only this repo's own paths. A bare basename matching nothing here
-            # is usually FFR's, and FFR is not on disk for most readers.
-            if named.split("/")[0] in (
-                    "tools", "tests", "scripts", "bridge", "docs", "locations",
-                    "layouts", "items", "maps", "images"):
-                bad_path.append("%s:%d  `%s`" % (doc, i + 1, named))
+            if path_is_rot(doc, m.group(1)):
+                bad_path.append("%s:%d  `%s`" % (doc, i + 1, m.group(1)))
 
 check("every path:line citation names a line its file has", bad_line, [])
 check("and the symbol the sentence names is still near it", bad_symbol, [])
@@ -281,10 +341,33 @@ for runner, prefix, suffix in (("tests/run.sh", "test_", ".lua"),
     check("%s lists no suite that is gone" % runner,
           sorted(listed - present), [])
 
+# The counts the prose gives are hand-maintained the same way those lists are,
+# and rot the same way: `docs/ARCHITECTURE.md` said 21 Python suites on the
+# commit that made it 22, and the rows above cannot see prose.
+COUNT = re.compile(r"(\d+)\s+(Lua|Python) suites")
+RUNNER_FOR = {"Lua": ("tests/run.sh", ".lua"),
+              "Python": ("tools/tests/run.sh", ".py")}
+bad_count = []
+for doc in DOCS:
+    for i, line in enumerate(read(doc)):
+        for m in COUNT.finditer(line):
+            runner, suffix = RUNNER_FOR[m.group(2)]
+            _, present = runner_suites(runner, "test_", suffix)
+            if int(m.group(1)) != len(present):
+                bad_count.append("%s:%d  \"%s\" -- %s has %d"
+                                 % (doc, i + 1, m.group(0), runner,
+                                    len(present)))
+check("every suite count the prose gives matches the suites", bad_count, [])
+
 # ------------------------------------------------------------------------ 4
 # FFR stamps eight uppercase hex characters. Anything shorter is a byte or an
-# address and is not a cartridge.
-SEED = re.compile(r"\b([0-9A-F]{8})\b")
+# address and is not a cartridge. At least one A-F is wanted as well: without
+# it a compact date (`20260901`) or a byte count (`16777216`) reads as a
+# cartridge and fails this row for something that is not one. The cost is a
+# seed whose eight characters happen to all be digits -- about one in forty --
+# going unchecked, which is the better side of the trade against a false
+# positive on every eight-digit number anyone writes down.
+SEED = re.compile(r"\b(?![0-9]{8}\b)([0-9A-F]{8})\b")
 ORACLE = "docs/ORACLE.md"
 oracle_text = "\n".join(read(ORACLE))
 oracle_seeds = set(SEED.findall(oracle_text))
@@ -309,9 +392,15 @@ for seed in sorted(unlisted):
 # Each row above has to be able to fail, or this file is the thing it was
 # written to catch. These four exercise the machinery on inputs whose answer
 # is known, so a rewrite that quietly stops looking gets caught here.
-check("a citation past the end of its file is caught",
-      resolve("tools/regen_maps.py") is not None
-      and len(read("tools/regen_maps.py")) < 10 ** 6, True)
+_SRC = read("tools/regen_maps.py")
+_RAW = open(os.path.join(PACK, "tools/regen_maps.py"), encoding="utf-8").read()
+check("a trailing newline is not counted as a line",
+      len(_SRC), _RAW.count("\n") + (0 if _RAW.endswith("\n") else 1))
+check("the last line a file has is in bounds",
+      in_bounds(_SRC, len(_SRC), len(_SRC)), True)
+check("a citation one line past its end is caught",
+      in_bounds(_SRC, len(_SRC) + 1, len(_SRC) + 1), False)
+check("and one before the first line too", in_bounds(_SRC, 0, 4), False)
 check("an unresolvable path resolves to nothing",
       resolve("tools/no_such_tool.py"), None)
 check("a bare basename that is unique still resolves",
@@ -339,6 +428,17 @@ check("a path relative to the doc resolves",
       names_something_real("docs/README.md", "../STATUS.md"), True)
 check("but a file that is genuinely gone does not",
       names_something_real("docs/ISSUES.md", "tools/deleted_tool.py"), False)
+check("a bare basename naming a deleted file is reported",
+      path_is_rot("docs/ROADMAP.md", "make_markers.py"), True)
+check("one naming a file that is there is not",
+      path_is_rot("docs/ROADMAP.md", "regen_maps.py"), False)
+check("a bare name with no code extension is left alone",
+      path_is_rot("docs/README.md", "no_such_image.png"), False)
+check("a compact date is not read as a cartridge",
+      SEED.findall("drained 20260901, 16777216 bytes"), [])
+check("but a cartridge still is", SEED.findall("F258553F"), ["F258553F"])
+check("the file list falls back to a walk outside a checkout",
+      "tools/tests/test_docs.py" in walked(), True)
 check("a heading a page really has is found",
       "the docs" in headings("docs/README.md"), True)
 check("and one it does not have is not",

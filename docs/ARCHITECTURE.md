@@ -391,15 +391,18 @@ false greens.
 
 `./verify.sh` is the whole gate in one command: both suites, `check_logic` on a
 No-Overworld and a standard cartridge, and whether the installed override still
-matches the checkout. Stages that need something this machine has not got --
-the oracle corpus, an Archipelago checkout -- report SKIP rather than failing,
-and the summary says a skip is not a pass. That is the thing to run before
+matches the checkout. A stage that needs something this machine has not got --
+a Lua interpreter, the oracle corpus, the cartridges in it, an Archipelago
+checkout, an installed override -- reports SKIP rather than failing, and the
+summary says a skip is not a pass. An override that is installed and stale is
+an answer rather than an absence, and is the one thing outside the checkout
+that fails the run. That is the thing to run before
 calling anything done; what follows is what it runs.
 
 ```
 tests/run.sh         14 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   21 Python suites for the cartridge-reading tools. Ten of
+tools/tests/run.sh   22 Python suites for the cartridge-reading tools. Ten of
                      them skip, wholly or in part, unless FF1_ROM points at a
                      cartridge — so a bare run passes and checks a good deal
                      less than the count suggests. One slow guard opts in

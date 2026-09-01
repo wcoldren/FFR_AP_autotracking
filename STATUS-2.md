@@ -76,8 +76,8 @@ the whole story.
   reachability walk, a map renderer that can draw the NPCs standing on a map,
   and a logic checker that diffs the pack's access rules against FFR's own
   spoiler. The map-reading half of that was wrong until
-  2026-08-29 — see "Read the maps from the bank FFR actually puts them in"
-  below.
+  2026-08-29 — see `STATUS.md`,
+  "Read the maps from the bank FFR actually puts them in".
 - The door map is walkable by clicking. Every floor name on the page is a
   `#map-<id>` link, and a focus panel driven by `hashchange` lists that floor's
   ways in and staircases on, so you follow the shuffle a room at a time instead
@@ -90,9 +90,9 @@ the whole story.
   drops none, so a map the walk cannot find is the tool's own fault. It is the
   cheapest test of the whole routing stack -- map decompression, tile
   properties, both teleport tables, the doors and the gates all have to be right
-  at once. Written down after the bank bug below and never run until now -- and
-  it earned itself immediately, by failing on its own stated invariant. See
-  "The gauntlet the mode skips" below.
+  at once. Written down after the bank bug and never run until now -- and it
+  earned itself immediately, by failing on its own stated invariant. See
+  `STATUS.md`, "The gauntlet the mode skips".
 - `tests/run.sh` — 14 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
   — the cartridge-reading tools' own tests, Python and nothing else; the ones
   that need a cartridge skip unless `FF1_ROM` points at one.

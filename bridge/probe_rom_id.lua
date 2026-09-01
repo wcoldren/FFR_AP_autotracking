@@ -13,11 +13,14 @@
 -- Measures only. Writes one file and runs no command.
 --
 -- It does not read the FFRInfo record. `ffr_uat_bridge.lua` is the one reader
--- of that record on the Lua side and logs Seed, Flags and Version every time it
--- attaches, so a second parse here would be a second statement of where the
--- record sits and what its fields are called -- the duplication that
--- `9148fdd` removed on the Python side. Run the bridge for those three fields
--- and this for the hash.
+-- of that record on the Lua side, so a second parse here would be a second
+-- statement of where the record sits and what its fields are called -- the
+-- duplication that `9148fdd` removed on the Python side. What it attaches
+-- with is not all three fields: `readFlags` logs "seed flags: FFR <version>,
+-- seed <seed>, <n> characters", so the version and the seed are in the log
+-- and the flag string is there only as a length. The string itself reaches
+-- the pack as `ff1/flags`, not through the log. Run the bridge for those and
+-- this for the hash.
 --
 -- Load in Mesen: Debug -> Script Window -> open this file -> Run, with any FFR
 -- cartridge in the slot -- it identifies whichever one that is. Output goes to
