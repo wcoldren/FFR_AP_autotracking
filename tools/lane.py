@@ -46,14 +46,26 @@ import extract_chests  # noqa: E402
 import render_maps  # noqa: E402
 
 # Lexicographic, as weights: one trap outranks any number of encounter tiles,
-# one encounter tile outranks any plausible number of steps. The ceilings are
-# 64*64 tiles, so 10**3 and 10**6 clear the range with room to spare.
-TRAP, ENCOUNTER, STEP, TURN = 10 ** 6, 10 ** 3, 1, 1
+# one encounter tile outranks any number of steps.
+#
+# The gap between ranks has to clear the longest walk that can be priced, and
+# that is not the tile count. A shortest path relaxes each (tile, heading) state
+# at most once -- 64*64 tiles by five headings is 20480 steps -- and the tour
+# chains up to MAX_EXACT+1 of those segments, so the ceiling is around 2**20
+# steps at 2 apiece for STEP and TURN. 10**7 clears it; 10**3 did not, and 64*64
+# is 4096, so under the old weights an ordinary thousand-step path outweighed a
+# single encounter tile and the ordering was not lexicographic anywhere near
+# its stated bound. No misroute was observed at the lengths real floors produce
+# -- these are integers, so the wider gaps cost nothing to carry.
+TRAP, ENCOUNTER, STEP, TURN = 10 ** 14, 10 ** 7, 1, 1
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 FAR = float("inf")
 
 # Every real cost is multiplied by this, leaving 1 free underneath as a
-# tie-break that can never outrank anything. What it buys is coincidence: a
+# tie-break that cannot outrank a real step. It accrues up to 1 per step, so
+# this has to clear the same ~2**20-step ceiling the ranks above do; at 1000 a
+# walk past a thousand non-preferred steps bought itself a whole free step.
+# What it buys is coincidence: a
 # second lane over the same floor has no reason to pick the same corridor as
 # the first when two are equally cheap, so it picks one arbitrarily and the
 # drawing gains a parallel line that means nothing. Preferring what the first
@@ -66,7 +78,7 @@ FAR = float("inf")
 # takes it, drawing a purple stub across ground that is already cyan. That is
 # the same meaningless parallel the tie-break exists to remove, one step long.
 # SeaShrineB2 and TempleOfFiendsRevisitedFire are where it showed.
-SCALE = 1000
+SCALE = 10 ** 7
 
 # Held-Karp is 2**n, so the bound is a promise about how long a regen takes.
 # Measured over both duck cartridges: the largest floor is GurguVolcanoB2 at 18
@@ -77,6 +89,17 @@ SCALE = 1000
 # cartridge here produces; past it the honest answer is to say so rather than
 # to sit for ten minutes looking like a hang.
 MAX_EXACT = 20
+
+# ...and n on its own does not bound what the tour allocates. The two tables it
+# builds are (1 << n) * ns entries each, where ns counts *standing states* and
+# not checks: GurguVolcanoB2's 18 checks are 43 states, so 11.3M entries a list
+# and about 180 MB for the pair. Carry that states-per-check ratio up to the
+# n=20 the bound above permits and it is 50M entries a list, near a gigabyte --
+# which fails on allocation rather than by being slow, so the ten-minute hang
+# promised above is not the failure that arrives first and the table needs a
+# ceiling of its own. 32M entries is roughly 512 MB for the pair, a doubling
+# and a half of headroom over the worst floor either cartridge produces.
+MAX_ENTRIES = 32 * 1024 * 1024
 
 
 class Run(NamedTuple):
@@ -280,6 +303,12 @@ class Floor:
         # each hop rescanning the whole search -- on an eighteen-check floor
         # that is the difference between seconds and not finishing.
         states = [(i, a) for i in range(n) for a in range(len(nodes[i][1]))]
+        if (1 << n) * len(states) > MAX_ENTRIES:
+            raise ValueError(
+                "map %d has %d reachable checks over %d standing states; the "
+                "exact tour's tables would be %d entries each and MAX_ENTRIES "
+                "is %d" % (self.mid, n, len(states),
+                           (1 << n) * len(states), MAX_ENTRIES))
         at_state = [nodes[i][1][a] for i, a in states]
         of_node = [i for i, _ in states]
         by_node = [[s for s, (i, _) in enumerate(states) if i == j]
@@ -407,12 +436,20 @@ def regions(f):
     boundary, it is the reason for the second lane, and reading regions keyless
     files the gated checks under "not on this floor" -- which is how
     MarshCaveB3 lost its with-key lane entirely.
+
+    Mutually, and against every member rather than the first one. Reachability
+    here is not symmetric: search() reaches a teleport tile but will not expand
+    out of one unless it started there, and 144 arrivals across the two duck
+    cartridges are themselves teleport tiles. So an arrival that is a staircase
+    between two corridors that do not otherwise join reaches both, and taking it
+    as a region's representative merged the two -- one lane drawn for the pair,
+    the other corridor left bare with its checks filed as missed.
     """
     out = []
     for a in arrivals(f):
         seen = f.reached(a)
         for r in out:
-            if r[0] in seen:
+            if all(x in seen and a in f.reached(x) for x in r):
                 r.append(a)
                 break
         else:
@@ -460,9 +497,15 @@ def plan(rom, graph, map_id, chests=None):
         # checks be "served" by the other half's door -- which draws a second
         # lane on top of the first and leaves the other half bare, exactly the
         # bug the second lane exists to fix.
-        start = max(region, key=lambda a: sum(
+        # Walkable keyless first, then check count. arrivals() filters on the
+        # full inventory and search() seeds its start without asking, so a door
+        # the gate NPC stands in is a legal arrival that the plain lane cannot
+        # legally begin on -- No-Overworld ConeriaCastle1F (2, 8) below. The
+        # `if got:` guard catches that only when the region collects nothing
+        # keyless; a region that collects something still rooted its lane there.
+        start = max(region, key=lambda a: (bare.walkable(a), sum(
             1 for ts in here.values()
-            if any(x in bare.reached(a) for c in ts for x in bare.stand(c))))
+            if any(x in bare.reached(a) for c in ts for x in bare.stand(c)))))
         walk, got, miss = bare.lane(here, start,
                                     finish=exits(bare, not_at={start}))
         # A run that collects nothing is not a route. It happens wherever the
