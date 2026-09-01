@@ -406,9 +406,9 @@ actually says where a branch is.
 
 - `trunk` is **level with `origin/trunk`**, as of 2026-09-01.
   `noverworld-logic`, `visibility-toggles`, `route-lanes` and `flags-real-seeds`
-  are all merged. Nothing is in flight. No number here on purpose: `00dffd4`
-  took a count out of this section for going wrong twice, and the one that
-  briefly replaced it went wrong inside the commit that wrote it —
+  are all merged. `flag-coverage` is in flight and unmerged. No number here on
+  purpose: `00dffd4` took a count out of this section for going wrong twice, and
+  the one that briefly replaced it went wrong inside the commit that wrote it —
   `git rev-list --count origin/trunk..trunk` is the answer.
 
   This bullet said "ahead of `origin/trunk` and unpushed" for the rest of the
