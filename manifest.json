@@ -4,7 +4,7 @@
     "game_variant": "FFR 4.9.2-4.9.7",
     "platform": "nes",
     "package_version": "0.1.0",
-    "package_uid": "ff1_rando_ap",
+    "package_uid": "ff1_rando_ap_uat",
     "min_poptracker_version": "0.35.1",
     "author": "jat2980, DarkmoonEX, HaateXIII, SunflashRune, meklin89",
     "variants": {

@@ -16,6 +16,14 @@ renderer that draws the game's maps out of your own ROM.
 The pack, the maps and most of the groundwork are other people's work. See
 [Credits](#credits).
 
+**Upgrading from before 0.1.0?** Two things move with it, both once and
+neither destructive. Saved boards are filed under the pack's uid and version, so
+a board saved on `1.1b` does not come back -- the old one stays on disk, it is
+just not where PopTracker looks any more. And if you had run
+`tools/regen_maps.py`, its output directory is named after the uid, which
+changed; `docs/BRIDGE.md` has the one-line rename that keeps the art you already
+drew.
+
 **It needs PopTracker 0.35.1 or newer.** Older versions refuse to load the pack
 outright rather than loading it with less in it, so if it will not open, that is
 the first thing to check.

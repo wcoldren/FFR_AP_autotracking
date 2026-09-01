@@ -689,7 +689,8 @@ end
 -- neither a sha256 nor a JSON parser in here.
 ------------------------------------------------------------------
 
-local PACK_UID = "ff1_rando_ap"          -- manifest.json, package_uid
+local PACK_UID = "ff1_rando_ap_uat"      -- manifest.json, package_uid
+                                         -- held against it by tests/test_bridge.lua
 local STAMP_NAME = ".regen_stamp"
 local ART_DIR_ENV = "FFR_ART_DIR"        -- for a PopTracker installed elsewhere
 

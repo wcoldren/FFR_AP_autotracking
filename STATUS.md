@@ -2588,3 +2588,60 @@ list of eight most needs. There is a "Which variant shows what" section now.
 The `NoMap` four stay thin on purpose and are documented as thin. That is still
 the open question `IDEAS.md` names -- whether anyone outside this repo runs the
 pack -- and nothing here settles it.
+
+## 0.1.0, and the two fields that turned out not to be cosmetic
+
+`manifest.json` had carried upstream's identity across 283 commits. Three fields
+moved on 2026-09-01 and one deliberately did not.
+
+    package_version   1.1b                 ->  0.1.0
+    game_variant      Entroper (V4.8.6)    ->  FFR 4.9.2-4.9.7
+    package_uid       ff1_rando_ap         ->  ff1_rando_ap_uat
+    author            unchanged
+
+`0.1.0` starts a line at the fork rather than continuing a numbering that had
+stopped describing anything. `0.x` carries "much of the roadmap is still open"
+on its own, so it wanted no `-beta` on top -- two markers saying the same thing,
+next to upstream's `1.1b`, would read as a downgrade with an apology attached.
+
+**`IDEAS.md` had scoped this and got one thing wrong, and it was the reassuring
+half.** It said PopTracker "shows the string in the pack list and uses it for
+nothing else -- no update check, no compatibility gate -- so any value is safe".
+The first clause holds. The conclusion does not: saved state is filed at
+`<statedir>/<uid>/<version>/<variant>/<name>.json`
+(`core/statemanager.cpp:54-66`), so the version is part of the path a board is
+saved under, and changing it orphans saved boards exactly the way changing the
+uid does. Nothing is lost or corrupted; the old directory stays put and a board
+simply does not come back.
+
+Which changed the shape of the decision rather than the decision. If the version
+bump already costs one orphaning, moving the uid in the same release costs
+nothing more -- and moving it later would cost a second. So both went together.
+
+**The uid reaches further than PopTracker's state directory, and one of the two
+places it reaches could not follow it.** `regen_maps.py` reads it out of the
+manifest and its `--out` default moves on its own. The Mesen bridge cannot:
+`stampPath()` needs `~/PopTracker/user-override/<uid>/.regen_stamp` and that
+script has no JSON parser and no reliable path to the pack, so `PACK_UID` is a
+hardcoded copy. Nothing connected the two.
+
+What that would have cost is a *silent* failure, which is why it got a guard
+before the rename rather than after. A uid the override directory no longer uses
+makes `stampPath()` point at nothing, and "no stamp there" is one of the four
+silences the stale-art light deliberately treats as nothing to say. The light
+would have gone out and stayed out, on exactly the seeds it exists to catch.
+`test_bridge.lua` reads `package_uid` straight out of `manifest.json` now and
+holds the constant against it.
+
+**What a player upgrading loses, and what they can keep.** The board does not
+come back, and that is unavoidable. The regenerated art is avoidable: it is
+still on disk under the old directory name, so a rename keeps it and a regen per
+mode redraws it. `regen_maps.py --verify` names which of the two you are in
+without reading a cartridge -- run here, it says the new path has no override
+and the pack's own art is what will be served, which is the failure mode
+described rather than inferred. `BRIDGE.md` carries the rename and the README
+carries the upgrade note.
+
+`author` stays as it is. It credits the five people whose pack this started
+from, and that is the one field on the page that is not about identity but about
+attribution.

@@ -133,6 +133,18 @@ installed by definition.
 Archipelago cannot answer this one: like the flag string, it only exists on the
 cartridge, so an AP-only session leaves the light dark.
 
+**The override directory moved at 0.1.0.** It is named after the pack's
+`package_uid`, which changed from `ff1_rando_ap` to `ff1_rando_ap_uat` so this
+fork stops colliding with the pack it forked. Art installed before that is still
+on disk under the old name and is no longer being read, so the map tabs fall
+back to the shipped hand-drawn set without saying anything. Either re-run
+`tools/regen_maps.py` once per mode, or keep what you have:
+
+    mv ~/PopTracker/user-override/ff1_rando_ap ~/PopTracker/user-override/ff1_rando_ap_uat
+
+`tools/regen_maps.py --verify` says which of the two you are in without reading a
+cartridge.
+
 Regenerating is still a manual step, and picking the new art up still needs
 PopTracker restarted: it loads its images once, at load.
 
