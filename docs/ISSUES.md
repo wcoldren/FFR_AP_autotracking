@@ -4,6 +4,14 @@ Defects and unsettled questions, lifted out of `STATUS.md` so they are findable
 without reading the whole log. The narrative — how each was found, what was tried
 — stays there.
 
+**A closed entry stays here, dated, and is not deleted.** Nothing re-reads a
+closed defect, so an entry that goes quiet outlives its own fix and sends the
+next reader after work already done — which is exactly how the first entry below
+led this list for weeks after it stopped being true. Say a closed entry closed,
+in it, on the day it closes. This is the opposite call from `docs/ROADMAP.md`,
+and deliberately: that page is a plan and gets shorter as things land, this one
+is a register and only earns its keep by holding the whole history of a defect.
+
 Nothing here is urgent unless it says so.
 
 ## Known wrong
