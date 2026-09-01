@@ -8,6 +8,15 @@ The triage rule, from 2026-08-30: **does it change a colour, add a box, or save
 a click?** If yes it is product and goes in sections 1–4. If no it is tooling
 and goes in 5, where it earns its place by keeping 1–4 true.
 
+**Amended 2026-09-01, when section 1 closed.** The rule sorts tooling last by
+construction, and that was right while section 1 was open. It is not now. Every
+section-1 close cost one hand-rolled cartridge, one hand-written rule and one
+grading run, and that is the standing per-flag price at the next FFR version
+bump — so the machinery that lowers it, all of which sits in section 5, stops
+being what comes after the product work. Concretely: **nothing today notices a
+new FFR flag.** Section 5's first two bullets are what keep section 1 closed,
+and they come before section 2.
+
 The parity target for every rule is FFR's `SanityCheckerV2` + `SCLogic`, with
 the Archipelago export as the graded truth table. `docs/FLAG_COVERAGE.md` is the
 table of every flag that logic consults and how the pack models it.
@@ -109,22 +118,53 @@ disagrees with FFR there instead of agreeing with it. Both are waived by name in
 
 ## 2. Boxes that do not exist
 
-Things a bridge-only player checks that the board has no cell for. Several
-share work with section 1, which is why they come second and not later.
+Things a bridge-only player checks that the board has no cell for.
 
-- **Titan.** Code clash with `ruby` stage 2; needs its own hosted toggle.
-- **The four fiends and the ToFR refights.** Tiles already read off the
-  cartridge (`extract_npcs.WANTED`, `render_maps.fixed_formations()`); missing a
-  location node each. Their placement moves with `ToFRMode`, so build this on
-  the `ToFRMode` rules from section 1.
-- **Unne.** Holds no shuffled item, so a manual cell — decide and do it, or
-  write down that it stays off. Same decision for the other unpinned NPCs.
-- **`shopItem`.** The one Locations-grid cell with no incentive toggle behind it.
-- **The No-Overworld incentive sheet.** Derive the 28 pin positions from the
-  cartridge; the missing Nerrick slot (`ISSUES.md:436`, one slot not two) comes
-  with it.
-- **ToFR rules at all.** The AP export drops ToFR, so nothing grades them.
-  `tofr_diff.py` is the only check; the rules themselves are unwritten.
+**Re-cut 2026-09-01.** This section used to list six bullets and read as six
+jobs. Three of them were already argued against in `docs/ISSUES.md` and are
+decisions rather than builds; one is blocked on a section-4 item and has moved
+there; and one asks for rules that already exist. What follows is what is
+actually left.
+
+- **The six NPCs with no box are one list, and the answer is Titan only.**
+  `tools/tests/test_npc_pins.py:90` is the list — `kraken`, `lich`, `marilith`,
+  `tiamat`, `titan`, `unne` — and it was three separate bullets here until now.
+  **Titan gets a cell; the other five are declined.** The distinguishing fact is
+  a signal: Titan being fed is already autotracked at
+  `scripts/autotracking/ram_mapping.lua:119` (`ruby` stage 1, `$6214`), so his
+  box would light itself. Unne holds no shuffled item and the four fiends are
+  spiked battle tiles that write no flag in vanilla or FFR — the orb byte is set
+  by the altar, not the kill — so all five would be manual-click forever
+  (`ISSUES.md:170`, `:542`). That is a decision, and it is taken here rather
+  than left as a gap somebody re-opens.
+
+  What Titan still wants is **a fresh hosted code**, because `titan` is spent:
+  `items/items.json:174` gives it to `Ruby` stage 2. `unne` has the identical
+  clash at `:202` (`slab,slabTranslated,unne`), which is worth knowing so it is
+  not rediscovered as a second problem if the Unne decision is ever revisited.
+  Bridge-only either way — neither is an Archipelago location.
+- **`shopItem` has no incentive toggle because FFR has no such flag.** This
+  bullet used to read as missing wiring. It is not: there is no
+  `IncentivizeShopItem` anywhere in the 4-9-7 schema, and
+  `docs/FLAG_COVERAGE.md:222` records `Shop Item` as tracking where the shop
+  landed — roll noise, not a flag. Nothing to map, so the honest close is to say
+  so on the board's Map Key rather than to build a toggle.
+
+  **The real defect on that pin is a different one and is already filed**:
+  `I: Shop Item` carries no access rule at all, so it is green on a seed that
+  put it behind a vehicle, and `check_logic` cannot even grade it —
+  `docs/ISSUES.md:437`. That is the entry to work from.
+- **ToFR floor modelling.** The rules are *not* unwritten, which is what this
+  bullet used to claim: `locations/overworld.json:410` carries three
+  alternatives on the `ToFR` node and the seven chests inherit them. What is
+  unwritten is the *floors* — Mid ToFR deletes 2F and 3F outright and the tree
+  does not know, and nothing distinguishes the Lute Plate rooms or the Kary
+  floors from the entrance. The AP export drops ToFR unconditionally, so
+  `tofr_diff.py` stays the only check and any change here needs its own measured
+  cartridge pair.
+- **The No-Overworld incentive sheet has moved to section 4**, behind the map
+  surface it cannot be built without. The `nerrick` slot is splittable out of it
+  and is described there.
 
 ## 3. Clicks and confusion
 
@@ -194,33 +234,120 @@ share work with section 1, which is why they come second and not later.
   want walking one at a time, recording agree or disagree-and-why; a
   disagreement is either a bug in the cost function or a judgement of his that
   is not in the published rule, and only the second kind needs transcribing.
-- **The No-Overworld map surface.** The connection diagram — a hand-drawn
-  pseudo-overworld with the fixed links as roads. Unchanged from the earlier
-  plan; the topology is measured and stable.
+- **The No-Overworld map surface, and the incentive sheet that waits on it.**
+  The connection diagram — a hand-drawn pseudo-overworld with the fixed links as
+  roads. Unchanged from the earlier plan; the topology is measured and stable.
+
+  **The incentive sheet moved here from section 2 on 2026-09-01, because it
+  cannot be built before this is.** Deriving its 28 pins needs a surface to
+  resolve them against, and `tools/regen_maps.py:1315` gives `nov` mode no
+  overworld render *by design* — "a No-Overworld cartridge gets no overworld
+  render, so there is nothing to resolve, stamp or measure". Until this lands
+  those 28 pins stay hand-placed pixels on a JPEG. Section 2 listed the sheet as
+  next while its blocker sat here, which is the inversion this move fixes.
+
+  **The `nerrick` slot is splittable and need not wait.** It is a real
+  Archipelago location on this mode and both dungeon trees carry it. One slot,
+  not two — `airship`'s absence is correct and is not to be re-derived as a pair
+  (`docs/ISSUES.md:573`). Adding it against the existing JPEG is a hand edit
+  plus bumping the nov count 20 → 21 in `SHEET_RULED`,
+  `tests/test_pins.lua:146`.
 - **Boss names in the Map Key**, from the formation ids already in hand.
 
 ## 5. Tooling that keeps 1–4 true
 
+**The first two bullets come before section 2**, per the amended triage rule at
+the top of this file. They are what keeps section 1 from decaying, and nothing
+else on this page does that.
+
+- **The flag-coverage test.** Fail when a flag the logic consults appears that
+  is in neither `flag_mapping.lua` nor an explicit not-modelled list. Most of
+  the machinery is already there: `flag_mapping.lua` exports
+  `FFR_FLAG_COVERAGE` for exactly this, and `tests/test_flags.lua` already
+  consumes it — what is missing is the grep, which wants a Python home in
+  `tools/tests/` since Lua would have to shell out.
+
+  **Measured 2026-09-01 against the vendored 4-9-7 tree**, running the greps
+  this page's sibling `docs/FLAG_COVERAGE.md` already names: 54 distinct flag
+  names, of which **31 are not quoted in `flag_mapping.lua`** and **11 are not
+  in `FLAG_COVERAGE.md` at all**. So `NOT_MODELLED` goes from its one entry to
+  around thirty, and **writing an honest reason for each is the work** — a list
+  padded to make the test pass is the test not existing.
+
+  **Nine of those eleven are noise and two are not, which is the argument for
+  building this.** The nine share those files without reaching logic — the four
+  `BossScale*`, `SeparateBossHPScaling`, `EvadeCap`, `IncludeMorale`,
+  `ChaosFloorEncounters`, `LefeinSuperStore`. The two are `FiendsRefights` and
+  `ShortToFRFiendsRefights`, which decide whether the four fiends stand in the
+  Temple of Fiends Revisited at all, and **the coverage page has never listed
+  them**. A page compiled by hand missed two flags in the file it was compiled
+  from; that is the failure this test exists to make impossible, and it was
+  already live before the test was written.
+- **Pin the FFR revision.** The schemas already carry a build SHA and
+  `pins.yaml` already matches them; what is missing is the assertion that they
+  agree. It shares a repo handle with the bullet above, so it is the same
+  branch.
+
+  Two things to hold. The worktree HEADs are **two local commits above** the
+  pinned commits (the FF1R Archipelago-export commit and the `FFRVersion.Sha`
+  stamp), so a check must resolve the base — `git merge-base --is-ancestor
+  1f31434 HEAD` — rather than compare HEAD and fail on a tree that is correct.
+  And this bullet used to say `FLAG_COVERAGE.md` was compiled against trunk
+  `0f91e97` because `1f31434` "was not reachable", **which stopped being true on
+  2026-08-31**: `docs/FLAG_COVERAGE.md` is grepped at the schema build now. The
+  re-run this asked for has happened; only the assertion is outstanding.
+- **An export-vs-export diff, `tools/export_diff.py`.** Roll two cartridges one
+  flag apart, diff the exports, attribute the moved rules to the flag — which is
+  how every flag row in `docs/ORACLE.md` was produced, about fifteen times, by
+  hand and with no committed tool. `check_logic.parse_ap_rules` already reads
+  both export shapes and all 227 of `std497`'s export rules resolve to a pack
+  section path, so the address book is complete and tested; the differ is small
+  on top of it.
+
+  It is also the honest half of the bullet below, available without deciding
+  it: attributing a rule change to a flag **compiles nothing**, so it costs none
+  of the independence that compiling would.
+- **`check_logic`'s default `--ff1-world` is wrong and fails silently.**
+  `ap_location_paths` (`tools/check_logic.py:656`) defaults to
+  `<pack>/../Archipelago/worlds/ff1`, which resolves to
+  `vendor/ff1/Archipelago/worlds/ff1` and does not exist; the world is two
+  levels up at `vendor/Archipelago/worlds/ff1`. The missing path hits
+  `return {}`, so every location reports unmapped and the run gives a cheerful
+  zero. `docs/ORACLE.md` records the workaround — "`--ff1-world` is
+  load-bearing" — and this is the cause it works around. It should refuse
+  rather than return an empty dict.
 - **Port from the export.** A script that reads FFR's Archipelago export and
   emits the `$`-guarded `access_rules`, replacing hand transcription. One export
-  per FFR version, not per seed. This is the thing that keeps the pack in step
-  when FFR changes.
-- **The flag-coverage test.** The flags the logic consults are a grep over
-  `IVictoryConditionFlags`, `OverworldMap.cs`, `NPCs.cs`, `MetroidVaniaMap.cs`,
-  `TempleOfFiends.cs`. Fail when one appears that is in neither
-  `flag_mapping.lua` nor an explicit not-modelled list.
-- **Pin the FFR revision.** The schemas carry a build SHA; the rules should
-  say which revision they were graded against, and the greps above should run
-  against that revision, vendored or fetched. `FLAG_COVERAGE.md` was compiled
-  against trunk `0f91e97` because the 4-9-7 schema's build SHA `1f31434` was
-  not reachable; re-run its greps once pinned.
-- **More oracle seeds.** Two flagsets is thin for a pack with a dozen
-  flag-driven codes. One per branch claimed in section 1.
-- **Two location trees, one rule set.** `isNoOverworld()` landed; the trees are
-  still byte-identical copies. Either collapse them or make `test_maps.lua`
-  check 6 able to fail (a deliberately diverged fixture). Decide alongside the
-  section 4 map surface, since a differently-cropped No-Overworld dungeon tree
-  is the one reason to keep two.
+  per FFR version, not per seed.
+
+  **This one is blocked on a decision, not on effort.** Compiling makes the
+  oracle and the rules the same object, so
+  `check_logic` stops being an independent check and the cartridge sweep — 215
+  of `nov`'s 226 — becomes the only independent reading left. That is a question
+  about provenance, and `docs/IDEAS.md` ("Solve the requirements instead of
+  sampling them") has both sides of it with the figures attached. **It is a
+  judgement about provenance rather than a technical question, so it gets taken
+  deliberately, in its own session, against one stated criterion: is the
+  cartridge sweep alone enough cover?** Nothing here gets built before that; the
+  export diff above is what to build meanwhile.
+- ~~**More oracle seeds.**~~ **Obsolete 2026-09-01.** This said "two flagsets is
+  thin" and predates the 4-9-7 corpus. There are twenty cartridges now, five at
+  4.9.2 and fifteen at 4.9.7, all inventoried in `docs/ORACLE.md`. What is still
+  ungraded is not a seed-count problem and is named elsewhere: the three ToFR
+  flags the export cannot see, `Shop Item`, and the two permutation rolls closed
+  strictly rather than graded.
+- **Two location trees, one rule set.** `isNoOverworld()` landed. **The
+  byte-identical claim is true of the overworld pair only** —
+  `locations/overworld.json` and `locations/NOverworld/overworld.json` share an
+  md5, but the two incentive sheets genuinely differ, by 241 lines, with
+  different region names and a different node structure. So this is one file
+  pair, not two.
+
+  Either collapse that pair or make `test_maps.lua` check 6 able to fail (a
+  deliberately diverged fixture); check 6 compares only the overworld pair, so
+  today it cannot fail for any reason. Decide alongside the section 4 map
+  surface, since a differently-cropped No-Overworld dungeon tree is the one
+  reason to keep two.
 
 ## Frozen
 
@@ -231,7 +358,8 @@ Stated once so nobody re-derives them.
   remaining gaps (`docs/ORACLE.md`, the eleven) are properties of the tool, not
   the pack; the shipped rules are graded against the export, which is the
   correctness criterion. Keep it runnable; stop closing its gaps.
-- **Compile-from-export** is absorbed into section 5.
+- **Compile-from-export** is absorbed into section 5, where it now carries its
+  blocking decision, that decision's owner and the criterion it turns on.
 - **Names that have drifted** and **the four `NoMap` variants** stay in
   `IDEAS.md` until there is a user to ask.
 
@@ -243,10 +371,22 @@ actually says where a branch is.
 - `trunk` carries the route-lane work and is **ten commits ahead of
   `origin/trunk`**, unpushed, as of 2026-09-01. `noverworld-logic`,
   `visibility-toggles` and `route-lanes` are merged.
-- **`flags-real-seeds` is in flight**, and it is now the whole of section 1:
-  the `ChaosRush` and `ToFRMode` codes and the `ExitToFR` decision, then
+- **`flags-real-seeds` is the whole of section 1 and is ready to merge**: the
+  `ChaosRush` and `ToFRMode` codes and the `ExitToFR` decision, then
   `MapAirshipHike` and `MapCardiaLandBridge` graded on a cartridge each, the two
   verify flags answered, `ShuffleObjectiveNPCs` closed strictly, Gaia settled
   against FFR, the mode-mismatch light, and the flags grid on the variants that
-  had none. Section 1 has no open bullets left. **The review gate has not run on
-  it yet**, and it wants a fresh-context session before it merges.
+  had none. Section 1 has no open bullets left.
+
+  **The review gate has run**, in a fresh context at high effort on 2026-09-01,
+  and every finding is addressed and committed — seven commits,
+  `52ba9d5..7371acf`. It found a real hole the oracle structurally could not see
+  (Bahamut's Cave never got the `airshipHike` or `cardiaLandBridge`
+  alternatives, because FFR's export has no Bahamut location to grade against),
+  and it was also wrong once in the direction that would have deleted a correct
+  route, which the cartridge settled. Seven more 4.9.7 cartridges came out of
+  answering it.
+
+  This entry said "the review gate has not run on it yet" for a day after it
+  had, which is the same way a closed `ISSUES.md` entry goes stale: nothing
+  re-reads a line once it is written. Say the gate ran on the day it runs.
