@@ -688,11 +688,11 @@ function applyFFRFlags(record)
   end
   -- "" is different: the bridge is attached and told us it got nothing out of
   -- the cartridge -- not an FFR ROM, a PRG it could not read, or a build with no
-  -- FFRInfo record (bridge/ffr_uat_bridge.lua:606). That is the commonest way
-  -- the grid ends up asserting settings this seed never had, so it is what both
-  -- the light and the reset are for: the previous cartridge's answers go, and
-  -- what is left is a board that says it does not know. Recorded as the source
-  -- so that is done once, not on every scan.
+  -- FFRInfo record (readFlags in bridge/ffr_uat_bridge.lua). That is the
+  -- commonest way the grid ends up asserting settings this seed never had, so
+  -- it is what both the light and the reset are for: the previous cartridge's
+  -- answers go, and what is left is a board that says it does not know.
+  -- Recorded as the source so that is done once, not on every scan.
   if record == "" then
     FFR_FLAGS_SOURCE = record
     print("flags: this cartridge carries no flag record -- the flag grid is "
