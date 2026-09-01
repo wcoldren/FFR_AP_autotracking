@@ -109,7 +109,12 @@ quoted string counts a name parked in a commented-out entry as modelled. It also
 gets today's answer wrong the other way: `GameMode` is read as `flags.GameMode`
 and is a quoted literal nowhere, so the grep says 31 unnamed where the four
 real quoting sites say 30. Comments are stripped with quote state tracked,
-because the reasons in `NOT_MODELLED` contain `--` inside strings.
+because the reasons in `NOT_MODELLED` contain `--` inside strings — and the
+reasons themselves are stripped too, since prose that cites an identifier is not
+code that acts on it. Only three of the four quoting sites are in
+`flag_mapping.lua`: every `ffrFlag("...")` call lives in `scripts/logic.lua` or
+`scripts/autotracking/maptab.lua`, so those two files are read as well. Scanning
+the mapping table alone for that pattern matched nothing at all.
 
 **Thirty reasons, and five of them could not honestly be written.**
 `NOT_MODELLED` went from one entry to thirty-one — thirty new ones plus the
@@ -124,7 +129,7 @@ that, including a `computed = true` exemption for the eight flags
 `FlagsCompute.cs` derives rather than stores, which have no field in either
 schema.
 
-### The pin was a three-way agreement enforced at one hop
+### The pin was a three-link chain enforced at one hop
 
 `tools/tests/test_ffr_pin.py`. A flag schema means nothing except against the
 FFR build it came from, and `ffr_flags.py:102` already refuses a cartridge whose
@@ -133,10 +138,21 @@ Nothing compared either to the checkout on disk:
 
     pins.yaml pinned_commit == FFRVersion.cs stamped Sha == schema build_sha
 
-The middle term is hand-typed, because FFR substitutes `Sha` during its own
-deploy and leaves the literal in source, so an oracle worktree has to stamp it.
+**Three links, two independent sources, and calling it a three-way agreement
+was the overstatement.** `gen_schema.py`'s `git_sha()` derives `build_sha` from
+the stamp, so the right-hand pair is one value read twice and cannot disagree
+once a schema has been regenerated from the checkout it names. The term that
+drifts is the left one, `pins.yaml`'s hand-typed `pinned_commit` — FFR
+substitutes `Sha` during its own deploy and leaves the literal in source, so an
+oracle worktree has to stamp it. Holding both right-hand terms against the pin
+is the check.
+
 Ancestry rather than equality for the checkout: both worktrees sit two local
-commits above their pin, so comparing HEADs fails on a tree that is right.
+commits above their pin, so comparing HEADs fails on a tree that is right. The
+comparison is by common prefix, not string equality, because `pins.yaml`
+abbreviates at 7, 8 and 9 characters in different blocks while the ROM's field
+is fixed at 7 — exact equality would go unsatisfiable the day either FFR pin is
+rewritten at git's auto-abbreviated length.
 
 **The loose link turned up while writing it.** `gen_schema.py` took `build_sha`
 from `git rev-parse HEAD`, which on those worktrees is not the commit the
@@ -147,10 +163,25 @@ instead of the tree and made "a new version is one command" untrue for the two
 trees that matter most. It reads the stamp now.
 
 Every new check was shown to fail before it was believed: a bad status, a
-dropped `computed`, a missing measurement, a name left in a comment, a drifted
-`build_sha`, and a checkout pointed at the other version's worktree. Both new
-tests skip cleanly with no workspace and no checkout, because somebody who
-installed this as a PopTracker pack has neither.
+dropped `computed`, a missing measurement, a name left in a comment, a name left
+only in a reason, and a drifted `build_sha`.
+
+**One of those rows did not demonstrate what it claimed, and the fix is worth
+recording.** "A checkout pointed at the other version's worktree" was asserted
+by `is_ancestor(4-9-7, pin(4-9-2)) and pin(4-9-2) == stamped_sha(4-9-7)`. The
+conjunction came out `False`, so the row passed — but the first term is `True`:
+4.9.2's release commit genuinely is an ancestor of the 4.9.7 worktree, and only
+the stamp ever fired. A 4.9.7 tree rewound to 4.9.2 would have sailed through
+the ancestry check. The two terms bite in opposite directions and now sit on
+separate rows: ancestry against the 4.9.2 tree handed 4.9.7's pin (which really
+is not in its history), and the stamp against the 4.9.7 tree handed 4.9.2's pin.
+A conjunction hides which half fired, which is the whole failure shape here.
+
+Both new tests skip cleanly with no workspace and no checkout, because somebody
+who installed this as a PopTracker pack has neither. `vendor/` is gitignored and
+the FFR trees are `git worktree`s, so a fresh workspace clone has the pins and
+not the trees; the "at least one checkout was compared" guard now says so and
+skips rather than failing, which is what it always claimed to do.
 
 ## Read the maps from the bank FFR actually puts them in
 

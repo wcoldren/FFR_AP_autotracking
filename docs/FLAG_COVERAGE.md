@@ -370,14 +370,20 @@ no pin (section A), and `ShuffleObjectiveNPCs` moves two (above).
 
 `tools/tests/test_flag_coverage.py` runs the two greps above against the
 vendored 4.9.7 checkout and fails when a flag they find is named nowhere in
-`flag_mapping.lua`. **54 consulted; 24 of them were named before this, 54
-after.** A flag FFR adds is now a failing test rather than a habit.
+`flag_mapping.lua`, `scripts/logic.lua` or `scripts/autotracking/maptab.lua`.
+**54 consulted; 24 of them were named before this, 54 after.** A flag FFR adds
+is now a failing test rather than a habit.
 
 `tools/tests/test_ffr_pin.py` is the other half: the schema's `build_sha`, the
 `pinned_commit` in the workspace's `pins.yaml`, and the SHA stamped into
 `FFRVersion.cs` on the worktree all have to agree, and the pin has to be an
 ancestor of the checkout's HEAD — ancestry rather than equality, because both
-oracle worktrees sit two local commits above their pin.
+oracle worktrees sit two local commits above their pin. Three links, two
+independent sources: `git_sha()` in `gen_schema.py` takes `build_sha` from the
+stamp, so those two cannot disagree once a schema is regenerated from the
+checkout it names, and the pin is the term that drifts. The comparison is by
+common prefix rather than string equality, because `pins.yaml` abbreviates at
+7, 8 and 9 characters in different blocks while the ROM's field is fixed at 7.
 
 **The named half is read structurally, and the two readings disagree.** A
 whole-file grep for a quoted string counts a name parked in a commented-out
@@ -386,7 +392,13 @@ today's answer wrong in the other direction: `GameMode` is read as
 `flags.GameMode` and appears as a quoted literal nowhere, so the grep says 31
 unnamed where the structural pass says **30**. The four quoting sites that
 count are `ffr = "..."`, `get("...")` inside a progressive's stage closure,
-`ffrFlag("...")`, and `flags.Name`.
+`flags.Name` — all three in `flag_mapping.lua` — and `ffrFlag("...")`, which is
+in none of it: every call to the runtime accessor lives in `scripts/logic.lua`
+(`OrbsRequiredCount`, `OrbsRequiredMode`) or `scripts/autotracking/maptab.lua`
+(`ShardHunt`, `ChestsKeyItems`), so those two files are read as well. The `why`
+and `measure` reasons are stripped along with the comments: they are prose that
+cites identifiers for a reader, and a name that appears only there is not
+modelled.
 
 **What the thirty became.** `NOT_MODELLED` in `flag_mapping.lua` carries a
 `status` drawn from the key at the top of this page, so an entry and its row

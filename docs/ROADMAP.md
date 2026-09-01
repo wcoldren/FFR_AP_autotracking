@@ -304,11 +304,14 @@ else on this page does that.
   been compiled by hand out of the files it was compiled from.
 
 - **Pin the FFR revision. Closed 2026-09-01.** `tools/tests/test_ffr_pin.py`
-  holds the three-way agreement that was true and enforced nowhere: the schema's
-  `build_sha`, the `pinned_commit` in `pins.yaml`, and the SHA stamped into
-  `FFRVersion.cs` on the worktree. The base is resolved rather than compared, as
-  this bullet asked — both worktrees sit exactly two local commits above their
-  pin, so a HEAD comparison fails on a tree that is right.
+  holds the chain that was true and enforced nowhere: the schema's `build_sha`,
+  the `pinned_commit` in `pins.yaml`, and the SHA stamped into `FFRVersion.cs`
+  on the worktree. Three links, but only two independent sources — `git_sha()`
+  derives `build_sha` from the stamp, so those two are one value read twice,
+  and the term that can actually drift is the hand-typed pin. The base is
+  resolved rather than compared, as this bullet asked — both worktrees sit
+  exactly two local commits above their pin, so a HEAD comparison fails on a
+  tree that is right.
 
   **It found the loose link on the way.** `gen_schema.py` derived `build_sha`
   from `git rev-parse HEAD`, which on those worktrees is not the commit the
@@ -318,6 +321,14 @@ else on this page does that.
   checker rather than the tree, and made "a new version is one command" untrue
   for the two trees where it matters most. It reads the stamp now, with HEAD as
   the fallback for an unstamped checkout.
+
+  **One of its rows did not demonstrate what it claimed**, found on review.
+  "A pin from the wrong FFR version is not an ancestor" was a conjunction of
+  ancestry and the stamp, and only the stamp ever fired: 4.9.2's release commit
+  genuinely *is* an ancestor of the 4.9.7 worktree, so a 4.9.7 tree rewound to
+  4.9.2 would have passed the ancestry half. The two terms bite in opposite
+  directions and are separate rows now. Same lesson as the gate rows: a
+  conjunction that comes out false is not a demonstration of either conjunct.
 
 - **An export-vs-export diff, `tools/export_diff.py`.** Roll two cartridges one
   flag apart, diff the exports, attribute the moved rules to the flag — which is
