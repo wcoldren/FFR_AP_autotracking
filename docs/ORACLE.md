@@ -48,6 +48,39 @@ folded together into a plausible-looking pile of divergences that are not real.
 Pass `--ap-rules` anyway. The corpus lives in the Archipelago workspace, outside
 this repo; `FINDINGS.local.md` has the path.
 
+## The play cartridges
+
+Not oracles, and not interchangeable with them. These were rolled to be played,
+and they are where the pack's *art* comes from and where most in-game
+observations were made. They ship no Archipelago export, so nothing can be
+graded against them -- a figure taken here is a measurement, never a grade.
+
+| Seed | Directory | FFR | Mode | What it answers |
+|---|---|---|---|---|
+| `F258553F` | `duck-104` | 4.9.2 | GameMode 2, ToFRMode 2 (Short) | the reference No-Overworld cartridge; the source of the `nov` art and of most No-Overworld measurements in the log |
+| `8EF791AA` | `duck-weekly-0831` | 4.9.7 | GameMode 0 | the source of the `std` art |
+| `C189A0EF` | `duck-102` | 4.9.2 | GameMode 0 | the standard seed the sprite and Crown-gate counts were taken on |
+| `2CCBA52F` | `duck-103` | 4.9.2 | GameMode 0 | the second standard seed, so a count has two cartridges behind it |
+| `72A52C25` | `practice-72A52C25` | 4.9.2 | GameMode 0 | the standard control for the Temple of Fiends floor comparison |
+| `F2585540` | not kept | 4.9.8 | GameMode 2, ToFRMode 2 (Short) | rolled once to measure version drift against `F258553F`, then discarded |
+
+`duck-weekly-0831` and `duck-104` are the pair the installed override was
+rendered from, standard and No-Overworld. Replacing either means a regen for
+that mode, not a file swap.
+
+**`F258553F` and `F2585541` are different cartridges.** Both are FFR 4.9.2,
+both GameMode 2, both ToFRMode 2 (Short), and they differ in the last two
+characters. One is the play seed above; the other is the `nov` oracle in the
+inventory at the top of this page. Nothing distinguishes them at a glance, and
+a measurement filed against the wrong one would look right. **Name the slug in
+prose** -- `duck-104`, `nov` -- and leave the bare hex to these two tables.
+
+Two more identifiers appear in the docs and are not cartridges anyone can load:
+`D0E0CDBF` in `tools/ffr_flags/README.md` and `6BF0DEA9` in `docs/BRIDGE.md`
+are sample output, showing the shape of an `FFRInfo` record and of a run-clock
+log line.
+
+
 ## Measured
 
 Last run 2026-08-30, on freshly rebuilt cartridges.
