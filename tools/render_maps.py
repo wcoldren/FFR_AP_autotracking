@@ -1143,13 +1143,23 @@ def draw_lanes(out, w, h, crop, lanes):
             for k in range(TILE_PX + 1):
                 x = x1 + (x2 - x1) * k // TILE_PX + TILE_PX // 2
                 y = y1 + (y2 - y1) * k // TILE_PX + TILE_PX // 2
+                # The spread goes on the axis the step does *not* travel on --
+                # the same rule _arrow states below. Putting it on the axis of
+                # travel draws a line one pixel thick with a LANE_PX//2 overhang
+                # past each end, which is not what the key's swatch advertises.
                 for o in range(-half, half + 1):
-                    dot(x + (o if y1 == y2 else 0),
-                        y + (o if x1 == x2 else 0), col)
+                    dot(x + (o if x1 == x2 else 0),
+                        y + (o if y1 == y2 else 0), col)
 
     for run, base, mine in drawn:
         for n, (a, b) in enumerate(mine):
-            if n % ARROW_EVERY == ARROW_EVERY - 1 or (a, b) == mine[-1]:
+            # By index, not by value. Comparing the pair fires on every crossing
+            # of that ordered edge, not just the last -- which costs no pixels,
+            # since a repeated edge ends at the same tile and _arrow is a pure
+            # function of it, so the extra call redraws the same arrowhead. It
+            # is still the wrong question to ask, and it stops being free the
+            # moment an arrow depends on anything but (a, b).
+            if n % ARROW_EVERY == ARROW_EVERY - 1 or n == len(mine) - 1:
                 _arrow(dot, cell, a, b, base)
 
     # The start box, on a black ring. Marsh Cave's floor is light grey and a
