@@ -115,6 +115,50 @@ print("-- a second schema, from a real 4-9-2 cartridge")
 -- when it says otherwise. Refusing was right; the silent fallback was not.
 dofile(PACK .. "/scripts/flags/schema_4-9-2.lua")
 
+-- The coverage tables have to describe flags that exist, and each flag has to
+-- be claimed once. A name that drifts -- FFR renames one, or a code lands in
+-- two tables -- is invisible at runtime: the toggle silently never applies, or
+-- a flag is both modelled and declared unmodelled and the docs pick one.
+do
+  local cov = FFR_FLAG_COVERAGE
+  check("the coverage tables are exported", cov ~= nil, true)
+  local seen, dupes, unknown = {}, {}, {}
+  local function names(version)
+    local out = {}
+    for _, e in ipairs((FFR_FLAG_SCHEMAS[version] or {}).properties or {}) do
+      out[e.name] = true
+    end
+    return out
+  end
+  local n492, n497 = names("4-9-2"), names("4-9-7")
+  for _, which in ipairs({"toggles", "progressives", "notModelled"}) do
+    for _, entry in ipairs(cov[which] or {}) do
+      -- A progressive names its sources inside its stage function rather than
+      -- on the entry, so only the tables carrying an `ffr` are checked here.
+      local name = entry.ffr
+      if name then
+        if seen[name] then dupes[#dupes + 1] = name end
+        seen[name] = which
+        if not n492[name] and not n497[name] then unknown[#unknown + 1] = name end
+      end
+    end
+  end
+  check("no flag is claimed by two coverage tables", #dupes, 0)
+  check("every named flag exists in a shipped schema", #unknown, 0)
+  for _, n in ipairs(dupes) do print("     claimed twice: " .. n) end
+  for _, n in ipairs(unknown) do print("     in no schema: " .. n) end
+
+  -- ExitToFR is the one this list was added for: it is read, and deliberately
+  -- carries no code. If a code ever appears for it, this says so.
+  local exitToFR
+  for _, e in ipairs(cov.notModelled or {}) do
+    if e.ffr == "ExitToFR" then exitToFR = e end
+  end
+  check("ExitToFR is declared not modelled, with a reason",
+        exitToFR ~= nil and #exitToFR.why > 40, true)
+  check("and it is not also a toggle", seen["ExitToFR"], "notModelled")
+end
+
 local FLAGS_492 = "MoELv7QsOnnoCGNext9M-X.DLA8uPmRIhOYKgmMLa.c3zogofl1b4Dr-P5C7xjCHCNENxi2q-J6nmd"
     .. "1hZjc3CDN7rgnWiMm-DE1gqFjpvDgolgrnkD64HomL8SJIFEME.i85x4NtiKjbt8oENXFzsTqIRuWd"
     .. "0W7wyKO7JQyzAEWHH4FmWj"

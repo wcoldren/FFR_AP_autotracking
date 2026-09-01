@@ -137,7 +137,7 @@ either. The eleven above them are in both schemas.
 | `ShardCount` | `hasEnoughShards()` | code |
 | `ToFRMode` | none; oracle notes the AP export drops ToFR anyway | **missing** — ToFR rules differ by mode |
 | `ChaosRush` | none | **missing** — collapses ToFR to the Chaos fight |
-| `ExitToFR` | none | **missing** — changes whether ToFR is a one-way trip |
+| `ExitToFR` | `NOT_MODELLED` in `flag_mapping.lua` | **decided against** — it opens nothing; see below |
 
 ## D. Placement-only (large group, all n/a for colours)
 
@@ -156,7 +156,19 @@ Reachability flags with no pack code today:
 2. `MapCardiaLandBridge`
 3. `ToFRMode`
 4. `ChaosRush`
-5. `ExitToFR`
+
+**`ExitToFR` was the fifth, and is now decided rather than pending.** It writes
+an exit portal and nothing else: `0x40`, `TP_TELE_WARP`, and `reachable_maps`
+only follows `TP_TELE_NORM`, so it creates no way in — `NOVERWORLD.md`, "the
+exit portal is an exit and nothing more". This pack does not model points of no
+return, so there is nothing for it to gate. A code for it would be a cell on
+the board that changes no colour, which is worth less than nothing.
+
+It is named in `NOT_MODELLED` in `flag_mapping.lua` rather than left off the
+list, because a flag with no code cannot otherwise be told from one nobody has
+got to yet. `tests/test_flags.lua` holds that table against both shipped
+schemas: every name in it has to be a real flag, and no flag may be claimed by
+two of the three coverage tables.
 
 `NoTail` and `ShipDrydock` were on this list and are **done** — see their rows
 in section B. `NoTail` turned up the rule this page now applies throughout: **a
@@ -164,10 +176,10 @@ flag being declared in `IVictoryConditionFlags` does not mean `SanityCheckerV2`
 reads it.** Section A' is what running that grep over the rest produced, and it
 moved seven rows out of section A.
 
-Each of the five wants a `TOGGLES`/`PROGRESSIVES` row in `flag_mapping.lua`, a
+Each of the four wants a `TOGGLES`/`PROGRESSIVES` row in `flag_mapping.lua`, a
 code in `items/flags.json`, the affected `access_rules` alternatives, and one
 oracle seed rolled with the flag on so `check_logic` grades the branch. That is
-five codes, not twenty-five, and none is a redesign.
+four codes, not twenty-five, and none is a redesign.
 
 **Rolling the seed can also show the branch is ungradeable, and that is a
 result.** `NoTail`'s cartridge proved the flag rewrites no rule FFR hands
