@@ -489,8 +489,8 @@ function applyFFRFlags(record)
     wrong[#wrong + 1] = flags.ShardHunt == true
       and "this seed is a shard hunt and the goal on this variant is gated on "
           .. "the four orbs"
-      or "this variant is a shard hunt and the goal on this seed is gated on "
-         .. "the four orbs"
+      or "this variant is a shard hunt, so its goal is gated on the shard "
+         .. "count, which an orb seed never fills"
   end
 
   local mismatch = #wrong > 0 and table.concat(wrong, "; ") or nil
