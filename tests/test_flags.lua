@@ -122,7 +122,6 @@ dofile(PACK .. "/scripts/flags/schema_4-9-2.lua")
 do
   local cov = FFR_FLAG_COVERAGE
   check("the coverage tables are exported", cov ~= nil, true)
-  local seen, dupes, unknown = {}, {}, {}
   local function names(version)
     local out = {}
     for _, e in ipairs((FFR_FLAG_SCHEMAS[version] or {}).properties or {}) do
@@ -131,6 +130,18 @@ do
     return out
   end
   local n492, n497 = names("4-9-2"), names("4-9-7")
+  -- A flag FF1Lib computes rather than stores has no field in either schema --
+  -- FlagsCompute.cs derives IsShipFree, NoOverworld and six more from the
+  -- flags that are stored. So `computed` exempts an entry from the check
+  -- below, and the exemption is itself checked: a computed flag that turns up
+  -- in a schema is either a typo or FFR having started to store it, and both
+  -- want looking at.
+  local KNOWN_STATUS = {
+    ram = true, variant = true, noise = true,
+    unmodellable = true, decided = true, unjudged = true,
+  }
+  local seen, dupes, unknown, wrongly = {}, {}, {}, {}
+  local badStatus, shortWhy, noMeasure = {}, {}, {}
   for _, which in ipairs({"toggles", "progressives", "notModelled"}) do
     for _, entry in ipairs(cov[which] or {}) do
       -- A progressive names its sources inside its stage function rather than
@@ -139,14 +150,41 @@ do
       if name then
         if seen[name] then dupes[#dupes + 1] = name end
         seen[name] = which
-        if not n492[name] and not n497[name] then unknown[#unknown + 1] = name end
+        local inSchema = n492[name] or n497[name]
+        if entry.computed then
+          if inSchema then wrongly[#wrongly + 1] = name end
+        elseif not inSchema then
+          unknown[#unknown + 1] = name
+        end
       end
     end
   end
   check("no flag is claimed by two coverage tables", #dupes, 0)
   check("every named flag exists in a shipped schema", #unknown, 0)
+  check("and no computed flag claims to", #wrongly, 0)
   for _, n in ipairs(dupes) do print("     claimed twice: " .. n) end
   for _, n in ipairs(unknown) do print("     in no schema: " .. n) end
+  for _, n in ipairs(wrongly) do print("     computed, yet in a schema: " .. n) end
+
+  -- Every entry carries its reason, not just the one this list started with.
+  -- The reason is the whole value of the table: tools/tests/test_flag_coverage.py
+  -- makes the list complete, and only this makes it honest. An `unjudged` entry
+  -- additionally has to name the measurement that would settle it, so a flag
+  -- nobody has looked at cannot sit here borrowing a neighbour's argument.
+  for _, e in ipairs(cov.notModelled or {}) do
+    local label = tostring(e.ffr)
+    if not KNOWN_STATUS[e.status] then badStatus[#badStatus + 1] = label end
+    if type(e.why) ~= "string" or #e.why < 40 then shortWhy[#shortWhy + 1] = label end
+    if e.status == "unjudged" and (type(e.measure) ~= "string" or #e.measure < 10) then
+      noMeasure[#noMeasure + 1] = label
+    end
+  end
+  check("every not-modelled flag has a known status", #badStatus, 0)
+  check("every not-modelled flag has a reason", #shortWhy, 0)
+  check("every unjudged flag names its measurement", #noMeasure, 0)
+  for _, n in ipairs(badStatus) do print("     bad status: " .. n) end
+  for _, n in ipairs(shortWhy) do print("     no reason: " .. n) end
+  for _, n in ipairs(noMeasure) do print("     no measurement: " .. n) end
 
   -- ExitToFR is the one this list was added for: it is read, and deliberately
   -- carries no code. If a code ever appears for it, this says so.

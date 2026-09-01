@@ -64,24 +64,295 @@ local TOGGLES = {
   { ffr = "IncentivizeConeria",      code = "coneriaLockedIsIncentive", default = true },
 }
 
--- Flags this pack reads about and deliberately does not model, with the reason.
+-- Flags FFR's logic consults that carry no code here, each with the reason.
 --
--- A flag with no code is ambiguous on its own: nobody can tell "decided against"
--- from "not got to yet", and FLAG_COVERAGE.md kept having to say which. Naming
--- them here settles it in the same file the codes live in, and gives the tests
--- something to hold the list against.
+-- A flag with no code is ambiguous on its own: nobody can tell "decided
+-- against" from "not got to yet", and FLAG_COVERAGE.md kept having to say
+-- which. Naming them here settles it in the same file the codes live in, and
+-- gives the tests something to hold the list against --
+-- tools/tests/test_flag_coverage.py greps FFR's own source and fails when a
+-- flag it consults is in neither this table nor the ones above it.
 --
--- These are not switched off, not applied and not reported -- they are simply
--- not consulted. Adding a code for one of them would put a cell on the board
--- that changes no colour, which is worth less than nothing.
+-- `status` says which kind of "no code" it is, using the key
+-- docs/FLAG_COVERAGE.md already publishes, so an entry and its row on that page
+-- can be checked against each other instead of drifting apart:
+--
+--   ram           the effect lands in $6000-$62FF and the pack reads it there
+--   variant       answered by which tracker variant is loaded
+--   noise         sits in a grepped file without reaching reachability at all
+--   unmodellable  a permutation chosen at generation that no toggle can state
+--   decided       read, understood, and deliberately given no code
+--   unjudged      consulted, and not settled yet -- carries `measure`
+--
+-- `computed = true` marks a flag FF1Lib derives rather than stores
+-- (FlagsCompute.cs). Those have no field in either shipped schema, so a code
+-- could not read one even if it wanted to, and tests/test_flags.lua exempts
+-- them from its "every named flag is a real flag" check on that basis.
+--
+-- `unjudged` is the entry that keeps this list honest. A list padded to make
+-- the test pass is the test not existing, so a flag nobody has measured says
+-- so and names the measurement rather than borrowing a neighbour's reason.
 local NOT_MODELLED = {
   {
     ffr = "ExitToFR",
+    status = "decided",
     why = "writes an exit portal and nothing else. It reads 0x40, "
        .. "TP_TELE_WARP, and reachable_maps only follows TP_TELE_NORM, so it "
        .. "creates no way in -- and this pack does not model points of no "
        .. "return, so there is nothing for it to gate. See NOVERWORLD.md, "
        .. "\"the exit portal is an exit and nothing more\".",
+  },
+  {
+    ffr = "IsShipFree",
+    status = "ram",
+    computed = true,
+    why = "computed as FreeShip | NoOverworld (FlagsCompute.cs:80), so it has "
+      .. "no field in either shipped schema and no code could read it. A "
+      .. "free Ship is in the starting inventory, so it shows up in $6000 "
+      .. "like a Ship the party sailed to; the pack reads the RAM and never "
+      .. "the flag.",
+  },
+  {
+    ffr = "IsBridgeFree",
+    status = "ram",
+    computed = true,
+    why = "computed as FreeBridge | NoOverworld | DesertOfDeath "
+      .. "(FlagsCompute.cs:83). The bridge reads out of $6008 whether the "
+      .. "seed gave it away or the party built it.",
+  },
+  {
+    ffr = "IsCanalFree",
+    status = "ram",
+    computed = true,
+    why = "computed as (FreeCanal & !NoOverworld) | DesertOfDeath "
+      .. "(FlagsCompute.cs:84). The canal reads out of $600C either way.",
+  },
+  {
+    ffr = "IsCanoeFree",
+    status = "ram",
+    computed = true,
+    why = "computed as FreeCanoe | DesertOfDeath (FlagsCompute.cs:81). A free "
+      .. "Canoe is an inventory item like any other Canoe.",
+  },
+  {
+    ffr = "IsAirshipFree",
+    status = "ram",
+    computed = true,
+    why = "computed as FreeAirship & !NoOverworld & !DesertOfDeath "
+      .. "(FlagsCompute.cs:82). It arrives as the Floater's second "
+      .. "progressive stage, which the pack reads from inventory.",
+  },
+  {
+    ffr = "FreeLute",
+    status = "ram",
+    why = "starting inventory (StartingItems.cs:62). The Lute is an inventory "
+      .. "item and reads the same whether the seed handed it over or the "
+      .. "party found it.",
+  },
+  {
+    ffr = "FreeRod",
+    status = "ram",
+    why = "starting inventory, the Lute's case exactly. Nothing about a rule "
+      .. "changes -- only how early the item shows up in RAM.",
+  },
+  {
+    ffr = "NoOverworld",
+    status = "variant",
+    computed = true,
+    why = "computed as GameMode == GameModes.NoOverworld "
+      .. "(FlagsCompute.cs:77), so it is not a schema field. The pack "
+      .. "answers it with isNoOverworld() off the variant UID, because the "
+      .. "mode needs a different location tree rather than a toggle, and the "
+      .. "modeMismatch light says so when the cartridge and the chosen "
+      .. "variant disagree.",
+  },
+  {
+    ffr = "IsFloaterRemoved",
+    status = "decided",
+    computed = true,
+    why = "computed as ((NoFloater|IsAirshipFree) & !NoOverworld) | "
+      .. "DesertOfDeath (FlagsCompute.cs:85). Its one read inside "
+      .. "FF1Lib/Sanity/ clears MapChange.Airship out of requiredMapChanges "
+      .. "(SanityCheckerV2.cs:178), which feeds the completion test and no "
+      .. "per-location rule -- so no exported rule can move with it and no "
+      .. "pin can change colour. Verified 2026-09-01; docs/FLAG_COVERAGE.md "
+      .. "section A carries the working.",
+  },
+  {
+    ffr = "DisableOWMapModifications",
+    status = "decided",
+    computed = true,
+    why = "computed as GameMode == Standard && OwMapExchange != None "
+      .. "(FlagsCompute.cs:50), so it is not an independent toggle: it is "
+      .. "true exactly when an exchanged overworld is in play, and it then "
+      .. "suppresses every map-open flag at OverworldMap.cs:37. An exchanged "
+      .. "overworld is unmodellable rather than uncoded, and the warning "
+      .. "that covers it already exists -- the OwMapExchange line in this "
+      .. "file.",
+  },
+  {
+    ffr = "ChestsKeyItems",
+    status = "decided",
+    why = "reaches the pack only as a conjunct FFR ANDs onto "
+      .. "ShuffleObjectiveNPCs (NPCs.cs:135). With it off the shuffle does "
+      .. "not run and the $noObjectiveShuffle guard is needlessly strict, "
+      .. "which is the side to be wrong on: strict holds a pin red where FFR "
+      .. "opens it, and the pack already prints that divergence rather than "
+      .. "hiding it. A code would only relax it.",
+  },
+  {
+    ffr = "BossScaleHpHigh",
+    status = "noise",
+    why = "an enemy HP scaling bound, passed to ScaleSingleEnemyStats at "
+      .. "TempleOfFiends.cs:252. It is caught by the grep because the fiends "
+      .. "are rescaled in a file the map flags also live in; it changes how "
+      .. "hard a fight is and never whether a tile can be reached.",
+  },
+  {
+    ffr = "BossScaleHpLow",
+    status = "noise",
+    why = "an enemy HP scaling bound, passed to ScaleSingleEnemyStats at "
+      .. "TempleOfFiends.cs:252. It is caught by the grep because the fiends "
+      .. "are rescaled in a file the map flags also live in; it changes how "
+      .. "hard a fight is and never whether a tile can be reached.",
+  },
+  {
+    ffr = "BossScaleStatsHigh",
+    status = "noise",
+    why = "an enemy stat scaling bound, passed to ScaleSingleEnemyStats at "
+      .. "TempleOfFiends.cs:251. Difficulty, not reachability.",
+  },
+  {
+    ffr = "BossScaleStatsLow",
+    status = "noise",
+    why = "an enemy stat scaling bound, passed to ScaleSingleEnemyStats at "
+      .. "TempleOfFiends.cs:251. Difficulty, not reachability.",
+  },
+  {
+    ffr = "SeparateBossHPScaling",
+    status = "noise",
+    why = "selects whether boss HP scales on its own curve "
+      .. "(TempleOfFiends.cs:252). Difficulty, not reachability.",
+  },
+  {
+    ffr = "EvadeCap",
+    status = "noise",
+    why = "an evade ceiling handed to ScaleSingleEnemyStats via "
+      .. "GetEvadeIntFromFlag (TempleOfFiends.cs:252). Difficulty, not "
+      .. "reachability.",
+  },
+  {
+    ffr = "IncludeMorale",
+    status = "noise",
+    why = "whether morale is scaled along with the other stats "
+      .. "(TempleOfFiends.cs:251). Difficulty, not reachability.",
+  },
+  {
+    ffr = "ChaosFloorEncounters",
+    status = "noise",
+    why = "puts random encounters on the Chaos floor (TempleOfFiends.cs:60, "
+      .. ":65, :112). It adds fights to a floor the party is already "
+      .. "standing on and moves no teleport, chest or gate.",
+  },
+  {
+    ffr = "LefeinSuperStore",
+    status = "noise",
+    why = "a shop edit, passed to ApplyMapMods at MetroidVaniaMap.cs:58. "
+      .. "Worth naming rather than passing over: diffing FFR 4.9.2 to 4.9.8 "
+      .. "moved the whole No-Overworld surface by one line, and this flag is "
+      .. "that line. Six releases of drift, and none of it was topology.",
+  },
+  {
+    ffr = "Entrances",
+    status = "unmodellable",
+    why = "the entrance shuffle. It rewrites which overworld door reaches "
+      .. "which dungeon (MetroidVaniaMap.cs:63, :1134), so the answer is a "
+      .. "permutation chosen at generation rather than a rule. No toggle can "
+      .. "say it, and a toggle that tried would have to be wrong on every "
+      .. "seed. The pack's answer is the entrance markers -- learned by "
+      .. "observation, so reveal-on-visit cannot spoil -- which is "
+      .. "docs/ROADMAP.md section 4.",
+  },
+  {
+    ffr = "Towns",
+    status = "unmodellable",
+    why = "the town shuffle, the same permutation one layer in "
+      .. "(MetroidVaniaMap.cs:63, :1124, :1156). Entrances' case exactly.",
+  },
+  {
+    ffr = "Floors",
+    status = "unmodellable",
+    why = "the floor shuffle, which permutes staircases rather than doors "
+      .. "(MetroidVaniaMap.cs:1134, :1144, :1215). Entrances' case, per "
+      .. "floor. tools/entrance_graph.py already reads the whole permutation "
+      .. "off a cartridge; what is missing is a way for the board to show "
+      .. "it.",
+  },
+  {
+    ffr = "EntrancesMixedWithTowns",
+    status = "unmodellable",
+    why = "mixes the two pools into one (MetroidVaniaMap.cs:1294). It widens "
+      .. "a permutation the pack cannot express at all, so it cannot make it "
+      .. "worse.",
+  },
+  {
+    ffr = "AllowDeepCastles",
+    status = "unmodellable",
+    why = "lets the shuffle put Coneria Castle and the Temple of Fiends "
+      .. "behind each other (MetroidVaniaMap.cs:1138, :1146). A constraint "
+      .. "on a permutation the pack does not model; it only matters once "
+      .. "Entrances or Floors is on.",
+  },
+  {
+    ffr = "IncludeConeria",
+    status = "unmodellable",
+    why = "adds Coneria to the town pool (MetroidVaniaMap.cs:1128, :1151). "
+      .. "Same shape: it widens a permutation rather than gating anything.",
+  },
+  {
+    ffr = "NPCItems",
+    status = "unjudged",
+    measure = "roll a 4.9.7 pair one flag apart and diff the exports",
+    why = "decides whether the NPCs hand out shuffled items. It is read in "
+      .. "two places that do different things -- NPCs.cs:236 gives Nerrick "
+      .. "the Canal or a Cabin, MetroidVaniaMap.cs:871 swaps a line of "
+      .. "dialogue -- and FlagsCompute.cs:64, :69 folds it into RequiredRuby "
+      .. "and RequiredTnt. Whether any of that moves a pin on an Archipelago "
+      .. "seed has not been measured, and inventing a reason here would be "
+      .. "the padding this list exists to prevent.",
+  },
+  {
+    ffr = "NPCSwatter",
+    status = "unjudged",
+    measure = "roll a 4.9.7 pair one flag apart and diff the exports",
+    why = "rewrites every Talk_norm NPC to Talk_kill (NPCs.cs:134, :259-275), "
+      .. "protecting only the Lute and Rod plates. That plainly changes what "
+      .. "an NPC does; whether it changes what the party can end up holding, "
+      .. "and so whether an NPC cell should colour differently, has not been "
+      .. "measured.",
+  },
+  {
+    ffr = "FiendsRefights",
+    status = "unjudged",
+    measure = "tools/tofr_diff.py on a pair, since the AP export never covers "
+      .. "ToFR",
+    why = "decides whether the four fiends stand in the Temple of Fiends "
+      .. "Revisited and on which paths (TempleOfFiends.cs:53, :93, :100). "
+      .. "This flag and its sibling are the two docs/FLAG_COVERAGE.md never "
+      .. "listed at all, which is the miss this test was built for -- so "
+      .. "filing them as settled on the day they were found would be the "
+      .. "wrong lesson.",
+  },
+  {
+    ffr = "ShortToFRFiendsRefights",
+    status = "unjudged",
+    measure = "tools/tofr_diff.py on a pair, since the AP export never covers "
+      .. "ToFR",
+    why = "the same decision for a shortened ToFR, with seven arrangements "
+      .. "rather than three (TempleOfFiends.cs:54, :207-332). The export "
+      .. "cannot grade either one: archipelago/Archipelago.cs:93 drops every "
+      .. "ToFR location from the pool, so this wants the derived walk or "
+      .. "tofr_diff.py, not a graded cartridge.",
   },
 }
 
