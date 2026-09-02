@@ -17,18 +17,27 @@ Nothing here is urgent unless it says so.
 ## Known wrong
 
 - **The Cardia islands had one standard-world route where Bahamut's Cave had
-  three. Closed 2026-09-01**, by `52ba9d5`, `9d55246` and `15ac915` -- before it
+  two. Closed 2026-09-01**, by `73337dc`, `52ba9d5` and `15ac915` -- before it
   was diagnosed, which is why it is filed closed rather than fixed. Reported off
   `8EF791AA`: the Cardia chest pins were red while the Hoard was reachable. On
   the build being played, `Cardia Grassy` carried `$standardWorld,airship` and
   nothing else, while `Bahamut's Cave` already carried the Bahamut-dock
   alternative -- so on a seed with the dock and the hoard on, the cave went green
   and the islands beside it stayed red. Both states the report is consistent with
-  reproduce it: with Canal and Ship the cave is green and the islands red, and
-  with Floater and Ship both are red. On the rules as they stand, both are green.
+  leave the Cardia pins red: with Canal and Ship the cave is green and the
+  islands red, which is the report as written; with Floater and Ship the cave is
+  red too, so the Hoard being reachable in that state was seen in the game rather
+  than on a pin. On the rules as they stand both states come out green throughout
+  -- the islands through `15ac915`'s `BahamutHoard` alternative under Canal and
+  Ship and through `73337dc`'s `airshipHike` one under Floater and Ship, the cave
+  through `52ba9d5`. `9d55246` landed in the same batch and is easy to miscredit
+  here: it wants `MapCardiaLandBridge`, which this seed has off, so it cannot
+  fire on these flags at all.
 
   What makes it stay closed is `hoarddockhike497`, not the fix: the cartridge
-  carries the reported flag combination, and the rules that were being played
+  carries the three flags this entry turns on -- `MapDragonsHoard`,
+  `MapBahamutCardiaDock` and `MapAirshipHike` -- on `std497`'s baseline rather
+  than the played seed's whole flag set, and the rules that were being played
   grade **95 agree, 13 distinct divergences over 129 locations** against it,
   where the current ones grade 224 of 224. The combination was ungraded until
   now because the corpus had `hoarddock497` and `hoardhike497` and not the pair

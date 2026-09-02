@@ -105,9 +105,10 @@ the whole story.
 
 Closed 2026-09-01. Reported off `8EF791AA` played bridge-only: the Cardia chest
 pins were red while the Hoard was reachable. The defect was real and had already
-been fixed fourteen hours before it was looked at -- `52ba9d5`, `9d55246` and
-`15ac915` landed at 12:03 on 09-01, and the session that saw it was running
-`2b0ff32` from 20:17 the night before. `docs/ISSUES.md` carries the close.
+been fixed by the time it was looked at -- `73337dc` landed at 09:42 on 09-01 and
+`15ac915` at 12:04, and the session that saw it was running `2b0ff32` from 20:17
+the night before. `docs/ISSUES.md` carries the close, and which commit closes
+which half of it.
 
 What is worth keeping is not the fix.
 
@@ -132,8 +133,9 @@ candidate states beat one recovered state, because the answer holds for either.
 `hoardhike497` had a cartridge each; `MapDragonsHoard`, `MapBahamutCardiaDock`
 and `MapAirshipHike` together had none, and that is what a real seed rolled.
 `hoarddockhike497` is now the row, and it grades the rules that were being played
-at 95 of 224 -- a gate that demonstrates the failure it was added for, rather than
-one added after the fact that can only report a pass.
+well short of the current ones (`docs/ORACLE.md`) -- a gate that demonstrates the
+failure it was added for, rather than one added after the fact that can only
+report a pass.
 
 The pair also turns out to be the plain union of the two flags,
 `(Canal AND Ship) OR (Floater AND Ship) OR (Canoe AND Floater)`. That is worth

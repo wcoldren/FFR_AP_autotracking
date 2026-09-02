@@ -262,7 +262,7 @@ flag decoder accepts a local build of it unmodified.
 | `hoardbridge497` | `oracle497_hoard` + `MapCardiaLandBridge` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the land bridge |
 | `hoarddockbridge497` | `oracle497_hoard` + both | `3B7E1C8A` | the same three | Bahamut's Cave's requirement with both, which is not the union |
 | `hoardhike497` | `oracle497_hoard` + `MapAirshipHike` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the hike |
-| `hoarddockhike497` | `oracle497_hoard` + `MapBahamutCardiaDock` + `MapAirshipHike` | `3B7E1C8A` | the same three | the combination a played seed actually rolled, and the one the pairs above do not cover |
+| `hoarddockhike497` | `oracle497_hoard` + `MapBahamutCardiaDock` + `MapAirshipHike` | `3B7E1C8A` | the same three | the three Cardia-relevant flags a played seed rolled, carried on `std497`'s baseline rather than that seed's whole flag set, and the combination the pairs above do not cover |
 
 **Every cartridge here shares `std497`'s seed**, so anything that moves between
 an export and `std497`'s is the flag, not the roll -- a tighter control than

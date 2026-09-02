@@ -39,10 +39,10 @@ found is `STATUS.md`. The next thing that makes a pin lie goes here, under the
 rule above.
 
 **One arrived and was already fixed, 2026-09-01.** The Cardia islands carried a
-single standard-world route where Bahamut's Cave carried three, so the pins beside
+single standard-world route where Bahamut's Cave carried two, so the pins beside
 a reachable Hoard stayed red. It closed before it was diagnosed. The entry is in
-`docs/ISSUES.md`; what keeps it closed is a cartridge, `hoarddockhike497`, on
-which the rules that were being played grade 95 of 224. The lesson for this
+`docs/ISSUES.md`; what keeps it closed is a cartridge, `hoarddockhike497`, whose
+before/after figures are in `docs/ORACLE.md`. The lesson for this
 section is about the corpus rather than the rule: the flag *pair* had a cartridge
 each and the combination someone actually rolled had none, and a rule graded on
 each of two flags separately is not thereby graded on both.
