@@ -211,13 +211,26 @@ def load_pack_rules(pack=PACK, files=None):
 
 
 def find_section(sections, path):
-    """PopTracker location refs are written as suffixes of the full path."""
+    """PopTracker location refs are written as suffixes of the full path.
+
+    A ref can match twice, because the same pin is written into both the board
+    tree and the incentive poster -- "I: Shop Item/I: Shop Item" matches
+    "Onrac Continent/..." and "I: Onrac Continent/..." alike. That is not
+    ambiguous at runtime: Tracker::getLocation returns the first location whose
+    id ends with the ref, and scripts/init.lua loads overworld.json before
+    incentives.json, so the board tree wins. Resolve it the way PopTracker
+    does rather than giving up, which is what left this pin ungraded on every
+    cartridge. Two hits inside the board tree are still a genuine ambiguity.
+    """
     if path in sections:
         return path
     want = "/" + path
     hits = [k for k in sections if k.endswith(want)]
     if len(hits) == 1:
         return hits[0]
+    board = [k for k in hits if not k.startswith("I: ")]
+    if len(board) == 1:
+        return board[0]
     return None
 
 

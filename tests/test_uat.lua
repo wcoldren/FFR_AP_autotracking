@@ -154,6 +154,39 @@ captured.cb(goalStore(true, f6, false))
 check("ff1/goal going false releases it", UAT_CHECKED[766], nil)
 
 ------------------------------------------------------------------
+-- The shop key item, id 767. Two routes, for the same reason the goal has two:
+-- FFR's NewCheckForSpace patch writes flag byte 0xFF only on an Archipelago
+-- cartridge (FF1Lib/GlobalImprovements.cs, installed under `archipelagoenabled`
+-- on the 4.9.x line), so a solo seed's purchase arrives as ff1/shopitem from
+-- the bridge, which reads the shop's stock out of PRG ROM instead.
+------------------------------------------------------------------
+local function shopStore(ready, mem, shop)
+  return { ReadVariable = function(self,name)
+    if name=="ff1/ready" then return ready end
+    if name=="ff1/mem" then return mem end
+    if name=="ff1/shopitem" then return shop end
+  end }
+end
+check("the shop slot is a mapped location", LOCATION_MAPPING[767] ~= nil, true)
+
+-- The Archipelago route: the flag page carries it and nothing else is needed.
+local f7 = blank()
+setflag(f7, 0xFF, 0x02)
+captured.cb(store(true, f7))
+check("flag byte 0xFF bit 0x02 checks id 767", UAT_CHECKED[767], true)
+check("and sets the shopItem code", objects["shopItem"].Active, true)
+
+-- The solo route: the flag page says nothing at all.
+local f8 = blank()
+captured.cb(shopStore(true, f8, false))
+check("no purchase, no flag bit, no shop check", UAT_CHECKED[767], nil)
+captured.cb(shopStore(true, f8, true))
+check("ff1/shopitem checks id 767 with the flag page silent", UAT_CHECKED[767], true)
+check("ff1/shopitem sets the shopItem code", objects["shopItem"].Active, true)
+local n4=0 for _ in pairs(UAT_CHECKED) do n4=n4+1 end
+check("a shop-only frame checks just the shop", n4, 1)
+
+------------------------------------------------------------------
 -- ff1/rom: the signal that says "different cartridge". Without it the pack's
 -- raise-only halves carried a finished seed into the next one.
 ------------------------------------------------------------------

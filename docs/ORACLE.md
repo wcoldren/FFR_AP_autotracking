@@ -406,10 +406,12 @@ which go from unwalkable to walkable and none the other way**, so it only ever
 opens land. The mountain tiles in `GaiaDrydock` replace terrain that was already
 impassable. Measured on the two cartridges 2026-08-31, tile by tile.
 
-`Shop Item` is also the "1 could not be mapped" that every run on every
-cartridge prints, so the pack's rule for it -- which is no rule at all -- has
-never been compared against FFR on any seed. That is filed in `docs/ISSUES.md`
-and is not a `ShipDrydock` defect.
+`Shop Item` used to be the "1 could not be mapped" that every run on every
+cartridge printed, because its ref matches both the dungeon tree and the
+incentive poster and `find_section` refused rather than choosing. It resolves
+the way PopTracker does now, so the line is gone: `std` reads 226 checked with
+none unmapped. The pack's rule for it is still no rule at all, deliberately --
+`docs/ISSUES.md` says why, and it is not a `ShipDrydock` defect.
 
 Both check_logic runs print the "where ship, canal, canoe, floater were placed is
 not recorded for this seed" caveat and are marked NOT COUNTED. That is the normal

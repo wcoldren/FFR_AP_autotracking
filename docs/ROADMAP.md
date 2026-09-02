@@ -106,11 +106,10 @@ actually left.
   `docs/FLAG_COVERAGE.md` records `Shop Item` as tracking where the shop landed — roll noise, not a flag. Nothing to map, so the honest close is to say
   so on the board's Map Key rather than to build a toggle.
 
-  **The real defect on that pin is a different one and is already filed**:
-  `I: Shop Item` carries no access rule at all, so it is green on a seed that
-  put it behind a vehicle, and `check_logic` cannot even grade it —
-  `docs/ISSUES.md`, "`I: Shop Item` carries no rule at all". That is the entry
-  to work from.
+  **The pin clears itself now**, off the shop's stock in PRG ROM on a solo seed
+  and off flag byte `0xFF` on an Archipelago one, and `check_logic` can grade it
+  at last. It stays green until bought on purpose: naming the shop is the shop
+  hunt. See `docs/ISSUES.md`, "The `I: Shop Item` pin clears itself now".
 - **ToFR floor modelling.** The rules are *not* unwritten, which is what this
   bullet used to claim: `locations/overworld.json:410` carries three
   alternatives on the `ToFR` node and the seven chests inherit them. What is

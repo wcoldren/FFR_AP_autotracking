@@ -488,37 +488,75 @@ Nothing here is urgent unless it says so.
   surface, and restamping 29 markers against a crop this mode never renders is
   work with nothing to check it against until there is one.
 
-- **`I: Shop Item` carries no rule at all, and nothing has ever compared it.**
-  The pin is `Onrac Continent/I: Shop Item`, and its `access_rules` are empty at
-  both node and section level while `Onrac Continent` is an organisational node
-  with no rules of its own. So the pack shows it green unconditionally. FFR does
-  not: the slot is whichever shop the seed chose to hold a key item, and its
-  exported rule is that shop's reachability -- `PravokaShop1` and `()` on
-  `std497`, `ElflandShop4` and `(Canoe)` on `drydock497`. On any seed that lands
-  it behind a vehicle the pin is a green check that is not reachable, which is
-  the failure mode the pack cares most about.
+- **The `I: Shop Item` pin clears itself now, and is deliberately still green
+  until it does.** The pin is `Onrac Continent/I: Shop Item`, with empty
+  `access_rules` at node and section level under an organisational parent, so
+  the board shows it unconditionally green. That half is now a decision rather
+  than an omission; the other half -- nothing ever cleared it on a solo seed --
+  is fixed.
 
-  **No oracle run has caught this, on any cartridge.** `check_logic` resolves a
-  location by path suffix and `find_section` returns None on more than one hit
-  (`tools/check_logic.py:198-206`); `I: Shop Item/I: Shop Item` matches both
-  `Onrac Continent/...` in the dungeon tree and `I: Onrac Continent/...` on the
-  incentive poster, so it is the "1 could not be mapped" that every run on every
-  cartridge has been printing, 4.9.2 baselines included.
+  **How a purchase is seen.** FFR gives the shop slot a synthetic object id of
+  `0xFF`, so buying a key item out of a shop sets flag byte `0xFF` bit `0x02` --
+  `FF1Lib/asm/0E_9F48_ItemShopCheckForSpace.asm:11-31`, which is Archipelago
+  location 767 (`0x2FF`), the same arithmetic `worlds/ff1/Client.py` does on
+  every NPC id. But `GlobalImprovements.cs` installs that patch only under
+  `if (archipelagoenabled)` on the 4.9.x line: measured across the cartridges in
+  `seeds/ff1/`, every Archipelago one carries it and every seed rolled on the
+  public site has `0xEA` all through `$0E:$9F48` with the old routine still
+  hooked. Buy-10 was on in all of them and does not bring it along.
 
-  Two things to fix and they are separable: the ambiguity, which is a harness
-  change, and the missing rule, which needs deciding what one static rule can
-  say about a slot whose shop is rolled per seed. That is the Cardia Forest
-  question again -- ship the conjunction and be strict -- and it wants its own
-  branch and its own measurement. Raised 2026-08-31 by the review of the
-  `shipDrydock` branch, which is where the divergence showed; it is not caused
-  by that flag. See the note below.
+  So a solo seed is read the other way round. The shop's stock is in PRG ROM,
+  and since FFR places each key item exactly once, the item sitting in the shop
+  identifies the purchase by its inventory byte. `tools/shop_slot.py` and the
+  reader in `bridge/ffr_uat_bridge.lua` are twins of that decode, and
+  `tools/tests/test_shop_slot.py` holds them to what FFR wrote down first.
 
-  **It is not a `ShipDrydock` effect, and the first reading of it said it was.**
-  The two 4.9.7 cartridges differ in this rule, which looks like a 52nd thing
-  the flag does. It is not: the flag's map edit changes 11 overworld tiles and
-  **five go from unwalkable to walkable while none goes the other way**, so it
-  only ever opens land. The Shop Item rule moved because the seed put the shop
-  slot in a different shop. Do not re-derive this as the drydock closing a route.
+  **Two traps in that decode, both of which fail plausibly rather than loudly.**
+  `lut_ShopTypes` is not at the address a disassembly of the original gives:
+  FFR expands the ROM to 512K and the vanilla fixed bank `0x0F` lands at `0x1F`.
+  The reader probes both and takes the one that reads back as six item shops and
+  a caravan. And on an Archipelago cartridge the slot holds the FireOrb
+  sentinel, whose inventory byte `$6032` is the one `fireorb` already claims
+  (`ram_mapping.lua:58`) -- watching it there would tick the shop check when the
+  orb lit and light the orb when the sentinel was bought. The reader probes for
+  the patch first and refuses the inventory route entirely on those cartridges.
+
+  **Why no access rule, deliberately.** FFR's exported rule for the slot is
+  whichever shop the seed chose -- `PravokaShop1` and `()` on `std497`,
+  `ElflandShop4` and `(Canoe)` on `drydock497`. Gating the pin on that would
+  publish it: a pin that turns red teaches the player the item is behind the
+  canoe, and the shop hunt is most of what the slot is for on a seed that has
+  one. So the derivation stays inside the bridge, which sends one boolean and
+  never names the shop or the item, and the pin stays green until bought. The
+  cost is accepted and recorded here: on a seed that puts the slot behind a
+  vehicle, the pin is a green check that is not yet reachable.
+
+  **Roughly half of solo seeds have no key item in a shop at all.** The slot can
+  legally hold a plain consumable, and rolling ten seeds on one played
+  cartridge's flags gave five with no key item in any shop -- so
+  `duck-103` having none is ordinary, not a decode failure. Those seeds keep a
+  pin only a click will clear, and that is the right outcome: hiding it would
+  tell the player not to bother hunting.
+
+  **The grader can see this pin now.** `check_logic` resolved a location by path
+  suffix and `find_section` returned None on more than one hit, and
+  `I: Shop Item/I: Shop Item` matches both `Onrac Continent/...` in the dungeon
+  tree and `I: Onrac Continent/...` on the incentive poster -- which is what the
+  "1 could not be mapped" on every run on every cartridge was. That is not
+  ambiguous at runtime: `Tracker::getLocation` takes the first match and
+  `scripts/init.lua:41-42` loads `overworld.json` before `incentives.json`, so
+  the board tree wins, and `find_section` now resolves it the same way. Two hits
+  inside the board tree are still a refusal. `std` went from 225 checked with 1
+  unmapped to 226 with 0, divergences unchanged at 0; `nov --derived` kept its
+  single divergence and now names the pin under "no derived rule".
+
+  **It was never a `ShipDrydock` effect, and the first reading of it said it
+  was.** The two 4.9.7 cartridges differ in this rule, which looks like a 52nd
+  thing the flag does. It is not: the flag's map edit changes 11 overworld tiles
+  and **five go from unwalkable to walkable while none goes the other way**, so
+  it only ever opens land. The Shop Item rule moved because the seed put the
+  shop slot in a different shop. Do not re-derive this as the drydock closing a
+  route.
 
 - **Nothing tests the multi-tile OR in `derive()`.** Fifteen locations on
   `F258553F` resolve to more than one chest tile, and `derive()` unions the
