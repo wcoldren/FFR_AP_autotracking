@@ -58,7 +58,8 @@ graded against them -- a figure taken here is a measurement, never a grade.
 | Seed | Directory | FFR | Mode | What it answers |
 |---|---|---|---|---|
 | `F258553F` | `duck-104` | 4.9.2 | GameMode 2, ToFRMode 2 (Short) | the reference No-Overworld cartridge; the source of the `nov` art and of most No-Overworld measurements in the log |
-| `8EF791AA` | `duck-weekly-0831` | 4.9.7 | GameMode 0 | the source of the `std` art |
+| `8EF791AA` | `duck-weekly-0831` | 4.9.7 | GameMode 0 | the source of the `std` art, and the seed the Cardia pins were reported wrong on |
+| `05436F8E` | `duck-weekly-0831-v2` | 4.9.7 | GameMode 0 | the replay of that flag set, rolled with `Spoilers` on. One setting of 568 differs from `8EF791AA`, and it is `Spoilers` |
 | `C189A0EF` | `duck-102` | 4.9.2 | GameMode 0 | the standard seed the sprite and Crown-gate counts were taken on |
 | `2CCBA52F` | `duck-103` | 4.9.2 | GameMode 0 | the second standard seed, so a count has two cartridges behind it |
 | `72A52C25` | `practice-72A52C25` | 4.9.2 | GameMode 0 | the standard control for the Temple of Fiends floor comparison |
@@ -261,6 +262,7 @@ flag decoder accepts a local build of it unmodified.
 | `hoardbridge497` | `oracle497_hoard` + `MapCardiaLandBridge` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the land bridge |
 | `hoarddockbridge497` | `oracle497_hoard` + both | `3B7E1C8A` | the same three | Bahamut's Cave's requirement with both, which is not the union |
 | `hoardhike497` | `oracle497_hoard` + `MapAirshipHike` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the hike |
+| `hoarddockhike497` | `oracle497_hoard` + `MapBahamutCardiaDock` + `MapAirshipHike` | `3B7E1C8A` | the same three | the combination a played seed actually rolled, and the one the pairs above do not cover |
 
 **Every cartridge here shares `std497`'s seed**, so anything that moves between
 an export and `std497`'s is the flag, not the roll -- a tighter control than
@@ -318,9 +320,11 @@ Last run 2026-09-01.
 | `hoardbridge497`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** |
 | `hoarddockbridge497`, pack rules vs FFR | **227 checked, 227 agree, 0 divergences** — it was 216 agree, 3 divergences over 11 locations |
 | `hoardhike497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
+| `hoarddockhike497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — and 95 agree, 13 distinct divergences over 129 locations against the rules as they stood at `2b0ff32`, which is what this row exists to have caught |
 | `std497` vs `dock497`, the Cardia islands | **unmoved at `(Canoe AND Floater)`. The Bahamut dock opens Bahamut's Cave and nothing else** |
 | `std497` vs `hoard497`, chest placements | **map 39 (BahamutCaveB2) goes 0 -> 13 and no map loses one** (`tools/extract_chests.py`) |
 | Bahamut's Cave's requirement, read through the hoard | **std `(Canoe AND Floater)`; +dock `(Canal AND Ship)` as well; +land bridge `(Canal AND Canoe AND Ship)` as well; +both `(Canal AND Ship)`, not the union; +hike `(Floater AND Ship)` as well** |
+| +dock +hike together | **`(Canal AND Ship) OR (Floater AND Ship) OR (Canoe AND Floater)` — this pair *is* the union, unlike dock-and-land-bridge. "Not the union" is a result about that pair, not a rule about pairs** |
 
 ### Bahamut's Cave has no location of its own, and the hoard is the way in
 
@@ -417,7 +421,8 @@ the 53 are not an artefact of it.
 
     O7=<corpus>/oracle-4.9.7
     for s in std drydock extended airship landbridge objnpc gaia gaiahwy \
-             dock dockbridge hoard hoarddock hoardbridge hoarddockbridge hoardhike; do
+             dock dockbridge hoard hoarddock hoardbridge hoarddockbridge hoardhike \
+             hoarddockhike; do
         python3 tools/check_logic.py $O7/${s}497/${s}497.nes \
             --ap-rules $O7/${s}497/${s}497.yaml --ff1-world $W
     done

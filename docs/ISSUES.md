@@ -16,6 +16,26 @@ Nothing here is urgent unless it says so.
 
 ## Known wrong
 
+- **The Cardia islands had one standard-world route where Bahamut's Cave had
+  three. Closed 2026-09-01**, by `52ba9d5`, `9d55246` and `15ac915` -- before it
+  was diagnosed, which is why it is filed closed rather than fixed. Reported off
+  `8EF791AA`: the Cardia chest pins were red while the Hoard was reachable. On
+  the build being played, `Cardia Grassy` carried `$standardWorld,airship` and
+  nothing else, while `Bahamut's Cave` already carried the Bahamut-dock
+  alternative -- so on a seed with the dock and the hoard on, the cave went green
+  and the islands beside it stayed red. Both states the report is consistent with
+  reproduce it: with Canal and Ship the cave is green and the islands red, and
+  with Floater and Ship both are red. On the rules as they stand, both are green.
+
+  What makes it stay closed is `hoarddockhike497`, not the fix: the cartridge
+  carries the reported flag combination, and the rules that were being played
+  grade **95 agree, 13 distinct divergences over 129 locations** against it,
+  where the current ones grade 224 of 224. The combination was ungraded until
+  now because the corpus had `hoarddock497` and `hoardhike497` and not the pair
+  together -- and the pair turns out to be the plain union of the two, which
+  `hoarddockbridge497` had established is not something a pair can be assumed to
+  be. `docs/ORACLE.md` carries both rows.
+
 - **The No-Overworld variants ran standard-overworld logic. Closed 2026-08-30.**
   This entry led "Known wrong" for weeks saying `scripts/logic.lua` "branches on
   shard hunt and nothing else", and it had not been true since the
