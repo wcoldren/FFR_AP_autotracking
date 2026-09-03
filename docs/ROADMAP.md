@@ -111,8 +111,8 @@ actually left.
   already requires `ruby`, and so does Sarda's Cave, so on a seed that
   incentivized the Trove the slot behind him is a key item on either mode. The
   cell belongs in both trees for that reason.
-- **`shopItem` should carry the free-NPC incentive flag and does not. Reopened
-  2026-09-02.** This bullet said FFR has no such flag, and closed on saying so
+- **`shopItem` carries the free-NPC incentive flag now. Done 2026-09-03**, and
+  reopened 2026-09-02 to get there. This bullet said FFR has no such flag, and closed on saying so
   in the Map Key. Both halves were wrong, and the first one wrongly: there is no
   `IncentivizeShopItem` in the flag string because the flag is *computed*
   instead. `FlagsCompute.cs:217` reads
@@ -142,8 +142,18 @@ actually left.
   back to a consumable when no eligible incentive item is left, which is why
   roughly half of solo seeds hold nothing worth hunting even with the flag on.
   The slot's incentive status is a flag; what lands in it is the roll. Those two
-  were conflated, and that is what let the bullet close.
+  were conflated, and that is what let the bullet close the first time.
   See `docs/ISSUES.md`, "The `I: Shop Item` pin ignores the flag that governs it".
+
+  **What building it turned up.** The slot adds one generated row where every
+  other slot adds two: its board node is itself named `I: Shop Item`, the only
+  board node carrying the sheet prefix, so the sheet and board paths are the
+  same string and the surviving row reaches the board. That is the collision
+  `check_logic.find_section` already resolves board-first, met in a second
+  place. Only the gold ring is affected — the sheet section's own access rule
+  and pin rule are evaluated directly. Six counters moved, and the count of
+  them was wrong in advance in both directions, which is the argument for
+  running the generator and the suites rather than reasoning about them.
 - **ToFR floor modelling.** The rules are *not* unwritten, which is what this
   bullet used to claim: `locations/overworld.json:410` carries three
   alternatives on the `ToFR` node and the seven chests inherit them. What is
