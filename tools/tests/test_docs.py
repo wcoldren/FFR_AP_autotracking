@@ -145,7 +145,6 @@ WINDOW = 6
 # rather than one that went missing, so the check would otherwise report the
 # roadmap as rot. Delete the entry when the file lands.
 UNBUILT = {
-    "tools/export_diff.py",          # docs/ROADMAP.md section 5, scoped, unstarted
     "layouts/settings_popup.json",   # docs/IDEAS.md, "Options UI, pass 2"
 }
 
