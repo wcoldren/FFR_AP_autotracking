@@ -461,6 +461,38 @@ Nothing here is urgent unless it says so.
   Workaround for the remaining gap: re-run `tools/regen_maps.py` after touching
   any file in `INPUT_FILES`, once per mode, or `--clean` the override.
 
+  **Guarded in `start_session.sh` since 2026-09-02**, which is the other half
+  of this and fails in the opposite direction. Guarded there and only there:
+  the workaround in the paragraph above runs `tools/regen_maps.py` by hand,
+  which records the branch but does not check it. That is the deliberate shape
+  -- someone typing the tool's own name has chosen the checkout they are
+  standing in -- but it does mean the workaround is the unguarded path, and
+  the habit it replaces still applies to it. `--verify` answers "is the installed
+  override older than the checkout". It cannot answer "is this checkout the one
+  that art should be rebuilt from", and `inputs` cannot either: the fingerprint
+  notices that the pack moved and not which way, because a hash is the same
+  size in both directions. A regen run from a branch without the toggle work
+  once wrote four location trees carrying no pin rules into the override.
+
+  So `regen_maps.py` records which working tree drew each mode's art --
+  `branch`, `head` and `dirty`, in that mode's cache slot beside `inputs`
+  (`tools/regen_maps.py:207`, `checkout_id`) -- and `start_session.sh` compares
+  before it redraws (`start_session.sh:87`, `regen_ok`). On a mismatch it skips
+  step 1 and counts a problem rather than aborting, so the emulator and the
+  tracker still open on the art already on disk, and `FF1_REGEN_ANYWAY=1` goes
+  through. Three answers rather than two, and keeping them apart is most of the
+  work: a detached head records a commit and no branch, a checkout with no git
+  records neither, and both read as "cannot tell", redraw, and say that is what
+  happened. A guard that fired on an absence is one people learn to pass with
+  the override. `tools/tests/test_regen_branch.py` holds the three apart and
+  demonstrates the skip against the same call on a matching branch.
+
+  `head` and `dirty` are recorded and not compared. They are provenance, the
+  role `sha1` and `ffr` already play for the cartridge -- what this art was
+  built from, answerable after the fact -- and `dirty` covers `INPUT_FILES`
+  only, because an edit anywhere else moves no drawn byte. The branch is the
+  only one of the three the guard reads.
+
   **The `ShipDrydock` work is one of those changes, and it is the worst shape
   of one.** It edits `layouts/shared.json` and all four location files, every
   one of them in `INPUT_FILES`. On an override written before it the tracker
