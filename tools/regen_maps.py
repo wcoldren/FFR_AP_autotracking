@@ -225,6 +225,11 @@ def checkout_id():
     this tool being unable to ask -- no git, or a checkout unpacked from a
     tarball. Only the first supports a comparison. The other two mean "cannot
     tell" and must not be read as a match, the same rule STAMP_UNKNOWN follows.
+
+    {} is reserved for not being able to ask at all, which is why `head` alone
+    decides it. Each field below is recorded when its own probe answers and
+    left out when it does not, so a failure to read one never spends another's
+    answer.
     """
     def git(*args):
         try:
@@ -235,10 +240,21 @@ def checkout_id():
         return done.stdout.strip() if done.returncode == 0 else None
 
     head = git("rev-parse", "--short", "HEAD")
-    dirty = git("status", "--porcelain", "--", *INPUT_FILES)
-    if head is None or dirty is None:
+    if head is None:
         return {}
-    ident = {"head": head, "dirty": bool(dirty)}
+    ident = {"head": head}
+    # Recorded when it can be, omitted when it cannot, rather than taking the
+    # rest of the record down with it. `dirty` is provenance and nothing
+    # compares it; `branch` is the one field the guard reads. A `git status`
+    # that fails where `rev-parse` succeeded -- a work tree git cannot stat, an
+    # unusual core.worktree, the timeout above on a slow mount -- would
+    # otherwise return {} here, and the next session would read the missing
+    # branch as art too old to have recorded one and redraw unguarded. A guard
+    # that switches itself off on an unrelated failure is worse than no guard,
+    # because the message it prints says something else is wrong.
+    dirty = git("status", "--porcelain", "--", *INPUT_FILES)
+    if dirty is not None:
+        ident["dirty"] = bool(dirty)
     # --abbrev-ref would answer "HEAD" on a detached head, which reads as a
     # branch named HEAD. symbolic-ref fails instead, which is the distinction
     # this record needs to keep.

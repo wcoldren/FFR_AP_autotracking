@@ -78,6 +78,13 @@ def checkout_id_in(path):
 
 
 with tempfile.TemporaryDirectory() as tmp:
+    # git looks for a repository by walking upward, so a TMPDIR that itself
+    # sits inside a checkout -- a common CI layout -- would let the "no
+    # repository" fixtures below answer with the enclosing repo instead of
+    # with nothing. The ceiling stops that walk at the fixture root. Realpath
+    # because git compares physical paths and on macOS the temp dir arrives
+    # through a symlink.
+    os.environ["GIT_CEILING_DIRECTORIES"] = os.path.realpath(tmp)
     repo = os.path.join(tmp, "repo")
     os.mkdir(repo)
     git(repo, "init", "-q", "-b", "trunk")
@@ -111,6 +118,32 @@ with tempfile.TemporaryDirectory() as tmp:
         f.write('{"changed": true}\n')
     ok(checkout_id_in(repo).get("dirty") is True,
        "an edit to an INPUT_FILES path does read as dirty")
+
+    # One probe failing must not spend another probe's answer. `dirty` is
+    # provenance and nothing compares it; `branch` is the only field the guard
+    # reads. Gating the whole record on `git status` would switch the guard off
+    # for this mode and then report it as art too old to have a branch -- a
+    # guard turning itself off while blaming something else.
+    class _StatusFails:
+        SubprocessError = subprocess.SubprocessError
+
+        @staticmethod
+        def run(cmd, **kw):
+            if "status" in cmd:
+                raise OSError("git status cannot run here")
+            return subprocess.run(cmd, **kw)
+
+    was_sp = r.subprocess
+    r.subprocess = _StatusFails
+    try:
+        degraded = checkout_id_in(repo)
+    finally:
+        r.subprocess = was_sp
+    ok(degraded.get("branch") == "trunk",
+       "a failing git status still records the branch the guard reads",
+       degraded)
+    ok("dirty" not in degraded,
+       "-- and drops only the field whose own probe failed")
 
     git(repo, "checkout", "-q", "--", "layouts/shared.json")
     head = git(repo, "rev-parse", "HEAD").stdout.strip()
@@ -151,8 +184,15 @@ def run_guard(root, was, env=None):
         f'if regen_ok std "{was}"; then echo WOULD-REDRAW; else echo SKIPPED; fi\n'
         'echo "problems=$problems"\n'
     )
+    # Scrubbed rather than inherited. FF1_REGEN_ANYWAY is the override the
+    # guard's own failure message tells people to reach for, so the developer
+    # most likely to have it exported is the one who just hit the guard -- and
+    # inheriting it turns every mismatch check in here green. The GIT_ pair
+    # would point the fixture repos somewhere else the same way.
+    base = {k: v for k, v in os.environ.items()
+            if k not in ("FF1_REGEN_ANYWAY", "GIT_DIR", "GIT_WORK_TREE")}
     done = subprocess.run(("sh", "-c", script), capture_output=True, text=True,
-                          env={**os.environ, **(env or {})})
+                          env={**base, **(env or {})})
     out = done.stdout + done.stderr
     n = re.search(r"problems=(\d+)", out)
     return done.returncode, out, int(n.group(1)) if n else -1
@@ -160,6 +200,13 @@ def run_guard(root, was, env=None):
 
 if guard:
     with tempfile.TemporaryDirectory() as tmp:
+        # git looks for a repository by walking upward, so a TMPDIR that itself
+        # sits inside a checkout -- a common CI layout -- would let the "no
+        # repository" fixtures below answer with the enclosing repo instead of
+        # with nothing. The ceiling stops that walk at the fixture root. Realpath
+        # because git compares physical paths and on macOS the temp dir arrives
+        # through a symlink.
+        os.environ["GIT_CEILING_DIRECTORIES"] = os.path.realpath(tmp)
         repo = os.path.join(tmp, "repo")
         os.mkdir(repo)
         git(repo, "init", "-q", "-b", "trunk")

@@ -104,6 +104,8 @@ regen_ok() {   # regen_ok <mode> <branch the art was last drawn from, or ->
     echo "$_mode art was last drawn from '$_was'; this checkout is on '$_now'" >&2
     echo "-> not redrawing. The override shadows the pack, so this would bake" >&2
     echo "   the location trees and layout on '$_now' into what you play on." >&2
+    echo "   Steps 2 and 3 still run, on the art already on disk -- which is" >&2
+    echo "   whatever the line above this one says it was drawn for." >&2
     echo "   FF1_REGEN_ANYWAY=1 to redraw anyway." >&2
     problems=$((problems + 1))
     return 1
@@ -187,8 +189,15 @@ PY
         redraw)
             mode=$2 npcs=$3 lanes=$4 drawn_branch=$5
             shift 5
+            # Printed before the guard rather than inside it. On the blocked
+            # path this line is the whole story, and the reason that usually
+            # brings us here is "drawn from another cartridge" -- so a guard
+            # message naming only branches would leave the seed mismatch
+            # unsaid while steps 2 and 3 open the emulator and the tracker on
+            # the other seed's art.
+            echo "$mode art needs redrawing -- $*"
             if regen_ok "$mode" "$drawn_branch"; then
-                echo "redrawing $mode art from this cartridge -- $*"
+                echo "-> redrawing from this cartridge"
                 # Not piped into tail: the exit status of a pipeline is the
                 # last command's, so gating on it would ask whether tail worked.
                 if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes"; then

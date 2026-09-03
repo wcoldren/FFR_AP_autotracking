@@ -461,8 +461,13 @@ Nothing here is urgent unless it says so.
   Workaround for the remaining gap: re-run `tools/regen_maps.py` after touching
   any file in `INPUT_FILES`, once per mode, or `--clean` the override.
 
-  **Guarded at the regen since 2026-09-02**, which is the other half of this
-  and fails in the opposite direction. `--verify` answers "is the installed
+  **Guarded in `start_session.sh` since 2026-09-02**, which is the other half
+  of this and fails in the opposite direction. Guarded there and only there:
+  the workaround in the paragraph above runs `tools/regen_maps.py` by hand,
+  which records the branch but does not check it. That is the deliberate shape
+  -- someone typing the tool's own name has chosen the checkout they are
+  standing in -- but it does mean the workaround is the unguarded path, and
+  the habit it replaces still applies to it. `--verify` answers "is the installed
   override older than the checkout". It cannot answer "is this checkout the one
   that art should be rebuilt from", and `inputs` cannot either: the fingerprint
   notices that the pack moved and not which way, because a hash is the same
