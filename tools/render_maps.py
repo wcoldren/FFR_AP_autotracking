@@ -931,8 +931,8 @@ KEY_PAD = 4
 # about this -- his cyan and purple swap roles between the optimised route and
 # the with-loot one from map to map -- so fixing one colour per lane across all
 # 61 is the thing to improve on rather than copy.
-LANE_ROUTE = 0x2C             # cyan   -- the walk you can always do
-LANE_LOOT = 0x34              # purple -- only the steps a key buys
+LANE_ROUTE = 0x2C             # cyan   -- arrival to the nearest exit
+LANE_LOOT = 0x34              # purple -- what the loot costs on top
 LANE_FORCED = 0x16            # red    -- a trap tile with no way round
 LANE_LINK = 0x10              # silver -- two tiles that are one check
 LANE_START = 0x30             # white  -- where the lane begins
@@ -949,7 +949,7 @@ ARROW_EVERY = 7
 # letters only, so a slash in "Optimal w/Key" draws as a gap.
 LANE_KEY_TEXT = {
     "route": "Optimal Route",
-    "loot": "Optimal w Key",
+    "loot": "Optimal Route for Loot",
     "forced": "Forced Fight",
     "link": "Linked Chest",
 }

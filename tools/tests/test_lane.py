@@ -15,7 +15,8 @@ false while the picture still looked plausible:
     change the lane on 8 of 38 chest maps, and TitansTunnel is the clearest --
     without the NPC rule its route lane strolls past the Titan and collects all
     four chests;
-  * **a loot lane appears where and only where the floor gates on something**,
+  * **each colour is routed for its own errand** -- a route lane opens
+    nothing and ends on a way off the floor, a loot lane opens something --
     which is Graph.floor_items()'s answer and not a list here;
   * **the Map Key fits the map it is drawn on.** The band is the map's own
     width and the narrowest map carrying a chest is sixteen tiles across.
@@ -140,11 +141,11 @@ def main():
     unwalkable, jumps, through_npc, through_stair = [], [], [], []
     for map_id, lanes in plans.items():
         for run in lanes.runs:
-            # A run's own inventory: the route lane holds nothing, the loot lane
-            # holds what the floor gates on. Checking both against the empty
-            # inventory would fail the loot lane for doing its job.
-            floor = L.Floor(rom, graph, map_id,
-                            have=None if run.label == "loot" else set())
+            # Both lanes hold what the floor gates on, so there is no
+            # per-run inventory any more. Checking either against the empty
+            # one would fail it for walking through a door the floor's own key
+            # opens -- which is a walk the game allows and the drawing claims.
+            floor = L.Floor(rom, graph, map_id)
             for i, cell in enumerate(run.path):
                 if not floor.walkable(cell):
                     unwalkable.append((eg.MAP_NAMES[map_id], run.label, cell))
@@ -181,14 +182,34 @@ def main():
     check("turning those two rules off changes a lane somewhere",
           bool(moved), True)
 
-    # ------------------------------------------------- the second lane's rule
+    # ------------------------------------------ what each lane is routed for
+    # The pair is a traversal and a loot round, not two loot rounds that differ
+    # by an inventory. A route run that collects something is the old errand
+    # back under a new name; a loot run that collects nothing is a purple key
+    # row with nothing under it.
     wrong = []
     for map_id, lanes in plans.items():
-        gated = bool(graph.floor_items(map_id))
-        if any(r.label == "loot" for r in lanes.runs) and not gated:
-            wrong.append((eg.MAP_NAMES[map_id], "loot lane on an ungated floor"))
-    check("a loot lane only appears on a floor that gates on something",
+        for run in lanes.runs:
+            if run.label == "route" and run.got:
+                wrong.append((eg.MAP_NAMES[map_id], "route lane collects",
+                              run.got))
+            if run.label == "loot" and not run.got:
+                wrong.append((eg.MAP_NAMES[map_id], "loot lane collects nothing"))
+    check("a route lane opens nothing and a loot lane opens something",
           wrong, [])
+
+    # And a traversal lane is arrival *to an exit*, so its last tile is a way
+    # off the floor. Without this the label is only a colour: a route that
+    # stopped anywhere else would still be drawn and still be called the walk
+    # through. A floor whose only way out is the way in gets no route lane at
+    # all rather than one that ends in the middle -- MatoyasCave, Waterfall.
+    not_out = []
+    for map_id, lanes in plans.items():
+        outs = set(L.exits(L.Floor(rom, graph, map_id)))
+        for run in lanes.runs:
+            if run.label == "route" and run.path[-1] not in outs:
+                not_out.append((eg.MAP_NAMES[map_id], run.path[-1]))
+    check("a route lane ends on a way off the floor", not_out, [])
 
     # --------------------------------------------------- one lane per region
     # Every region that holds a check gets a lane starting at one of its own

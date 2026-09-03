@@ -487,71 +487,95 @@ def links(groups):
     return out
 
 
+def nearest_exit(f, start):
+    """The tile this region leaves by: the cheapest exit to reach from `start`.
+
+    The rule Floor.lane already applies to its `finish` set, lifted out so the
+    route lane can use it with no errand at all. Which staircase it lands on
+    is a proximity statement and not a spoiler of the permutation; exits() has
+    the counts that settle that.
+    """
+    best = min(((f.cost_to(start, t), t) for t in exits(f, not_at={start})),
+               default=(FAR, None))
+    return None if best[0] == FAR else best[1]
+
+
+def edges(walk):
+    """The steps a walk draws, as unordered pairs.
+
+    What "this lane adds nothing" has to be measured over. The same steps in a
+    different order draw the same line, so comparing paths calls two identical
+    drawings different.
+    """
+    return {frozenset((a, b)) for a, b in zip(walk, walk[1:]) if a != b}
+
+
 def plan(rom, graph, map_id, chests=None):
     """-> Lanes for one map, or None where there is nothing to draw.
 
-    One pair of runs per region: the walk you can always do, and -- only where
-    Graph.floor_items() says the floor gates on something -- the walk holding
-    it. That is where DarkmoonEX draws his second "Optimal w/Key" line and
-    where he does not, so the two-lane treatment needs no rule about which
-    maps get it: the cartridge already says.
+    One pair of runs per region, and the pair is the one the reference draws:
+
+    * **route** -- the arrival to the nearest exit, opening nothing. The safest
+      walk for someone passing through the floor. This is a thing worth drawing
+      on every floor, and not only on a floor that gates on something.
+    * **loot** -- the same arrival, every check the region can reach, then out.
+      "For loot" already implies the key, so the floor's items are held from
+      the start rather than a keyless variant being derived to diff against.
+
+    Both Floors hold graph.floor_items(map_id). Holding an item only ever
+    widens the walkable set, so a traversal route that holds the floor's key is
+    never longer or less safe than one that does not -- and the keyless Floor
+    this used to build existed only to derive the second lane by difference,
+    which is the framing IDEAS.md corrects. What each colour is routed for is
+    the change; the two-colour drawing mechanism is untouched.
     """
     groups = chest_groups(rom, map_id, chests)
     if not groups:
         return None
-    probe = Floor(rom, graph, map_id)
+    f = Floor(rom, graph, map_id)
     runs = []
-    for region in regions(probe):
-        reach = probe.reached(region[0])
-        here = {i: [c for c in ts if any(x in reach for x in probe.stand(c))]
+    for region in regions(f):
+        reach = f.reached(region[0])
+        here = {i: [c for c in ts if any(x in reach for x in f.stand(c))]
                 for i, ts in groups.items()}
         here = {i: v for i, v in here.items() if v}
         if not here:
             continue
-        bare = Floor(rom, graph, map_id, have=set())
-        # This region's own door. A linked chest with a tile in each half
-        # belongs to both, so leaving the arrival open lets the half with fewer
-        # checks be "served" by the other half's door -- which draws a second
-        # lane on top of the first and leaves the other half bare, exactly the
-        # bug the second lane exists to fix.
-        # Walkable keyless first, then check count. arrivals() filters on the
-        # full inventory and search() seeds its start without asking, so a door
-        # the gate NPC stands in is a legal arrival that the route lane cannot
-        # legally begin on -- No-Overworld ConeriaCastle1F (2, 8) below. The
-        # `if got:` guard catches that only when the region collects nothing
-        # keyless; a region that collects something still rooted its lane there.
-        start = max(region, key=lambda a: (bare.walkable(a), sum(
+        # This region's own door, and the one that reaches most of its checks.
+        # A linked chest with a tile in each half belongs to both, so leaving
+        # the arrival open lets the half with fewer checks be "served" by the
+        # other half's door -- drawing a second lane on top of the first and
+        # leaving the other half bare, which looks exactly like the bug the
+        # second lane exists to fix.
+        #
+        # The keyless-walkability half of this key went with the keyless Floor.
+        # It was here because arrivals() filters on the full inventory while
+        # the old plain lane walked with none, so a door a gate NPC stands in
+        # was a legal arrival that lane could not legally begin on --
+        # No-Overworld ConeriaCastle1F (2, 8). On one inventory there is no
+        # such tile.
+        start = max(region, key=lambda a: sum(
             1 for ts in here.values()
-            if any(x in bare.reached(a) for c in ts for x in bare.stand(c)))))
-        walk, got, miss = bare.lane(here, start,
-                                    finish=exits(bare, not_at={start}))
-        # A run that collects nothing is not a route. It happens wherever the
-        # floor's checks all sit behind the gate -- ConeriaCastle1F,
-        # ElflandCastle and TitansTunnel on the duck cartridges -- and what it
-        # draws is a start box on a tile the loot lane is about to draw a start
-        # box on anyway. Worse on a No-Overworld ConeriaCastle1F, where the
-        # arrival (2, 8) is the tile the gate NPC stands on: keyless you cannot
-        # be there at all, so the one-tile "lane" is a walk the game refuses.
-        # Hence the walkable(start) half: a region whose every arrival is a
-        # gate tile gets no route lane even when it collects something, because
-        # there is no keyless walk out of a door you cannot keylessly stand in.
-        # The loot lane still draws, rooted at the same arrival, which holding
-        # the key is a legal place to be.
-        if got and bare.walkable(start):
-            runs.append(Run("route", start, walk, frozenset(bare.trap),
+            if any(x in f.reached(a) for c in ts for x in f.stand(c))))
+        # The route lane has no errand, so it is one path() call and not a
+        # tour. A region whose only way out is the way you came in gets no
+        # route lane -- there is no traversal to draw -- and its loot lane
+        # still draws.
+        out_at = nearest_exit(f, start)
+        route = (f.path(start, out_at) or []) if out_at is not None else []
+        if len(route) > 1:
+            runs.append(Run("route", start, route, frozenset(f.trap), [], []))
+        # The loot lane prefers the route lane's edges, so the two coincide
+        # wherever that is free and purple only ever means "here the loot takes
+        # you somewhere the walk through would not".
+        loot = Floor(rom, graph, map_id, prefer=zip(route, route[1:]))
+        walk, got, miss = loot.lane(here, start,
+                                    finish=exits(loot, not_at={start}))
+        # A loot lane that draws nothing the route lane does not is a purple
+        # key row with no purple under it.
+        if got and edges(walk) - edges(route):
+            runs.append(Run("loot", start, walk, frozenset(loot.trap),
                             got, miss))
-        # The second lane prefers the first one's tiles, so the two coincide
-        # wherever that is free and the key colour only ever means "here they
-        # part" rather than "here the search happened to pick another corridor".
-        full = Floor(rom, graph, map_id,
-                     prefer=zip(walk, walk[1:]))
-        if full.have == bare.have:
-            continue
-        kwalk, kgot, kmiss = full.lane(
-            here, start, finish=exits(full, not_at={start}))
-        if kgot and kwalk != walk:
-            runs.append(Run("loot", start, kwalk, frozenset(full.trap),
-                            kgot, kmiss))
     if not runs:
         return None
     return Lanes(runs, links(groups))
