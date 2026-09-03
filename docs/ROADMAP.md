@@ -94,12 +94,13 @@ with no code can be told apart from one nobody has got to.
   four questions, and reverting each fix reddens exactly its own rows.
 
   The figures are in `docs/ORACLE.md` and the per-flag rows in
-  `docs/FLAG_COVERAGE.md`; `docs/ISSUES.md` has the entry and the two
-  further findings the grader turned up that are still open, neither of which
-  a conjunction fixes: the Cardia progressive's stage-2 inheritance, and a
-  chest `notail` names differently. `Dr Unne`, whom FFR never incentivizes at
-  all, was a third until 2026-09-03, when the slot was removed rather than
-  re-gated.
+  `docs/FLAG_COVERAGE.md`; `docs/ISSUES.md` has the entry and the one
+  further finding the grader turned up that is still open, which no conjunction
+  fixes: a chest `notail` names differently. There were three. `Dr Unne`, whom
+  FFR never incentivizes at all, went the same day, the slot removed rather
+  than re-gated. The Cardia progressive's stage-2 inheritance went with the
+  cardia split, also 2026-09-03: two independent facts wanted two items, and
+  three progressive states could not hold four combinations.
 
 ## 2. Boxes that do not exist
 

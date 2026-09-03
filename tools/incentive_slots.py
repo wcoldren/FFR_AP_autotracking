@@ -40,26 +40,35 @@ BOARD_FILE = "locations/overworld.json"
 TERM = "^$incentiveSlot|"
 
 # cardiaIncentive is hosted by two different slots -- the Cardia forest chest
-# and Bahamut's hoard -- gated on two different flags. The hoard names its own
-# flag in a visibility rule (it is a map edit, so it is hidden rather than
-# demoted when off); everything else takes the base flag.
+# and Bahamut's hoard -- and both answer to the same incentive flag. The hoard
+# also names MapDragonsHoard in a visibility rule, but that says the chests are
+# in the cartridge rather than that they are incentivized, so it is not the ring
+# flag and EXISTENCE_FLAGS below keeps flags_of from reading it as one.
 HOSTED_OVERRIDE = {"cardiaIncentive": "cardiaIsIncentive"}
 
 # Codes that gate whether a slot exists rather than whether it is incentivized.
 #
-# The pack now has two kinds of section-level visibility rule and they mean
-# opposite things. Bahamut's Hoard is hidden by a map edit whose flag *is* its
-# incentive condition, so that rule is the ring flag and flags_of reads it. The
+# Both members are here for the same reason and it took two goes to see it. The
 # caravan slot is hidden because FFR did not create the location at all --
 # NPCItems off drops Shop Item from `rules` and `locations`, 227 to 224 on
 # nonpcitems497 -- and reading npcItems off that rule would say the slot rings
 # on npcItems alone, which is half of its actual condition.
 #
+# BahamutHoard was read as a ring flag until 2026-09-03, on the argument that
+# the hoard is a map edit whose flag *is* its incentive condition. It is not:
+# MapDragonsHoard says the Cardia chests are duplicated into Bahamut's Cave, and
+# IncentivizeCardia says whether they are incentivized. While those two facts
+# shared one progressive there was no way to tell them apart, so the wrong
+# reading cost nothing; once they were split it rang the hoard slot gold on
+# five cartridges FFR incentivized nothing on. Its ring flag now comes from
+# HOSTED_OVERRIDE like every other cardiaIncentive slot, and its visibility rule
+# does only what a visibility rule should. docs/ISSUES.md.
+#
 # Today the board's caravan section is deduped away by the sheet's, whose path
 # is the same string, so the wrong reading never reaches a row. That is load
 # order doing the work of a decision, and it would flip silently if either tree
 # were renamed.
-EXISTENCE_FLAGS = frozenset({"npcItems"})
+EXISTENCE_FLAGS = frozenset({"npcItems", "BahamutHoard"})
 
 
 def sections(tree):
@@ -96,12 +105,14 @@ def flags_of(section):
     tests/test_incentives.lua is what holds every alternative to naming the same
     set, so reading one of them here is not a shortcut past that check.
 
-    The visibility_rules fallback is Bahamut's Hoard: it is a map edit, so the
-    slot is hidden rather than demoted when the flag is off, and the flag is
-    still what its ring answers to. A rule naming an EXISTENCE_FLAGS code is the
-    other kind and is not a ring flag -- see that constant. Cut at the comma,
-    because a rule string is commasplit before it is parsed (rule.h:12) and a
-    tail read as part of a flag name would name no item at all.
+    The visibility_rules fallback is for a slot whose own rule names its ring
+    flag. Every section that does today names an EXISTENCE_FLAGS code instead --
+    a rule about whether the slot exists, not whether it is incentivized -- so
+    the fallback returns nothing and those slots take their flag from
+    HOSTED_OVERRIDE. It is kept because a future sheet may gate a ring that way
+    and the alternative is silently dropping the row. Cut at the comma, because
+    a rule string is commasplit before it is parsed (rule.h:12) and a tail read
+    as part of a flag name would name no item at all.
     """
     for alt in section.get("access_rules") or []:
         found = [term[len(TERM):] for term in alt.split(",")
@@ -167,8 +178,9 @@ def collect():
         hosted = section.get("hosted_item")
         if not hosted or hosted not in hosted_flag:
             continue
-        # The hoard keeps its own visibility rule on the real board too, and it
-        # is the one place the override must not win.
+        # The hoard keeps its own visibility rule on the real board too, and
+        # that rule is about existence, so flags_of declines it and the override
+        # is what answers -- the same flag the sheet's copy of the slot rings on.
         flags = flags_of(section) or hosted_flag[hosted]
         path = "@%s/%s" % (node, section["name"])
         if path not in seen:

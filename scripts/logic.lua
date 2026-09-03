@@ -240,9 +240,11 @@ end
 -- once it is actually reachable. That is the right way round -- "you cannot
 -- get there yet" outranks "there is probably nothing good here".
 --
--- ProviderCountForCode rather than FindObjectForCode().Active: BahamutHoard is
--- stage 2 of the cardiaIsIncentive progressive, and only the provider walk
--- knows which codes a stage hands out.
+-- ProviderCountForCode rather than FindObjectForCode().Active: the flags this
+-- is asked about are not all toggles -- a progressive's Active says only that
+-- it is off stage 0, and only the provider walk knows which codes its current
+-- stage hands out. BahamutHoard was such a code until the cardia split; the
+-- reason survives it, because nothing stops the next flag being a stage.
 local INCENTIVE_WARNED = {}
 
 function incentiveSlot(code)

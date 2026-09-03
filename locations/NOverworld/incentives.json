@@ -555,7 +555,9 @@
                         "visibility_rules": [
                             "BahamutHoard"
                         ],
-                        "access_rules": [],
+                        "access_rules": [
+                            "^$incentiveSlot|cardiaIsIncentive"
+                        ],
                         "hosted_item": "cardiaIncentive"
                     }
                 ],

@@ -249,19 +249,15 @@
     },
     {
         "name": "Cardia Island is Incentive",
-        "type": "progressive",		
-        "stages" : [
-            {
-                "name" : "Cardia Island is Incentive",
-                "img" : "images/locations/cardiaIncentive.png",
-                "codes" : "cardiaIsIncentive"
-            },
-            {
-                "name" : "Bahamut's Hoard",
-                "img" : "images/flags/BahamutHoard.png",
-                "codes" : "BahamutHoard"
-            }
-        ]
+        "type": "toggle",
+        "img": "images/locations/cardiaIncentive.png",
+        "codes": "cardiaIsIncentive"
+    },
+    {
+        "name": "Bahamut's Hoard",
+        "type": "toggle",
+        "img": "images/flags/BahamutHoard.png",
+        "codes": "BahamutHoard"
     },
 	{
         "name": "Loose Items",

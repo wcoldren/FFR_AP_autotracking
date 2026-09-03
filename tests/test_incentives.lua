@@ -53,10 +53,9 @@ local TERM = "%^%$incentiveSlot|"
 ------------------------------------------------------------------
 -- 1. Nothing hides any more, bar the one that must.
 --
--- BahamutHoard is stage 2 of the cardia progressive and stands for
--- MapDragonsHoard -- a map edit. With it off those chests are not in the
--- cartridge, so a blue "there is a check here" pin would be a lie rather than
--- a demotion, and that section keeps its visibility rule.
+-- BahamutHoard stands for MapDragonsHoard -- a map edit. With it off those
+-- chests are not in the cartridge, so a blue "there is a check here" pin would
+-- be a lie rather than a demotion, and that section keeps its visibility rule.
 ------------------------------------------------------------------
 local hidden = {}
 for _, file in ipairs(INCENTIVE_FILES) do
@@ -75,13 +74,16 @@ end
 -- lost the hoard's rule and grew a second npcItems one somewhere else, which is
 -- the shape a careless edit takes.
 --
--- BahamutHoard is a map edit: the slot is hidden rather than demoted when the
--- flag is off, and that flag is also what its ring answers to. npcItems is the
--- other kind. FFR's NPCItems off does not un-incentivize the caravan slot, it
+-- Both are the same kind, and BahamutHoard was read as the other kind until
+-- 2026-09-03. FFR's NPCItems off does not un-incentivize the caravan slot, it
 -- deletes it: Shop Item leaves `rules` and `locations` as well as
 -- priority_locations, 227 to 224 on nonpcitems497. A slot FFR did not create is
 -- not a check, so it is hidden rather than drawn blue -- the one place in this
 -- pack where hiding a pin is right rather than the bug it usually is.
+-- MapDragonsHoard off is the same statement about the hoard's chests. What it
+-- is not is a statement about whether they are incentivized, which is what the
+-- pack read it as while one progressive carried both facts; the section now
+-- carries a ring rule for that, and this rule only for existence.
 --
 -- Both sheets host both. The NOverworld sheet was missing the hoard hosting
 -- entirely until the rules were brought into line with the standard sheet's.
@@ -156,17 +158,23 @@ for _, file in ipairs(INCENTIVE_FILES) do
     end
   end)
 end
--- 26 gated sections in locations/incentives.json less the Bahamut hoard, plus
--- 24 in the NOverworld tree, which has no Nerrick. The hoard hosting the
--- NOverworld tree gained is not counted on either side: it carries a
--- visibility rule and an empty access_rules, so it is hidden rather than
--- demoted.
+-- 26 gated sections in locations/incentives.json, plus 25 in the NOverworld
+-- tree, which has no Nerrick.
 --
 -- One more on each sheet than before the shop slot took its flag: FFR computes
 -- the shop-slot incentive rather than declaring it, so the slot is spoken for
 -- by npcsAreIncentive like the six free NPCs and reports Inspect on a seed
 -- that left Main NPCs unincentivized.
-check("sections reporting Inspect when not incentivized", gated, 49)
+--
+-- And one more again on each since the cardia split. The Bahamut hoard used to
+-- be counted on neither sheet: it carried a visibility rule and an empty
+-- access_rules, so it was hidden rather than demoted, on the reading that
+-- MapDragonsHoard was its incentive condition. It is not -- that flag says the
+-- Cardia chests are duplicated into the cave, not that they are incentivized --
+-- so the section now carries both, and the two are about different things. A
+-- seed with the hoard and no Cardia incentive draws the pin and demotes it,
+-- which is the case the pack could not state at all before.
+check("sections reporting Inspect when not incentivized", gated, 51)
 
 ------------------------------------------------------------------
 -- 3. Every flag named is a real item code.
@@ -210,26 +218,43 @@ check("an incentivized slot is Normal", incentiveSlot("npcsAreIncentive"), 6)
 provided = {}
 check("a skipped slot is Inspect", incentiveSlot("npcsAreIncentive"), 3)
 
--- The cardia progressive hands out BahamutHoard only at stage 2, and stage 2
--- inherits stage 1's code -- so a hoard seed reads as both.
-local cardia = byCode["cardiaIsIncentive"]
-provided = {}
-cardia.CurrentStage = 1
--- providesCode answers a count, and 0 is truthy in Lua -- the same trap
--- scripts/logic.lua opens by warning about.
-if cardia:providesCode("cardiaIsIncentive") > 0 then provided.cardiaIsIncentive = 1 end
-if cardia:providesCode("BahamutHoard") > 0 then provided.BahamutHoard = 1 end
-check("cardia stage 1 incentivizes cardia", incentiveSlot("cardiaIsIncentive"), 6)
-check("cardia stage 1 is not a hoard", incentiveSlot("BahamutHoard"), 3)
+-- The Cardia incentive and Bahamut's Hoard are two items, and the whole point
+-- of the split is that all four combinations can be said. They were one
+-- progressive until 2026-09-03, stage 2 being the hoard, and a progressive
+-- provides every code up to its stage -- so the fourth row below was not merely
+-- untested, it was unsayable, and the pack rang Cardia Forest gold on five
+-- cartridges FFR incentivized nothing on. docs/ISSUES.md.
+--
+-- Walked through providesCode rather than by setting `provided` directly, so
+-- this still answers to what the item definitions actually hand out: making
+-- them one item again reddens the fourth row here.
+local cardia, hoard = byCode["cardiaIsIncentive"], byCode["BahamutHoard"]
+local function setFlags(cardiaOn, hoardOn)
+  provided = {}
+  cardia.Active, hoard.Active = cardiaOn, hoardOn
+  -- providesCode answers a count, and 0 is truthy in Lua -- the same trap
+  -- scripts/logic.lua opens by warning about.
+  if cardia:providesCode("cardiaIsIncentive") > 0 then provided.cardiaIsIncentive = 1 end
+  if hoard:providesCode("BahamutHoard") > 0 then provided.BahamutHoard = 1 end
+end
 
-provided = {}
-cardia.CurrentStage = 2
--- providesCode answers a count, and 0 is truthy in Lua -- the same trap
--- scripts/logic.lua opens by warning about.
-if cardia:providesCode("cardiaIsIncentive") > 0 then provided.cardiaIsIncentive = 1 end
-if cardia:providesCode("BahamutHoard") > 0 then provided.BahamutHoard = 1 end
-check("cardia stage 2 is a hoard", incentiveSlot("BahamutHoard"), 6)
-check("cardia stage 2 still incentivizes cardia", incentiveSlot("cardiaIsIncentive"), 6)
+setFlags(false, false)
+check("neither: cardia is not incentivized", incentiveSlot("cardiaIsIncentive"), 3)
+check("neither: there is no hoard", incentiveSlot("BahamutHoard"), 3)
+
+setFlags(true, false)
+check("cardia alone incentivizes cardia", incentiveSlot("cardiaIsIncentive"), 6)
+check("  and is still not a hoard", incentiveSlot("BahamutHoard"), 3)
+
+setFlags(true, true)
+check("both: the hoard exists", incentiveSlot("BahamutHoard"), 6)
+check("  and cardia is incentivized", incentiveSlot("cardiaIsIncentive"), 6)
+
+-- The row the old shape could not reach. Every hoard*497 cartridge is this
+-- combination, and the pack ringed all of them.
+setFlags(false, true)
+check("a hoard does not incentivize cardia", incentiveSlot("cardiaIsIncentive"), 3)
+check("  though the hoard itself exists", incentiveSlot("BahamutHoard"), 6)
 
 -- A code nothing defines counts zero just like a flag that is off, so without
 -- the guard a typo would paint the slot blue on every seed for ever.

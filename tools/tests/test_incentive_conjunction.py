@@ -63,26 +63,23 @@ NOT_AP_LOCATIONS = {
     "@Bahamut's Cave/Cardia Incentive - Hoard",
 }
 
-# Rings that are wrong for a reason this suite is not about, waived by name so
-# the count above stays honest and the reason stays visible.
+# Slots the pack shows for a location the seed does not have: a chest whose
+# incentive name the seed did not use, so the pack's row points at an id the
+# pool does not contain. notail's Sea Shrine incentives are `Incentive 1` and
+# `Incentive 2` rather than `Incentive Major`. docs/ISSUES.md.
 #
-# The cardia progressive's stage 2 is Bahamut's Hoard and inherits stage 1's
-# code, so MapDragonsHoard provides `cardiaIsIncentive` whatever
-# IncentivizeCardia says -- and the pack rings Cardia Forest on the six hoard
-# cartridges, where FFR incentivized nothing there. Not a conjunction and not
-# fixed by one; it wants a way to say "the hoard exists and Cardia is not
-# incentivized", which a progressive cannot say. docs/ISSUES.md.
-CARDIA_HOARD = "Cardia Forest Island - Incentive Major"
-WAIVED_RINGS = {CARDIA_HOARD}
-
-# Slots the pack shows for a location the seed does not have. The caravan slot
-# was the third of these until it got its existence gate; these two remain, and
-# both are a chest whose incentive name the seed did not use -- notail's Sea
-# Shrine incentive is `Incentive 1`/`Incentive 2` rather than `Incentive Major`.
-# Same family as the caravan, different cause. docs/ISSUES.md.
+# There were three. The caravan slot left in 2026-09-03's conjunction work, when
+# it got a gate on its own existence. `hoarddockbridge497`'s Cardia chest left
+# the same day with the cardia split, and left differently: the issue is not
+# fixed, it has stopped being reachable. That row was only ever a ghost because
+# the pack ringed a Cardia slot on a hoard seed, and it no longer does -- the
+# ring is decided by IncentivizeCardia, which that cartridge has off, so the
+# comparison ends before the missing id is looked for. Keeping the tuple would
+# have made a dead waiver look like live evidence, which is the shape this file
+# exists to refuse. The finding stays open in docs/ISSUES.md with a note that
+# this corpus can no longer show it.
 WAIVED_GHOSTS = {
     ("notail", "Sea Shrine Mermaids (B1) - Incentive Major"),
-    ("hoarddockbridge497", CARDIA_HOARD),
 }
 
 fails = []
@@ -153,7 +150,7 @@ def main():
                 if rings and (slug, name) not in WAIVED_GHOSTS:
                     ghosts.append("%s: %s" % (slug, name))
                 continue
-            if rings != (name in e["priority"]) and name not in WAIVED_RINGS:
+            if rings != (name in e["priority"]):
                 wrong.append("%s: %s %s" % (
                     slug, name, "ringed, FFR did not" if rings
                     else "not ringed, FFR did"))

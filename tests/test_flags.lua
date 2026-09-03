@@ -194,9 +194,12 @@ do
   -- mapping the flag is modelled, and an entry still sitting here is stale.
   -- Both halves of the mapping, because an owed code can land in either. The
   -- toggles-only reading missed exactly the case this row exists for:
-  -- `cardiaIsIncentive` is an incentive code of the kind these entries owe and
-  -- it lives in PROGRESSIVES, so a code retiring into that half would have left
-  -- the stale entry sitting here with the suite green.
+  -- `progressionFlag` hands out `openProgression` and `extendedOpen`, codes of
+  -- the kind these entries owe, and it lives in PROGRESSIVES -- so a code
+  -- retiring into that half would have left the stale entry sitting here with
+  -- the suite green. `cardiaIsIncentive` was the example until the cardia split
+  -- moved it into TOGGLES, which is the argument for not picking an example
+  -- that can quietly change halves.
   local codes = {}
   for _, list in ipairs({ cov.toggles or {}, cov.progressives or {} }) do
     for _, e in ipairs(list) do
@@ -385,8 +388,9 @@ local DEFAULTS = {
   marshLockedIsIncentive = false, titansTroveIsIncentive = false,
   earthIsIncentive = true, volcanoIsIncentive = false, skyIsIncentive = true,
   seaIsIncentive = true, coneriaLockedIsIncentive = true,
+  cardiaIsIncentive = false, BahamutHoard = false,
 }
-local STAGE_DEFAULTS = { progressionFlag = 1, airBoat = 0, cardiaIsIncentive = 0 }
+local STAGE_DEFAULTS = { progressionFlag = 1, airBoat = 0 }
 
 -- Every cell moved off its default first, so a reset that does nothing fails.
 for code, want in pairs(DEFAULTS) do byCode[code].Active = not want end
@@ -478,11 +482,12 @@ check("a random flag that was off stays off", byCode["lefeinBridge"].Active, fal
 check("a known flag next to it still applies", byCode["hwyOrdeals"].Active, false)
 
 -- The progressives are the half of this that was missed. Every source flag
--- behind them is a tri-state too -- MapOpenProgression, its Extended, AirBoat,
--- MapDragonsHoard, IncentivizeCardia -- and each stage function tested `== true`
--- and read a rolled flag as off. So a seed with AirBoat left on random cleared
--- the cell the player had set by hand, and the "left as they were" line, which
--- is the only place the pack admits it does not know, never mentioned it.
+-- behind them is a tri-state too -- MapOpenProgression, its Extended and
+-- AirBoat, and MapDragonsHoard and IncentivizeCardia until the cardia split
+-- took them into TOGGLES -- and each stage function tested `== true` and read a
+-- rolled flag as off. So a seed with AirBoat left on random cleared the cell
+-- the player had set by hand, and the "left as they were" line, which is the
+-- only place the pack admits it does not know, never mentioned it.
 byCode["airBoat"].Active = true
 byCode["airBoat"].CurrentStage = 1
 partial.AirBoat = nil
@@ -517,17 +522,22 @@ check("a rolled Open leaves the cell alone", byCode["progressionFlag"].CurrentSt
 check("  and is named in the log",
       rolled:find("MapOpenProgression%f[%A]") ~= nil, true)
 
--- The Hoard is asked before IncentivizeCardia and wins outright when it is on,
--- so a rolled Hoard is unknown whichever way the incentive went.
+-- A rolled Hoard leaves its own cell alone, and that used to cost more than its
+-- own cell. The Hoard was stage 2 of the cardiaIsIncentive progressive and was
+-- asked before IncentivizeCardia, so a rolled Hoard made the whole cell unknown
+-- and threw away an IncentivizeCardia the seed had stated plainly. Two toggles
+-- answer separately: the unknown flag is left as it was, the known one applies.
 local hoard = {}
 for k, v in pairs(flags) do hoard[k] = v end
 hoard.MapDragonsHoard = nil
 hoard.IncentivizeCardia = false
+byCode["BahamutHoard"].Active = true
 byCode["cardiaIsIncentive"].Active = true
-byCode["cardiaIsIncentive"].CurrentStage = 2
 rolled = capture(function() applyFFRFlagsToBoard(hoard, "4-9-7") end)
-check("a rolled Hoard leaves the cell alone", byCode["cardiaIsIncentive"].CurrentStage, 2)
+check("a rolled Hoard leaves the cell alone", byCode["BahamutHoard"].Active, true)
 check("  and is named in the log", rolled:find("MapDragonsHoard", 1, true) ~= nil, true)
+check("  while a stated IncentivizeCardia still applies",
+      byCode["cardiaIsIncentive"].Active, false)
 
 ------------------------------------------------------------------
 print("\n-- the goal, once the seed has been read")
