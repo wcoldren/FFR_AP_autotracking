@@ -264,8 +264,17 @@ Nothing here is urgent unless it says so.
   blue, and red outranks blue by design. Nothing to do in the pack; worth knowing
   if that setting is on.
 
-- **`shopItem`** is the one Locations-grid cell with no incentive toggle behind it
-  and no FFR flag mapped to it, so it is never blue and never gold.
+- **`shopItem` had no incentive toggle behind it and no FFR flag mapped to it,
+  so it was never blue and never gold. Closed 2026-09-03**, by the entry below
+  on the `I: Shop Item` pin: the section carries
+  `^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems` now, with
+  `visibility_rules: ["npcItems"]` and a `$showPin` restriction on the pin, so
+  it demotes and hides like every other slot.
+
+  Filed here because it outlived its own fix by a day while still reading as
+  open, which is the failure the header above describes -- an entry that goes
+  quiet sends the next reader after work already done. The close that made it
+  false is two entries down and did not think to come up here.
 
 - **Our trap letters are not DarkmoonEX's**, by design. His are hand-assigned for
   vanilla and do not describe an FFR seed; ours are read per cartridge. Only
