@@ -142,7 +142,7 @@ either. The eleven above them are in both schemas.
 | `EarlyOrdeals` | `earlyOrdeals` | code |
 | `Entrances`, `Floors`, `Towns`, `EntrancesMixedWithTowns`, `IncludeConeria`, `AllowDeepCastles` | — | unmodellable by toggle; `regen_maps` reads the result off the cartridge |
 | `OwMapExchange`, `OwShuffledAccess` | — | unmodellable; `flag_mapping` already warns |
-| `LefeinSuperStore` | `NOT_MODELLED`, status `unjudged` | **unmeasurable from this corpus, which is not the same as unmeasured** — every preset in both corpora sets it `true`, so no cartridge here varies it. Two call sites, not one: `MetroidVaniaMap.cs:58` passes it to `ApplyMapMods`, No-Overworld only, which at `:260` picks between two sets of tile writes to `MapIndex.Lefein` — different wall edges plus a blob named `lefeinNonteleport`; and `SMUpdates.cs:116` calls `EnableLefeinSuperStore` from `Update()`, the general standard-maps pass, so the store is placed on either mode. That site also ANDs in the `ShopKillMode` pair `FlagsCompute.cs:51` calls `LefeinSuperStoreEnabled`. The 75-link table was derived with the flag **on**, so the seed owed is No-Overworld with it **off**. Filed `noise` until 2026-09-01 on the word *store* in its name, and `unmeasured` until 2026-09-03 on a call site cited without being read |
+| `LefeinSuperStore` | `NOT_MODELLED`, status `decided` | **measured 2026-09-03 on `novnolefein`, and it moves no link and no rule.** No preset in either corpus varied it, so a cartridge was rolled for it: `oracle_nov`'s preset and seed with one boolean flipped, 533 decoded flags and exactly one differing. Both cartridges derive 256 locations and the same names; the 10 rules that differ are the Cardia/Bahamut gateway permutation and the two ToFR bonus chest ids, both of which `docs/NOVERWORLD.md` already lists as rolled per seed. `check_logic --derived` grades it 222 compared, 221 agree, 1 divergent — the same strict `Lefein` row `nov` has. Two call sites, not one: `MetroidVaniaMap.cs:58` passes it to `ApplyMapMods`, No-Overworld only, which picks between two sets of tile writes to `MapIndex.Lefein`; and `SMUpdates.cs:39` at 4.9.2 (`:116` at 4.9.7) calls `EnableLefeinSuperStore` from `Update()`, the general standard-maps pass, so the store is placed on either mode. That site also ANDs in the `ShopKillMode` pair `FlagsCompute.cs:51` calls `LefeinSuperStoreEnabled`. **Standard mode is measured too, and it had to be**, because that second call site is not a No-Overworld one and `decided` is the status that says no further measurement is wanted: the store is on `std` and `std497` (72 of 72 blob cells, the tree at `[0x00, 0x34]` cleared and walkable), and walking `std`'s Lefein against the same map with those 73 cells restored to their flag-off values leaves all 14 objects reachable at identical distances — the town has no treasure tile for any of it to gate. What moves is 4 shop doors and one exit tile across the map's vertical wrap. Filed `noise` until 2026-09-01 on the word *store* in its name, `unmeasured` until 2026-09-03 on a call site cited without being read, and `unmeasurable from this corpus` until the cartridge existed. `docs/ORACLE.md` has the figures for both modes |
 
 ## C. Goal and Temple of Fiends (`TempleOfFiends.cs`)
 
@@ -428,20 +428,23 @@ here can be checked against each other. The tally below is 30 rather than 31
 because `ExitToFR` was already there when the thirty were added, and because
 two of them have since left:
 
-    ram 7   variant 1   noise 8   unmodellable 6   decided 4   unjudged 4
+    ram 7   variant 1   noise 8   unmodellable 6   decided 5   unjudged 3
 
 `unjudged` is the status that keeps the list usable. A list padded to make the
-test pass is the test not existing, so `NPCSwatter`, the two refight flags above
-and `LefeinSuperStore` say why they are unsettled and name the measurement,
-rather than borrowing a neighbour's reason.
+test pass is the test not existing, so `NPCSwatter` and the two refight flags
+say why they are unsettled and name the measurement, rather than borrowing a
+neighbour's reason.
 
-**`LefeinSuperStore` is a fourth kind, found 2026-09-03**, and the three above
-it are not. It is not waiting on a cartridge nobody rolled: every preset in both
-corpora sets it `true`, so no cartridge here can vary it and none ever did. Its
-row said the opposite — that the 75-link table was derived with the flag off —
-and a reader following that would have rolled the seed the corpus already has.
-"Unmeasured" and "unmeasurable from this corpus" want telling apart, and only
-the second names a cartridge that has to be made rather than found.
+**`LefeinSuperStore` was a fourth kind, and left on 2026-09-03.** It was never
+waiting on a cartridge nobody had rolled: every preset in both corpora sets it
+`true`, so no cartridge here could vary it and none ever did. "Unmeasured" and
+"unmeasurable from this corpus" want telling apart, because only the second
+names a cartridge that has to be made rather than found — and once that is
+named, making it is a command. `novnolefein` was rolled the same day and the
+answer is that the flag moves no link and no rule, so the entry is `decided`
+rather than retired to a code. What that cost was one roll, one derivation and
+one graph diff; what it had cost instead was three separate wrong reasons in
+four days.
 
 **Two entries left on 2026-09-03: `NPCItems` and `NPCFetchItems`.** Both were
 measured on a cartridge rolled for them, both turned out to move a gold ring and
@@ -459,9 +462,12 @@ so what holds these two is a grader of the ring rather than a coverage row:
 `tools/tests/test_incentive_conjunction.py` compares what the pack would ring
 against the `priority_locations` FFR exported, over both corpora.
 
-**All four that remain are unmeasured**, and each names the measurement that
-would settle it. The pair that left is the argument for the `measured` and
-`owed` fields the four still carry: the vocabulary had no word for "measured,
+**All three that remain are unmeasured**, and each names the measurement that
+would settle it, in `measure`, beside the `why` every entry carries. **None of
+the three carries `measured` or `owed`, and that is what those fields are for**
+-- an entry acquires them the day it is measured and loses them by leaving, so
+an empty set of them here means nothing is waiting on a build. The pair that
+left is the argument for having them: the vocabulary had no word for "measured,
 and now waiting on a code" — `noise` and `decided` are both false of a flag that
 demonstrably moves a ring — so `measure` carried the result instead of the
 request and a `measured = true` field carried a distinction the prose had been

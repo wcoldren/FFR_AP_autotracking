@@ -217,10 +217,17 @@ The line is `ApplyMapMods(..., LefeinSuperStore && ShopKillMode == None)`. It
 read as "a shop flag, not topology" here until 2026-09-01, on the strength of
 the word *store* in the name. `ApplyMapMods` is reached only from
 `NoOverworld()`, and the flag picks between two sets of tile writes to
-`MapIndex.Lefein` — different wall edges and a blob named `lefeinNonteleport`,
-which are walls and a teleport tile in a town the 75-link table was derived from
-with the flag off. It may still change nothing a router can see; nobody has
-walked it. `docs/FLAG_COVERAGE.md` carries it as `unjudged`, not `noise`.
+`MapIndex.Lefein` — different wall edges and a blob named `lefeinNonteleport`.
+
+**It was walked on 2026-09-03 and changes nothing a router can see.** The
+75-link table was derived with the flag *on*, not off as this page said, because
+every preset in both corpora sets it on; `novnolefein` was rolled to vary it.
+Each branch leaves exactly one two-cell plug in Lefein's left-edge column, one
+row apart, so nothing opens and nothing closes. Both cartridges derive 256
+locations with the same names, and the only rules that move are the gateway
+permutation and the two ToFR bonus chests this page already lists as rolled per
+seed. `docs/FLAG_COVERAGE.md` carries it as `decided`, and `docs/ORACLE.md` has
+the figures.
 
 The count stands either way: one line moved in six releases, and that line is
 this one. Generating a 4.9.8 seed and reading it with the same tools gives

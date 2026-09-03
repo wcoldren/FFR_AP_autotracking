@@ -964,3 +964,11 @@ with no corpus: no presets, no claim to check, skip.
 
 Cost is a corpus read and a value comparison per unsettled row, so it belongs
 in the gated half of the suite that already skips without `FF1_CORPUS`.
+
+**Still wanted after the flag that raised it was settled.** `LefeinSuperStore`
+was measured on 2026-09-03 by rolling `novnolefein`, so it is no longer
+unanimous and no longer unsettled -- but the three rows still filed `unjudged`
+make the same kind of claim with the same nothing holding them to it, and the
+answer here was that rolling the cartridge cost less than the two wrong reasons
+that preceded it. The check's real value is that it names which of the two
+states a row is in *before* someone spends a day arguing from a call site.

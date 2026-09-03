@@ -349,26 +349,38 @@ local NOT_MODELLED = {
   },
   {
     ffr = "LefeinSuperStore",
-    status = "unjudged",
-    measure = "walk Lefein on a No-Overworld pair one flag apart -- the town "
-      .. "layout is in the decompressed map, so this is a diff of two "
-      .. "cartridges rather than a graded export",
-    why = "not only a shop. Its one use is ApplyMapMods "
-      .. "(MetroidVaniaMap.cs:58), which is called only from NoOverworld() "
-      .. "(:47-58), and at :260 it chooses between two different sets of "
-      .. "tile writes to MapIndex.Lefein -- on, lefeinNorthedge2 at "
-      .. "(0x24,0x02), lefeinSouthedge2 at (0x00,0x01), a blob named "
-      .. "lefeinNonteleport at (0x00,0x02) and 0x0E at [0x01,0x33] and "
-      .. "[0x01,0x3F]; off, lefeinNorthedge at (0x26,0x02), lefeinNorthedge2 "
-      .. "at (0x3C,0x02), lefeinSouthedge2 at (0x00,0x02) and 0x0E at "
-      .. "[0x01,0x39]. Walls and a teleport tile, in a town the "
-      .. "hand-authored 75-link No-Overworld topology was derived from with "
-      .. "the flag off. Held as noise until 2026-09-01 on the strength of "
-      .. "the word 'store' in the name, which is the reading the call site "
-      .. "does not support. Whether the walk still holds with it on is the "
-      .. "open question; the 4.9.2-to-4.9.8 diff moving the whole "
-      .. "No-Overworld surface by exactly this line is a reason to measure "
-      .. "it rather than a reason to pass over it.",
+    status = "decided",
+    why = "walked on a No-Overworld pair one flag apart, 2026-09-03, and it "
+      .. "moves no link and no rule. It does edit the map, on both modes: "
+      .. "EnableLefeinSuperStore places a 3x24 store blob at (0x28,0x01) and "
+      .. "clears the tree at [0x00,0x34] whatever the mode, from Update() in "
+      .. "the general standard-maps pass (StandardMaps/SMUpdates.cs:39 at "
+      .. "4.9.2, :116 at 4.9.7), ANDed with the ShopKillMode pair "
+      .. "FlagsCompute.cs:51 names LefeinSuperStoreEnabled; only its last two "
+      .. "TownTree writes sit behind if (nooverworld). On No-Overworld it also "
+      .. "picks between two sets of tile writes to MapIndex.Lefein in "
+      .. "ApplyMapMods (MetroidVaniaMap.cs:58). Both of those branches leave "
+      .. "exactly one two-cell plug in Lefein's left-edge column, one row "
+      .. "apart -- on, the plug is at y=1 and (0x00,0x02) is walkable; off, "
+      .. "the plug is at y=2 and (0x00,0x01) is walkable -- so nothing opens "
+      .. "and nothing closes. Both cartridges derive 256 locations with the "
+      .. "same names, the link set is identical apart from the gateway "
+      .. "permutation and the ToFR bonus chests that every No-Overworld seed "
+      .. "rolls, and check_logic grades the flag-off cartridge with the same "
+      .. "single strict Lefein divergence as nov. Two teleport coordinates do "
+      .. "move -- Lefein's stair lands at (5,52) in Waterfall rather than "
+      .. "(25,28), and Waterfall's own outbound stair sits at (22,23) rather "
+      .. "than (11,56) -- but they are a SpliceRandom draw off the same rng "
+      .. "(MetroidVaniaMap.cs:470), not a link the flag adds or removes. "
+      .. "Standard mode was measured too, on std and std497 rather than "
+      .. "argued from the call site: the store is on both (72/72 blob cells, "
+      .. "tree cleared), and against the same map with those 73 cells restored "
+      .. "to their flag-off values all 14 objects on Lefein stay reachable at "
+      .. "identical distances, the town holding no treasure tile to gate. "
+      .. "Held as noise until 2026-09-01 on the word 'store' in the name, "
+      .. "then unjudged on a call site cited without being read. "
+      .. "docs/ORACLE.md, 'LefeinSuperStore off: what it moves, which is not "
+      .. "a link', has the figures for both modes.",
   },
 }
 
