@@ -300,15 +300,17 @@ and section 2 is what comes next.
   It is also the honest half of the bullet below, available without deciding
   it: attributing a rule change to a flag **compiles nothing**, so it costs none
   of the independence that compiling would.
-- **`check_logic`'s default `--ff1-world` is wrong and fails silently.**
-  `ap_location_paths` (`tools/check_logic.py:656`) defaults to
-  `<pack>/../Archipelago/worlds/ff1`, which resolves to
-  `vendor/ff1/Archipelago/worlds/ff1` and does not exist; the world is two
-  levels up at `vendor/Archipelago/worlds/ff1`. The missing path hits
-  `return {}`, so every location reports unmapped and the run gives a cheerful
-  zero. `docs/ORACLE.md` records the workaround — "`--ff1-world` is
-  load-bearing" — and this is the cause it works around. It should refuse
-  rather than return an empty dict.
+- **`check_logic`'s default `--ff1-world` was wrong and failed silently.
+  Closed 2026-09-03.** `ap_location_paths` (`tools/check_logic.py:669`)
+  defaulted to `<pack>/../Archipelago/worlds/ff1`, which resolves to
+  `vendor/ff1/Archipelago/worlds/ff1` and does not exist; the world is one
+  level further up at `vendor/Archipelago/worlds/ff1`. The missing path hit
+  `return {}`, so every location reported unmapped and the run gave a cheerful
+  zero — which is the failure this tool can least afford, a zero here reading
+  as agreement. The default now resolves 255 locations where it resolved none,
+  and a `--ff1-world` given explicitly and not found refuses instead of
+  skipping. The default still being absent is still a skip, because a machine
+  with no Archipelago checkout is an ordinary condition.
 - **Port from the export.** A script that reads FFR's Archipelago export and
   emits the `$`-guarded `access_rules`, replacing hand transcription. One export
   per FFR version, not per seed.

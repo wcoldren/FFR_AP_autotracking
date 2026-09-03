@@ -523,8 +523,13 @@ touches a map bank.)
 
     python3 tools/tofr_diff.py $O/nov/oracle_nov.nes $O/nov2/oracle_nov2.nes
 
-`--ff1-world` is load-bearing: without it only about 20 checks map and the run
-reports a cheerful zero. `--ap-rules` is load-bearing for the reason above. The
+`--ff1-world` no longer has to be passed, as of 2026-09-03: the default was
+pointing one directory level short of the world and every location came back
+unmapped, so a run without the flag mapped about 20 checks and reported a
+cheerful zero. It resolves on its own now, and a path given explicitly and not
+found refuses rather than reporting that zero. Passing it is still right when
+the Archipelago checkout is somewhere else. `--ap-rules` is load-bearing for
+the reason above. The
 `nov` derivation sweep is about 60 seconds -- 4096 subsets rather than the old
 1024, and faster than the old sweep was, because the floor walk is memoized;
 everything else is fast.

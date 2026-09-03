@@ -668,11 +668,29 @@ def alias_noverworld(rules):
 
 def ap_location_paths(pack=PACK, ff1=None):
     """AP location name -> pack section path, via the world's id table and the
-    pack's own LOCATION_MAPPING. Nothing hand-written in between."""
+    pack's own LOCATION_MAPPING. Nothing hand-written in between.
+
+    A path given explicitly and not found is refused rather than skipped. The
+    default not being found is a skip, because a machine with no Archipelago
+    checkout is a normal condition and the caller prints so; but a --ff1-world
+    that names nothing is a typo, and returning {} for it made every location
+    report unmapped and the whole run come back a cheerful zero. That is the
+    failure this tool is least able to afford, since a zero here reads as
+    agreement.
+
+    The default was also simply wrong, and is the reason docs/ORACLE.md calls
+    --ff1-world load-bearing: the pack sits at vendor/ff1/<pack>, so `..` is
+    vendor/ff1 and the world is one level further up at vendor/Archipelago.
+    """
+    given = ff1 is not None
     if ff1 is None:
-        ff1 = os.path.join(pack, "..", "Archipelago", "worlds", "ff1")
+        ff1 = os.path.join(pack, "..", "..", "Archipelago", "worlds", "ff1")
     names = os.path.join(ff1, "data", "locations.json")
     if not os.path.exists(names):
+        if given:
+            raise SystemExit("check_logic: no locations.json under %s\n"
+                             "  --ff1-world must name a worlds/ff1 directory"
+                             % ff1)
         return {}
     with open(names) as handle:
         name_to_id = json.load(handle)
