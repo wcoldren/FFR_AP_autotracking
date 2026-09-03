@@ -99,21 +99,17 @@ with no code can be told apart from one nobody has got to.
   `IncentivizeUnne`. `docs/ISSUES.md` has all three halves and the open question
   about `Dr Unne`.
 
-  **Both gate cartridges now exist.** `nonpcitems497` settles the free half and
-  `nofetchitems497`, rolled 2026-09-03, settles the fetch half: zero rules move,
-  226 of 226 agree, seven priority locations go, and all seven stay locations,
-  so the fetch repair is the conjunction alone. The gate row has to demonstrate
-  a failure on *both* -- one that passes on `nonpcitems497` while the fetch
-  slots stay wrong is exactly the false green this entry exists to avoid.
+  **Both gate cartridges now exist.** `nonpcitems497` settles the free half --
+  seven priority locations, three fewer exported locations, zero moved rules --
+  and `nofetchitems497`, rolled 2026-09-03, settles the fetch half: zero rules
+  move, 226 of 226 agree, seven priority locations go, and all seven stay
+  locations, so the fetch repair is the conjunction alone. The gate row has to
+  demonstrate a failure on *both* -- one that passes on `nonpcitems497` while
+  the fetch slots stay wrong is exactly the false green this entry exists to
+  avoid.
 
   That roll also turned up a third thing, filed separately: the pack gives
   `Dr Unne` an incentive slot FFR never fills, which no conjunction fixes.
-
-  **Its oracle cartridge already exists**, which is what this section asks of
-  every item: `nonpcitems497`, and the before/after is seven priority locations,
-  three fewer exported locations, and zero moved rules (`docs/ORACLE.md`). So
-  the gate row can demonstrate the failure rather than report a pass after the
-  fact.
 
 
 ## 2. Boxes that do not exist
@@ -313,15 +309,21 @@ and section 2 is what comes next.
   The counts and the `NOT_MODELLED` status tally are `docs/FLAG_COVERAGE.md`,
   "Keeping this current".
 
-- **Five flags are filed `unjudged`, and that is the open work.** `NPCItems`,
-  `NPCSwatter`, `FiendsRefights`, `ShortToFRFiendsRefights` and
-  `LefeinSuperStore` say they are unmeasured and name the measurement that
-  would settle them, rather than borrowing a neighbour's reason. A list padded
-  to make the test pass is the test not existing. Each is a section-1 candidate
-  if it turns out to move a pin.
+- **Six flags are filed `unjudged`, and that is the open work.** `NPCItems`,
+  `NPCFetchItems`, `NPCSwatter`, `FiendsRefights`, `ShortToFRFiendsRefights`
+  and `LefeinSuperStore`. Four of them say they are unmeasured and name the
+  measurement that would settle them, rather than borrowing a neighbour's
+  reason. A list padded to make the test pass is the test not existing. Each is
+  a section-1 candidate if it turns out to move a pin.
 
-  **`LefeinSuperStore` is the live one.** It was filed `noise` — "a shop edit" —
-  on the strength of the word *store* in its name. Its only use is
+  **Two of the six are a different thing, since 2026-09-03**, and the count
+  above went stale by missing one of them. `NPCItems` and `NPCFetchItems` are
+  measured on a cartridge each and carry `measured` with an `owed` code; what
+  they wait on is the section-1 build and no longer a measurement. They are the
+  section-1 candidates that turned out to move a ring.
+
+  **`LefeinSuperStore` is the live measurement.** It was filed `noise` — "a
+  shop edit" — on the strength of the word *store* in its name. Its only use is
   `ApplyMapMods`, reached only from `NoOverworld()`, where it picks between two
   sets of tile writes to `MapIndex.Lefein`: different wall edges, and a blob
   called `lefeinNonteleport`. That is walls and a teleport tile in a town the
@@ -462,6 +464,15 @@ local count a lie.
 
 What stays is the record of what each merged branch was for, dated on the day it
 merged. That is a fact about the past and cannot go stale.
+
+**This list is not every branch, and does not try to be.** It holds the two that
+closed a whole section, and `export-diff`. The seven between them --
+`spring-cleanup`, `hoard-pin-0831`, `regen-branch-guard`, `titan-cell`,
+`incentive-marker-shapes`, `shop-slot-incentive` and `shop-slot-flag`,
+2026-09-01 to 09-03 -- are recorded where their conclusions live, in the
+`STATUS` log and the docs page that owns each, and `git log --merges` lists them
+in order. Seven entries here would each duplicate a page, and a duplicate is the
+copy that goes stale.
 - **`flag-coverage` merged 2026-09-01**, and was the whole of section 5's
   first two bullets: `test_flag_coverage.py`, which fails when FFR grows a flag
   nothing here models, and `test_ffr_pin.py`, which holds the schemas to the
@@ -473,7 +484,8 @@ merged. That is a fact about the past and cannot go stale.
   conjunction of ancestry and the stamp, and only the stamp ever fired. Same
   lesson as the gate rows, and the two terms are separate rows now.
 
-  **What it leaves behind is five flags filed `unjudged`**, in section 5.
+  **What it left behind is five flags filed `unjudged`**, in section 5, which
+  is six of them now.
 
 - **`flags-real-seeds` merged 2026-09-01**, and was the whole of section 1: the
   `ChaosRush` and `ToFRMode` codes and the `ExitToFR` decision, then
@@ -496,3 +508,21 @@ merged. That is a fact about the past and cannot go stale.
   re-reads a line once it is written. Say the gate ran on the day it runs, and
   say a branch merged on the day it merges — this line went stale twice in two
   days, in both directions.
+
+- **`export-diff` merged 2026-09-03**, and was section 5's export-vs-export
+  diff plus the two section-1 findings it immediately produced.
+  `tools/export_diff.py` attributes what moves between two exports one flag
+  apart to the flag, and declines to count the location pool, which churns 17 to
+  23 names either way on every 4.9.7 variant. Thirteen commits,
+  `d91a984..d641366`.
+
+  **The review gate ran twice**, on the branch and again on `e03f87e..b74445d`:
+  six findings, then nine. The first pass found the pool heading hiding this
+  branch's own second finding -- `NPCItems` off deletes the caravan slot, and
+  the tool was calling that gold moving between chests. Eight of the second
+  pass's nine are fixed; the ninth is `FLAG_COVERAGE.md`'s 31-versus-30 reading
+  of the named half, verified as counting something else and left deliberately,
+  with the reasoning in `4febe4c`.
+
+  **What it leaves behind is the section-1 incentive conjunction**, with both
+  gate cartridges rolled before the fix: `nonpcitems497` and `nofetchitems497`.
