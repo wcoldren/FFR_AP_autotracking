@@ -348,14 +348,15 @@ end
 -- one where the toggle is worth most. Then with the NPC flag set, where the
 -- slots it speaks for stop being skipped ones and come back on their own.
 --
--- Five come back on each sheet, and they are the same five nodes: Coneria
--- Castle, Pravoka, Sarda's Cave, Crescent Lake and the Waterfall. The two
--- sheets disagree about how Coneria Castle is drawn -- the standard one puts
--- the locked chest in with the King and Sara, so the node carries both flags in
--- one rule, while the No-Overworld sheet gives the chest a node of its own --
--- and the counts differ by that one pin rather than by which NPCs are on them.
--- showPin ORs the flags in a rule, because a pin stands for every section under
--- it and one live slot is reason enough to draw.
+-- Six come back on each sheet, and they are the same six nodes: Coneria
+-- Castle, Pravoka, Sarda's Cave, Crescent Lake, the Waterfall and the Shop
+-- Item. The two sheets disagree about how Coneria Castle is drawn -- the
+-- standard one puts the locked chest in with the King and Sara, so the node
+-- carries a rule for the chest and a second one for the NPCs, while the
+-- No-Overworld sheet gives the chest a node of its own -- and the counts differ
+-- by that one pin rather than by which NPCs are on them. showPin ANDs the flags
+-- within one rule and the rule array ORs, so a node whose sections answer to
+-- different flags gets an entry apiece rather than one entry naming them all.
 --
 -- `npcs` and `npcsBoth` are the demonstration that the conjunction bites, and
 -- they are stated as two rows because one of them would pass either way.

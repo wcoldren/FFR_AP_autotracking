@@ -167,7 +167,7 @@ rules, and the toggles would go quiet on exactly the seeds an override exists
 for. Stamping rather than preserving is also what gives the pins a cartridge
 newly places their rule on arrival.
 
-`rule_for()` dispatches on the map name, and where it stops is the design:
+`rules_for()` dispatches on the map name, and where it stops is the design:
 
     a drawn map      the pin's kind -- $showPin|chest or $showPin|npc
     incentives       $showPin|slot|<flag>... , the section's own flags
@@ -180,8 +180,15 @@ player able to switch it off could empty the tab.
 A node whose sections do not *all* carry an incentive flag gets no slot rule,
 because the outer rule array is OR'd (`location.cpp:266`): an unflagged section
 is visible whatever the flags say, so an entry for it would be always true. That
-is what keeps the five orb slots on the sheet. For the same reason a rule ORs
-the flags it names -- one live slot under a pin is reason enough to draw it.
+is what keeps the five orb slots on the sheet.
+
+Within one entry the flags are ANDed, which is what lets a section spell out a
+condition FFR computes rather than stores: the caravan's entry names both
+`npcItems` and `npcsAreIncentive`, and a fetch NPC's is the same shape. The OR
+a pin wants -- one live slot under it is reason enough to draw it -- is the
+array's, so a node whose sections answer to different flags gets an entry
+apiece. Naming them all in one entry instead asks for every slot at once, and
+takes the pin away as soon as any one of them goes dark.
 
 `showPin` fails open. An undefined code counts zero exactly as a switched-off
 toggle does, so a typo would empty a tab in silence; an unknown kind or an
