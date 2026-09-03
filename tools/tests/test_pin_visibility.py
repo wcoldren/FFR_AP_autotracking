@@ -55,9 +55,13 @@ BAHAMUT_SLOT = {"locations/incentives.json": "I: Bahamut's Cave",
 # slot's incentive status as NPCItems AND IncentivizeFreeNPCs
 # (FlagsCompute.cs:217) instead of putting a name in the flag string, so the
 # slot is spoken for by npcsAreIncentive exactly as the six free NPCs are.
+#
+# Dr Unne left the first number entirely on 2026-09-03, rather than moving to
+# the second: FFR has no IncentivizeUnne, so the slot was removed from both
+# sheets instead of being kept as one no rule can speak for. docs/ISSUES.md.
 INCENTIVE_EXPECTED = {
-    "locations/incentives.json": (18, 8),
-    "locations/NOverworld/incentives.json": (21, 7),
+    "locations/incentives.json": (17, 8),
+    "locations/NOverworld/incentives.json": (20, 7),
 }
 
 

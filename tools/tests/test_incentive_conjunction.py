@@ -51,17 +51,15 @@ WORLD = os.environ.get("FF1_WORLD", "")
 
 # Slot rows that are not Archipelago locations, and why. Named rather than
 # counted: a row silently dropping out of the comparison is how this check would
-# stop biting, and both of these are findings in their own right.
+# stop biting, and the one left is a finding in its own right.
 #
-#   Dr Unne         FFR has no IncentivizeUnne. ItemLocations.cs:277-278 makes
-#                   Unne a secondary requirement on Lefein's reward rather than
-#                   a reward slot, and he is not an AP location on any cartridge
-#                   in either corpus -- so the pack's incentive section for him
-#                   can never be right. docs/ISSUES.md has it.
 #   Cardia - Hoard  Bahamut's Cave has no location of its own; the hoard moves
 #                   the Cardia chest tiles into it. docs/ORACLE.md has it.
+#
+# `@Melmond/Dr Unne` was the other one until 2026-09-03, and is not waived here
+# now because it is not a row: FFR has no IncentivizeUnne, so the pack's
+# incentive section for him was removed rather than excused. docs/ISSUES.md.
 NOT_AP_LOCATIONS = {
-    "@Melmond/Dr Unne",
     "@Bahamut's Cave/Cardia Incentive - Hoard",
 }
 
@@ -135,7 +133,7 @@ def main():
 
     print("-- the rows this can speak for")
     check("board rows that are Archipelago locations", len(by_name), 25)
-    check("and the ones that are not are the two known", unmapped,
+    check("and the one that is not is the known one", unmapped,
           NOT_AP_LOCATIONS)
 
     seen = 0

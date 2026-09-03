@@ -803,12 +803,14 @@ Nothing here is urgent unless it says so.
   that can name more than one id, or a check that treats an absent id as no slot
   rather than as a slot to ring. Both are waived by name meanwhile.
 
-- **The pack has an eighth fetch incentive slot that FFR never fills.** Found
+- **The pack has an eighth fetch incentive slot that FFR never fills. Fixed
+  2026-09-03**, by removing the section rather than re-gating it. Found
   2026-09-03 on `nofetchitems497`, while measuring the flag above. The pack
-  gives `I: Dr Unne` a real incentive section -- `locations/incentives.json:403`
-  and its `NOverworld` twin, `hosted_item: "slabTranslated"`, gated on
-  `fetchQuestsAreIncentive` -- and `scripts/incentive_slots.lua:23`, `:53` list
-  it in both trees. FFR has no `IncentivizeUnne`. `FlagsCompute.cs:220-226`
+  gave `I: Dr Unne` a real incentive section in `locations/incentives.json` and
+  its `NOverworld` twin -- `hosted_item: "slabTranslated"`, gated on
+  `fetchQuestsAreIncentive` -- and `scripts/incentive_slots.lua` listed it in
+  both trees. Described in the past tense, and with no line numbers, because
+  the close below removed both. FFR has no `IncentivizeUnne`. `FlagsCompute.cs:220-226`
   computes exactly seven fetch conjunctions and Unne is not one of them, and the
   export agrees from the other side: the seven `priority_locations` that leave
   are Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick and Smith, and **`Dr
@@ -835,6 +837,26 @@ Nothing here is urgent unless it says so.
   already had a name for. A conjunction is not modelled by one of its terms --
   which the review of `flag-coverage` said in almost these words about a
   coverage row, and it was not carried across to a rule.
+
+  **What closed it.** The `I: Melmond` node -- whose only section was `I: Dr
+  Unne` -- is gone from `locations/incentives.json` and its `NOverworld` twin,
+  and with it the incentives-tab pin. It was dropped rather than kept
+  unincentivized because the incentive sheet is a sheet of incentive slots, and
+  a slot FFR cannot incentivize on any flagset does not belong on it.
+
+  **`slabTranslated` did not move, which is why the cut is this clean.** The
+  board's own `Melmond/Dr Unne` in `locations/overworld.json:2641` is the same
+  section with the two incentive conjuncts stripped from every rule, and it
+  hosts `slabTranslated` already, so reachability, the marker clear and
+  `tests/test_ram.lua`'s Unne cases all read the board copy and are untouched.
+  The sheet copy was hosting a second time, not the only time.
+
+  **The board's ring came off on its own**, which is the generator working:
+  `tools/incentive_slots.py` only makes a board row for a section whose
+  `hosted_item` some *sheet* section registered, so removing the sheet section
+  removed both rows. `INCENTIVE_SLOTS` goes 56 to 54 and nothing in
+  `tools/incentive_slots.py` changed. `@Melmond/Dr Unne` is correspondingly gone
+  from the grader's `NOT_AP_LOCATIONS`: it is not a row to excuse any more.
 
 ## Open questions
 
