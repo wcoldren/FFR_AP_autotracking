@@ -45,6 +45,22 @@ TERM = "^$incentiveSlot|"
 # demoted when off); everything else takes the base flag.
 HOSTED_OVERRIDE = {"cardiaIncentive": "cardiaIsIncentive"}
 
+# Codes that gate whether a slot exists rather than whether it is incentivized.
+#
+# The pack now has two kinds of section-level visibility rule and they mean
+# opposite things. Bahamut's Hoard is hidden by a map edit whose flag *is* its
+# incentive condition, so that rule is the ring flag and flags_of reads it. The
+# caravan slot is hidden because FFR did not create the location at all --
+# NPCItems off drops Shop Item from `rules` and `locations`, 227 to 224 on
+# nonpcitems497 -- and reading npcItems off that rule would say the slot rings
+# on npcItems alone, which is half of its actual condition.
+#
+# Today the board's caravan section is deduped away by the sheet's, whose path
+# is the same string, so the wrong reading never reaches a row. That is load
+# order doing the work of a decision, and it would flip silently if either tree
+# were renamed.
+EXISTENCE_FLAGS = frozenset({"npcItems"})
+
 
 def sections(tree):
     """(node name, section) for every section in the file."""
@@ -82,9 +98,10 @@ def flags_of(section):
 
     The visibility_rules fallback is Bahamut's Hoard: it is a map edit, so the
     slot is hidden rather than demoted when the flag is off, and the flag is
-    still what its ring answers to. Cut at the comma, because a rule string is
-    commasplit before it is parsed (rule.h:12) and a tail read as part of a flag
-    name would name no item at all.
+    still what its ring answers to. A rule naming an EXISTENCE_FLAGS code is the
+    other kind and is not a ring flag -- see that constant. Cut at the comma,
+    because a rule string is commasplit before it is parsed (rule.h:12) and a
+    tail read as part of a flag name would name no item at all.
     """
     for alt in section.get("access_rules") or []:
         found = [term[len(TERM):] for term in alt.split(",")
@@ -93,7 +110,9 @@ def flags_of(section):
             return sorted(set(found))
     vis = section.get("visibility_rules") or []
     if len(vis) == 1:
-        return [vis[0].split(",")[0]]
+        flag = vis[0].split(",")[0]
+        if flag not in EXISTENCE_FLAGS:
+            return [flag]
     return None
 
 

@@ -67,13 +67,29 @@ for _, file in ipairs(INCENTIVE_FILES) do
     end
   end)
 end
--- One per incentive sheet, because both sheets host that slot now. The
--- NOverworld sheet was missing the hosting entirely until the rules were
--- brought into line with the standard sheet's.
-check("only BahamutHoard still hides a pin", #hidden, #INCENTIVE_FILES)
+-- Two per incentive sheet, and they mean opposite things -- which is why the
+-- names are asserted and not only the count.
+--
+-- BahamutHoard is a map edit: the slot is hidden rather than demoted when the
+-- flag is off, and that flag is also what its ring answers to. npcItems is the
+-- other kind. FFR's NPCItems off does not un-incentivize the caravan slot, it
+-- deletes it: Shop Item leaves `rules` and `locations` as well as
+-- priority_locations, 227 to 224 on nonpcitems497. A slot FFR did not create is
+-- not a check, so it is hidden rather than drawn blue -- the one place in this
+-- pack where hiding a pin is right rather than the bug it usually is.
+--
+-- Both sheets host both. The NOverworld sheet was missing the hoard hosting
+-- entirely until the rules were brought into line with the standard sheet's.
+local HIDDEN_BY = { BahamutHoard = true, npcItems = true }
+check("only existence flags still hide a pin", #hidden, 2 * #INCENTIVE_FILES)
 for _, one in ipairs(hidden) do
-  if not one:find("BahamutHoard", 1, true) then
-    fails("a surviving visibility rule is " .. one .. ", not BahamutHoard")
+  local named = false
+  for flag in pairs(HIDDEN_BY) do
+    if one:find(flag, 1, true) then named = true end
+  end
+  if not named then
+    fails("a surviving visibility rule is " .. one
+      .. ", which is neither BahamutHoard nor an existence flag")
   end
 end
 

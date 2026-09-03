@@ -840,6 +840,9 @@
                         "access_rules": [
                             "^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
+                        "visibility_rules": [
+                            "npcItems"
+                        ],
                         "hosted_item": "shopItem"
                     }
                 ],
