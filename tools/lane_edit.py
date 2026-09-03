@@ -403,9 +403,6 @@ def main():
     return 0
 
 
-if __name__ == "__main__":
-    sys.exit(main())
-
 
 # The page. One string, inline CSS and JS, the shape doormap.py established --
 # with its palette, so the two tools look like they came from the same place.
@@ -853,3 +850,7 @@ for (const m of document.querySelectorAll('.m')) m.onclick = () => load(m.datase
 load((location.hash || '').slice(1) || INDEX.maps[0].name);
 </script>
 '''
+
+
+if __name__ == "__main__":
+    sys.exit(main())

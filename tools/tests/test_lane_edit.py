@@ -18,6 +18,12 @@ while the page still looked like it worked:
     lands on. Checked over every cell of a spread of crops including ones slid
     on both axes -- sky4F is slid on both on every cartridge measured, so a
     mod-64 sign error there is a real editor that quietly edits the wrong tile;
+  * **the tool works when it is run, and not only when it is imported.** These
+    suites import the module, which executes it to the end; running it as a
+    script stops at main(), which blocks in serve_forever(). So anything
+    defined below main() exists for the tests and does not exist for the tool
+    -- TEMPLATE was, and every page it served was a NameError while this file
+    was green. The last check spawns the real command;
   * **a save that would be refused at bake time is refused here, and writes
     nothing.** The editor must not be able to author a file regen_maps will
     then reject, because that refusal arrives in front of a map you have
@@ -204,6 +210,39 @@ try:
     check("the baked preview renders", (code, body[:4]), (200, b"\x89PNG"))
     code, body = get("/nosuchroute")
     check("an unknown route is a 404 and not a page", code, 404)
+
+    # Run the actual command, not this module's import of it. A name defined
+    # below main() is present for every check above and absent for every real
+    # invocation, because main() never returns -- so an import-only suite can
+    # be green over a tool that cannot serve a single page.
+    import subprocess
+    proc = subprocess.Popen(
+        [sys.executable, os.path.join(os.path.dirname(HERE), "lane_edit.py"),
+         path, "--port", "0", "--no-browser"],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    served = None
+    try:
+        for _ in range(400):
+            line = proc.stdout.readline()
+            if not line:
+                break
+            m = re.search(r"http://127\.0\.0\.1:(\d+)/", line)
+            if m:
+                served = int(m.group(1))
+                break
+        if served:
+            try:
+                with urllib.request.urlopen(
+                        "http://127.0.0.1:%d/" % served, timeout=30) as r:
+                    got = (r.status, b"<script>" in r.read())
+            except Exception as e:          # noqa: BLE001 - reported, not raised
+                got = ("raised", str(e))
+        else:
+            got = ("no url", proc.stdout.read()[:200])
+        check("the tool as a command serves its page", got, (200, True))
+    finally:
+        proc.terminate()
+        proc.wait(timeout=30)
 finally:
     httpd.shutdown()
     httpd.server_close()
