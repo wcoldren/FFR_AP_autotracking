@@ -500,7 +500,7 @@ reason rather than a semantic one. PopTracker's rect pin is opaque -- `drawRect`
 fills its interior with a solid state colour and `StateColors` carry no alpha --
 so a square pin on a tile with an NPC sprite drawn under it hides the sprite
 completely. `place_locations` emits a diamond exactly there, leaving the tile's
-four corners unpainted so the sprite reads through (`tools/regen_maps.py:796`).
+four corners unpainted so the sprite reads through (`tools/regen_maps.py:903`).
 Titan's new pin came out a diamond for that reason and not because he is a gate.
 So this cannot simply adopt the shape: it has to say what a pin does when it is
 both an incentive and standing on a sprite. That is the question `ROADMAP.md`

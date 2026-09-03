@@ -81,6 +81,7 @@ import entrance_graph
 import extract_chests
 import extract_npcs
 import lane
+import lane_file
 import overworld_pins
 import pin_visibility
 import pngio
@@ -389,6 +390,61 @@ def route_lanes(rom, graph):
         if got is not None:
             out[name] = got
     return out
+
+
+def authored_lanes(rom, graph):
+    """({map name: Lanes}, unmatched, refused) -- the hand-drawn routes.
+
+    Three outcomes per map and they are not the same event, which is why this
+    returns three things rather than one dict and a bool.
+
+    No file is an ordinary absence: most maps have never been authored. A file
+    with no entry for this cartridge's layout is also ordinary -- it is this
+    seed having re-laid a floor the lanes were drawn on, and a No-Overworld
+    cartridge re-lays a great many. Only a layout that *does* match, whose
+    stops will not resolve or whose legs cannot be walked, is a defect, and
+    that one stops the run: a lane through rock is a claim the art would make
+    in the player's face.
+
+    There is deliberately no fallback to route_lanes for a map with no
+    authored lane. Mixed art cannot say which kind you are looking at and the
+    Map Key has no room to explain, so an unauthored map gets no lane and the
+    tally below says how many that was.
+    """
+    out, unmatched, refused = {}, [], []
+    chests = extract_chests.extract(rom)[0]
+    for map_id, name in render_maps.MAP_FILES.items():
+        lanes, why = lane_file.load(rom, graph, map_id, chests, name=name)
+        if why is None:
+            out[name] = lanes
+        elif why == "no file":
+            pass
+        elif why.startswith("no layout for this cartridge"):
+            unmatched.append((name, why))
+        else:
+            refused.append((name, why))
+    return out, unmatched, refused
+
+
+def lane_files_sha():
+    """One hash over every committed lane file's contents.
+
+    Its own cache key rather than a line in INPUT_FILES. INPUT_FILES is a fixed
+    list and its fingerprint is compared for every run, so globbing the lane
+    files into it would redraw art on cartridges rendered with --lanes none,
+    which these files have no bearing on. Without a key of some kind, editing a
+    lane and re-running prints "nothing to do" over art drawn from the old
+    stops -- the failure the comment on the cache comparison already names.
+    """
+    h = hashlib.sha256()
+    if os.path.isdir(lane_file.LANES):
+        for f in sorted(os.listdir(lane_file.LANES)):
+            if not f.endswith(".json"):
+                continue
+            h.update(f.encode())
+            with open(os.path.join(lane_file.LANES, f), "rb") as fh:
+                h.update(fh.read())
+    return h.hexdigest()
 
 
 def legend_rows(rom, lanes=None):
@@ -1174,14 +1230,16 @@ def main():
                          "townspeople, orbs and bats are what make a town read "
                          "as a town; --npcs none suppresses them, and --npcs "
                          "gates keeps only the NPCs that stand in a doorway")
-    ap.add_argument("--lanes", choices=("none", "loot"), default="none",
-                    help="draw the route to walk on each map that carries a "
-                         "chest: --lanes loot gives the with-loot lane and, "
-                         "where the floor gates on something, the walk holding "
-                         "it. Off by default: a solver cannot know which "
-                         "chests are worth the detour, and a map with no chest "
-                         "gets no lane at all. Adds about 35 seconds to a "
-                         "regen -- the visit order is an exact tour")
+    ap.add_argument("--lanes", choices=("none", "solved", "authored"),
+                    default="none",
+                    help="draw the route to walk on each map: --lanes solved "
+                         "derives it, a traversal lane and a loot lane per "
+                         "region, and adds about 35 seconds because the loot "
+                         "visit order is an exact tour; --lanes authored draws "
+                         "what tools/lane_edit.py wrote into tools/lanes/ and "
+                         "nothing on a map that has none. Off by default: a "
+                         "solver cannot know which chests are worth the detour "
+                         "on a given seed, which is what the editor is for")
     ap.add_argument("--force", action="store_true",
                     help="regenerate even if nothing changed")
     ap.add_argument("--dry-run", action="store_true",
@@ -1250,6 +1308,8 @@ def main():
             and was.get("inputs") == inputs_sha
             and was.get("npcs", "none") == args.npcs
             and was.get("lanes", "none") == args.lanes
+            and (args.lanes != "authored"
+                 or was.get("lane_files") == lane_files_sha())
             and was.get("marker") == [args.marker_size, args.marker_border]
             and outputs_intact(out_dir, cache)):
         print(f"up to date: {len(cache['outputs'])} files in {out_dir}")
@@ -1297,6 +1357,9 @@ def main():
     elif was and was.get("lanes", "none") != args.lanes:
         print(f"--lanes changed from {was.get('lanes', 'none')} to "
               f"{args.lanes} since the last run")
+    elif (was and args.lanes == "authored"
+            and was.get("lane_files") != lane_files_sha()):
+        print("a lane file changed since the last run")
 
     bank = extract_chests.standard_map_bank(rom)
     print(f"reading standard maps from bank ${bank:02X}")
@@ -1333,7 +1396,19 @@ def main():
     # here, and handed to both -- two calls that could drift apart is the shape
     # of bug that puts a box next to its chest instead of on it.
     crops_ = crops(rom, box_graph, npc_cells)
-    lanes = route_lanes(rom, box_graph) if args.lanes == "loot" else {}
+    lanes, unmatched, refused_lanes = {}, [], []
+    if args.lanes == "solved":
+        lanes = route_lanes(rom, box_graph)
+    elif args.lanes == "authored":
+        lanes, unmatched, refused_lanes = authored_lanes(rom, box_graph)
+        for name, why in unmatched:
+            print(f"  {name}: {why}")
+        for name, why in refused_lanes:
+            print(f"  {name}: REFUSED {why}")
+        print("  authored lanes: %d map(s) drawn, %d for another layout, "
+              "%d with no file"
+              % (len(lanes), len(unmatched),
+                 len(render_maps.MAP_FILES) - len(lanes) - len(unmatched)))
     rows = legend_rows(rom, lanes)
 
     # Which trees this mode's pins live in, and the tiles the cartridge puts
@@ -1645,7 +1720,17 @@ def main():
             print(f"  {name} at {x},{y}")
         if len(outside) > 10:
             print(f"  ... and {len(outside) - 10} more")
-    if unplaceable or voided or cut or stray:
+    if refused_lanes:
+        # Its own printer: report() above formats a marker as "name on map at
+        # x,y" and these are (map, why) pairs. Handing them to it crashes, and
+        # a crash here exits 1 and looks exactly like the refusal working.
+        print(f"\nFAILED: {len(refused_lanes)} authored lane(s) whose layout "
+              "matches this cartridge but whose stops do not resolve on it:")
+        for name, why in refused_lanes[:10]:
+            print(f"  {name}: {why}")
+        if len(refused_lanes) > 10:
+            print(f"  ... and {len(refused_lanes) - 10} more")
+    if unplaceable or voided or cut or stray or refused_lanes:
         print("\nnothing was written.")
         return 1
 
@@ -1669,6 +1754,7 @@ def main():
         modes = dict((cache or {}).get("modes", {}))
         modes[mode] = {"rom": rom_sha, "npcs": args.npcs,
                        "lanes": args.lanes,
+                       "lane_files": lane_files_sha(),
                        "inputs": inputs_sha,
                        "marker": [args.marker_size, args.marker_border],
                        **ident, **checkout_id()}

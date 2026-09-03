@@ -128,6 +128,30 @@ finally:
     shutil.rmtree(LF.LANES, ignore_errors=True)
     LF.LANES = keep
 
+# ------------------------------------------------------------ the cache key
+# regen_maps hashes the lane files separately from INPUT_FILES. Without a key
+# that moves, editing a lane and re-running prints "nothing to do" over art
+# drawn from the old stops -- the art would be wrong and the tool would say it
+# was current, which is the one failure mode a cache has.
+import regen_maps  # noqa: E402
+
+keep = LF.LANES
+LF.LANES = tempfile.mkdtemp(prefix="lanes-")
+try:
+    empty = regen_maps.lane_files_sha()
+    LF.write("marshB3", two)
+    one_file = regen_maps.lane_files_sha()
+    check("a lane file appearing moves the cache key", empty != one_file, True)
+    check("and reading it twice unchanged does not",
+          regen_maps.lane_files_sha(), one_file)
+    edited = doc_with({"digest": "a" * 16, "lanes": [a_lane("loot")]})
+    LF.write("marshB3", edited)
+    check("and editing one moves it again",
+          regen_maps.lane_files_sha() != one_file, True)
+finally:
+    shutil.rmtree(LF.LANES, ignore_errors=True)
+    LF.LANES = keep
+
 # ------------------------------------------------- every committed lane file
 committed = sorted(f for f in os.listdir(LF.LANES)
                    if f.endswith(".json")) if os.path.isdir(LF.LANES) else []
