@@ -400,29 +400,113 @@ check("every suite count the prose gives matches the suites", bad_count, [])
 # prose still said one. The count check above cannot see it -- 25 stayed 25 --
 # which is the point: a sentence saying how much of a bare run is real is worth
 # more than the total, and had nothing holding it.
-WORD = {"no": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-        "eleven": 11, "twelve": 12}
-GATED = re.compile(r"(\w+) more unless (FF1_[A-Z]+)")
-bad_gated = []
+NUMBER_WORD = {"no": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+               "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+               "eleven": 11, "twelve": 12}
+
+# Two sentence shapes carry a gated count and both are held. Matching runs over
+# the whole document with its newlines flattened to spaces rather than line by
+# line: the FF1_SEEDS clause fitted on one line only by accident of wrapping,
+# its sibling clause is already split across two, and a re-flow would otherwise
+# have stopped the check matching anything while it went on reporting `ok`.
+# Backticks are optional because `FF1_SEEDS` in backticks is the house style for
+# identifiers across these documents.
+GATED = [
+    re.compile(r"(\w+) more unless `?(FF1_[A-Z]+)`?"),
+    re.compile(r"(\w+) of them skip[^.]*? unless `?(FF1_[A-Z]+)`?"),
+]
+RUNNER_AT = re.compile(r"(?:tools/)?tests/run\.sh")
+# runner -> (prefix, suffix, path template for one suite)
+RUNNERS = {
+    "tools/tests/run.sh": ("test_", ".py", "tools/tests/test_%s.py"),
+    "tests/run.sh": ("test_", ".lua", "tests/test_%s.lua"),
+}
+# Hoisted: this used to be re-read inside the innermost match loop.
+SUITES = {r: runner_suites(r, p, s)[1] for r, (p, s, _) in RUNNERS.items()}
+
+
+def said_count(word):
+    """The number a prose count gives, written as a digit or a number word."""
+    return int(word) if word.isdigit() else NUMBER_WORD.get(word.lower())
+
+
+def runner_for(flat, pos):
+    """Which runner the gated sentence at `pos` is about.
+
+    Read rather than hardcoded: these sentences sit in a block that names its
+    runner just above, and hardcoding the Python one meant a future sentence
+    about the 14 Lua suites would have been measured against the wrong set.
+    """
+    seen = RUNNER_AT.findall(flat[:pos])
+    return seen[-1] if seen else None
+
+
+def gates_on(path, var):
+    """Whether one suite gates itself on `var`.
+
+    `os.environ.get`, not a bare mention: this very file names the variables in
+    the comments above, and counting mentions made it count itself and report
+    three. Several spellings count, because a suite gating via `os.environ[...]`
+    or single quotes is gating just as hard and used to read as ungated.
+    """
+    wants = ['environ.get("%s"' % var, "environ.get('%s'" % var,
+             'environ["%s"]' % var, "environ['%s']" % var,
+             'getenv("%s"' % var, "getenv('%s'" % var]
+    text = "\n".join(read(path))
+    return any(w in text for w in wants)
+
+
+bad_gated, gated_seen = [], 0
 for doc in DOCS:
-    for i, line in enumerate(read(doc)):
-        for m in GATED.finditer(line):
-            said = WORD.get(m.group(1).lower())
+    lines = read(doc)
+    # Flatten to one line, collapsing every run of whitespace to a single
+    # space: these sentences live in an indented code block, so a wrap leaves
+    # twenty spaces mid-sentence and a pattern written with single spaces never
+    # matches. `at_line` keeps each offset's source line, so a match spanning a
+    # wrap still reports where it starts.
+    flat_chars, at_line, prev_space = [], [], False
+    for i, line in enumerate(lines):
+        for ch in line + " ":
+            if ch.isspace():
+                if prev_space:
+                    continue
+                ch, prev_space = " ", True
+            else:
+                prev_space = False
+            flat_chars.append(ch)
+            at_line.append(i)
+    flat = "".join(flat_chars)
+    for pattern in GATED:
+        for m in pattern.finditer(flat):
+            where = "%s:%d" % (doc, at_line[m.start()] + 1)
+            said = said_count(m.group(1))
             if said is None:
+                # Not silent: "a dozen more unless FF1_ROM" is a count this
+                # cannot read, and skipping it was a third way to report `ok`.
+                bad_gated.append('%s  "%s" -- count is not a number this reads'
+                                 % (where, m.group(0)))
                 continue
-            _, present = runner_suites("tools/tests/run.sh", "test_", ".py")
-            # `os.environ.get`, not a bare mention: this very file names
-            # FF1_SEEDS in the comment above, and counting mentions made it
-            # count itself and report three.
-            want = "environ.get(\"%s\"" % m.group(2)
-            real = sum(1 for t in sorted(present)
-                       if any(want in ln
-                              for ln in read("tools/tests/test_%s.py" % t)))
+            runner = runner_for(flat, m.start())
+            if runner is None:
+                bad_gated.append('%s  "%s" -- no runner named above it'
+                                 % (where, m.group(0)))
+                continue
+            real = sum(1 for t in sorted(SUITES[runner])
+                       if gates_on(RUNNERS[runner][2] % t, m.group(2)))
+            gated_seen += 1
             if said != real:
-                bad_gated.append("%s:%d  \"%s\" -- %d suite%s name %s"
-                                 % (doc, i + 1, m.group(0), real,
+                bad_gated.append('%s  "%s" -- %d of %s\'s suite%s name %s'
+                                 % (where, m.group(0), real, runner,
                                     "" if real == 1 else "s", m.group(2)))
+
+# A check that cannot fail is worthless, and this one had three ways to end in
+# an empty list. The floor guards the one that survives a rewrite of the other
+# two: if the prose is re-flowed or reworded past these patterns, this row goes
+# red instead of reporting a clean nothing. Raise it when a gated sentence is
+# added; lower it, in the same commit as the prose, when one goes.
+GATED_FLOOR = 2
+check("the gated-suite check still matches the prose it holds",
+      gated_seen >= GATED_FLOOR, True)
 check("every gated-suite count the prose gives matches the suites",
       bad_gated, [])
 
