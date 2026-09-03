@@ -538,6 +538,35 @@ with exactly one boolean flipped -- `NPCItems` and `NPCFetchItems` respectively,
 both `true` in the stock preset, and `IncentivizeFreeNPCs` / `IncentivizeFetchNPCs`
 left on, which is what makes each pair isolate a single conjunct.
 
+## What the corpus holds constant, and why that is not "unmeasured"
+
+Measured 2026-09-03. A flag every preset here sets the same way cannot be
+graded by anything in this corpus, however many cartridges it grows. That is a
+different state from a flag nobody has got to, and `LefeinSuperStore` is the
+case that made the difference visible, because its coverage row asserted the
+opposite and a reader following it would have rolled a seed the corpus already
+had.
+
+| question | answer |
+|---|---|
+| `LefeinSuperStore` across the 4.9.2 presets | **`true` in 4 of 4** — `oracle_std`, `oracle_nov`, `oracle_shard`, `oracle_notail` |
+| across the 4.9.7 presets | **`true` in 18 of 18** |
+| so the No-Overworld rules and the 75-link table were derived | **with the flag on**, which `docs/FLAG_COVERAGE.md` said was off |
+| the cartridge's own tiles, `oracle_nov` | **all 5 cells the flag-on branch of `ApplyMapMods` writes hold what it writes; no cell only the flag-off branch touches does** |
+| the three writes both branches share | **all 3 match, unflipped** — so `ApplyMapMods` ran and the `(x, y)` reading is right, which is what makes the answer above evidence rather than a miss |
+| what the flag-off branch would change | **`(x=0,y=2)` and `(x=1,y=2)` become tile `0x0E`, property `0x01`** — a plain wall where the corpus has `0x00` and walkable |
+| where those two cells sit | **the mouth of a walkable column down Lefein's left edge** on the corpus cartridge. Whether sealing them moves a link is unwalked |
+
+The coordinate convention is the trap worth writing down. `Map.Put` takes
+`(x, y)` and the indexer is `[y, x]` (`FF1Lib/StandardMaps/Map.cs:170` and
+`:13`), and `ApplyMapMods` opens by taking `maps.HorizontalFlippedMaps`, so a
+flipped map would put every coordinate at `63-x`. Both readings were checked
+against the three shared writes before any conclusion was drawn from the
+conditional ones; Lefein is not flipped on `oracle_nov`.
+
+The seed still owed is **No-Overworld with `LefeinSuperStore` off**. Rolling
+one with it on re-measures what all 22 cartridges already say.
+
 ## Rebuilding
 
 The build tree is a git worktree of the FFR clone, pinned in `pins.yaml` as

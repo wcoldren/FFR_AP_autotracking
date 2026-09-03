@@ -932,3 +932,35 @@ turned out to be shorter than the investigation.
 The open question underneath is the one the `NoMap` entry above already names —
 nobody knows whether anyone outside this repo runs the pack — and it is worth
 answering before spending on either.
+
+## Tell "unmeasured" apart from "unmeasurable from this corpus"
+
+Raised 2026-09-03, by `LefeinSuperStore`. Its coverage row said the No-Overworld
+75-link table had been derived with the flag off; every preset in both corpora
+sets it on, so the table was derived with it on and no cartridge here has ever
+varied it. Both statuses print as `unjudged` and both reasons read as "nobody
+got to it", but one is answered by rolling a seed and the other says the seed
+does not exist yet. A reader acting on the wrong one re-measures the corpus.
+
+The check is mechanical and wants no prose matching. `tools/tests/test_flag_coverage.py`
+already parses the rows and their statuses; the presets are JSON on disk beside
+the cartridges. For every flag a row leaves unsettled, read its value across
+every preset and report which of the two states it is in. Then the assertions:
+
+- a row whose flag is **unanimous across the corpus** may not claim a cartridge
+  measured it, and may not name a value the corpus contradicts;
+- a row that says a derivation was made "with the flag off" or "on" is holdable
+  against the presets directly, since that is a claim about a file on disk.
+
+The second is the one that would have fired here, and it is the cheaper half:
+it needs no judgement about what a row *should* say, only that what it says
+about a preset matches the preset.
+
+Two things make this more than bookkeeping. It is a check on the *reasons*, and
+this pack's coverage table has now been wrong in a reason twice while every
+status was right — the `flag-coverage` review found the first, a row naming a
+conjunction only one term of which ever fired. And it fails closed on a machine
+with no corpus: no presets, no claim to check, skip.
+
+Cost is a corpus read and a value comparison per unsettled row, so it belongs
+in the gated half of the suite that already skips without `FF1_CORPUS`.
