@@ -80,6 +80,22 @@ end
 ------------------------------------------------------------------
 -- 2. Every alternative carries the term, and they all name the same flag.
 ------------------------------------------------------------------
+-- Every term in the alternative, not the first. A section can name two -- FFR
+-- computes IncentivizeCaravan and each fetch incentive as conjunctions rather
+-- than storing them -- and matching once per alternative read a conjunction as
+-- whichever conjunct came first in the string. That is the defect this branch
+-- fixed, and the check that was meant to catch a section naming two flags could
+-- not see one: it compared first-matches, which agree by construction.
+local function slotFlags(alt)
+  local found = {}
+  for term in alt:gmatch("[^,]+") do
+    local flag = term:match("^%^%$incentiveSlot|([%w_]+)$")
+    if flag then found[#found + 1] = flag end
+  end
+  table.sort(found)
+  return found
+end
+
 local gated, flagsUsed = 0, {}
 for _, file in ipairs(INCENTIVE_FILES) do
   eachSection(json.load(PACK .. "/" .. file), function(node, section)
@@ -87,20 +103,21 @@ for _, file in ipairs(INCENTIVE_FILES) do
     local seen = nil
     local without = 0
     for _, alt in ipairs(rules) do
-      local flag = alt:match(TERM .. "([%w_]+)")
-      if flag then
-        if seen and seen ~= flag then
-          fails(string.format("%s/%s names two flags: %s and %s",
-            node.name, section.name, seen, flag))
+      local flags = slotFlags(alt)
+      if #flags > 0 then
+        local key = table.concat(flags, "+")
+        if seen and seen ~= key then
+          fails(string.format("%s/%s names two flag sets: %s and %s",
+            node.name, section.name, seen, key))
         end
-        seen = flag
+        seen = key
+        for _, flag in ipairs(flags) do flagsUsed[flag] = true end
       else
         without = without + 1
       end
     end
     if seen then
       gated = gated + 1
-      flagsUsed[seen] = true
       if without > 0 then
         fails(string.format("%s: %s/%s has %d alternative(s) with no %s term "
           .. "-- the slot is ungated through them", file, node.name,
@@ -139,7 +156,7 @@ for flag in pairs(flagsUsed) do
 end
 local nflags = 0
 for _ in pairs(flagsUsed) do nflags = nflags + 1 end
-check("distinct incentive flags, all defined", nflags, 13)
+check("distinct incentive flags, all defined", nflags, 14)
 
 ------------------------------------------------------------------
 -- 4. incentiveSlot itself.
@@ -396,7 +413,7 @@ check("nothing ringed when no flag is set", refreshIncentiveHighlights(), 0)
 check("a skipped slot has no ring",
   sectionsByPath["@I: Coneria Castle/I: King"].Highlight, Highlight.None)
 
-provided = { show_gold_rings = 1, npcsAreIncentive = 1 }
+provided = { show_gold_rings = 1, npcsAreIncentive = 1, npcItems = 1 }
 local ringed = refreshIncentiveHighlights()
 check("the NPC slots ring together", ringed > 0, true)
 check("the incentive tab's King is ringed",
@@ -406,19 +423,37 @@ check("and so is the one on the real board",
 check("a slot on another flag is left alone",
   sectionsByPath["@I: Sea Shrine/I: Sea Incentive"].Highlight, Highlight.None)
 
+-- One conjunct alone rings nothing, which is the whole of this repair.
+--
+-- FFR computes IncentivizeCaravan as (NPCItems && IncentivizeFreeNPCs)
+-- (FlagsCompute.cs:217), and the pack modelled IncentivizeFreeNPCs alone. On
+-- nonpcitems497 -- std497 with NPCItems off and IncentivizeFreeNPCs left on --
+-- FFR drops all seven free slots from priority_locations and the pack ringed
+-- all seven. Either conjunct on its own has to ring nothing, and it has to be
+-- both directions: a check that only tried the flag the pack already had would
+-- have passed before this branch.
+provided = { show_gold_rings = 1, npcsAreIncentive = 1 }
+check("the incentive flag without NPCItems rings nothing",
+  refreshIncentiveHighlights(), 0)
+check("...including King", 
+  sectionsByPath["@I: Coneria Castle/I: King"].Highlight, Highlight.None)
+provided = { show_gold_rings = 1, npcItems = 1 }
+check("and NPCItems without the incentive flag rings nothing",
+  refreshIncentiveHighlights(), 0)
+
 -- The rings toggle. A Highlight is not a pin state -- PopTracker draws it as a
 -- glow around a marker it is already drawing -- so this one is a guard inside
 -- the refresh rather than a rule on the pin. What that has to buy is not just
 -- "stop drawing new rings" but "put out the ones already there", since nothing
 -- else ever revisits a section's Highlight.
-provided = { npcsAreIncentive = 1 }
+provided = { npcsAreIncentive = 1, npcItems = 1 }
 check("the toggle off rings nothing", refreshIncentiveHighlights(), 0)
 check("and puts out a ring that was already drawn",
   sectionsByPath["@I: Coneria Castle/I: King"].Highlight, Highlight.None)
 check("on the real board too",
   sectionsByPath["@Coneria Castle King/King"].Highlight, Highlight.None)
 
-provided = { show_gold_rings = 1, npcsAreIncentive = 1 }
+provided = { show_gold_rings = 1, npcsAreIncentive = 1, npcItems = 1 }
 check("the toggle back on rings the same slots again",
   refreshIncentiveHighlights(), ringed)
 
@@ -427,7 +462,7 @@ check("the toggle back on rings the same slots again",
 -- separates the two cases and keeps ringing.
 local savedRingItem = byCode["show_gold_rings"]
 byCode["show_gold_rings"] = nil
-provided = { npcsAreIncentive = 1 }
+provided = { npcsAreIncentive = 1, npcItems = 1 }
 check("an undefined toggle rings anyway rather than blanking the board",
   refreshIncentiveHighlights(), ringed)
 byCode["show_gold_rings"] = savedRingItem
@@ -437,7 +472,7 @@ byCode["show_gold_rings"] = savedRingItem
 -- again -- for ever. PopTracker died on the stack overflow rather than saying
 -- anything.
 maxDepth = 0
-provided = { show_gold_rings = 1, npcsAreIncentive = 1, seaIsIncentive = 1 }
+provided = { show_gold_rings = 1, npcsAreIncentive = 1, npcItems = 1, seaIsIncentive = 1 }
 refreshIncentiveHighlights()
 check("a refresh never runs inside itself", maxDepth, 1)
 

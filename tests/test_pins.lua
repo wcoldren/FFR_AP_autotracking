@@ -357,13 +357,16 @@ end
 -- showPin ORs the flags in a rule, because a pin stands for every section under
 -- it and one live slot is reason enough to draw.
 --
--- `off` is one lower on each sheet than before the shop slot took its flag,
--- and `on` and `npcs` are untouched. That is the shape to expect: a pin that
--- gains a visibility rule stops being drawn when the flag is off, and neither
--- the total nor the NPC classification moves with it.
+-- `npcs` and `npcsBoth` are the demonstration that the conjunction bites, and
+-- they are stated as two rows because one of them would pass either way.
+-- FFR computes IncentivizeCaravan as (NPCItems && IncentivizeFreeNPCs)
+-- (FlagsCompute.cs:217), so the incentive flag on its own speaks for nothing:
+-- `npcs` equals `off` exactly, no NPC pin comes back, and that equality is the
+-- fix. With both conjuncts set, `npcsBoth` reproduces what `npcs` used to be --
+-- so the repair took the wrong seeds away without costing the right ones.
 local SHEET_DRAWN = {
-  ["locations/incentives.json"] = { on = 26, off = 8, npcs = 14 },
-  ["locations/NOverworld/incentives.json"] = { on = 28, off = 7, npcs = 13 },
+  ["locations/incentives.json"] = { on = 26, off = 8, npcs = 8, npcsBoth = 14 },
+  ["locations/NOverworld/incentives.json"] = { on = 28, off = 7, npcs = 7, npcsBoth = 13 },
 }
 for _, rel in ipairs(INCENTIVE_TREES) do
   local want = SHEET_DRAWN[rel]
@@ -372,7 +375,11 @@ for _, rel in ipairs(INCENTIVE_TREES) do
   provided = {}
   check(rel .. ": drawn, skipped off", drawn(rel), want.off)
   provided = { npcsAreIncentive = 1 }
-  check(rel .. ": drawn, skipped off, NPCs incentivized", drawn(rel), want.npcs)
+  check(rel .. ": drawn, one conjunct only", drawn(rel), want.npcs)
+  check(rel .. ": ...which is the same as no flag at all", want.npcs, want.off)
+  provided = { npcsAreIncentive = 1, npcItems = 1 }
+  check(rel .. ": drawn, skipped off, NPCs incentivized", drawn(rel),
+        want.npcsBoth)
 end
 
 if fail > 0 then

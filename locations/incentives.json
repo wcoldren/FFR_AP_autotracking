@@ -17,15 +17,15 @@
                     {
                         "name": "I: King",
                         "access_rules": [
-                            "earlyKing,^$incentiveSlot|npcsAreIncentive",
-                            "garland,^$incentiveSlot|npcsAreIncentive"
+                            "earlyKing,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems",
+                            "garland,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "king"
                     },
                     {
                         "name": "I: Sara",
                         "access_rules": [
-                            "garland,^$incentiveSlot|npcsAreIncentive"
+                            "garland,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "sara"
                     }
@@ -37,7 +37,7 @@
                         "y": 1740,
                         "restrict_visibility_rules": [
                             "$showPin|slot|coneriaLockedIsIncentive",
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]
@@ -236,7 +236,7 @@
                     {
                         "name": "I: Bikke",
                         "access_rules": [
-                            "^$incentiveSlot|npcsAreIncentive"
+                            "^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "bikke"
                     }
@@ -247,7 +247,7 @@
                         "x": 2530,
                         "y": 1650,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]
@@ -311,8 +311,8 @@
                     {
                         "name": "I: Sarda",
                         "access_rules": [
-                            "earlySarda,^$incentiveSlot|npcsAreIncentive",
-                            "vampire,^$incentiveSlot|npcsAreIncentive"
+                            "earlySarda,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems",
+                            "vampire,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "sarda"
                     }
@@ -323,7 +323,7 @@
                         "x": 370,
                         "y": 2150,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]
@@ -448,8 +448,8 @@
                     {
                         "name": "I: Sages",
                         "access_rules": [
-                            "earlySage,^$incentiveSlot|npcsAreIncentive",
-                            "earthorblit,^$incentiveSlot|npcsAreIncentive"
+                            "earlySage,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems",
+                            "earthorblit,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "sages"
                     }
@@ -460,7 +460,7 @@
                         "x": 2630,
                         "y": 2450,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]
@@ -783,7 +783,7 @@
                     {
                         "name": "I: Robot",
                         "access_rules": [
-                            "^$incentiveSlot|npcsAreIncentive"
+                            "^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "robot"
                     }
@@ -794,7 +794,7 @@
                         "x": 700,
                         "y": 380,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]
@@ -838,7 +838,7 @@
                     {
                         "name": "I: Shop Item",
                         "access_rules": [
-                            "^$incentiveSlot|npcsAreIncentive"
+                            "^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "shopItem"
                     }
@@ -849,7 +849,7 @@
                         "x": 310,
                         "y": 460,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]
