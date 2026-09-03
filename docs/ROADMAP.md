@@ -83,7 +83,7 @@ there; and one asks for rules that already exist. What follows is what is
 actually left.
 
 - **Titan has his cell; the other five stay declined.** Done 2026-09-02.
-  `tools/tests/test_npc_pins.py:90` was the list of six — `kraken`, `lich`,
+  `tools/tests/test_npc_pins.py:93` was the list of six — `kraken`, `lich`,
   `marilith`, `tiamat`, `titan`, `unne` — and it holds five now. The
   distinguishing fact was a signal: Titan being fed is autotracked off `$6214`,
   so his box lights itself. Unne holds no shuffled item and the four fiends are

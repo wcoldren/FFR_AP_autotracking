@@ -220,12 +220,14 @@ else:
     for names in by_name.values():
         for kind in names:
             kinds[kind] = kinds.get(kind, 0) + 1
-    # Fourteen hosted_item codes in the tree name an object the cartridge
-    # places, one node each. It was eight until extract_npcs was asked for the
-    # other six ids (king, sara, sages, elfprince, robot, lefein), which is the
-    # whole reason FFR pooled six locations that had no derived rule at all,
-    # and thirteen nodes until the King and Sara were split off Coneria Castle
-    # so each could carry a pin that meant only itself.
+    # Fifteen hosted_item codes in the tree name an object the cartridge
+    # places on an FFR seed, one node each, and fourteen on a vanilla one --
+    # object $0F is not on a vanilla cartridge. It was eight until extract_npcs
+    # was asked for the other six ids (king, sara, sages, elfprince, robot,
+    # lefein), which is the whole reason FFR pooled six locations that had no
+    # derived rule at all; thirteen nodes until the King and Sara were split off
+    # Coneria Castle so each could carry a pin that meant only itself; and
+    # fourteen until Titan's Tunnel got a section of its own.
     #
     # Guessing the kind from the node name -- the first version of this -- found
     # none of them, because marker_tiles is keyed by node name and the object
@@ -258,9 +260,11 @@ else:
        "Nerrick's node knows it is object $08", str(hosts.get("Dwarf Cave Nerrick")))
 
     # Positions come off this cartridge, not out of npc_positions.json. That
-    # file is the vanilla table for the fifteen codes the pack pins, and it
-    # reproduces those exactly; FFR moves NPCs, so deriving a seed's rules from
-    # it answers about a different cartridge. Titan moves on an ordinary seed
+    # file is a fourteen-code vanilla table, and not the pin list: it carries
+    # the four fiends and Unne, which the pack pins nowhere, and lacks the six
+    # (king, sara, sages, elfprince, robot, lefein) that it does pin. It exists
+    # for tests/test_maps.lua, which has no cartridge to read. FFR moves NPCs,
+    # so deriving a seed's rules from it answers about a different cartridge. Titan moves on an ordinary seed
     # and Nerrick moves on a No-Overworld one.
     import json as _json                                        # noqa: E402
     import extract_npcs                                         # noqa: E402

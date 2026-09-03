@@ -1847,7 +1847,6 @@
                 "sections": [
                     {
                         "name": "Titan",
-                        "item_count": 1,
                         "hosted_item": "titan"
                     }
                 ]

@@ -6,9 +6,9 @@ they live in, not on the tab for the map itself -- and regen_maps only ever
 rebuilt a node that already had a marker on a redrawn map, so a node with none
 was never given one. Three checks, one for each way that can come back:
 
-  * **every NPC the pack tracks resolves to a tile.** Fourteen of the twenty
-    the cartridge places have a location node; the other six -- Unne, Titan and
-    the four fiends -- host no section anywhere, so there is nothing to pin.
+  * **every NPC the pack tracks resolves to a tile.** Fifteen of the twenty
+    the cartridge places have a location node; the other five -- Unne and the
+    four fiends -- host no section anywhere, so there is nothing to pin.
     That split is asserted by name, because gaining or losing a node should be
     a deliberate edit and not a silent drift in a count.
 
