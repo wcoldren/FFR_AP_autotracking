@@ -290,7 +290,7 @@ actually left.
   (`docs/ISSUES.md`, "The No-Overworld incentive poster is missing one slot,
   not two"). Adding it against the existing JPEG is a hand edit
   plus bumping the nov count 20 → 21 in `SHEET_RULED`,
-  `tests/test_pins.lua:146`.
+  `tests/test_pins.lua:153`.
 - **Boss names in the Map Key**, from the formation ids already in hand.
 
 ## 5. Tooling that keeps 1–4 true

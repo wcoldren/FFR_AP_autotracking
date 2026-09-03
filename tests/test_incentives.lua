@@ -209,9 +209,14 @@ for _, file in ipairs({ "locations/overworld.json", "locations/incentives.json",
   end)
 end
 
+-- `flags` is a list and an AND: two of FFR's incentive conditions are computed
+-- conjunctions rather than stored flags, so a slot can answer to more than one.
 local unresolved, flagsInTable = {}, {}
 for _, slot in ipairs(INCENTIVE_SLOTS) do
-  flagsInTable[slot.flag] = true
+  if #slot.flags == 0 then
+    fails("no flag on the slot table row for " .. slot.path)
+  end
+  for _, flag in ipairs(slot.flags) do flagsInTable[flag] = true end
   if not byPath[slot.path] then
     unresolved[#unresolved + 1] = slot.path
   end

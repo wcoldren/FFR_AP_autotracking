@@ -83,21 +83,27 @@ for rel, tree in pairs(trees) do
   eachPin(tree, function(node, marker)
     local rules = marker.restrict_visibility_rules
     if not rules then return end
-    -- One entry per pin. The outer array is OR'd, so a second entry could only
-    -- widen what draws, and pin_visibility.py has no way to write one.
-    if #rules ~= 1 then
-      fails(string.format("%s: %s has %d visibility rules, want 1",
-                          rel, node.name or "?", #rules))
+    -- One entry per section rather than one per pin, because the two carry
+    -- different operators: the flags inside an entry are ANDed by showPin, and
+    -- the entries are ORed by the array (location.cpp:266). A node holding two
+    -- sections on different flags therefore has two entries, which is the same
+    -- OR its one joined entry used to spell -- and a section whose flags are a
+    -- conjunction can now say so, which a joined entry could not.
+    if #rules < 1 then
+      fails(string.format("%s: %s has an empty visibility rule list",
+                          rel, node.name or "?"))
       return
     end
-    local kind, rest = rules[1]:match("^%$showPin|([a-z]+)(.*)$")
-    if not kind then
-      fails(string.format("%s: %s carries a rule that is not a $showPin term: %s",
-                          rel, node.name or "?", rules[1]))
-      return
+    for _, rule in ipairs(rules) do
+      local kind, rest = rule:match("^%$showPin|([a-z]+)(.*)$")
+      if not kind then
+        fails(string.format("%s: %s carries a rule that is not a $showPin term: %s",
+                            rel, node.name or "?", rule))
+      else
+        kindsUsed[kind] = (kindsUsed[kind] or 0) + 1
+        for flag in rest:gmatch("|([^|,]+)") do flagsUsed[flag] = true end
+      end
     end
-    kindsUsed[kind] = (kindsUsed[kind] or 0) + 1
-    for flag in rest:gmatch("|([^|,]+)") do flagsUsed[flag] = true end
     if marker.map == "overworld" then
       fails(string.format("%s: overworld pin %s carries %s -- the overworld "
                           .. "aggregates and must not be switchable off",

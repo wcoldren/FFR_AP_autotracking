@@ -36,7 +36,8 @@
                         "x": 1840,
                         "y": 1740,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|coneriaLockedIsIncentive|npcsAreIncentive"
+                            "$showPin|slot|coneriaLockedIsIncentive",
+                            "$showPin|slot|npcsAreIncentive"
                         ]
                     }
                 ]
@@ -282,7 +283,8 @@
                         "x": 1230,
                         "y": 2680,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|marshIsIncentive|marshLockedIsIncentive"
+                            "$showPin|slot|marshIsIncentive",
+                            "$showPin|slot|marshLockedIsIncentive"
                         ]
                     }
                 ]

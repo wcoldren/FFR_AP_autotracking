@@ -30,12 +30,30 @@
 local function incentiveFlags()
   local seen, out = {}, {}
   for _, slot in ipairs(INCENTIVE_SLOTS or {}) do
-    if not seen[slot.flag] then
-      seen[slot.flag] = true
-      out[#out + 1] = slot.flag
+    for _, flag in ipairs(slot.flags) do
+      if not seen[flag] then
+        seen[flag] = true
+        out[#out + 1] = flag
+      end
     end
   end
   return out
+end
+
+-- Does this seed's flag set speak for the slot?
+--
+-- `flags` is an AND, because two of FFR's incentive conditions are computed
+-- conjunctions rather than stored flags: IncentivizeCaravan is
+-- (NPCItems && IncentivizeFreeNPCs) and each fetch incentive is
+-- (NPCFetchItems && IncentivizeFetchNPCs) -- FlagsCompute.cs:217, :220-226.
+-- Ringing on either conjunct alone gilded seven slots FFR never incentivized.
+local function slotIsIncentivized(slot)
+  for _, flag in ipairs(slot.flags) do
+    if Tracker:ProviderCountForCode(flag) <= 0 then
+      return false
+    end
+  end
+  return true
 end
 
 local highlightWarned = false
@@ -106,7 +124,7 @@ function refreshIncentiveHighlights()
       -- catches a path that resolves in neither.
       local section = Tracker:FindObjectForCode(slot.path)
       if section then
-        if rings and Tracker:ProviderCountForCode(slot.flag) > 0 then
+        if rings and slotIsIncentivized(slot) then
           section.Highlight = Highlight.Priority
           marked = marked + 1
         else

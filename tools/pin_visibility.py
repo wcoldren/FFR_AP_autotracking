@@ -48,7 +48,7 @@ PACK = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
 import extract_npcs        # noqa: E402  -- WANTED, the NPCs worth a pin
-import incentive_slots     # noqa: E402  -- flag_of, one reading of a flag
+import incentive_slots     # noqa: E402  -- flags_of, one reading of a flag
 import render_maps         # noqa: E402  -- MAP_FILES, the 61 drawn maps
 import split_locations     # noqa: E402  -- load_mapping, leaf_of
 
@@ -116,41 +116,49 @@ def kind_of(node):
 
 
 def flags_of(node):
-    """The incentive flags this node's slot is spoken for by, sorted.
+    """One sorted flag list per section, or None.
 
-    None unless EVERY section carries one: a node with an unflagged section is
-    visible through that section whatever the flags say, so a rule on it would
-    claim a hide it cannot perform.
+    A list of lists rather than one flattened set, because the two are not the
+    same question. Within a section the flags are an AND -- FFR computes two of
+    these conditions as conjunctions (FlagsCompute.cs:217, :220-226) -- and
+    across sections they are an OR, since a pin draws if any section under it
+    would draw. Flattening folded the AND into the OR and made a conjunction
+    impossible to state; the rule array is where the OR belongs, and
+    location.cpp:266 is what ORs it.
+
+    None unless EVERY section carries a flag: a node with an unflagged section
+    is visible through that section whatever the flags say, so a rule on it
+    would claim a hide it cannot perform.
     """
     sections = node.get("sections") or []
     if not sections:
         return None
-    flags = set()
+    out = []
     for section in sections:
-        flag = incentive_slots.flag_of(section)
-        # A rule string is commasplit before it is parsed (rule.h:12), so a
-        # comma inside a flag would not read as part of the flag -- it would
-        # AND a second rule onto the pin, hiding it whenever some item named by
-        # the tail is missing however the toggle stands. flag_of() cuts at the
-        # comma on its access_rules path but not on its visibility_rules
-        # fallback; cut here so the rule builder cannot be handed one either way.
-        flag = flag.split(",")[0] if flag else None
-        if not flag:
+        flags = incentive_slots.flags_of(section)
+        if not flags:
             return None
-        flags.add(flag)
-    return sorted(flags)
+        out.append(flags)
+    # Sorted so two sections naming the same set produce one entry rather than
+    # two identical ones, and so the output does not depend on section order.
+    return sorted({tuple(flags) for flags in out})
 
 
-def rule_for(map_name, node):
-    """The one rule string a pin on `map_name` gets, or None."""
+def rules_for(map_name, node):
+    """The rule strings a pin on `map_name` gets, or None.
+
+    A list because one entry per section is what the OR above wants.
+    """
     if map_name in DRAWN_MAPS:
         kind = kind_of(node)
         if kind in ENABLED_KINDS:
-            return "$showPin|%s" % kind
+            return ["$showPin|%s" % kind]
         return None
     if map_name == INCENTIVE_MAP and "slot" in ENABLED_KINDS:
-        flags = flags_of(node)
-        return "$showPin|slot|" + "|".join(flags) if flags else None
+        groups = flags_of(node)
+        if not groups:
+            return None
+        return ["$showPin|slot|" + "|".join(flags) for flags in groups]
     return None
 
 
@@ -161,10 +169,13 @@ def stamp(doc):
     def walk(nodes):
         for node in nodes:
             for marker in node.get("map_locations") or []:
-                rule = rule_for(marker.get("map"), node)
-                if rule:
-                    marker[FIELD] = [rule]
-                    tally[rule] = tally.get(rule, 0) + 1
+                rules = rules_for(marker.get("map"), node)
+                if rules:
+                    marker[FIELD] = rules
+                    # Tallied by the whole rule list, so a marker carrying two
+                    # entries is one pin rather than two.
+                    key = " ".join(rules)
+                    tally[key] = tally.get(key, 0) + 1
                 else:
                     marker.pop(FIELD, None)
                     tally[None] = tally.get(None, 0) + 1
