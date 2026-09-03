@@ -665,6 +665,115 @@ Nothing here is urgent unless it says so.
   list, so it reproduced the OR answer by construction and could not have
   disagreed. It is evidence of nothing.
 
+- **Seven incentive slots ring gold on a seed FFR did not incentivize them on.**
+  Found 2026-09-03 by the first use of `tools/export_diff.py`, on the cartridge
+  rolled for it. `FlagsCompute.cs:217` makes the incentive status of the six
+  free NPCs and the caravan slot the *conjunction*
+  `(NPCItems ?? false) && (IncentivizeFreeNPCs ?? false)`. The pack models one
+  conjunct: all seven rows in `scripts/incentive_slots.lua` -- King, Sara,
+  Bikke, Sarda, Sages, Robot and Shop Item -- carry `npcsAreIncentive`, which is
+  `IncentivizeFreeNPCs`, and no `npcItems` code exists anywhere in the pack.
+
+  So on `NPCItems` off with `IncentivizeFreeNPCs` on, FFR drops all seven from
+  `priority_locations` and the pack rings all seven gold. Measured on
+  `nonpcitems497` against `std497`: seven priority locations gone, and **zero
+  access rules moved** -- the seven names FFR drops are exactly the seven the
+  pack rings.
+
+  **Six of the seven are a wrong ring. The seventh is a check that does not
+  exist.** `Shop Item` leaves `rules` and `locations` as well as
+  `priority_locations` -- 227 exported locations to 224 -- while the six NPCs
+  stay in both. `PlacementContext.cs:243` forces vanilla placements on the six
+  and on the vendor slot alike when `NPCItems` is off, and `SelectVendorItem`
+  (`ItemPlacement.cs:227`) hands back a Bottle before it looks at anything, so
+  the source alone does not say which of the seven Archipelago still calls a
+  location. The export does, and it says the caravan slot is not one. Reading
+  that off `PlacementContext.cs` would have got it wrong in both directions.
+
+  So the fix is three, not one -- two on the free half, and the fetch half
+  below:
+
+  - **The ring, on six.** An `npcItems` code and the conjunction on the NPC rows
+    of `scripts/incentive_slots.lua` -- thirteen `npcsAreIncentive` rows across
+    the two incentive trees, seven in the `I:` tree and six in the standard one,
+    which has no caravan row -- and on the matching `access_rules` in
+    `locations/incentives.json` and `locations/NOverworld/incentives.json`. This
+    is the shop-slot build one conjunct along.
+  - **The slot, on one.** The caravan slot needs `npcItems` on its *existence*,
+    not its colour, in all four location files. Today
+    `locations/incentives.json` and its `NOverworld` twin gate the section on
+    `^$incentiveSlot|npcsAreIncentive` and the pin on
+    `$showPin|slot|npcsAreIncentive`, and `locations/overworld.json` and its
+    twin gate neither -- the overworld tree shows a shop-item check
+    unconditionally. With `NPCItems` off, all four show a check FFR did not
+    create.
+
+  **The fetch half has the same shape and is not fixed by the above.**
+  Measured 2026-09-03 on `nofetchitems497`, rolled for it: **zero access rules
+  move, 226 of 226 agree, and seven `priority_locations` go** -- Astos, Elf
+  Prince, Fairy, Lefein, Matoya, Nerrick and Smith, with `IncentivizeFetchNPCs`
+  still on. `FlagsCompute.cs:220-226` computes the fetch NPCs as
+  `(NPCFetchItems ?? false) && (IncentivizeFetchNPCs ?? false)`, the same
+  conjunction one flag along, and the pack again models one conjunct: the
+  sixteen fetch rows of `scripts/incentive_slots.lua` -- eight per tree, Smithy,
+  Nerrick, Astos, Matoya, Elf Prince, Dr Unne, Lefein and Fairy -- carry
+  `fetchQuestsAreIncentive`, which `flag_mapping.lua:54` binds to
+  `IncentivizeFetchNPCs` alone. `NPCFetchItems` is in both shipped schemas and
+  in `tools/doormap.py`, and appears nowhere in `scripts/`: no code, no
+  `NOT_MODELLED` row, no row in `docs/FLAG_COVERAGE.md`. So a seed with
+  `NPCFetchItems` off and `IncentivizeFetchNPCs` on rings those slots gold on a
+  seed FFR did not incentivize them on -- the same defect, and the coverage test
+  cannot see it either, because `consulted()` greps FFR's *reachability* logic
+  and this flag is only read on the incentive path.
+
+  **The repair is one thing here, not two.** All seven stay in `rules` and
+  `locations` -- 227 to 226, and both the removed and the added names are
+  chests, so the net one is pool churn the diff declines to attribute. There is
+  no caravan-shaped second half: nothing leaves the export, so the fetch fix is
+  the conjunction on the NPC rows and nothing else.
+
+  **Nerrick is a three-term conjunction**, which does not show on this
+  cartridge. `IncentivizeNerrick` is `(NPCFetchItems ?? false) &&
+  (IncentivizeFetchNPCs ?? false) && !NoOverworld` (`FlagsCompute.cs:224`), and
+  `IncentivizedLocationCountMin` (`:229`) reads the same way -- seven fetch
+  slots, or six under No-Overworld. Nerrick is in the seven above because
+  `nofetchitems497` is a standard seed; the third term only bites on a
+  No-Overworld roll, so the `NOverworld` incentive tree must drop that row
+  rather than gate it.
+
+- **The pack has an eighth fetch incentive slot that FFR never fills.** Found
+  2026-09-03 on `nofetchitems497`, while measuring the flag above. The pack
+  gives `I: Dr Unne` a real incentive section -- `locations/incentives.json:403`
+  and its `NOverworld` twin, `hosted_item: "slabTranslated"`, gated on
+  `fetchQuestsAreIncentive` -- and `scripts/incentive_slots.lua:23`, `:53` list
+  it in both trees. FFR has no `IncentivizeUnne`. `FlagsCompute.cs:220-226`
+  computes exactly seven fetch conjunctions and Unne is not one of them, and the
+  export agrees from the other side: the seven `priority_locations` that leave
+  are Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick and Smith, and **`Dr
+  Unne` is not an Archipelago location at all** on either cartridge.
+
+  `ItemLocations.cs:277-278` says why: Unne is a *secondary* requirement on
+  Lefein's reward, not a reward slot, and `SCLogic.cs:555-557` resolves an NPC
+  gated on the Unne flag to Unne's own reachability -- which is why
+  `check_logic` waives the Lefein rule rather than diverging on it. So the pack
+  is right to model Unne for *reachability* and wrong to give him an incentive
+  slot: the ring can never be correct there, on any flagset, because there is
+  nothing for FFR to incentivize.
+
+  Not fixed with the conjunction above, and not the same defect: the seven rows
+  ring on the wrong condition, this row rings on no condition FFR has. Both
+  trees need the section reconsidered rather than re-gated. What it should
+  become -- dropped, or kept as reachability with the incentive section removed
+  -- is not settled here, because `slabTranslated` is a real hosted item and
+  removing the section may move more than the ring.
+
+  This is the same mistake the shop slot's close made and caught late, in the
+  opposite direction. That one read a flag's absence from a schema as FFR having
+  no such flag; this one modelled a computed flag by whichever conjunct the pack
+  already had a name for. A conjunction is not modelled by one of its terms --
+  which the review of `flag-coverage` said in almost these words about a
+  coverage row, and it was not carried across to a rule.
+
 ## Open questions
 
 - **`canon` has a latent false FAIL in `test_maps.lua` check 7.** It treats a

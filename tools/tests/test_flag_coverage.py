@@ -229,12 +229,52 @@ def read(*parts):
         return handle.read()
 
 
+mapping = read("scripts/autotracking/flag_mapping.lua")
+
+# ------------------------------------------------ the tally the page prints
+# `docs/FLAG_COVERAGE.md` publishes a per-status tally of NOT_MODELLED and a
+# total in the sentence above it, and nothing held either one: the sentence
+# said 31 while the table a line beneath it summed to 32, because the only
+# thing keeping the two in step was whoever last edited both.
+#
+# Read with the comments stripped, for the same reason the naming pass is: a
+# status parked in a commented-out entry is not a row on that page. This runs
+# before the checkout is asked for, since holding a page against the mapping
+# needs neither FFR nor a cartridge.
+TALLY_LINE = re.compile(r"^ {4}((?:[a-z]+ \d+ *)+)$", re.M)
+TALLY_PAIR = re.compile(r"([a-z]+) (\d+)")
+SAYS_TOTAL = re.compile(r"tally below is (\d+) rather than")
+STATUS = re.compile(r'status = "([a-z]+)"')
+
+live = uncommented(mapping)
+entries = live[live.index("NOT_MODELLED"):live.index("toggles = TOGGLES")]
+real_tally = {}
+for status in STATUS.findall(entries):
+    real_tally[status] = real_tally.get(status, 0) + 1
+
+page = read("docs", "FLAG_COVERAGE.md")
+row = TALLY_LINE.search(page)
+said_tally = ({k: int(v) for k, v in TALLY_PAIR.findall(row.group(1))}
+              if row else {})
+said_total = SAYS_TOTAL.search(page)
+
+print("-- the page's own tally")
+check("the per-status tally the page prints matches the mapping",
+      said_tally, real_tally)
+check("and the total its sentence gives matches that tally",
+      int(said_total.group(1)) if said_total else None,
+      sum(real_tally.values()))
+
 src = ffr_source.checkout(VERSION)
 if src is None:
     print("SKIP  " + ffr_source.skip_reason(VERSION))
-    sys.exit(0)
+    # The rows above needed neither FFR nor a cartridge, so a skip here must
+    # not swallow them. Exiting 0 over a real failure is the silent pass this
+    # file spends its length arguing against.
+    for f in fails:
+        print("     " + f)
+    sys.exit(1 if fails else 0)
 
-mapping = read("scripts/autotracking/flag_mapping.lua")
 others = [read(rel) for rel in ALSO_NAMES]
 
 reads = consulted(src)

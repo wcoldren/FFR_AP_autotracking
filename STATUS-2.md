@@ -332,3 +332,150 @@ found refuses; the default being absent is still a skip, deliberately, because a
 machine with no Archipelago checkout is an ordinary condition and a flag that
 names nothing is a typo. `verify.sh` passes `--world` explicitly, which is why
 the gate never saw any of this -- it was ad-hoc runs that were lying.
+
+## One flag apart does not hold the pool still
+
+Landed 2026-09-03. `tools/export_diff.py` is the tool the fifteen 4.9.7 flag
+rows were produced without: roll two cartridges one flag apart, diff the
+exports, and what moved is the flag's doing. `docs/ORACLE.md` has the invocation
+and the figures; `docs/ROADMAP.md` section 5 has the close.
+
+**The scope was one assumption short, and it was the corpus's own sentence.**
+The 4.9.7 README says "anything that moves between one of those exports and
+`std497`'s is the flag and not the roll", and that reads like a licence to diff
+everything in the file and call all of it the flag. It is true of the rules and
+true of the pool only by count -- which is not the same as "the pool is the
+roll", and the section below is where that difference got paid for. FFR exports only the locations holding pool items, and a flag
+change moves the RNG stream, so which chests hold gold moves whether or not the
+logic did. All fifteen variants churn 17 to 23 locations in *both* directions
+against the baseline.
+
+The measurement that settles it is `hoard497`: 17 locations gained, 20 lost,
+**zero rules moved**. A differ that counted pool membership would have reported
+a finding for every flag in the corpus, including the one flag whose export says
+plainly that it changed nothing. That is the failure worth naming, because it is
+not a wrong number — it is fifteen confident answers, one per flag, all of them
+the roll. The tool prints the pool difference under its own heading, says what
+it is, and does not count it.
+
+**What is counted was checked for the same fault rather than assumed safe.**
+Location ids never moved across the fifteen, and `LOCATION_MAPPING` is keyed on
+them, so a name that keeps its place and changes its id would be read as a
+different location by everything downstream — a row of its own even though
+nothing has tripped it. `priority_locations` was identical across all fifteen,
+so the incentive pool is signal and not roll, which is what makes it the place a
+computed flag like `IncentivizeCaravan` shows up.
+
+**Absence and emptiness are kept apart in three places**, all the same failure
+in different clothes. An export that cannot be read exits 2 rather than
+inheriting `parse_ap_rules`'s empty dict and reporting "no changes" for a file
+it never opened — the `ap_location_paths` cheerful zero, one function along, and
+it was written down in the roadmap before it could be built wrong. A pair whose
+seeds cannot both be named is incomparable rather than agreement, because
+attribution is only sound at one seed. And a section the other export shape does
+not carry is reported as not compared rather than as everything removed: an
+Archipelago spoiler has rules and no `priority_locations`, and "21 incentive
+locations removed" would be a finding invented out of a file format.
+
+**The test earns its rows by being broken on purpose.** Three mutations, each
+turning exactly the intended rows red: compare nothing and the rule rows fail;
+make the comparison order-sensitive and the reordered-rule row fails; count the
+pool churn and the row that says churn alone is zero fails. Sixteen green rows
+prove nothing on their own, which this pack has already recorded about
+`test_maps.lua` check 6 — a check that compares a file to itself cannot fail for
+any reason.
+
+Still true and not addressed here: the corpus README's sentence is unqualified
+where it sits, in `seeds/ff1/oracle-4.9.7/README.md`, which is in the workspace
+repo rather than this one.
+
+## The first use of the diff found a defect, one conjunct along
+
+Landed 2026-09-03, the same day as the tool. `NPCItems` was the measurement
+`docs/FLAG_COVERAGE.md` had been asking for by name, and it needed one cartridge
+rather than the two the roadmap said: `std497` already carries the flag on, so it
+is the control and only `nonpcitems497` had to be rolled.
+
+**The answer is clean and it is not the one the row expected.** Zero exported
+rules move -- `NPCItems` touches no reachability at all, which the row had
+guessed at with "n/a for reachability" and now has measured. Seven
+`priority_locations` go: King, Princess, Bikke, Sarda, Canoe Sage, CubeBot and
+Shop Item, with `IncentivizeFreeNPCs` still on. That is `IncentivizeCaravan`
+losing its other conjunct, demonstrated on a cartridge rather than read off
+`FlagsCompute.cs:217`.
+
+**And those seven are exactly the seven the pack rings.** All seven rows in
+`scripts/incentive_slots.lua` carry `npcsAreIncentive`, which is
+`IncentivizeFreeNPCs` alone; no `npcItems` code exists anywhere in the pack. So
+on that seed FFR incentivizes none of the seven and the board rings all seven
+gold. `docs/ISSUES.md` has the entry and `docs/ROADMAP.md` section 1 has the
+build.
+
+**It is the shop-slot mistake in the other direction, and that is the part worth
+keeping.** That one read a flag's absence from a schema as FFR having no such
+flag. This one modelled a computed flag by whichever conjunct the pack already
+had a name for -- `npcsAreIncentive` was there, `npcItems` was not, and the
+conjunction quietly became the term that had a code. The `flag-coverage` review
+had already written the general form of this down about a coverage row: a
+conjunction that comes out false demonstrates neither conjunct. It was recorded
+as a lesson about a test row and not carried across to a rule.
+
+The cartridge exists before the fix does, which is the order section 1 asks for:
+the gate row can show the ring the flag was wrong about rather than report a
+pass after the fact.
+
+
+## The pool heading was hiding a flag, which is what a review is for
+
+Landed 2026-09-03, same day, off `/code-review` on the branch. The tool was
+right not to count the pool difference and wrong about why, and the sentence it
+was wrong in is one it had just corrected somebody else's version of.
+
+**The evidence supported a noise floor and the claim made was a verdict.**
+Fifteen variants churn 17 to 23 locations either way, so a *count* of pool
+differences attributes nothing -- that much is measured. "The pool is the roll"
+is a different sentence, and nothing in the corpus supported it, because until
+`nonpcitems497` the corpus held no flag whose effect is the pool's shape. The
+sixteenth cartridge held one. `NPCItems` off deletes the caravan slot: of the
+seventeen 4.9.7 exports, `nonpcitems497` is the only one with no `Shop Item` in
+it at all. That difference was printed on line twenty of an uncounted list under
+a heading that said it was gold moving between chests.
+
+**The fix is a cross-check, not a count.** Nothing separates a removed location
+from a reassigned one by counting, so the tool does not try. It crosses the pool
+difference with `priority_locations` -- the one set measured stable across the
+fifteen -- and marks a name that left both:
+
+    A only  Shop Item   -- and not in B's pool at all, so not a check on B
+
+A pool-shape flag that moves plain chests is still past what two exports settle;
+`ChestsKeyItems` is the one to expect, and the heading now says so rather than
+implying the opposite.
+
+**And the `NPCItems` finding was one repair short.** Six of the seven slots are
+a wrong ring -- the NPCs stay checks and lose their gold. The seventh is not a
+check at all on that seed, and all four location files show it anyway: the two
+`incentives.json` gate it on `npcsAreIncentive`, the two `overworld.json` gate
+it on nothing. Reading `PlacementContext.cs:243` would have got this wrong in
+both directions -- it forces vanilla placements on the six NPCs and the vendor
+slot alike, and the export keeps the six and drops the vendor. Which of the
+seven Archipelago still calls a location is a thing only the export says.
+
+**Four smaller ones from the same review, all now closed.** Schema-only flags
+were computed and then dropped whenever the shared flags all matched, which is
+the cross-version case the version note exists for. `read()` took the first
+scope with a `rules` key while `parse_ap_rules` requires a non-empty one, so a
+blob with two game scopes would have compared one game's locations against
+another's logic. The docstring claimed Archipelago yamls and spoilers were
+readable when the seed gate refuses every one of them, and now says FFR's export
+and why. And "all fifteen one-flag variants" was seven one-flag variants and
+eight pairs and triples, contradicting the same page two paragraphs up.
+
+**The tests grew the rows that would have caught them, and the seeded ones the
+file had none of.** Every row above was hand-built, so nothing exercised the
+reading -- not the permalink, not the nested scope, not the flag decode. Five
+rows now run against the corpus and skip without it, on `test_shop_slot.py`'s
+`FF1_SEEDS` pattern. Three mutations, each turning exactly its own rows red:
+drop the caravan cross-check and the row that names it fails; restore the
+schema-only suppression and two fail; weaken the scope test and the two-scope
+row fails.

@@ -182,6 +182,71 @@ do
   check("every not-modelled flag has a known status", #badStatus, 0)
   check("every not-modelled flag has a reason", #shortWhy, 0)
   check("every unjudged flag names its measurement", #noMeasure, 0)
+
+  -- And the measurement having *run* is a field, not a turn of phrase. The
+  -- NPCItems row was measured on 2026-09-03 and its `measure` rewritten from a
+  -- request into a result; the check above went on passing either way, because
+  -- a result is also a string longer than ten characters. So an `unjudged` flag
+  -- nobody has looked at and one waiting only on a build became
+  -- indistinguishable, and if the build never lands nothing here notices.
+  -- `measured` separates them, `owed` names the code that retires the entry,
+  -- and the third row is the one with teeth: once that code exists in the
+  -- mapping the flag is modelled, and an entry still sitting here is stale.
+  -- Both halves of the mapping, because an owed code can land in either. The
+  -- toggles-only reading missed exactly the case this row exists for:
+  -- `cardiaIsIncentive` is an incentive code of the kind these entries owe and
+  -- it lives in PROGRESSIVES, so a code retiring into that half would have left
+  -- the stale entry sitting here with the suite green.
+  local codes = {}
+  for _, list in ipairs({ cov.toggles or {}, cov.progressives or {} }) do
+    for _, e in ipairs(list) do
+      if e.code then codes[e.code] = true end
+    end
+  end
+  local sayNothing, undated, noOwed, landed = {}, {}, {}, {}
+  for _, e in ipairs(cov.notModelled or {}) do
+    local label = tostring(e.ffr)
+    if e.status == "unjudged" then
+      local measure = type(e.measure) == "string" and e.measure or ""
+      local says = measure:sub(1, 5) == "done:"
+      if says ~= (e.measured == true) then sayNothing[#sayNothing + 1] = label end
+      -- The row above catches the loud direction -- prose rewritten to a
+      -- result, field left false. It cannot catch the quiet one: drop the
+      -- `done:` convention while rewriting and both sides read false, the row
+      -- goes green, and a flag that was measured reads as never looked at,
+      -- which is the confusion these fields were added to remove. A date is
+      -- what a measurement that has run leaves in the prose, so prose carrying
+      -- one has to be spelled the way the field is read from.
+      if measure:match("%d%d%d%d%-%d%d%-%d%d") and not says then
+        undated[#undated + 1] = label
+      end
+      -- Only once measured. A flag nobody has looked at cannot yet know
+      -- whether it wants a code at all, let alone which -- demanding one
+      -- there would be the invented reason the `why` rule already forbids.
+      --
+      -- Shape as well as length, since by definition the name does not exist
+      -- yet and there is nothing to match it against: pack codes are
+      -- lowerCamelCase identifiers, and an `owed` that is not one can never
+      -- fire the row below. A well-formed typo still passes -- that gap closes
+      -- only when the code lands -- but "TBD", a sentence, or a name written
+      -- with a space no longer does.
+      if e.measured and (type(e.owed) ~= "string" or #e.owed < 3
+          or not e.owed:match("^%l[%a%d]*$")) then
+        noOwed[#noOwed + 1] = label
+      end
+      if type(e.owed) == "string" and codes[e.owed] then
+        landed[#landed + 1] = label .. " (" .. e.owed .. ")"
+      end
+    end
+  end
+  check("a measured flag says so in a field, not only in its prose",
+        #sayNothing, 0)
+  check("and a measurement that has run is spelled `done:`", #undated, 0)
+  check("every measured flag names the code that would retire it", #noOwed, 0)
+  check("and no flag sits unjudged once that code exists", #landed, 0)
+  for _, n in ipairs(sayNothing) do print("     measured/prose disagree: " .. n) end
+  for _, n in ipairs(noOwed) do print("     names no owed code: " .. n) end
+  for _, n in ipairs(landed) do print("     code landed, entry stale: " .. n) end
   for _, n in ipairs(badStatus) do print("     bad status: " .. n) end
   for _, n in ipairs(shortWhy) do print("     no reason: " .. n) end
   for _, n in ipairs(noMeasure) do print("     no measurement: " .. n) end

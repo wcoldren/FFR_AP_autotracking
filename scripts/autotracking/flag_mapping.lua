@@ -309,14 +309,62 @@ local NOT_MODELLED = {
   {
     ffr = "NPCItems",
     status = "unjudged",
-    measure = "roll a 4.9.7 pair one flag apart and diff the exports",
+    -- The measurement ran on 2026-09-03 -- nonpcitems497 against std497 --
+    -- and it moved zero access rules and seven priority locations. So what is
+    -- unsettled is no longer the measurement but the build: this flag is the
+    -- other conjunct of the computed IncentivizeCaravan, and the seven slots
+    -- that answer to it carry only npcsAreIncentive today. It stays here rather
+    -- than becoming noise or decided, because neither is true of a flag that
+    -- demonstrably moves a ring; it leaves when the code lands.
+    --
+    -- Six of the seven want the conjunction. The seventh, the caravan slot,
+    -- wants more than that: it leaves the export entirely with this flag off,
+    -- so its existence answers to npcItems and not only its colour.
+    -- `measured` is the field, not the "done:" prefix on the prose. The prose
+    -- carried the whole distinction for one commit, and the check below could
+    -- not tell a flag nobody has looked at from one waiting on a build: both
+    -- are `unjudged` with a long enough `measure`. `owed` names the code that
+    -- retires this entry, so the check can also say when the build has landed
+    -- and the entry has not left.
+    measured = true,
+    owed = "npcItems",
+    measure = "done: nonpcitems497 vs std497, docs/ISSUES.md, \"Seven "
+      .. "incentive slots ring gold on a seed FFR did not incentivize them "
+      .. "on\". What remains is a code, not a measurement.",
     why = "decides whether the NPCs hand out shuffled items. It is read in "
       .. "two places that do different things -- NPCs.cs:236 gives Nerrick "
       .. "the Canal or a Cabin, MetroidVaniaMap.cs:871 swaps a line of "
       .. "dialogue -- and FlagsCompute.cs:64, :69 folds it into RequiredRuby "
-      .. "and RequiredTnt. Whether any of that moves a pin on an Archipelago "
-      .. "seed has not been measured, and inventing a reason here would be "
+      .. "and RequiredTnt. What the measurement settled is the incentive "
+      .. "ring, not this: whether any of that moves an access rule came back "
+      .. "zero on the one pair, and inventing a wider reason here would be "
       .. "the padding this list exists to prevent.",
+  },
+  {
+    ffr = "NPCFetchItems",
+    status = "unjudged",
+    owed = "npcFetchItems",
+    measured = true,
+    measure = "done: nofetchitems497 vs std497, rolled 2026-09-03. Zero access "
+      .. "rules move and 226 of 226 agree; seven priority locations go -- "
+      .. "Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick, Smith -- and all "
+      .. "seven stay locations, so unlike the free half there is no second "
+      .. "repair. Dr Unne is not among them. What remains is a code, not a "
+      .. "measurement.",
+    why = "is the fetch half of the conjunction NPCItems is the free half of. "
+      .. "FlagsCompute.cs:220-226 computes the seven fetch NPCs as "
+      .. "NPCFetchItems && IncentivizeFetchNPCs, and the sixteen fetch rows "
+      .. "of incentive_slots.lua carry fetchQuestsAreIncentive, which is the "
+      .. "second conjunct alone -- so the ring is predicted wrong the same "
+      .. "way. Two things do not copy across from the free half: "
+      .. "IncentivizeNerrick ends && !NoOverworld (FlagsCompute.cs:224), and "
+      .. "there is no IncentivizeUnne at all, so FFR computes seven slots "
+      .. "where the pack carries eight rows per tree -- the eighth being Dr "
+      .. "Unne, whom FFR does not incentivize at all and who is not an AP "
+      .. "location, which the roll settled rather than the source. Unlisted "
+      .. "until 2026-09-03 because test_flag_coverage's consulted() greps "
+      .. "FFR's reachability logic, and this flag is read only on the "
+      .. "incentive path.",
   },
   {
     ffr = "NPCSwatter",
