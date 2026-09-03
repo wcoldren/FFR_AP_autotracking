@@ -550,6 +550,17 @@ check("no Highlight support means no rings, not an error",
   refreshIncentiveHighlights(), 0)
 check("and it still does not recurse", maxDepth <= 1, true)
 
+-- A row in the pre-conjunction `flag =` shape, which is what a stale or
+-- hand-edited scripts/incentive_slots.lua would leave behind. The script reads
+-- the table at load time and outside any pcall, so an `ipairs(nil)` there does
+-- not cost one ring -- it aborts the file, and with it every watch and the
+-- first refresh. Loading has to survive it; what the ringless row does after
+-- that is not the point.
+local savedSlots = INCENTIVE_SLOTS
+INCENTIVE_SLOTS = { { path = "@Coneria/King", flag = "npcItems" } }
+local loaded = pcall(dofile, PACK .. "/scripts/incentives.lua")
+INCENTIVE_SLOTS = savedSlots
+check("a row in the old shape does not abort the script", loaded, true)
 
 print()
 if fail == 0 then

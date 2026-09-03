@@ -30,7 +30,11 @@
 local function incentiveFlags()
   local seen, out = {}, {}
   for _, slot in ipairs(INCENTIVE_SLOTS or {}) do
-    for _, flag in ipairs(slot.flags) do
+    -- `or {}` for the same reason INCENTIVE_SLOTS has one: this runs at load
+    -- time and outside any pcall, so a row in the pre-conjunction `flag =`
+    -- shape would abort the script -- no watches registered and no first
+    -- refresh, which is the rings gone rather than degraded.
+    for _, flag in ipairs(slot.flags or {}) do
       if not seen[flag] then
         seen[flag] = true
         out[#out + 1] = flag
