@@ -110,6 +110,11 @@ class Run(NamedTuple):
     traps: frozenset      # the fixed-formation tiles on this floor
     got: list             # chest indices collected, in visit order
     missed: list          # chest indices this region cannot reach
+    # Which region of the floor this run belongs to. The drawing pairs a loot
+    # run with its own region's route run to know what to subtract, and
+    # position cannot say: a region whose only way out is the way in has no
+    # route run, so the run before a loot run is not always its own.
+    region: int = 0
 
 
 class Lanes(NamedTuple):
@@ -534,7 +539,7 @@ def plan(rom, graph, map_id, chests=None):
         return None
     f = Floor(rom, graph, map_id)
     runs = []
-    for region in regions(f):
+    for rn, region in enumerate(regions(f)):
         reach = f.reached(region[0])
         here = {i: [c for c in ts if any(x in reach for x in f.stand(c))]
                 for i, ts in groups.items()}
@@ -564,7 +569,8 @@ def plan(rom, graph, map_id, chests=None):
         out_at = nearest_exit(f, start)
         route = (f.path(start, out_at) or []) if out_at is not None else []
         if len(route) > 1:
-            runs.append(Run("route", start, route, frozenset(f.trap), [], []))
+            runs.append(Run("route", start, route, frozenset(f.trap),
+                            [], [], rn))
         # The loot lane prefers the route lane's edges, so the two coincide
         # wherever that is free and purple only ever means "here the loot takes
         # you somewhere the walk through would not".
@@ -575,7 +581,7 @@ def plan(rom, graph, map_id, chests=None):
         # key row with no purple under it.
         if got and edges(walk) - edges(route):
             runs.append(Run("loot", start, walk, frozenset(loot.trap),
-                            got, miss))
+                            got, miss, rn))
     if not runs:
         return None
     return Lanes(runs, links(groups))

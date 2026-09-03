@@ -58,13 +58,19 @@ def shape(lanes):
 def regions_do_not_share_edges():
     """A loot lane in one region must not subtract another region's route lane.
 
-    plan() emits [route?, loot?] per region and drops the route run wherever a
-    region collects nothing keyless, so a second region can arrive at
-    draw_lanes as a bare key run. Regions overlap in tiles -- search()
-    reachability is asymmetric across staircase arrivals -- so the edges the
-    two share are real steps of both, and subtracting the first region's set
-    from the second's lane erases the middle of a line that is drawn as
-    continuous.
+    plan() emits [route?, loot?] per region, and a region whose only way out
+    is the way it came in gets no route run at all -- MatoyasCave, Waterfall,
+    Cardia's islands. So the run before a loot run is not always its own
+    region's. Regions overlap in tiles -- search() reachability is asymmetric
+    across staircase arrivals -- so the edges the two share are real steps of
+    both, and subtracting the first region's set from the second's lane erases
+    the middle of a line that is drawn as continuous.
+
+    The third case below is the one position cannot get right: a bare route
+    run for one region followed by a bare loot run for another. It is not on
+    either duck cartridge today, but both of the shapes it is made of are --
+    `route,loot,route,loot` and four bare loot runs on one map -- so it is a
+    seed away, and Run.region is what tells them apart.
 
     Needs no cartridge: draw_lanes takes a frame, a crop and the runs, and the
     colours it writes are the whole answer. Runs both ways round, because a
@@ -77,14 +83,14 @@ def regions_do_not_share_edges():
     route = rm.NES_PALETTE[rm.LANE_ROUTE]
     purple = rm.NES_PALETTE[rm.LANE_LOOT]
 
-    def run(label, path):
-        return L.Run(label, path[0], list(path), frozenset(), [1], [])
+    def run(label, path, region=0):
+        return L.Run(label, path[0], list(path), frozenset(), [1], [], region)
 
     # Region A walks the corridor keyless and its loot lane extends it by one
     # tile. Region B is key-only and walks the same corridor.
     a_route = run("route", [(1, 1), (2, 1), (3, 1), (4, 1)])
     a_loot = run("loot", [(1, 1), (2, 1), (3, 1), (4, 1), (4, 2)])
-    b_loot = run("loot", [(1, 1), (2, 1), (3, 1)])
+    b_loot = run("loot", [(1, 1), (2, 1), (3, 1)], region=1)
 
     def corridor_colour(runs):
         out = bytearray(w * h * 3)
@@ -105,6 +111,11 @@ def regions_do_not_share_edges():
     # And a second region's loot lane still draws over it.
     check("a second region's loot lane is not subtracted by the first's",
           corridor_colour([a_route, a_loot, b_loot]), purple)
+    # The same, with region A's loot run dropped so that region B's is the run
+    # immediately after region A's route. Position says these two are a pair
+    # and they are not.
+    check("nor by the route lane it merely follows",
+          corridor_colour([a_route, b_loot]), purple)
     return fails
 
 

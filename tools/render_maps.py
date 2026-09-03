@@ -1117,19 +1117,20 @@ def draw_lanes(out, w, h, crop, lanes):
 
     shared = set()
     drawn = []
-    prev_label = None
+    owner = None
     for run in lanes.runs:
-        # plan() emits [route?, loot?] per region, and drops the route run for
-        # a region that collects nothing keyless. So a loot run belongs to the
-        # route run immediately before it and to no other: carrying the last
-        # region's edges into the next one subtracts steps this lane genuinely
-        # walks, leaving a gap in a line that is supposed to be continuous.
+        # plan() emits [route?, loot?] per region, so a loot run subtracts its
+        # own region's route run and no other. Pairing by position cannot say
+        # which that is: a region whose only way out is the way it came in has
+        # no route run at all, so the run before a loot run may belong to the
+        # previous region -- and subtracting its edges erases the middle of a
+        # line that is drawn as continuous.
         if run.label == "route":
             shared = {frozenset((a, b))
                       for a, b in zip(run.path, run.path[1:]) if a != b}
-        elif prev_label != "route":
+            owner = run.region
+        elif run.region != owner:
             shared = set()
-        prev_label = run.label
         base = NES_PALETTE[LANE_LOOT if run.label == "loot" else LANE_ROUTE]
         forced = NES_PALETTE[LANE_FORCED]
         mine = steps(run, shared)
