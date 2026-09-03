@@ -835,7 +835,9 @@
                 "sections": [
                     {
                         "name": "I: Shop Item",
-                        "access_rules": [],
+                        "access_rules": [
+                            "^$incentiveSlot|npcsAreIncentive"
+                        ],
                         "hosted_item": "shopItem"
                     }
                 ],
@@ -843,7 +845,10 @@
                     {
                         "map": "incentives",
                         "x": 310,
-                        "y": 460
+                        "y": 460,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|npcsAreIncentive"
+                        ]
                     }
                 ]
             }

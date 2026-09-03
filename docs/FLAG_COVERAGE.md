@@ -131,7 +131,7 @@ either. The eleven above them are in both schemas.
 | `EarlySage` | `earlySage` | code |
 | `NoTail` | `noTail` | code — declared in `IVictoryConditionFlags` and never read there; see section A' |
 | `ShuffleObjectiveNPCs` | `objectiveNPCs`, through `$noObjectiveShuffle` | code — deliberately strict. `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf Doctor across their three homes and the roll reaches no file the pack can read, so with the flag on the two cells that move ask for all three homes at once. See "The permutation is the problem" below |
-| `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks. `ChestsKeyItems` is read directly — `maptab.lua:87`'s `cartridgeChestsAreChecks()` asks `ffrFlag` for it, and that answer reaches `chestsAreChecks()` and `logic.lua`'s `showPin()` |
+| `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks. `ChestsKeyItems` is read directly — `maptab.lua:87`'s `cartridgeChestsAreChecks()` asks `ffrFlag` for it, and that answer reaches `chestsAreChecks()` and `logic.lua`'s `showPin()`. `NPCItems` is filed `unjudged`, and 2026-09-03 gave that row its first measured consequence: it is one half of the computed `IncentivizeCaravan` that governs the shop slot's pin — see section D |
 | `NPCSwatter` | — | n/a |
 
 ### No-Overworld / entrance shuffle (`MetroidVaniaMap.cs`, `EntrancesFloorsShuffle.cs`)
@@ -175,6 +175,28 @@ day they were found would draw exactly the wrong lesson from having found them.
 These decide *what is where*, which the tracker must not know. The `Incentivize*`
 and `TitansTrove` codes the pack does carry drive pin colour (blue/gold) and
 whether Titan's Trove exists as a check — presentation, not reachability.
+
+### One of them is computed, and the shop slot is what it speaks for
+
+`IncentivizeCaravan` has no field in either flag schema, because
+`FlagsCompute.cs:217` derives it: `(NPCItems ?? false) && (IncentivizeFreeNPCs
+?? false)`. `PlacementContext.cs:198` then puts `ItemLocations.CaravanItemShop1`
+into the incentive pool on it, so the caravan slot is an incentive location like
+any other and the `I: Shop Item` pin takes `^$incentiveSlot|npcsAreIncentive`
+alongside the six free NPCs — `IncentivizeFreeNPCs` being what the pack calls
+`npcsAreIncentive`, and what FFR labels "Main NPCs".
+
+This row exists because its absence was read as an answer. Searching a flag
+*schema* for a name containing "shop" or "caravan" returns nothing, and that
+was reported as FFR having no such flag; an absence in a derived index is not an
+absence in the source, and the source was three greps away in a vendored clone.
+
+The slot's **content** is still roll noise, and the two were conflated. The
+incentive status is a flag; what lands in the slot is the roll —
+`ItemPlacement.SelectVendorItem` falls back to a consumable when no eligible
+incentive item is left, which is why roughly half of solo seeds hold nothing
+worth hunting there even with the flag on. Both statements are true and only
+one of them is about a flag.
 
 ## Missing rows, in one place
 

@@ -109,12 +109,17 @@ for _, file in ipairs(INCENTIVE_FILES) do
     end
   end)
 end
--- 26 gated sections in locations/incentives.json less the Bahamut hoard, plus
--- 24 in the NOverworld tree, which has no Nerrick. The hoard hosting the
+-- 27 gated sections in locations/incentives.json less the Bahamut hoard, plus
+-- 25 in the NOverworld tree, which has no Nerrick. The hoard hosting the
 -- NOverworld tree gained is not counted on either side: it carries a
 -- visibility rule and an empty access_rules, so it is hidden rather than
 -- demoted.
-check("sections reporting Inspect when not incentivized", gated, 49)
+--
+-- One more on each sheet than before the shop slot took its flag: FFR computes
+-- the shop-slot incentive rather than declaring it, so the slot is spoken for
+-- by npcsAreIncentive like the six free NPCs and reports Inspect on a seed
+-- that left Main NPCs unincentivized.
+check("sections reporting Inspect when not incentivized", gated, 51)
 
 ------------------------------------------------------------------
 -- 3. Every flag named is a real item code.
@@ -216,10 +221,20 @@ for _, path in ipairs(unresolved) do
   fails("no section at " .. path)
 end
 
--- 26 on the incentive tab (the 25 demoted plus the hoard, which still hides),
+-- 27 on the incentive tab (the 26 demoted plus the hoard, which still hides),
 -- 3 more the NOverworld tree renames or hosts under a different node, and 26 on
 -- the real board.
-check("slots in the generated table", #INCENTIVE_SLOTS, 55)
+--
+-- The shop slot adds one row where every other slot adds two, and that is not
+-- an omission. A row's path is `@<node>/<section>`, and the board's node for
+-- this slot is itself named `I: Shop Item` -- the only board node carrying the
+-- sheet prefix -- so the sheet path and the board path are the same string and
+-- the second is deduped away. Which section that one row reaches is settled
+-- and not ambiguous: PopTracker splits the ref at its last slash and looks up
+-- the node *named* `I: Shop Item`, taking the first one loaded, and
+-- scripts/init.lua loads overworld.json first, so it is the board's.
+-- docs/ISSUES.md, "The `I: Shop Item` pin ignores the flag that governs it".
+check("slots in the generated table", #INCENTIVE_SLOTS, 56)
 
 for flag in pairs(flagsInTable) do
   if not byCode[flag] then
@@ -247,7 +262,60 @@ for _, file in ipairs(INCENTIVE_FILES) do
 end
 
 ------------------------------------------------------------------
--- 6. refreshIncentiveHighlights.
+-- 6. The one deduped row reaches the board's section, and keeps doing so.
+--
+-- `@I: Shop Item/I: Shop Item` is the sheet path and the board path at once,
+-- so which of the two sections gets the ring is settled by PopTracker, not by
+-- anything visible in the row. getLocationAndSection splits the ref at its
+-- LAST slash and looks up the bare node name; getLocation then tries an exact
+-- id match across every loaded tree BEFORE it compares names, and only after
+-- both does load order decide. A node's id is its full path, so a top-level
+-- node's id is its bare name -- and a sheet node moved to the top level would
+-- win the exact-id pass outright, ahead of the board and ahead of load order,
+-- moving the ring to the sheet with no counter changing and no test noticing.
+-- That is the invariant this section holds, because the row cannot state it.
+------------------------------------------------------------------
+local function shopItemNodes(file)
+  local out = {}
+  local function walk(nodes, prefix)
+    for _, node in ipairs(nodes) do
+      local id = prefix == "" and node.name or (prefix .. "/" .. node.name)
+      if node.name == "I: Shop Item" then
+        local hasSection = false
+        for _, section in ipairs(node.sections or {}) do
+          if section.name == "I: Shop Item" then hasSection = true end
+        end
+        out[#out + 1] = { id = id, top = not id:find("/"), hasSection = hasSection }
+      end
+      walk(node.children or {}, id)
+    end
+  end
+  walk(json.load(PACK .. "/" .. file), "")
+  return out
+end
+
+for _, variant in ipairs({ { "locations/overworld.json", "locations/incentives.json" },
+                           { "locations/NOverworld/overworld.json",
+                             "locations/NOverworld/incentives.json" } }) do
+  local board, sheet = shopItemNodes(variant[1]), shopItemNodes(variant[2])
+  check("one board node named I: Shop Item in " .. variant[1], #board, 1)
+  check("one sheet node named I: Shop Item in " .. variant[2], #sheet, 1)
+  local boardTop = #board == 1 and board[1].top
+  if #board == 1 and not board[1].hasSection then
+    fails("the board node has no section named I: Shop Item, so the row rings "
+      .. "nothing: " .. variant[1])
+  end
+  for _, node in ipairs(sheet) do
+    if node.top and not boardTop then
+      fails("the sheet node sits at the top level, so its id is the bare name "
+        .. "`I: Shop Item` and wins getLocation's exact-id pass before load "
+        .. "order is consulted -- the ring moves off the board: " .. variant[2])
+    end
+  end
+end
+
+------------------------------------------------------------------
+-- 7. refreshIncentiveHighlights.
 ------------------------------------------------------------------
 Highlight = { Avoid = -1, None = 0, NoPriority = 1, Unspecified = 2, Priority = 3 }
 

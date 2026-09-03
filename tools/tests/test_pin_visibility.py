@@ -46,9 +46,18 @@ ORB_SLOTS = ("I: Earth Cave", "I: Volcano", "I: Sky Palace", "I: Sea Shrine")
 BAHAMUT_SLOT = {"locations/incentives.json": "I: Bahamut's Cave",
                 "locations/NOverworld/incentives.json": "I: Bahamut"}
 
+# (slots a rule can speak for, slots it cannot). The second number is the orb
+# slots above plus the nodes holding no incentive slot at all -- Temple of
+# Fiends and ToFR on both sheets, and Ryukahn Desert on the standard one.
+#
+# Shop Item left the second number for the first on 2026-09-03. It reads as a
+# slot with no flag only if you look for a declared one: FFR computes the shop
+# slot's incentive status as NPCItems AND IncentivizeFreeNPCs
+# (FlagsCompute.cs:217) instead of putting a name in the flag string, so the
+# slot is spoken for by npcsAreIncentive exactly as the six free NPCs are.
 INCENTIVE_EXPECTED = {
-    "locations/incentives.json": (17, 9),
-    "locations/NOverworld/incentives.json": (20, 8),
+    "locations/incentives.json": (18, 8),
+    "locations/NOverworld/incentives.json": (21, 7),
 }
 
 

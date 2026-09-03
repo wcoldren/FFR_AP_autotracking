@@ -531,8 +531,8 @@ Nothing here is urgent unless it says so.
   surface, and restamping 29 markers against a crop this mode never renders is
   work with nothing to check it against until there is one.
 
-- **The `I: Shop Item` pin ignores the flag that governs it.** Found
-  2026-09-02. Every other incentive slot carries `^$incentiveSlot|<flag>`, so
+- **The `I: Shop Item` pin ignores the flag that governs it. Fixed
+  2026-09-03.** Found 2026-09-02. Every other incentive slot carries `^$incentiveSlot|<flag>`, so
   the board can grey a slot the seed did not incentivize. `shopItem` carries
   none, on the belief that FFR has no flag for it. FFR does:
   `FlagsCompute.cs:217` computes
@@ -558,9 +558,26 @@ Nothing here is urgent unless it says so.
   incentive status is a flag; its content is the roll. Conflating those is what
   produced the wrong close.
 
-  Fix: `^$incentiveSlot|npcsAreIncentive` on the `shopItem` section in both
-  incentive trees, and the matching row in `scripts/incentive_slots.lua`. Not
-  done here.
+  Fixed by `^$incentiveSlot|npcsAreIncentive` on the `shopItem` section in both
+  incentive trees, plus `$showPin|slot|npcsAreIncentive` on the pin —
+  `pin_visibility.py` stamps the same rule, so the pin half is the tool's output
+  rather than a transcription of it. `scripts/incentive_slots.lua` is generated
+  and was re-run rather than edited.
+
+  **It gains one row where every other slot gains two**, and that is this
+  entry's own collision showing up somewhere new: a row's path is
+  `@<node>/<section>`, and the board's node for this slot is itself named
+  `I: Shop Item`, so the sheet path and the board path are the same string and
+  the second is deduped away. The surviving row reaches the board's section, by
+  the same first-match rule recorded below. What the sheet's section loses is
+  only the gold ring; its access rule and its pin rule are evaluated directly
+  and are unaffected.
+
+  Six counters moved, each re-derived: sections reporting Inspect 49 → 51,
+  generated rows 55 → 56, sheet pins with a rule 17 → 18 and 20 → 21, and pins
+  drawn with the flag off 9 → 8 and 8 → 7. The last pair is the demonstration
+  that the rule bites — with `npcsAreIncentive` absent the pin was drawn before
+  and is not drawn now.
 
 - **The `I: Shop Item` pin clears itself now, and is deliberately still green
   until it does.** The pin is `Onrac Continent/I: Shop Item`, with empty

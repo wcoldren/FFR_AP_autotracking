@@ -254,3 +254,81 @@ this node gains no hand-drawn marker.
 Counters that did move, both of them re-derived rather than adjusted until
 green: the NPC nodes that join go 14 to 15 on an FFR cartridge and 13 to 14 on a
 vanilla one, and the unpinned list goes from six to five.
+
+## The shop slot takes the flag FFR computes for it
+
+Landed 2026-09-03. Every incentive slot but this one carried
+`^$incentiveSlot|<flag>`, so the board could grey a slot the seed never
+incentivized. `shopItem` carried nothing, and the reason it carried nothing was
+a search that came back empty: there is no `IncentivizeShopItem` in either flag
+schema, and that absence was reported as FFR's answer.
+
+FFR computes it instead. `FlagsCompute.cs:217` gives `IncentivizeCaravan` as
+`(NPCItems ?? false) && (IncentivizeFreeNPCs ?? false)`, and
+`PlacementContext.cs:198` puts `ItemLocations.CaravanItemShop1` into the
+incentive pool on it. `IncentivizeFreeNPCs` is what this pack has always called
+`npcsAreIncentive`, and FFR's own label for it -- "Main NPCs" -- was sitting in
+`flag_mapping.lua`'s header comment the whole time. **An absence in a derived
+index is not an absence in the source**, and the source was three greps into a
+clone that is already vendored here.
+
+**The build turned up something the finding had not.** Every other slot
+contributes two rows to the generated table, a sheet path and a board path.
+This one contributes a single row, because the board's node for the slot is
+itself named `I: Shop Item` -- the only board node wearing the sheet's prefix --
+so `@I: Shop Item/I: Shop Item` is both paths at once and the second is deduped
+away. That is not a new ambiguity: it is the collision `check_logic.find_section`
+already resolves board-first. The rule that settles it is not the one first
+written down here: `Tracker::getLocationAndSection` splits a ref at its *last*
+slash, so what PopTracker looks up is the bare node name `I: Shop Item`, and
+with no slash left in it `Tracker::getLocation` compares names and never reaches
+the id-suffix branch. Load order does the rest, `init.lua` taking
+`overworld.json` first. Suffix and name-equality agree on this pin, which is why
+the wrong justification read as verified; they part company as soon as a board
+node's id ends with a name it is not itself named for. So the
+row reaches the board's section. What the sheet's section loses is the gold ring
+and nothing else -- its access rule and its pin rule are evaluated directly by
+PopTracker and never go through `FindObjectForCode`.
+
+**Six counters moved and the guess about them was wrong in both directions.**
+The prediction named four and expected the NPC classifications to move; what
+actually moved was six, and `npcs` was not among them. Sections reporting
+Inspect went 49 to 51, generated rows 55 to 56, sheet pins with a rule 17 to 18
+and 20 to 21, and pins drawn with the flag off 9 to 8 and 8 to 7. That last pair
+is the demonstration the gate asks for rather than a number that merely moved:
+with `npcsAreIncentive` absent the pin was drawn before and is not drawn now,
+and the diff reaches only the two `shopItem` blocks, so it is that pin.
+
+`pin_visibility.py` stamps the same pin rule that was added by hand, and "the
+stamped copy equals the committed tree" still passes -- so the rule is the
+tool's own output rather than a transcription anybody has to trust.
+
+The residue stays separate and is worth restating because conflating the two is
+what let this close wrongly the first time. The slot's **incentive status** is a
+flag. The slot's **content** is the roll: `ItemPlacement.SelectVendorItem` falls
+back to a consumable when no eligible incentive item is left, which is why
+roughly half of solo seeds hold nothing worth hunting there even with the flag
+on. And the pin still clears itself, off PRG ROM on a solo seed and off flag
+byte `0xFF` on an Archipelago one.
+
+## check_logic was pointing one directory short of the world
+
+Landed 2026-09-03, on the same branch because it is what would have graded the
+change above. `ap_location_paths` defaulted to `<pack>/../Archipelago/worlds/ff1`.
+The pack sits at `vendor/ff1/<pack>`, so `..` is `vendor/ff1` and that path has
+never existed; the world is one level further up. The miss hit `return {}`,
+every location reported unmapped, and the run finished with a zero.
+
+A zero is the worst possible way for this tool to fail, because a zero here
+reads as agreement rather than as an unanswered question. `docs/ORACLE.md` had
+been carrying the symptom as a workaround -- "`--ff1-world` is load-bearing:
+without it only about 20 checks map and the run reports a cheerful zero" --
+which is a sentence that names the failure precisely and was quoted for long
+enough to become procedure. The cause was four lines from the words describing
+it.
+
+The default resolves 255 locations now. A `--ff1-world` given explicitly and not
+found refuses; the default being absent is still a skip, deliberately, because a
+machine with no Archipelago checkout is an ordinary condition and a flag that
+names nothing is a typo. `verify.sh` passes `--world` explicitly, which is why
+the gate never saw any of this -- it was ad-hoc runs that were lying.
