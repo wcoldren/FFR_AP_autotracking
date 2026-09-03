@@ -225,16 +225,30 @@ def in_bounds(src, lo, hi):
 
 
 BULLET = re.compile(r"^\s*[-*] ")
+ROW = re.compile(r"^\s*\|")
 
 
 def paragraph(lines, i):
-    """The citing bullet, or the citing paragraph when it is not in a list.
+    """The citing bullet or table row, or the citing paragraph otherwise.
 
     Bounded at both ends by a blank line *or* by the start of another bullet.
     Running across bullet boundaries makes this useless in both directions: it
     swallows a neighbour's identifiers, and any one of them landing near the
     cited line passes a citation that has lost its subject.
+
+    A table row is one context for the same reason, and needs saying
+    separately because neither bound catches it: rows carry no blank line and
+    no bullet between them, so without this the loops below run to both ends
+    of the table and hand back every row at once. That is not a hypothetical
+    -- it is how a stale `locations/incentives.json:403` citation in
+    docs/ORACLE.md passed this check on 2026-09-03, a day after the section it
+    cited was deleted. The identifier pool became the whole 38-row table, and
+    the generic access-rule words other rows carry (`canal`, `ship`, `canoe`,
+    `floater`, `airshipHike`) sit within WINDOW lines of nearly any line in a
+    location file, so the citation had to name nothing and still matched.
     """
+    if ROW.match(lines[i]):
+        return lines[i]
     lo = hi = i
     while lo > 0 and lines[lo - 1].strip() and not BULLET.match(lines[lo]):
         lo -= 1
@@ -575,8 +589,9 @@ check("and lists no page that is gone",
 
 # ------------------------------------------------------------------------
 # Each row above has to be able to fail, or this file is the thing it was
-# written to catch. These four exercise the machinery on inputs whose answer
-# is known, so a rewrite that quietly stops looking gets caught here.
+# written to catch. These exercise the machinery on inputs whose answer is
+# known, so a rewrite that quietly stops looking gets caught here. Not counted
+# here, because the count was "four" long after it was twenty.
 _SRC = read("tools/regen_maps.py")
 _RAW = open(os.path.join(PACK, "tools/regen_maps.py"), encoding="utf-8").read()
 check("a trailing newline is not counted as a line",
@@ -598,6 +613,14 @@ check("but does not run into the next bullet",
       paragraph(["- one `Alpha`", "- two `Beta`"], 0), "- one `Alpha`")
 check("nor back into the previous one",
       paragraph(["- one `Alpha`", "- two `Beta`"], 1), "- two `Beta`")
+# The table rows carry no blank line and no bullet, so before 2026-09-03 these
+# two came back as the whole table and every citation in one was answerable for
+# every other row's identifiers.
+check("nor across a table row, which has neither bound",
+      paragraph(["| one `Alpha` |", "| two `Beta` |"], 0), "| one `Alpha` |")
+check("and a row is not joined to the prose above it",
+      paragraph(["intro", "| one `Alpha` |", "| two `Beta` |"], 1),
+      "| one `Alpha` |")
 check("a quote that wraps in the prose is still read whole",
       QUOTED.findall('x "one two three four\n  five six" y'),
       ["one two three four\n  five six"])
