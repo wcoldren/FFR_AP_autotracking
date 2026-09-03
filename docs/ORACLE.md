@@ -432,6 +432,43 @@ the 53 are not an artefact of it.
 No `--derived` on any of them: the sweep derives No-Overworld rules and all eight
 are standard seeds.
 
+### Diffing the corpus, and what one flag apart does not hold still
+
+`tools/export_diff.py` does by tool what the flag rows above were produced by
+hand: roll two cartridges one flag apart, diff the exports, and the rules that
+moved are that flag's doing.
+
+    O7=<corpus>/oracle-4.9.7
+    python3 tools/export_diff.py $O7/std497 $O7/dock497 --ff1-world $W
+
+Either argument may be the cartridge's directory rather than the export, which
+is what the one-cartridge-per-directory layout is for. Three answers like
+`tofr_diff.py` -- 0 same, 1 differs, 2 incomparable -- and it refuses rather than
+reporting a count when it cannot certify the pair is one seed, or when an export
+cannot be read at all.
+
+**The corpus README's "anything that moves between one of those exports and
+`std497`'s is the flag and not the roll" is true of the rules and not of the
+pool.** FFR exports only the locations holding pool items, and changing a flag
+moves the RNG stream, so which chests hold gold moves whether or not the logic
+does. Measured across all fifteen one-flag variants against `std497`:
+
+    variant             pool +   pool -   rules moved
+    hoard497                17       20             0
+    dock497                 21       22             1
+    objnpc497               21       23             1
+    dockbridge497           19       19            40
+    airship497              17       19           124
+
+All fifteen churn 17 to 23 locations in *both* directions, `hoard497` included,
+whose rules do not move at all. So the pool difference is printed under its own
+heading and is not counted: a differ that counted it would have reported a
+finding for every flag in the corpus, including the one that found nothing.
+
+What is stable, and is therefore counted: the location ids, which never moved in
+fifteen pairs and which `LOCATION_MAPPING` is keyed on, and
+`priority_locations` -- the incentive pool -- identical across all fifteen.
+
 ### Rebuilding the 4.9.7 corpus
 
 The recipe below, with three differences:

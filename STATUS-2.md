@@ -332,3 +332,59 @@ found refuses; the default being absent is still a skip, deliberately, because a
 machine with no Archipelago checkout is an ordinary condition and a flag that
 names nothing is a typo. `verify.sh` passes `--world` explicitly, which is why
 the gate never saw any of this -- it was ad-hoc runs that were lying.
+
+## One flag apart does not hold the pool still
+
+Landed 2026-09-03. `tools/export_diff.py` is the tool the fifteen 4.9.7 flag
+rows were produced without: roll two cartridges one flag apart, diff the
+exports, and what moved is the flag's doing. `docs/ORACLE.md` has the invocation
+and the figures; `docs/ROADMAP.md` section 5 has the close.
+
+**The scope was one assumption short, and it was the corpus's own sentence.**
+The 4.9.7 README says "anything that moves between one of those exports and
+`std497`'s is the flag and not the roll", and that reads like a licence to diff
+everything in the file and call all of it the flag. It is true of the rules and
+false of the pool. FFR exports only the locations holding pool items, and a flag
+change moves the RNG stream, so which chests hold gold moves whether or not the
+logic did. All fifteen variants churn 17 to 23 locations in *both* directions
+against the baseline.
+
+The measurement that settles it is `hoard497`: 17 locations gained, 20 lost,
+**zero rules moved**. A differ that counted pool membership would have reported
+a finding for every flag in the corpus, including the one flag whose export says
+plainly that it changed nothing. That is the failure worth naming, because it is
+not a wrong number — it is fifteen confident answers, one per flag, all of them
+the roll. The tool prints the pool difference under its own heading, says what
+it is, and does not count it.
+
+**What is counted was checked for the same fault rather than assumed safe.**
+Location ids never moved across the fifteen, and `LOCATION_MAPPING` is keyed on
+them, so a name that keeps its place and changes its id would be read as a
+different location by everything downstream — a row of its own even though
+nothing has tripped it. `priority_locations` was identical across all fifteen,
+so the incentive pool is signal and not roll, which is what makes it the place a
+computed flag like `IncentivizeCaravan` shows up.
+
+**Absence and emptiness are kept apart in three places**, all the same failure
+in different clothes. An export that cannot be read exits 2 rather than
+inheriting `parse_ap_rules`'s empty dict and reporting "no changes" for a file
+it never opened — the `ap_location_paths` cheerful zero, one function along, and
+it was written down in the roadmap before it could be built wrong. A pair whose
+seeds cannot both be named is incomparable rather than agreement, because
+attribution is only sound at one seed. And a section the other export shape does
+not carry is reported as not compared rather than as everything removed: an
+Archipelago spoiler has rules and no `priority_locations`, and "21 incentive
+locations removed" would be a finding invented out of a file format.
+
+**The test earns its rows by being broken on purpose.** Three mutations, each
+turning exactly the intended rows red: compare nothing and the rule rows fail;
+make the comparison order-sensitive and the reordered-rule row fails; count the
+pool churn and the row that says churn alone is zero fails. Sixteen green rows
+prove nothing on their own, which this pack has already recorded about
+`test_maps.lua` check 6 — a check that compares a file to itself cannot fail for
+any reason.
+
+Still true and not addressed here: the corpus README's sentence is unqualified
+where it sits, in `seeds/ff1/oracle-4.9.7/README.md`, which is in the workspace
+repo rather than this one.
+

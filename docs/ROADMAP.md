@@ -299,17 +299,33 @@ and section 2 is what comes next.
   neither conjunct.
 
 
-- **An export-vs-export diff, `tools/export_diff.py`.** Roll two cartridges one
-  flag apart, diff the exports, attribute the moved rules to the flag — which is
-  how every flag row in `docs/ORACLE.md` was produced, about fifteen times, by
-  hand and with no committed tool. `check_logic.parse_ap_rules` already reads
-  both export shapes and all 227 of `std497`'s export rules resolve to a pack
-  section path, so the address book is complete and tested; the differ is small
-  on top of it.
+- **An export-vs-export diff, `tools/export_diff.py`. Built 2026-09-03.** Roll
+  two cartridges one flag apart, diff the exports, attribute the moved rules to
+  the flag — which is how every flag row in `docs/ORACLE.md` was produced, about
+  fifteen times, by hand. It compiles nothing, so it costs none of the
+  independence the bullet below would.
 
-  It is also the honest half of the bullet below, available without deciding
-  it: attributing a rule change to a flag **compiles nothing**, so it costs none
-  of the independence that compiling would.
+  **The scope was one assumption short, and the corpus said so.** "One flag
+  apart holds everything but the flag still" is true of the rules and false of
+  the pool: FFR exports only the locations holding pool items, and a flag moves
+  the RNG stream, so all fifteen 4.9.7 variants churn 17 to 23 locations in both
+  directions against `std497` — `hoard497` among them, whose rules do not move
+  at all. A differ that counted that churn would have found something for every
+  flag in the corpus including the one that found nothing, which is the shape of
+  a tool that looks like it works. The pool difference is printed under its own
+  heading and not counted; the rules, the location ids and
+  `priority_locations` are. Figures and the invocation: `docs/ORACLE.md`,
+  "Diffing the corpus, and what one flag apart does not hold still".
+
+  Three answers rather than two, like `tofr_diff.py`: a pair it cannot certify
+  as one seed, and an export it cannot read at all, both exit 2 rather than
+  reporting a difference count. The second is the `parse_ap_rules` half of the
+  `ap_location_paths` bug closed the same day — inheriting that empty dict would
+  have reported "no changes" for a file it never read.
+
+  **First use is the `NPCItems` pair**, which is the measurement that flag's own
+  row asks for and would move it off `unjudged`. It needs two cartridges rolled
+  and does not exist yet.
 - **`check_logic`'s default `--ff1-world` was wrong and failed silently.
   Closed 2026-09-03.** `ap_location_paths` (`tools/check_logic.py:669`)
   defaulted to `<pack>/../Archipelago/worlds/ff1`, which resolves to
