@@ -931,8 +931,8 @@ KEY_PAD = 4
 # about this -- his cyan and purple swap roles between the optimised route and
 # the with-loot one from map to map -- so fixing one colour per lane across all
 # 61 is the thing to improve on rather than copy.
-LANE_PLAIN = 0x2C             # cyan   -- the walk you can always do
-LANE_KEY = 0x34               # purple -- only the steps a key buys
+LANE_ROUTE = 0x2C             # cyan   -- the walk you can always do
+LANE_LOOT = 0x34              # purple -- only the steps a key buys
 LANE_FORCED = 0x16            # red    -- a trap tile with no way round
 LANE_LINK = 0x10              # silver -- two tiles that are one check
 LANE_START = 0x30             # white  -- where the lane begins
@@ -948,8 +948,8 @@ ARROW_EVERY = 7
 # The key's own wording. No punctuation anywhere: font.CHARS is digits and
 # letters only, so a slash in "Optimal w/Key" draws as a gap.
 LANE_KEY_TEXT = {
-    "plain": "Optimal Route",
-    "key": "Optimal w Key",
+    "route": "Optimal Route",
+    "loot": "Optimal w Key",
     "forced": "Forced Fight",
     "link": "Linked Chest",
 }
@@ -991,10 +991,10 @@ def lane_key_entries(lanes):
     if lanes is None:
         return []
     out = []
-    if any(r.label == "plain" for r in lanes.runs):
-        out.append((LANE_PLAIN, LANE_KEY_TEXT["plain"]))
-    if any(r.label == "key" for r in lanes.runs):
-        out.append((LANE_KEY, LANE_KEY_TEXT["key"]))
+    if any(r.label == "route" for r in lanes.runs):
+        out.append((LANE_ROUTE, LANE_KEY_TEXT["route"]))
+    if any(r.label == "loot" for r in lanes.runs):
+        out.append((LANE_LOOT, LANE_KEY_TEXT["loot"]))
     if any(c in r.traps for r in lanes.runs for c in r.path):
         out.append((LANE_FORCED, LANE_KEY_TEXT["forced"]))
     if lanes.links:
@@ -1076,7 +1076,7 @@ def draw_lanes(out, w, h, crop, lanes):
        orthogonal and goes through walls where the two tiles are in different
        rooms, which is the point -- the claim is "these two are one check", not
        "you can walk between them".
-    2. the plain lane, then the key lane *as an extension of it*. Where both
+    2. the route lane, then the loot lane *as an extension of it*. Where both
        use the same corridor there is one line, in the colour of the walk you
        can always do; purple appears only on the steps the key actually buys.
        Drawing both in full -- even offset by a pixel -- puts two parallel
@@ -1110,27 +1110,27 @@ def draw_lanes(out, w, h, crop, lanes):
             dot(x2, y, silver)
 
     def steps(run, shared):
-        """The pairs this run draws: for a key lane, only what it adds."""
+        """The pairs this run draws: for a loot lane, only what it adds."""
         return [(a, b) for a, b in zip(run.path, run.path[1:])
-                if a != b and not (run.label == "key"
+                if a != b and not (run.label == "loot"
                                    and frozenset((a, b)) in shared)]
 
     shared = set()
     drawn = []
     prev_label = None
     for run in lanes.runs:
-        # plan() emits [plain?, key?] per region, and drops the plain run for a
-        # region that collects nothing keyless. So a key run belongs to the
-        # plain run immediately before it and to no other: carrying the last
+        # plan() emits [route?, loot?] per region, and drops the route run for
+        # a region that collects nothing keyless. So a loot run belongs to the
+        # route run immediately before it and to no other: carrying the last
         # region's edges into the next one subtracts steps this lane genuinely
         # walks, leaving a gap in a line that is supposed to be continuous.
-        if run.label == "plain":
+        if run.label == "route":
             shared = {frozenset((a, b))
                       for a, b in zip(run.path, run.path[1:]) if a != b}
-        elif prev_label != "plain":
+        elif prev_label != "route":
             shared = set()
         prev_label = run.label
-        base = NES_PALETTE[LANE_KEY if run.label == "key" else LANE_PLAIN]
+        base = NES_PALETTE[LANE_LOOT if run.label == "loot" else LANE_ROUTE]
         forced = NES_PALETTE[LANE_FORCED]
         mine = steps(run, shared)
         drawn.append((run, base, mine))

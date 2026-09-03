@@ -104,7 +104,7 @@ MAX_ENTRIES = 32 * 1024 * 1024
 
 class Run(NamedTuple):
     """One drawn lane: where it starts, the tiles it walks, what it collects."""
-    label: str            # "plain" or "key"
+    label: str            # "route" or "loot"
     start: tuple
     path: list            # [(col, row)], consecutive and 4-adjacent mod 64
     traps: frozenset      # the fixed-formation tiles on this floor
@@ -114,7 +114,7 @@ class Run(NamedTuple):
 
 class Lanes(NamedTuple):
     """Everything one map's art needs drawn on it."""
-    runs: list            # [Run], plain before key, one pair per region
+    runs: list            # [Run], route before loot, one pair per region
     links: list           # [(a, b)] tile pairs, the silver connectors
 
 
@@ -452,7 +452,7 @@ def regions(f):
     Read holding what the floor gates on. A locked door is not a region
     boundary, it is the reason for the second lane, and reading regions keyless
     files the gated checks under "not on this floor" -- which is how
-    MarshCaveB3 lost its with-key lane entirely.
+    MarshCaveB3 lost its loot lane entirely.
 
     Mutually, and against every member rather than the first one. Reachability
     here is not symmetric: search() reaches a teleport tile but will not expand
@@ -516,7 +516,7 @@ def plan(rom, graph, map_id, chests=None):
         # bug the second lane exists to fix.
         # Walkable keyless first, then check count. arrivals() filters on the
         # full inventory and search() seeds its start without asking, so a door
-        # the gate NPC stands in is a legal arrival that the plain lane cannot
+        # the gate NPC stands in is a legal arrival that the route lane cannot
         # legally begin on -- No-Overworld ConeriaCastle1F (2, 8) below. The
         # `if got:` guard catches that only when the region collects nothing
         # keyless; a region that collects something still rooted its lane there.
@@ -528,17 +528,17 @@ def plan(rom, graph, map_id, chests=None):
         # A run that collects nothing is not a route. It happens wherever the
         # floor's checks all sit behind the gate -- ConeriaCastle1F,
         # ElflandCastle and TitansTunnel on the duck cartridges -- and what it
-        # draws is a start box on a tile the key lane is about to draw a start
+        # draws is a start box on a tile the loot lane is about to draw a start
         # box on anyway. Worse on a No-Overworld ConeriaCastle1F, where the
         # arrival (2, 8) is the tile the gate NPC stands on: keyless you cannot
         # be there at all, so the one-tile "lane" is a walk the game refuses.
         # Hence the walkable(start) half: a region whose every arrival is a
-        # gate tile gets no plain lane even when it collects something, because
+        # gate tile gets no route lane even when it collects something, because
         # there is no keyless walk out of a door you cannot keylessly stand in.
-        # The key lane still draws, rooted at the same arrival, which holding
+        # The loot lane still draws, rooted at the same arrival, which holding
         # the key is a legal place to be.
         if got and bare.walkable(start):
-            runs.append(Run("plain", start, walk, frozenset(bare.trap),
+            runs.append(Run("route", start, walk, frozenset(bare.trap),
                             got, miss))
         # The second lane prefers the first one's tiles, so the two coincide
         # wherever that is free and the key colour only ever means "here they
@@ -550,7 +550,7 @@ def plan(rom, graph, map_id, chests=None):
         kwalk, kgot, kmiss = full.lane(
             here, start, finish=exits(full, not_at={start}))
         if kgot and kwalk != walk:
-            runs.append(Run("key", start, kwalk, frozenset(full.trap),
+            runs.append(Run("loot", start, kwalk, frozenset(full.trap),
                             kgot, kmiss))
     if not runs:
         return None

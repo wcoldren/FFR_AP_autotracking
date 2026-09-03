@@ -13,9 +13,9 @@ false while the picture still looked plausible:
     Graph.floor_walk() enforces and the router's own cost search has to enforce
     separately. They are not decoration: on the standard duck cartridge they
     change the lane on 8 of 38 chest maps, and TitansTunnel is the clearest --
-    without the NPC rule its plain lane strolls past the Titan and collects all
+    without the NPC rule its route lane strolls past the Titan and collects all
     four chests;
-  * **a key lane appears where and only where the floor gates on something**,
+  * **a loot lane appears where and only where the floor gates on something**,
     which is Graph.floor_items()'s answer and not a list here;
   * **the Map Key fits the map it is drawn on.** The band is the map's own
     width and the narrowest map carrying a chest is sixteen tiles across.
@@ -55,9 +55,9 @@ def shape(lanes):
 
 
 def regions_do_not_share_edges():
-    """A key lane in one region must not subtract another region's plain lane.
+    """A loot lane in one region must not subtract another region's route lane.
 
-    plan() emits [plain?, key?] per region and drops the plain run wherever a
+    plan() emits [route?, loot?] per region and drops the route run wherever a
     region collects nothing keyless, so a second region can arrive at
     draw_lanes as a bare key run. Regions overlap in tiles -- search()
     reachability is asymmetric across staircase arrivals -- so the edges the
@@ -73,17 +73,17 @@ def regions_do_not_share_edges():
     fails = []
     crop = rm.Crop(box=(0, 9, 0, 9))
     w, h = 10 * rm.TILE_PX, 10 * rm.TILE_PX
-    plain = rm.NES_PALETTE[rm.LANE_PLAIN]
-    purple = rm.NES_PALETTE[rm.LANE_KEY]
+    route = rm.NES_PALETTE[rm.LANE_ROUTE]
+    purple = rm.NES_PALETTE[rm.LANE_LOOT]
 
     def run(label, path):
         return L.Run(label, path[0], list(path), frozenset(), [1], [])
 
-    # Region A walks the corridor keyless and its key lane extends it by one
+    # Region A walks the corridor keyless and its loot lane extends it by one
     # tile. Region B is key-only and walks the same corridor.
-    a_plain = run("plain", [(1, 1), (2, 1), (3, 1), (4, 1)])
-    a_key = run("key", [(1, 1), (2, 1), (3, 1), (4, 1), (4, 2)])
-    b_key = run("key", [(1, 1), (2, 1), (3, 1)])
+    a_route = run("route", [(1, 1), (2, 1), (3, 1), (4, 1)])
+    a_loot = run("loot", [(1, 1), (2, 1), (3, 1), (4, 1), (4, 2)])
+    b_loot = run("loot", [(1, 1), (2, 1), (3, 1)])
 
     def corridor_colour(runs):
         out = bytearray(w * h * 3)
@@ -99,11 +99,11 @@ def regions_do_not_share_edges():
         print(f"{'ok  ' if got == want else 'FAIL'} {label}")
 
     # The shared corridor stays the colour of the walk you can always do.
-    check("a key lane adds nothing where it follows its own plain lane",
-          corridor_colour([a_plain, a_key]), plain)
-    # And a second region's key lane still draws over it.
-    check("a second region's key lane is not subtracted by the first's",
-          corridor_colour([a_plain, a_key, b_key]), purple)
+    check("a loot lane adds nothing where it follows its own route lane",
+          corridor_colour([a_route, a_loot]), route)
+    # And a second region's loot lane still draws over it.
+    check("a second region's loot lane is not subtracted by the first's",
+          corridor_colour([a_route, a_loot, b_loot]), purple)
     return fails
 
 
@@ -140,11 +140,11 @@ def main():
     unwalkable, jumps, through_npc, through_stair = [], [], [], []
     for map_id, lanes in plans.items():
         for run in lanes.runs:
-            # A run's own inventory: the plain lane holds nothing, the key lane
+            # A run's own inventory: the route lane holds nothing, the loot lane
             # holds what the floor gates on. Checking both against the empty
-            # inventory would fail the key lane for doing its job.
+            # inventory would fail the loot lane for doing its job.
             floor = L.Floor(rom, graph, map_id,
-                            have=None if run.label == "key" else set())
+                            have=None if run.label == "loot" else set())
             for i, cell in enumerate(run.path):
                 if not floor.walkable(cell):
                     unwalkable.append((eg.MAP_NAMES[map_id], run.label, cell))
@@ -185,14 +185,14 @@ def main():
     wrong = []
     for map_id, lanes in plans.items():
         gated = bool(graph.floor_items(map_id))
-        if any(r.label == "key" for r in lanes.runs) and not gated:
-            wrong.append((eg.MAP_NAMES[map_id], "key lane on an ungated floor"))
-    check("a key lane only appears on a floor that gates on something",
+        if any(r.label == "loot" for r in lanes.runs) and not gated:
+            wrong.append((eg.MAP_NAMES[map_id], "loot lane on an ungated floor"))
+    check("a loot lane only appears on a floor that gates on something",
           wrong, [])
 
     # --------------------------------------------------- one lane per region
     # Every region that holds a check gets a lane starting at one of its own
-    # arrivals, and no two plain lanes share a start. Serving one region from
+    # arrivals, and no two route lanes share a start. Serving one region from
     # another's door is the bug that drew a second lane on top of the first.
     strays, shared_starts = [], []
     for map_id, lanes in plans.items():
@@ -200,7 +200,7 @@ def main():
         rs = L.regions(probe)
         seen = set()
         for run in lanes.runs:
-            if run.label != "plain":
+            if run.label != "route":
                 continue
             if not any(run.start in r for r in rs):
                 strays.append((eg.MAP_NAMES[map_id], run.start))
@@ -209,11 +209,11 @@ def main():
             seen.add(run.start)
     check("every lane starts at an arrival the game can put you down on",
           strays, [])
-    check("and no two plain lanes on a map start in the same place",
+    check("and no two route lanes on a map start in the same place",
           shared_starts, [])
 
     # ------------------------------------------------ the drawing's own rules
-    # A key lane is drawn as the *extension* of the plain one, so purple should
+    # A loot lane is drawn as the *extension* of the route one, so purple should
     # mean "here the key buys you something" rather than "here the search
     # picked the other corridor". That "extra segments only" is true by
     # construction -- draw_lanes subtracts the shared set -- so asserting it
@@ -221,27 +221,27 @@ def main():
     # makes the two lanes coincide in the first place: turn it off and the
     # purple has to grow. A preference that changes no drawing is dead weight.
     #
-    # It cannot go to zero, and should not: SeaShrineB2's key lane steps
-    # straight from (14,22) to (15,22), two tiles the plain lane reaches by
+    # It cannot go to zero, and should not: SeaShrineB2's loot lane steps
+    # straight from (14,22) to (15,22), two tiles the route lane reaches by
     # separate routes and never walks between. One purple step there is a real
     # shortcut, not a duplicate.
     def extras(rom_, mid_, prefer_edges):
         runs_ = {r.label: r for r in plans[mid_].runs}
         # Both, or there is no coincidence to measure: a floor whose checks all
-        # sit behind the gate draws the key lane on its own.
-        if "key" not in runs_ or "plain" not in runs_:
+        # sit behind the gate draws the loot lane on its own.
+        if "loot" not in runs_ or "route" not in runs_:
             return None
         groups = {i: v for i, v in L.chest_groups(rom_, mid_, chests).items()}
         probe = L.Floor(rom_, graph, mid_)
-        reach = probe.reached(runs_["plain"].start)
+        reach = probe.reached(runs_["route"].start)
         here = {i: [c for c in v if any(x in reach for x in probe.stand(c))]
                 for i, v in groups.items()}
         here = {i: v for i, v in here.items() if v}
-        walk = runs_["plain"].path
+        walk = runs_["route"].path
         f = L.Floor(rom_, graph, mid_,
                     prefer=zip(walk, walk[1:]) if prefer_edges else ())
-        k = f.lane(here, runs_["plain"].start,
-                   finish=L.exits(f, not_at={runs_["plain"].start}))[0]
+        k = f.lane(here, runs_["route"].start,
+                   finish=L.exits(f, not_at={runs_["route"].start}))[0]
         seg = lambda p: {frozenset((a, b))                        # noqa: E731
                          for a, b in zip(p, p[1:]) if a != b}
         return len(seg(k) - seg(walk))
