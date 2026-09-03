@@ -688,6 +688,32 @@ Nothing here is urgent unless it says so.
   the visit order is the author's and the free re-orientation is correct.
   Raised by review 2026-08-31.
 
+  **The editor landed 2026-09-03 and does not settle this.** It strengthens the
+  case for leaving it and weakens nothing: an authored lane chains its legs
+  with `path()` from stops a person clicked, so the free re-orientation now
+  happens at *every* stop rather than only at a chest -- and a clicked waypoint
+  is a stop by definition, which is exactly the argument above about opening a
+  chest. The solved tour is still there behind `--lanes solved`, so the
+  mismatch between the DP's price and `turns()`' count is unchanged for it.
+
+- **The Map Key drops a font scale on the narrowest maps that carry a lane.**
+  `draw_map_key` picks one scale for the whole band, so the longest row decides
+  the size of every row including `Trap Tile G`. `KEY_TEXT_X` is 32 and
+  `font.text_px` is `len(text) * GLYPH_PX * scale`, so "Optimal Route for Loot"
+  at 22 characters needs 32 + 352 = 384px at scale 2 and gets scale 1 below
+  that. Measured 2026-09-03 on both duck cartridges: three maps each --
+  `matoya` (288px), `titans` (304px) and `bahamutB2` (208px) on the standard
+  one, `sky5F` (256px) in place of `bahamutB2` on the No-Overworld one.
+  `bahamutB2` fits at scale 1 with nothing to spare, since the row is exactly
+  208px.
+
+  Taken rather than worked around. The name is the reference's own, and
+  inventing a shorter one to protect a font size is this page's "Our trap
+  letters are not DarkmoonEX's" in a new place. The fallback exists precisely
+  for this and a small key still reads. What would actually buy room is letting
+  `KEY_SWATCH` shrink with the scale, which recovers 12px and is not enough
+  alone.
+
 - **The agreement figures used to grant away most of what they appeared to
   compare. Largely closed 2026-08-30.** `check_logic --derived` hands every
   off-vocabulary item to both sides before comparing (`offvocab_items()`), so a

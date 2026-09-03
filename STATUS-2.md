@@ -254,3 +254,83 @@ this node gains no hand-drawn marker.
 Counters that did move, both of them re-derived rather than adjusted until
 green: the NPC nodes that join go 14 to 15 on an FFR cartridge and 13 to 14 on a
 vanilla one, and the unpinned list goes from six to five.
+
+## The route lanes are named for what they are, and a person draws them now
+
+Landed 2026-09-03. `--lanes` was off by default and `ROADMAP.md` said why: a
+solver cannot know which chests are worth the detour on a given seed. What
+shipped was also named wrong, which mattered more than it sounds, because an
+editor authoring into the wrong vocabulary would have had to be re-authored.
+Both went in together.
+
+**The naming was one loot round drawn in two halves.** Cyan was the keyless
+walk, purple what the key bought. The reference's pair is a traversal route and
+a loot route, and "for loot" already implies the key -- so the genuinely useful
+lane, the walk through a floor opening nothing, did not exist anywhere. The fix
+was not a rename: `plan()` now builds one `Floor` holding the floor's items and
+routes the first lane arrival-to-nearest-exit with no errand at all, one
+`path()` call rather than a tour. The keyless `Floor` is gone; it only ever
+existed to derive the second lane by difference.
+
+The one-inventory consequence is worth stating because it looks like a lost
+check. The route lane may now walk through a door the floor's own key opens.
+That is deliberate: holding an item only widens the walkable set, so the
+traversal is never longer or less safe for it, and `arrivals()` already filtered
+on the full inventory -- which is why the old code needed a keyless-walkability
+guard on the start tile that has now simply gone away, along with the
+No-Overworld ConeriaCastle1F `(2, 8)` case it was written for.
+
+**What it cost, measured rather than expected.** A loot lane appears wherever
+there is loot rather than only on a gated floor, so 29 of the 39 lanes on the
+duck cartridge became a pair and 28 maps grew a legend row -- the first regen
+after this redraws every image, which is the change working and not a bug. And
+`ISSUES.md` gained a font-scale entry: three maps per cartridge now draw their
+Map Key at half size because the longest row is 22 characters.
+
+**The editor is a layered shortest path, not a tour, and that is the whole
+reason it is cheap.** The author supplies the order, so `lane.walk` runs one
+layer per stop over the candidate tiles each stop could be satisfied at --
+one Dijkstra per distinct candidate where `Floor.lane` costs `2**n`. It is
+still exact: taking the nearest candidate at each step commits to a standing
+tile the next leg pays for, which is the defect nearest-neighbour had in the
+tour, one dimension down.
+
+**A stop says what it is, not where it is**, so an authored lane can outlive
+the cartridge it was drawn on. The hint the editor recorded is used where it
+still holds -- so redrawing on the seed it was drawn for gives back exactly the
+lane that was drawn -- and falls back to the stop's meaning where it does not.
+Arrivals need that most: the tiles the game can put you down on are the
+destinations of whatever teleports point at the floor, and a shuffle repoints
+them even when the floor is untouched. Exits are teleport tiles of the map
+itself, so they are as stable as the digest.
+
+**Three outcomes, not two, and that is the thing this got right by writing it
+down first.** No lane file is ordinary. A file whose layout this cartridge does
+not have is also ordinary -- it is a seed having re-laid a floor. Only a layout
+that does match, whose stops will not resolve, is a defect, and that one stops
+the run and writes nothing. Collapsing the first two into "failed" would have
+made a No-Overworld regen a wall of red; collapsing the last into "skipped"
+would have drawn a lane through rock.
+
+**Two things were got wrong first.** The refusal was handed to `report()`,
+which formats a marker as "name on map at x,y" and raised `ValueError` on a
+`(map, why)` pair -- a crash that exits 1 and prints a traceback, which from
+the outside is indistinguishable from the refusal working. And the lane files
+needed a cache key of their own: `inputs_fingerprint` hashes `INPUT_FILES`, so
+without one, editing a lane and re-running printed "nothing to do" over art
+drawn from the old stops. Globbing them into `INPUT_FILES` would have been
+worse -- it moves the fingerprint for every cartridge including `--lanes none`
+runs, which these files have no bearing on.
+
+**A latent drawing bug came out with it.** `draw_lanes` subtracts a region's
+route lane from its loot lane so a shared corridor draws one line, and it found
+the pair by position. Position cannot tell `[routeA, lootB]` from
+`[routeA, lootA]`, and the first became reachable here, because a region whose
+only way out is the way it came in gets no route run at all. On that shape the
+second region's whole lane is erased. Not on either duck cartridge today, but
+both halves of the shape are, so `Run` gained a region index.
+
+**No lane has been authored yet.** The tool is the deliverable; which chests are
+worth the detour is a judgement pass that wants a person and a seed in front of
+them, and `tools/lanes/` is empty on purpose rather than seeded with the
+solver's answer wearing an author's hat.

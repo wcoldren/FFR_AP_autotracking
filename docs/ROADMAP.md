@@ -187,9 +187,31 @@ actually left.
   One colour per lane with the key in the Map Key band. `STATUS.md`, "The route
   to walk is drawn on the map".
 
-  **`--lanes` now defaults to `none`, and the next step is an editor rather
-  than a better solver.** Three things say the derived lane is the wrong
-  product: a map with no chest gets no lane at all (`lane.plan` returns `None`
+  **The editor landed 2026-09-03, and the pair is named right.**
+  `tools/lane_edit.py` serves a page on loopback: click a tile to add a stop,
+  drag one to move it, and `lane.walk` fills in the walking between them. Stops
+  are typed -- arrival, chest index, exit, or a bare tile -- so a lane outlives
+  the seed it was drawn on, and `tools/lanes/<map>.json` carries a digest of the
+  floor that refuses to draw on a floor it was not drawn on. `regen_maps.py
+  --lanes authored` bakes them; `--lanes solved` is the old derived pair, renamed
+  because it now draws both. The router is untouched and became the pathing
+  primitive, as this said it should.
+
+  The naming fix landed with it, because an editor that authored into the wrong
+  vocabulary would have had to be re-authored: "Optimal Route" is now the
+  traversal lane, arrival to the nearest exit opening nothing, and "Optimal
+  Route for Loot" holds the floor's items from the start. `IDEAS.md` has what it
+  cost.
+
+  **What is still open**, so the close is not read as more than it is: no lane
+  has been authored yet, which is a judgement pass and wants a person; a loot
+  lane still walks to a linked chest whose twin an earlier floor would have
+  cleared, which needs a run-wide order; the by-eye pass against DarkmoonEX's 58
+  drawn images has not started; and a map with no chest still gets no lane at
+  all, which is now cheap to change because a traversal lane needs no errand.
+
+  **Why an editor rather than a better solver.** Three things said the derived
+  lane was the wrong product: a map with no chest gets no lane at all (`lane.plan` returns `None`
   on an empty `chest_groups`, so only the 38 chest-bearing maps of the 61 get
   one on the standard duck cartridge, and 37 on the No-Overworld one); the cost
   model is four constants and has no notion of which chests are worth the
@@ -242,12 +264,23 @@ actually left.
   plus bumping the nov count 20 → 21 in `SHEET_RULED`,
   `tests/test_pins.lua:146`.
 - **Boss names in the Map Key**, from the formation ids already in hand.
+- **A traversal lane on the maps with no chest.** `plan()` returns `None` on an
+  empty `chest_groups`, which was right when every lane was a loot round and is
+  not now: the other 23 maps have a walk through them. Cheap, and deferred off
+  the editor branch only because it moves all 61 images.
 
 ## 5. Tooling that keeps 1–4 true
 
 **Section 5's first two bullets closed 2026-09-01** and are the two dated
 closes below. What stops section 1 decaying is now a test rather than a habit,
 and section 2 is what comes next.
+
+- **The lane editor. Closed 2026-09-03.** `tools/lane_edit.py` is section 4's
+  route work, filed here because what it keeps true is that a drawn route is a
+  person's judgement rather than a solver's guess. Two things earn its place:
+  the page has no pathfinder of its own, so what it draws is what the bake
+  draws, and it re-walks every lane server-side before writing, so it cannot
+  author a file `regen_maps` will then refuse.
 
 - **The flag-coverage test. Closed 2026-09-01.**
   `tools/tests/test_flag_coverage.py` fails when FFR grows a flag nothing in
