@@ -109,12 +109,17 @@ for _, file in ipairs(INCENTIVE_FILES) do
     end
   end)
 end
--- 26 gated sections in locations/incentives.json less the Bahamut hoard, plus
--- 24 in the NOverworld tree, which has no Nerrick. The hoard hosting the
+-- 27 gated sections in locations/incentives.json less the Bahamut hoard, plus
+-- 25 in the NOverworld tree, which has no Nerrick. The hoard hosting the
 -- NOverworld tree gained is not counted on either side: it carries a
 -- visibility rule and an empty access_rules, so it is hidden rather than
 -- demoted.
-check("sections reporting Inspect when not incentivized", gated, 49)
+--
+-- One more on each sheet than before the shop slot took its flag: FFR computes
+-- the shop-slot incentive rather than declaring it, so the slot is spoken for
+-- by npcsAreIncentive like the six free NPCs and reports Inspect on a seed
+-- that left Main NPCs unincentivized.
+check("sections reporting Inspect when not incentivized", gated, 51)
 
 ------------------------------------------------------------------
 -- 3. Every flag named is a real item code.
@@ -216,10 +221,19 @@ for _, path in ipairs(unresolved) do
   fails("no section at " .. path)
 end
 
--- 26 on the incentive tab (the 25 demoted plus the hoard, which still hides),
+-- 27 on the incentive tab (the 26 demoted plus the hoard, which still hides),
 -- 3 more the NOverworld tree renames or hosts under a different node, and 26 on
 -- the real board.
-check("slots in the generated table", #INCENTIVE_SLOTS, 55)
+--
+-- The shop slot adds one row where every other slot adds two, and that is not
+-- an omission. A row's path is `@<node>/<section>`, and the board's node for
+-- this slot is itself named `I: Shop Item` -- the only board node carrying the
+-- sheet prefix -- so the sheet path and the board path are the same string and
+-- the second is deduped away. Which section that one row reaches is settled
+-- and not ambiguous: PopTracker returns the first location whose id ends with
+-- the ref and scripts/init.lua loads overworld.json first, so it is the board's.
+-- docs/ISSUES.md, "The `I: Shop Item` pin ignores the flag that governs it".
+check("slots in the generated table", #INCENTIVE_SLOTS, 56)
 
 for flag in pairs(flagsInTable) do
   if not byCode[flag] then

@@ -137,13 +137,15 @@ for _, rel in ipairs(DUNGEON_TREES) do
   check(rel .. ": pins with no rule", n.none, 29)
 end
 
--- The sheets. 17 of 26 std slots and 20 of 28 nov ones can be spoken for by an
+-- The sheets. 18 of 26 std slots and 21 of 28 nov ones can be spoken for by an
 -- incentive flag; the rest hold a section no flag covers, so no rule may claim
--- to hide them. Nine and eight: the four with no slot at all -- Temple of
--- Fiends, ToFR, Shop Item, and Ryukahn Desert on the standard sheet -- and the
--- five orb slots.
-local SHEET_RULED = { ["locations/incentives.json"] = 17,
-                      ["locations/NOverworld/incentives.json"] = 20 }
+-- to hide them. Eight and seven: the three with no slot at all -- Temple of
+-- Fiends, ToFR, and Ryukahn Desert on the standard sheet -- and the five orb
+-- slots. Shop Item used to be a fourth; it has a flag now, because FFR
+-- computes the slot's incentive status out of NPCItems and IncentivizeFreeNPCs
+-- rather than declaring a flag of its own.
+local SHEET_RULED = { ["locations/incentives.json"] = 18,
+                      ["locations/NOverworld/incentives.json"] = 21 }
 for _, rel in ipairs(INCENTIVE_TREES) do
   local ruled = 0
   eachPin(trees[rel], function(_, marker)
@@ -348,9 +350,14 @@ end
 -- and the counts differ by that one pin rather than by which NPCs are on them.
 -- showPin ORs the flags in a rule, because a pin stands for every section under
 -- it and one live slot is reason enough to draw.
+--
+-- `off` is one lower on each sheet than before the shop slot took its flag,
+-- and `on` and `npcs` are untouched. That is the shape to expect: a pin that
+-- gains a visibility rule stops being drawn when the flag is off, and neither
+-- the total nor the NPC classification moves with it.
 local SHEET_DRAWN = {
-  ["locations/incentives.json"] = { on = 26, off = 9, npcs = 14 },
-  ["locations/NOverworld/incentives.json"] = { on = 28, off = 8, npcs = 13 },
+  ["locations/incentives.json"] = { on = 26, off = 8, npcs = 14 },
+  ["locations/NOverworld/incentives.json"] = { on = 28, off = 7, npcs = 13 },
 }
 for _, rel in ipairs(INCENTIVE_TREES) do
   local want = SHEET_DRAWN[rel]

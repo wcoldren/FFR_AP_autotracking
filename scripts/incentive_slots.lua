@@ -32,6 +32,7 @@ INCENTIVE_SLOTS = {
   { flag = "skyIsIncentive",          path = "@I: Sky Palace/I: Sky Incentive" },
   { flag = "npcsAreIncentive",        path = "@I: Waterfall/I: Robot" },
   { flag = "seaIsIncentive",          path = "@I: Sea Shrine/I: Sea Incentive" },
+  { flag = "npcsAreIncentive",        path = "@I: Shop Item/I: Shop Item" },
   { flag = "coneriaLockedIsIncentive", path = "@I: Coneria Castle Locked/I: Coneria Castle Incentive" },
   { flag = "BahamutHoard",            path = "@I: Bahamut/I: Cardia Incentive" },
   { flag = "seaIsIncentive",          path = "@I: Sea Incentive/I: Sea Incentive" },
