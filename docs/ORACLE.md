@@ -6,7 +6,7 @@ rules FFR hands Archipelago — and `tools/check_logic.py` compares that with th
 pack's rules as truth tables. This file says which cartridge answers which
 question, and how to rebuild any of them from nothing.
 
-Five cartridges, all 4.9.2, all generated locally with `Spoilers` and
+Six cartridges, all 4.9.2, all generated locally with `Spoilers` and
 `Archipelago` on so the export is attached.
 
 **All 4.9.2 is a limit as well as a fact.** `ShipDrydock`, `MapAirshipHike` and
@@ -26,6 +26,7 @@ the export drops ToFR.
 | `nov2` | `oracle_nov` | `1D0BE11E` | GameMode 2, ToFRMode 2 (Short) | second seed at identical flags — the ToFR control |
 | `shard` | `oracle_shard` | `5A4D0BAF` | GameMode 0, ShardHunt | `isShardHunt()` against a real export |
 | `notail` | `oracle_notail` | `45057553` | GameMode 0, ToFRMode 0 (Long), NoTail | that `NoTail` reaches no exported rule — see below |
+| `novnolefein` | `oracle_novnolefein` | `F2585541` | the same as `nov`, minus `LefeinSuperStore` | what `LefeinSuperStore` does to a No-Overworld seed, which is nothing a router sees |
 
 Modes are quoted as **read back off the cartridge**, never off the filename —
 that trap has bitten more than once.
@@ -34,11 +35,17 @@ that trap has bitten more than once.
 flags, not the seed, which is what makes them a fair control for anything
 seed-driven.
 
+**`nov` and `novnolefein` are the other kind of pair**, and share the *seed*
+rather than the flags -- the tighter control, and the one the 4.9.7 corpus uses
+throughout. Two cartridges here now carry seed `F2585541`, so name the slug in
+prose for these as well; the paragraph below about `F258553F` says why.
+
     std    omlInPoZ8aeRURUYlp1dof0D5xNDnrlGj9iV9YttYmO7Dv1Rmi6B0yqiIVR2PBvLS3STrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
     nov    omlY4TDJ0WBi73FLBF5hW902l51xl72yHm32Rio0v38eGNM0fKy0TT8KJ-a0NWDQIIcxpvj7MlpYDG7gMaaVe-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
     nov2   (identical to nov)
     shard  omlInPoZ8aeCvsimCReMV9G4KHYm3TUYASJBGOBHlVOiR1kCNT91VO6GOxnA9GbEBb7YM1kQIzMfs8M3W7C8VP-aE5sJ0h2VYqBCNFMidFYuxFDg.QyWC6OgqMHtZPIrzXE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
     notail omlInPoZ8aeRURUYe2aUg0I8HZZCUXtPc76esLTcnyl5plsgMDVIQ3lOapR226xybGTTrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
+    novnol omlY4TDJ0WBi73FLBF5VGzzAxztAsvA1h7hrrqcjdsidtXDK56cD4rAwa.3JnP7xA1eccFbQG-e.47l5WKeeBsCx37sjlvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
 
 Each cartridge sits in its own directory with its spoiler `.txt`, its
 Archipelago `.yaml` and, for the two No-Overworld ones, the derived rules JSON.
@@ -96,6 +103,7 @@ Last run 2026-08-30, on freshly rebuilt cartridges.
 | `nov2`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein) — **5 granted**, **219** genuinely comparable; 255 derived, 0 unreachable |
 | `nov` vs `nov2`, ToFR shuffle | **0 differences** |
 | `notail`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
+| `novnolefein`, derived rules vs FFR | **222 compared, 221 agree, 1 divergent** (Lefein, the same strict row `nov` has) — **5 granted an off-vocabulary item**; 256 derived, 0 unreachable |
 
 `std`'s 225/225 is the baseline to protect: it validates the harness end to end
 against rules that were written by hand, and it must not move. `shard`'s 229/229
@@ -555,7 +563,7 @@ had.
 | the cartridge's own tiles, `oracle_nov` | **all 5 cells the flag-on branch of `ApplyMapMods` writes hold what it writes; no cell only the flag-off branch touches does** |
 | the three writes both branches share | **all 3 match, unflipped** — so `ApplyMapMods` ran and the `(x, y)` reading is right, which is what makes the answer above evidence rather than a miss |
 | what the flag-off branch would change | **`(x=0,y=2)` and `(x=1,y=2)` become tile `0x0E`, property `0x01`** — a plain wall where the corpus has `0x00` and walkable |
-| where those two cells sit | **the mouth of a walkable column down Lefein's left edge** on the corpus cartridge. Whether sealing them moves a link is unwalked |
+| where those two cells sit | on the left-edge column. **Not its mouth**, which is the correction below |
 
 The coordinate convention is the trap worth writing down. `Map.Put` takes
 `(x, y)` and the indexer is `[y, x]` (`FF1Lib/StandardMaps/Map.cs:170` and
@@ -564,8 +572,61 @@ flipped map would put every coordinate at `63-x`. Both readings were checked
 against the three shared writes before any conclusion was drawn from the
 conditional ones; Lefein is not flipped on `oracle_nov`.
 
-The seed still owed is **No-Overworld with `LefeinSuperStore` off**. Rolling
-one with it on re-measures what all 22 cartridges already say.
+The seed owed was **No-Overworld with `LefeinSuperStore` off**. It was rolled
+on 2026-09-03 as `novnolefein`, and the next section is what it answered.
+
+## `LefeinSuperStore` off: what it moves, which is not a link
+
+Measured 2026-09-03 on `novnolefein`, rolled for this and nothing else —
+`oracle_nov`'s preset at `oracle_nov`'s seed with one boolean flipped. The
+cartridge is a clean control: decoding both gives **533 flags each and exactly
+one differing**, and it is `LefeinSuperStore`. `GameMode 2` and `ToFRMode 2` are
+read back off the cartridge, not off the preset.
+
+| question | answer |
+|---|---|
+| does any link move | **no.** `entrance_graph.py` gives 32 doors identical, 157 staircases both, 54 of 61 maps reachable with every item both |
+| does any derived rule move | **no.** Both cartridges derive **256 locations, 0 unreachable**, and the two sets have the same names |
+| the 10 locations whose rule differs | all of them are the **per-seed rolled things `docs/NOVERWORLD.md` already names** — 8 are the Cardia/Bahamut gateway permutation (`Bahamut's Cave Bahamut` trades rules with the seven `Cardia Forest` entries) and 2 are the ToFR bonus chest ids (`ToFR Kary Floor 1` and `ToFR Lute Plate Room 1` trade) |
+| does it grade differently against FFR | **no.** `check_logic --derived` gives **222 compared, 221 agree, 1 divergent**, and the divergence is the same deliberately-strict `Lefein` row `nov` has |
+| Lefein's own tiles | **72 cells differ**, and both branches' writes hold on their own cartridge. All three writes both branches share hold on both |
+| three other maps differ too | Gaia 20 cells, Waterfall 4, Castle Ordeals 2F 14 — **roll churn, not the flag**; see below |
+
+**The flag does not seal the left-edge column; it moves the plug down a row.**
+The premise this measurement was pointed at said `(0,2)` and `(1,2)` are the
+mouth of a walkable column and asked whether sealing them moves a link. Reading
+the column on both cartridges says the mouth is already shut on the flag-**on**
+side:
+
+    x=0..1   y=0    y=1    y=2    y=3..8   y=9
+    nov      walk   WALL   walk   walk     WALL
+    off      walk   walk   WALL   walk     WALL
+
+So each cartridge has exactly one two-cell plug in that column, one row apart,
+and the row between the two plugs changes which pocket it belongs to. Nothing
+opens and nothing closes, which is why no link moves. A reader who took
+"sealing" at face value would have gone looking for a lost connection.
+
+**The roll diverges, and attributing the other three maps to the flag would be
+the diff-shaped-evidence mistake.** The two spoilers differ by 795 lines: item
+placement is re-rolled wholesale, so this pair holds the rules still and not the
+pool, exactly as the 4.9.7 one-flag pairs do. None of the three routines that
+wrote those cells reads `LefeinSuperStore` — Gaia's 20 are one
+`PickRandom(rng)` replacement tile in `MoveGaiaItemShop`
+(`StandardMaps/SMUpdates.cs:286`), Waterfall's 4 and Ordeals' 14 are
+permutations of their own tiles. There is a path by which the flag reaches the
+stream: `ApplyMapMods` runs at `MetroidVaniaMap.cs:58` and
+`CreateTeleporters(..., rng)` at `:60`, and that derives its unused-tile pool
+from what is on the maps (`:462`, `:22-44`). Which rng draw first differs was
+not pinned and is deliberately not claimed here.
+
+**One number in this file was tool drift, not the flag.** The committed
+`nov/derived_nov.json` holds 255 rules and a fresh derivation of the same
+cartridge holds 256; the extra one is `Titan's Tunnel Titan`, which the NPC
+location work added after that file was written. Re-deriving `nov` before
+comparing is what kept that from being read as a location the flag creates.
+The committed file has not been regenerated.
+
 
 ## Rebuilding
 
@@ -602,7 +663,9 @@ will not accept a path. Each flags preset is a stock 4.9.2 preset from
 `ArchipelagoEquipment`, `ArchipelagoGold`, `ArchipelagoShards`. The pool flags
 are what take FFR's `rules:` from the key items alone up to 225 locations.
 `oracle_std` is `default.json`, `oracle_nov` is `NOverworld.json`, `oracle_shard`
-is `Shard_Hunt.json`.
+is `Shard_Hunt.json`. `oracle_novnolefein` is `oracle_nov.json` with
+`LefeinSuperStore` set `false` and nothing else -- the two files differ on that
+line and the `Name`, and on nothing else.
 
 **The rebuild is bit-reproducible.** Regenerating `std` and `nov` from their
 flags JSON at their recorded seeds produced ROMs, spoilers and exports

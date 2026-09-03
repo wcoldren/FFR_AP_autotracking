@@ -298,14 +298,13 @@ and section 2 is what comes next.
   The counts and the `NOT_MODELLED` status tally are `docs/FLAG_COVERAGE.md`,
   "Keeping this current".
 
-- **Six flags are filed `unjudged`, and that is the open work.** `NPCItems`,
-  `NPCFetchItems`, `NPCSwatter`, `FiendsRefights`, `ShortToFRFiendsRefights`
-  and `LefeinSuperStore`. Four of them say why they are unsettled and name the
-  measurement that would settle them, rather than borrowing a neighbour's
-  reason -- three of the four waiting on a cartridge nobody rolled, and
-  `LefeinSuperStore` on one the corpus cannot contain, which is not the same
-  thing and read as if it were. A list padded to make the test pass is the test not existing. Each is
-  a section-1 candidate if it turns out to move a pin.
+- **Five flags are filed `unjudged`, and that is the open work.** `NPCItems`,
+  `NPCFetchItems`, `NPCSwatter`, `FiendsRefights` and
+  `ShortToFRFiendsRefights`. Three of them say why they are unsettled and name
+  the measurement that would settle them, rather than borrowing a neighbour's
+  reason, and each is waiting on a cartridge nobody has rolled. A list padded to
+  make the test pass is the test not existing. Each is a section-1 candidate if
+  it turns out to move a pin.
 
   **Two of the six are a different thing, since 2026-09-03**, and the count
   above went stale by missing one of them. `NPCItems` and `NPCFetchItems` are
@@ -313,39 +312,28 @@ and section 2 is what comes next.
   they wait on is the section-1 build and no longer a measurement. They are the
   section-1 candidates that turned out to move a ring.
 
-  **`LefeinSuperStore` is the live measurement, and the premise it was written
-  on is backwards.** It was filed `noise` — "a shop edit" — on the strength of
-  the word *store* in its name, and refiled `unmeasured` on the strength of a
-  call site that had been cited without being read. Reading it, 2026-09-03,
-  corrects three things at once.
+  **`LefeinSuperStore` left the list on 2026-09-03**, measured rather than
+  argued about. It was filed `noise` — "a shop edit" — on the strength of the
+  word *store* in its name, refiled `unmeasured` on the strength of a call site
+  cited without being read, and then found to be unmeasurable from a corpus
+  whose every preset sets it on. `novnolefein` was rolled to vary it: the
+  `oracle_nov` preset and seed with one boolean flipped, 533 decoded flags and
+  exactly one differing.
 
-  It has **two** call sites, not one, and only the first is No-Overworld.
-  `MetroidVaniaMap.cs:58` passes the raw flag to `ApplyMapMods`, which picks
-  between two sets of tile writes to `MapIndex.Lefein` — different wall edges,
-  and a blob called `lefeinNonteleport`. `StandardMaps/SMUpdates.cs:116` calls
-  `EnableLefeinSuperStore` from `Update()`, the general standard-maps pass,
-  taking `flags.NoOverworld` as an *argument* rather than being gated on it: it
-  places the store on either mode and adds two blocking tiles only on
-  No-Overworld. So this is not a No-Overworld-only flag. That site also ANDs in
-  `ShopKillMode_White == None && ShopKillMode_Black == None`, the condition
-  `FlagsCompute.cs:51` names `LefeinSuperStoreEnabled`, which no coverage row
-  mentioned.
+  **It moves no link and no rule.** Both cartridges derive 256 locations with
+  the same names; the 10 rules that differ are the Cardia/Bahamut gateway
+  permutation and the two ToFR bonus chest ids, which every No-Overworld seed
+  rolls. `check_logic --derived` grades it 222 compared, 221 agree, 1 divergent,
+  the same strict `Lefein` row `nov` has. It is `decided`, not retired to a
+  code, because there is nothing for a code to gate.
 
-  **The 75-link table was derived with the flag on, not off**, which is the
-  correction that matters, because it points the measurement the other way.
-  Every preset in both corpora sets it `true` — 4 of 4 at 4.9.2 and 18 of 18 at
-  4.9.7 — so no cartridge here varies it and none ever measured it. The
-  cartridge agrees with its own preset from the other side: on `oracle_nov`,
-  all five cells the flag-on branch writes hold what that branch writes, and no
-  cell only the flag-off branch touches does.
-
-  So the seed to roll is **No-Overworld with the flag off**, and rolling one
-  with it on would re-measure the corpus. What the off branch changes is read
-  rather than guessed: `(x=0,y=2)` and `(x=1,y=2)` become tile `0x0E`,
-  property `0x01`, a plain wall, where every cartridge here has `0x00` and
-  walkable — and on the corpus cartridge those two cells are the mouth of a
-  walkable column down Lefein's left edge. Whether sealing them moves a link is
-  what nobody has walked. `docs/ORACLE.md` has the figures.
+  The correction worth carrying is that the branch does **not** seal Lefein's
+  left-edge column. Each branch leaves exactly one two-cell plug in it, one row
+  apart — flag on, the plug is at `y=1`; flag off, at `y=2` — so nothing opens
+  and nothing closes. The premise this was measured against described the
+  flag-on side as having an open mouth, and it does not. Reading two rows of the
+  column settled in a minute what three rounds of reasoning about the call site
+  had got wrong twice. `docs/ORACLE.md` has the figures.
 
   **The general gap is that a coverage row can state a premise about the corpus
   with nothing holding it to one.** A flag every preset sets the same way is
