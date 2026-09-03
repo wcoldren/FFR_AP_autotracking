@@ -131,8 +131,8 @@ either. The eleven above them are in both schemas.
 | `EarlySage` | `earlySage` | code |
 | `NoTail` | `noTail` | code — declared in `IVictoryConditionFlags` and never read there; see section A' |
 | `ShuffleObjectiveNPCs` | `objectiveNPCs`, through `$noObjectiveShuffle` | code — deliberately strict. `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf Doctor across their three homes and the roll reaches no file the pack can read, so with the flag on the two cells that move ask for all three homes at once. See "The permutation is the problem" below |
-| `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks. `ChestsKeyItems` is read directly — `maptab.lua:87`'s `cartridgeChestsAreChecks()` asks `ffrFlag` for it, and that answer reaches `chestsAreChecks()` and `logic.lua`'s `showPin()`. `NPCItems` is filed `unjudged`, and 2026-09-03 measured it on `nonpcitems497` against `std497`: **zero exported rules move, seven `priority_locations` go, and the caravan slot leaves the export outright** — the six free NPCs lose the computed `IncentivizeCaravan`'s other conjunct and stay checks; `Shop Item` stops being a location at all, 227 to 224. n/a for reachability is confirmed rather than assumed; what it is not n/a for is the gold ring on six and the *existence* of the seventh, and the pack rings all seven on `npcsAreIncentive` alone while showing the caravan pin unconditionally on the overworld tree — see section D, `docs/ISSUES.md` and `docs/ORACLE.md` |
-| `NPCFetchItems` | — | n/a for reachability; affects the incentive ring, and is not modelled. `FlagsCompute.cs:220-226` computes the seven fetch NPCs as `NPCFetchItems && IncentivizeFetchNPCs`, and the sixteen fetch rows of `scripts/incentive_slots.lua` carry `fetchQuestsAreIncentive` — the second conjunct alone — so the ring is predicted wrong the same way `NPCItems` predicts the free half wrong. **Measured** on `nofetchitems497` 2026-09-03: zero rules move, 226/226 agree, seven priority locations go (Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick, Smith) and all seven stay locations — so the repair is the conjunction on seven rows and nothing else. `IncentivizeNerrick` ends `&& !NoOverworld` (`:224`), which only bites on a No-Overworld roll. The eighth pack row, `Dr Unne`, is not among the seven and is not an AP location: FFR has no `IncentivizeUnne`, yet the pack gives it an incentive section — its own entry in `docs/ISSUES.md`. Stays `unjudged` pending the code |
+| `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto; `NPCItems` → `npcItems` | n/a for reachability, confirmed rather than assumed; both affect which pins are checks. `ChestsKeyItems` is read directly — `maptab.lua:87`'s `cartridgeChestsAreChecks()` asks `ffrFlag` for it, and that answer reaches `chestsAreChecks()` and `logic.lua`'s `showPin()`. `NPCItems` has a code since 2026-09-03, because it is the other conjunct of the computed `IncentivizeCaravan` (`FlagsCompute.cs:217`) — FFR's own Incentives tab greys the Main NPCs checkbox out on it (`IncentivesTab.razor:13`, `IsEnabled="@Flags.NPCItems"`). Measured on `nonpcitems497` against `std497`: **zero exported rules move, seven `priority_locations` go, and the caravan slot leaves the export outright** — the six free NPCs stay checks and lose their ring; `Shop Item` stops being a location at all, 227 to 224. So the six carry the conjunction in `access_rules` and the seventh carries `visibility_rules` on its existence |
+| `NPCFetchItems` | `npcFetchItems` | n/a for reachability; it moves the incentive ring and nothing else. `FlagsCompute.cs:220-226` computes the seven fetch NPCs as `NPCFetchItems && IncentivizeFetchNPCs` — FFR's own tab greys Fetch Quest NPCs out on it the same way (`IncentivesTab.razor:14`) — and the pack modelled the second conjunct alone until 2026-09-03. **Measured** on `nofetchitems497`: zero rules move, 226/226 agree, seven priority locations go (Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick, Smith) and all seven stay locations, so the repair is the conjunction and nothing else. `IncentivizeNerrick` ends `&& !NoOverworld` (`:224`), which bites on a No-Overworld roll only and is visible on `nov`: Nerrick is in `locations` and `rules` there but not in `priority_locations`, while his six siblings are. The eighth pack row, `Dr Unne`, is not among the seven and is not an AP location on either corpus: FFR has no `IncentivizeUnne` — its own entry in `docs/ISSUES.md` |
 | `NPCSwatter` | — | n/a |
 
 ### No-Overworld / entrance shuffle (`MetroidVaniaMap.cs`, `EntrancesFloorsShuffle.cs`)
@@ -424,38 +424,43 @@ modelled.
 
 **What the thirty became.** `NOT_MODELLED` in `flag_mapping.lua` carries a
 `status` drawn from the key at the top of this page, so an entry and its row
-here can be checked against each other. The tally below is 32 rather than 30
-because two entries were not part of that count: `ExitToFR` was already there,
-and `NPCFetchItems` was added on 2026-09-03 — the thirty are the ones this
-added:
+here can be checked against each other. The tally below is 30 rather than 31
+because `ExitToFR` was already there when the thirty were added, and because
+two of them have since left:
 
-    ram 7   variant 1   noise 8   unmodellable 6   decided 4   unjudged 6
+    ram 7   variant 1   noise 8   unmodellable 6   decided 4   unjudged 4
 
 `unjudged` is the status that keeps the list usable. A list padded to make the
-test pass is the test not existing, so `NPCItems`, `NPCFetchItems`,
-`NPCSwatter`, the two refight flags above and `LefeinSuperStore` say they are
-unmeasured and name the measurement, rather than borrowing a neighbour's reason.
+test pass is the test not existing, so `NPCSwatter`, the two refight flags above
+and `LefeinSuperStore` say they are unmeasured and name the measurement, rather
+than borrowing a neighbour's reason.
 
-`NPCFetchItems` is the newest row and the one that was in **no** table at all
-until 2026-09-03. It is the fetch half of the conjunction `NPCItems` is the free
-half of, and it was invisible to the completeness check for a structural reason
-worth keeping in mind: `consulted()` greps FFR's *reachability* logic, and this
-flag is read only on the incentive path, so `reads` never contained it and its
-absence from `models` could not show up as a miss. A flag that only ever moves a
-ring is outside what that check can see.
+**Two entries left on 2026-09-03: `NPCItems` and `NPCFetchItems`.** Both were
+measured on a cartridge rolled for them, both turned out to move a gold ring and
+no access rule, and both now carry a code — `npcItems` and `npcFetchItems` —
+which is what their `owed` fields named and what retires an entry. The check
+that removed them is `tests/test_flags.lua`'s "no flag sits unjudged once that
+code exists".
 
-**Four of the six are still unmeasured; `NPCItems` and `NPCFetchItems` are not**, as of 2026-09-03 —
-its measurement ran and found seven slots the pack rings and FFR does not
-(`docs/ISSUES.md`). It keeps the status because the vocabulary has no word for
-"measured, and now waiting on a code": `noise` and `decided` are both false of a
-flag that demonstrably moves a ring, and the entry leaves this list when the
-code lands rather than before. Its `measure` field carries the result instead of
-the request, and a `measured = true` field carries the distinction the prose
-used to carry alone — for one commit the only difference between a flag nobody
-had looked at and one waiting on a build was that one `measure` string began
+`NPCFetchItems` was in **no** table at all until 2026-09-03, and the reason is
+worth keeping in mind now that it is modelled: `consulted()` greps FFR's
+*reachability* logic, and this flag is read only on the incentive path, so
+`reads` never contained it and its absence from `models` could not show up as a
+miss. A flag that only ever moves a ring is outside what that check can see,
+so what holds these two is a grader of the ring rather than a coverage row.
+
+**All four that remain are unmeasured**, and each names the measurement that
+would settle it. The pair that left is the argument for the `measured` and
+`owed` fields the four still carry: the vocabulary had no word for "measured,
+and now waiting on a code" — `noise` and `decided` are both false of a flag that
+demonstrably moves a ring — so `measure` carried the result instead of the
+request and a `measured = true` field carried a distinction the prose had been
+carrying alone. For one commit the only difference between a flag nobody had
+looked at and one waiting on a build was that one `measure` string began
 "done:", which no check could read. `owed` names the code that retires the
 entry, and the check that bites is the third: once that code exists in the
-mapping, an entry still sitting here is stale. `tests/test_flags.lua`
+mapping, an entry still sitting here is stale — which is how these two came out.
+`tests/test_flags.lua`
 holds all of it: a known status, a real reason, a measurement on anything
 `unjudged`, `measured`/`owed` agreeing with the prose, no entry outliving its
 code, and a `computed = true` exemption for the eight flags
