@@ -57,7 +57,7 @@ PACK = os.path.dirname(TOOLS)
 
 LOCATIONS = ("locations/overworld.json", "locations/NOverworld/overworld.json")
 
-# The fourteen NPCs with a section somewhere in the location tree, and the node
+# The fifteen NPCs with a section somewhere in the location tree, and the node
 # each one's pin belongs to. Written out rather than counted so that moving a
 # section between nodes has to come here and say so.
 #
@@ -82,12 +82,15 @@ PINNED = {
     "sara": "Coneria Castle Sara",
     "sarda": "Sarda's Cave",
     "smith": "Dwarf Cave Smith",
+    "titan": "Titan's Tunnel Titan",
 }
 
-# The six the cartridge places that the pack has no box for. Not an oversight:
-# none of them holds a shuffled item, the four fiends write no flag that could
-# be autotracked at all, and `titan` as a code is already taken by ruby stage 2.
-UNPINNED = ("kraken", "lich", "marilith", "tiamat", "titan", "unne")
+# The five the cartridge places that the pack has no box for. Not an oversight:
+# none of them holds a shuffled item, and the four fiends write no flag that
+# could be autotracked at all. Titan was the sixth until the code `titan` was
+# freed -- ruby stage 2 carries `rubyDone` now -- and he is the one of the six
+# that has a signal: $6214 says he has been fed.
+UNPINNED = ("kraken", "lich", "marilith", "tiamat", "unne")
 
 # What tools/npc_positions.json holds. Not the pin list any more -- the pins
 # read the cartridge -- but tests/test_maps.lua has no cartridge, and reads

@@ -230,14 +230,14 @@ else:
     # Guessing the kind from the node name -- the first version of this -- found
     # none of them, because marker_tiles is keyed by node name and the object
     # table by item code.
-    want_npcs = 14 if ffr else 13
+    want_npcs = 15 if ffr else 14
     ok(kinds.get("NPC") == want_npcs,
        f"exactly the {want_npcs} NPC nodes join", str(kinds))
     ok(kinds.get("chest", 0) > 200, "and every dungeon chest does too",
        str(kinds.get("chest")))
 
     # The six that used to resolve to no tile at all. Named individually
-    # because "fourteen" would still pass if one of them dropped out and an
+    # because "fifteen" would still pass if one of them dropped out and an
     # unrelated node appeared. Lefein is the one that is FFR-only, for the same
     # reason the count above is: object $0F is not on a vanilla cartridge.
     named = ["Coneria Castle King", "Coneria Castle Sara", "Crescent Lake",
@@ -258,7 +258,7 @@ else:
        "Nerrick's node knows it is object $08", str(hosts.get("Dwarf Cave Nerrick")))
 
     # Positions come off this cartridge, not out of npc_positions.json. That
-    # file is the vanilla table for the fourteen codes the pack pins, and it
+    # file is the vanilla table for the fifteen codes the pack pins, and it
     # reproduces those exactly; FFR moves NPCs, so deriving a seed's rules from
     # it answers about a different cartridge. Titan moves on an ordinary seed
     # and Nerrick moves on a No-Overworld one.

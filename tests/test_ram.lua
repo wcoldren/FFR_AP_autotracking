@@ -171,9 +171,12 @@ check("fairy turn-in keeps 'bottlepopped'", provided("bottlepopped"), true)
 -- Titan would go red on the seed where they had just opened -- the same shape
 -- of bug as the Bottle above, but on four chests and Sarda rather than one NPC.
 --
--- Stage 1 carries "ruby,titan" for exactly this reason. These cases pin the
--- real access_rules out of locations/overworld.json to it rather than asserting
--- on the code alone, so a later edit that swaps `ruby` for a code the consumed
+-- Stage 1 still carries `ruby` for exactly this reason. Its second code was
+-- `titan` until the Locations cell needed that name, and is `rubyDone` now;
+-- the rename was safe precisely because no rule ever asked for the second code
+-- -- they ask for `ruby`, which both stages provide. These cases pin the real
+-- access_rules out of locations/overworld.json to it rather than asserting on
+-- the code alone, so a later edit that swaps `ruby` for a code the consumed
 -- state does not provide fails here instead of in someone's run.
 local OVERWORLD = json.load(PACK .. "/locations/overworld.json")
 

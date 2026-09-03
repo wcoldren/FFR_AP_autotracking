@@ -142,3 +142,58 @@ The pair also turns out to be the plain union of the two flags,
 saying only because `hoarddockbridge497` established that a pair *can* fail to be
 the union, and one counter-example is enough to make "not the union" a result
 about that pair rather than a rule about pairs.
+
+## Titan gets a cell, by freeing the name rather than working around it
+
+Landed 2026-09-02. He was the last of the six unpinned NPCs with a real signal:
+`$6214` says he has been fed, and the pack was already reading that byte as
+`ruby` stage 1. What stood in the way was a name. `titan` was the second code on
+that stage, so a Locations section could not host it -- `FindObjectForCode`
+would have handed back the Ruby, the box would have read as cleared whenever the
+Ruby was spent, and it could never have been clicked on its own.
+
+**The roadmap asked for a fresh hosted code, and that was the wrong shape.** A
+new name like `titanFed` looks free and is not: the NPC-pin join is keyed on the
+hosted code *being* what `extract_npcs.WANTED` calls object `$14`, and three
+tools do that join independently -- `regen_maps.py`, `noverworld_rules.py`,
+`pin_visibility.py`. A section hosting anything else gets no pin, no object-gate
+id and no `npc` classification, and gets them silently, which is the failure
+`STATUS.md` already records under renaming a `hosted_item`: the report went from
+29 slots to 28 and passed. Freeing the name costs one rename and teaches nothing
+to anybody. No access rule ever asked for that second code -- they all ask for
+`ruby`, which both stages provide -- so `Ruby` stage 2 carries `rubyDone` now,
+on the pattern the Slab already set with `slabDone`.
+
+`$6214` is then read twice, once as `ruby` stage 1 and once as `titan`, which is
+exactly what `sigil` and `mark` do to the Floater and the Canoe and for the same
+reason: the code with the rule is not the code with the box.
+
+**The scoping question was answered by the wrong measurement first.** Asked
+where the Titan gate actually bites, the quick answer was a link-level diff --
+hold every item, withhold the Ruby, count the map links lost. That says two
+links on a No-Overworld cartridge and zero on a standard one, three nov and two
+std cartridges agreeing, and it reads as "this only matters in No-Overworld". It
+is the wrong test: a chest *inside* Titan's Tunnel is not a map link and cannot
+show up in that diff at all. Every access rule on Titan's Trove -- both trees,
+all five alternatives, standard included -- already requires `ruby`, and
+`tests/test_ram.lua` had written down years-equivalent of the same fact in a
+comment: "Both Titan's Trove and Sarda's Cave gate on the bare `ruby` code." So
+on a seed that incentivized the Trove, the slot behind him is a key item on
+either mode, and the cell belongs in both trees.
+
+The generalisation is the one this pack keeps relearning in new clothes: a diff
+answers the question its own units can express. Links were the unit, so links
+were the answer, and the thing actually asked about was checks.
+
+**The pin is not hand-authored, and an early draft of it was wrong twice over.**
+`place_locations` builds a dungeon marker for any node that resolves to a tile,
+so the `titans` pin comes off the cartridge like every other NPC pin -- that is
+the whole payoff of hosting the literal `titan`. The draft also carried an
+overworld marker copied from Titan's Trove, which would have put a second pin on
+exactly `(400, 1950)`, on top of the Trove's own. Dropping it left
+`test_pins.lua`'s four drawn-pin counters untouched, which is the right outcome:
+this node gains no hand-drawn marker.
+
+Counters that did move, both of them re-derived rather than adjusted until
+green: the NPC nodes that join go 14 to 15 on an FFR cartridge and 13 to 14 on a
+vanilla one, and the unpinned list goes from six to five.

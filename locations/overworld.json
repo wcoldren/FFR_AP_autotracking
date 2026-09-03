@@ -1836,6 +1836,23 @@
                 ]
             },
             {
+                "name": "Titan's Tunnel Titan",
+                "access_rules": [
+                    "$standardWorld,airship",
+                    "$standardWorld,$noShipDrydock,ship,canal",
+                    "$standardWorld,melmondRiver,canoe",
+                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
+                    "$noOverworld"
+                ],
+                "sections": [
+                    {
+                        "name": "Titan",
+                        "item_count": 1,
+                        "hosted_item": "titan"
+                    }
+                ]
+            },
+            {
                 "name": "Titan's Trove",
                 "access_rules": [
                     "$standardWorld,ruby,airship",

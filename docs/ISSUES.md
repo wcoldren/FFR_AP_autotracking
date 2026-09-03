@@ -201,15 +201,26 @@ Nothing here is urgent unless it says so.
   bridge to publish the permutation that `tools/extract_npcs.py` already reads.
   `docs/ROADMAP.md` holds it as one item rather than two.
 
-- **Titan has no box.** The code `titan` is already taken by `ruby` stage 2, so a
-  Locations-grid cell needs a new hosted toggle under a different code. It would
-  be a bridge-only cell — Titan is not an Archipelago location either.
+- **Titan has a box now.** Closed 2026-09-02. The obstacle was a name rather
+  than a signal: `titan` was taken by `ruby` stage 2, so a cell could not host
+  it — `FindObjectForCode` would have handed back the Ruby, and the box would
+  have read as cleared whenever the Ruby was spent. The fix was to free the
+  name rather than work around it. No access rule ever asked for that second
+  code, so renaming it to `rubyDone` cost nothing and is what lets the section
+  host the literal `titan`, which is what `extract_npcs.WANTED` calls object
+  `$14` — so the pin, the object-gate id and the `npc` classification all join
+  with no alias taught to `regen_maps.py`, `noverworld_rules.py` or
+  `pin_visibility.py`. `$6214` is read twice, once as `ruby` stage 1 and once
+  as `titan`, the way `sigil` and `mark` already read the Floater and the Canoe.
+  Bridge-only: Titan is not an Archipelago location.
 
-- **Six NPCs the cartridge places have no box anywhere.** Fourteen of the twenty
-  objects `extract_npcs.WANTED` reads have a pin; Unne, Titan and the four
-  fiends host no section in the location tree, so there is no location a pin
-  could belong to. Titan's is the code clash above; the fiends write no flag that
-  could be autotracked at all; Unne holds no shuffled item. Each would be a
+- **Five NPCs the cartridge places have no box anywhere.** Fifteen of the twenty
+  objects `extract_npcs.WANTED` reads have a pin; Unne and the four fiends host
+  no section in the location tree, so there is no location a pin could belong
+  to. It was six until Titan got his box above; the fiends write no flag that
+  could be autotracked at all; Unne holds no shuffled item, and carries the same
+  code clash Titan had (`slab,slabTranslated,unne`), resolvable the same way if
+  that decision is ever revisited. Each would be a
   manual-click cell, which is a decision rather than an omission — written down
   so it stops reading as a gap in the NPC pins. Reaffirmed 2026-08-30 when the
   pins moved to the cartridge and the other six gained boxes; nothing measured

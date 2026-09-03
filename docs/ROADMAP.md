@@ -82,24 +82,35 @@ decisions rather than builds; one is blocked on a section-4 item and has moved
 there; and one asks for rules that already exist. What follows is what is
 actually left.
 
-- **The six NPCs with no box are one list, and the answer is Titan only.**
-  `tools/tests/test_npc_pins.py:90` is the list — `kraken`, `lich`, `marilith`,
-  `tiamat`, `titan`, `unne` — and it was three separate bullets here until now.
-  **Titan gets a cell; the other five are declined.** The distinguishing fact is
-  a signal: Titan being fed is already autotracked at
-  `scripts/autotracking/ram_mapping.lua:119` (`ruby` stage 1, `$6214`), so his
-  box would light itself. Unne holds no shuffled item and the four fiends are
+- **Titan has his cell; the other five stay declined.** Done 2026-09-02.
+  `tools/tests/test_npc_pins.py:90` was the list of six — `kraken`, `lich`,
+  `marilith`, `tiamat`, `titan`, `unne` — and it holds five now. The
+  distinguishing fact was a signal: Titan being fed is autotracked off `$6214`,
+  so his box lights itself. Unne holds no shuffled item and the four fiends are
   spiked battle tiles that write no flag in vanilla or FFR — the orb byte is set
   by the altar, not the kill — so all five would be manual-click forever
-  (`ISSUES.md`, "Six NPCs the cartridge places have no box anywhere" and "The
-  four Fiends and the ToFR refights cannot be autotracked at all"). That is a decision, and it is taken here rather
-  than left as a gap somebody re-opens.
+  (`ISSUES.md`, "Five NPCs the cartridge places have no box anywhere" and "The
+  four Fiends and the ToFR refights cannot be autotracked at all").
 
-  What Titan still wants is **a fresh hosted code**, because `titan` is spent:
-  `items/items.json:174` gives it to `Ruby` stage 2. `unne` has the identical
-  clash at `:202` (`slab,slabTranslated,unne`), which is worth knowing so it is
-  not rediscovered as a second problem if the Unne decision is ever revisited.
-  Bridge-only either way — neither is an Archipelago location.
+  **The fresh hosted code this bullet asked for turned out to be the wrong
+  shape.** `titan` was spent on `Ruby` stage 2, and the obvious answer — a new
+  name like `titanFed` — would have cost more than the clash did: the NPC-pin
+  join is keyed on the hosted code *being* what `extract_npcs.WANTED` calls
+  object `$14`, so a section hosting anything else gets no pin, no object-gate
+  id and no `npc` classification, and falls through silently in three tools at
+  once. No rule ever asked for the second code, so freeing the name was the
+  cheaper move: `Ruby` stage 2 carries `rubyDone`, the cell hosts `titan`, and
+  `$6214` is read twice the way `sigil` and `mark` already are. `unne` has the
+  identical clash at `items/items.json:202` and would resolve the same way.
+
+  **Where the gate bites, measured 2026-09-02 across five cartridges.** Not
+  No-Overworld only, which a link-level diff makes it look like: withholding the
+  Ruby costs two map links on a No-Overworld cartridge and none on a standard
+  one, but that diff cannot see a chest inside the tunnel. Every access rule on
+  Titan's Trove — both trees, all five alternatives, standard included —
+  already requires `ruby`, and so does Sarda's Cave, so on a seed that
+  incentivized the Trove the slot behind him is a key item on either mode. The
+  cell belongs in both trees for that reason.
 - **`shopItem` has no incentive toggle because FFR has no such flag.** This
   bullet used to read as missing wiring. It is not: there is no
   `IncentivizeShopItem` anywhere in the 4-9-7 schema, and
