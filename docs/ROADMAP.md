@@ -300,9 +300,11 @@ and section 2 is what comes next.
 
 - **Six flags are filed `unjudged`, and that is the open work.** `NPCItems`,
   `NPCFetchItems`, `NPCSwatter`, `FiendsRefights`, `ShortToFRFiendsRefights`
-  and `LefeinSuperStore`. Four of them say they are unmeasured and name the
+  and `LefeinSuperStore`. Four of them say why they are unsettled and name the
   measurement that would settle them, rather than borrowing a neighbour's
-  reason. A list padded to make the test pass is the test not existing. Each is
+  reason -- three of the four waiting on a cartridge nobody rolled, and
+  `LefeinSuperStore` on one the corpus cannot contain, which is not the same
+  thing and read as if it were. A list padded to make the test pass is the test not existing. Each is
   a section-1 candidate if it turns out to move a pin.
 
   **Two of the six are a different thing, since 2026-09-03**, and the count
@@ -311,13 +313,45 @@ and section 2 is what comes next.
   they wait on is the section-1 build and no longer a measurement. They are the
   section-1 candidates that turned out to move a ring.
 
-  **`LefeinSuperStore` is the live measurement.** It was filed `noise` — "a
-  shop edit" — on the strength of the word *store* in its name. Its only use is
-  `ApplyMapMods`, reached only from `NoOverworld()`, where it picks between two
-  sets of tile writes to `MapIndex.Lefein`: different wall edges, and a blob
-  called `lefeinNonteleport`. That is walls and a teleport tile in a town the
-  hand-authored 75-link table was derived from with the flag off, and nobody has
-  walked it. The reason cited the call site and did not read it.
+  **`LefeinSuperStore` is the live measurement, and the premise it was written
+  on is backwards.** It was filed `noise` — "a shop edit" — on the strength of
+  the word *store* in its name, and refiled `unmeasured` on the strength of a
+  call site that had been cited without being read. Reading it, 2026-09-03,
+  corrects three things at once.
+
+  It has **two** call sites, not one, and only the first is No-Overworld.
+  `MetroidVaniaMap.cs:58` passes the raw flag to `ApplyMapMods`, which picks
+  between two sets of tile writes to `MapIndex.Lefein` — different wall edges,
+  and a blob called `lefeinNonteleport`. `StandardMaps/SMUpdates.cs:116` calls
+  `EnableLefeinSuperStore` from `Update()`, the general standard-maps pass,
+  taking `flags.NoOverworld` as an *argument* rather than being gated on it: it
+  places the store on either mode and adds two blocking tiles only on
+  No-Overworld. So this is not a No-Overworld-only flag. That site also ANDs in
+  `ShopKillMode_White == None && ShopKillMode_Black == None`, the condition
+  `FlagsCompute.cs:51` names `LefeinSuperStoreEnabled`, which no coverage row
+  mentioned.
+
+  **The 75-link table was derived with the flag on, not off**, which is the
+  correction that matters, because it points the measurement the other way.
+  Every preset in both corpora sets it `true` — 4 of 4 at 4.9.2 and 18 of 18 at
+  4.9.7 — so no cartridge here varies it and none ever measured it. The
+  cartridge agrees with its own preset from the other side: on `oracle_nov`,
+  all five cells the flag-on branch writes hold what that branch writes, and no
+  cell only the flag-off branch touches does.
+
+  So the seed to roll is **No-Overworld with the flag off**, and rolling one
+  with it on would re-measure the corpus. What the off branch changes is read
+  rather than guessed: `(x=0,y=2)` and `(x=1,y=2)` become tile `0x0E`,
+  property `0x01`, a plain wall, where every cartridge here has `0x00` and
+  walkable — and on the corpus cartridge those two cells are the mouth of a
+  walkable column down Lefein's left edge. Whether sealing them moves a link is
+  what nobody has walked. `docs/ORACLE.md` has the figures.
+
+  **The general gap is that a coverage row can state a premise about the corpus
+  with nothing holding it to one.** A flag every preset sets the same way is
+  unmeasurable from this corpus by construction, and a row calling such a flag
+  "unmeasured" reads as "nobody got to it" when it means "no cartridge can
+  answer it". `docs/IDEAS.md` has the check that would tell those apart.
 
   The two refight flags are the argument for building the test above, and were
   the first thing it produced — `FLAG_COVERAGE.md` had never listed either,

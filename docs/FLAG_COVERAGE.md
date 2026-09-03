@@ -142,7 +142,7 @@ either. The eleven above them are in both schemas.
 | `EarlyOrdeals` | `earlyOrdeals` | code |
 | `Entrances`, `Floors`, `Towns`, `EntrancesMixedWithTowns`, `IncludeConeria`, `AllowDeepCastles` | — | unmodellable by toggle; `regen_maps` reads the result off the cartridge |
 | `OwMapExchange`, `OwShuffledAccess` | — | unmodellable; `flag_mapping` already warns |
-| `LefeinSuperStore` | `NOT_MODELLED`, status `unjudged` | **unmeasured** — passed to `ApplyMapMods` (`MetroidVaniaMap.cs:58`), which runs only under `NoOverworld()`, and at `:260` it picks between two sets of tile writes to `MapIndex.Lefein`: different wall edges, plus a blob named `lefeinNonteleport`. Walls and a teleport tile in a town the 75-link table was derived from with the flag off. Filed `noise` until 2026-09-01 on the word *store* in its name |
+| `LefeinSuperStore` | `NOT_MODELLED`, status `unjudged` | **unmeasurable from this corpus, which is not the same as unmeasured** — every preset in both corpora sets it `true`, so no cartridge here varies it. Two call sites, not one: `MetroidVaniaMap.cs:58` passes it to `ApplyMapMods`, No-Overworld only, which at `:260` picks between two sets of tile writes to `MapIndex.Lefein` — different wall edges plus a blob named `lefeinNonteleport`; and `SMUpdates.cs:116` calls `EnableLefeinSuperStore` from `Update()`, the general standard-maps pass, so the store is placed on either mode. That site also ANDs in the `ShopKillMode` pair `FlagsCompute.cs:51` calls `LefeinSuperStoreEnabled`. The 75-link table was derived with the flag **on**, so the seed owed is No-Overworld with it **off**. Filed `noise` until 2026-09-01 on the word *store* in its name, and `unmeasured` until 2026-09-03 on a call site cited without being read |
 
 ## C. Goal and Temple of Fiends (`TempleOfFiends.cs`)
 
@@ -432,8 +432,16 @@ two of them have since left:
 
 `unjudged` is the status that keeps the list usable. A list padded to make the
 test pass is the test not existing, so `NPCSwatter`, the two refight flags above
-and `LefeinSuperStore` say they are unmeasured and name the measurement, rather
-than borrowing a neighbour's reason.
+and `LefeinSuperStore` say why they are unsettled and name the measurement,
+rather than borrowing a neighbour's reason.
+
+**`LefeinSuperStore` is a fourth kind, found 2026-09-03**, and the three above
+it are not. It is not waiting on a cartridge nobody rolled: every preset in both
+corpora sets it `true`, so no cartridge here can vary it and none ever did. Its
+row said the opposite — that the 75-link table was derived with the flag off —
+and a reader following that would have rolled the seed the corpus already has.
+"Unmeasured" and "unmeasurable from this corpus" want telling apart, and only
+the second names a cartridge that has to be made rather than found.
 
 **Two entries left on 2026-09-03: `NPCItems` and `NPCFetchItems`.** Both were
 measured on a cartridge rolled for them, both turned out to move a gold ring and
