@@ -377,10 +377,18 @@ false greens.
   no emulator, no PopTracker.
 - **Python 3** for everything in `tools/`. No third-party packages: the map
   renderer, the font reader and the flag decoder are all standard library.
-- **A Final Fantasy cartridge** for the tools that read one. Point `FF1_ROM` at
-  it to run the full tool test suite:
+- **A Final Fantasy cartridge** for the tools that read one. Name it once in
+  `verify.local.sh`, the untracked shell fragment beside `verify.sh` that holds
+  the paths one machine happens to use:
 
-      FF1_ROM="/path/to/Final Fantasy (USA).nes" ./tools/tests/run.sh
+      FF1_ROM=$HOME/path/to/Final Fantasy (USA).nes
+
+  Then `./verify.sh` runs the full tool suite against it, and
+  `./verify.sh --rom <other cartridge>` overrides it for one run. `FF1_ROM` is
+  still read from the environment for CI, which has no such file — but do not
+  write it as a command prefix. `FF1_ROM=... ./tools/tests/run.sh` is a
+  different command from `./tools/tests/run.sh` as far as anything matching on
+  the command goes, which is why the path lives in a file instead.
 
   Tests that need a cartridge **skip** rather than fail without it, so a bare
   `./tools/tests/run.sh` still passes and still checks less than you think. Any
