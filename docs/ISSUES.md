@@ -690,7 +690,8 @@ Nothing here is urgent unless it says so.
   location. The export does, and it says the caravan slot is not one. Reading
   that off `PlacementContext.cs` would have got it wrong in both directions.
 
-  So the fix is two, not one:
+  So the fix is three, not one -- two on the free half, and the fetch half
+  below:
 
   - **The ring, on six.** An `npcItems` code and the conjunction on the NPC rows
     of `scripts/incentive_slots.lua` -- thirteen `npcsAreIncentive` rows across
@@ -706,6 +707,39 @@ Nothing here is urgent unless it says so.
     twin gate neither -- the overworld tree shows a shop-item check
     unconditionally. With `NPCItems` off, all four show a check FFR did not
     create.
+
+  **The fetch half has the same shape and is not fixed by the above.** Read
+  from source rather than measured, so the numbers below are the source's and
+  not a cartridge's. `FlagsCompute.cs:220-226` computes the fetch NPCs as
+  `(NPCFetchItems ?? false) && (IncentivizeFetchNPCs ?? false)`, the same
+  conjunction one flag along, and the pack again models one conjunct: the
+  sixteen fetch rows of `scripts/incentive_slots.lua` -- eight per tree, Smithy,
+  Nerrick, Astos, Matoya, Elf Prince, Dr Unne, Lefein and Fairy -- carry
+  `fetchQuestsAreIncentive`, which `flag_mapping.lua:54` binds to
+  `IncentivizeFetchNPCs` alone. `NPCFetchItems` is in both shipped schemas and
+  in `tools/doormap.py`, and appears nowhere in `scripts/`: no code, no
+  `NOT_MODELLED` row, no row in `docs/FLAG_COVERAGE.md`. So a seed with
+  `NPCFetchItems` off and `IncentivizeFetchNPCs` on rings those slots gold on a
+  seed FFR did not incentivize them on -- the same defect, and the coverage test
+  cannot see it either, because `consulted()` greps FFR's *reachability* logic
+  and this flag is only read on the incentive path.
+
+  Two things in the fetch half do not match the free half, and both would be
+  got wrong by copying the six-NPC fix across:
+
+  - **Nerrick is a three-term conjunction.** `IncentivizeNerrick` is
+    `(NPCFetchItems ?? false) && (IncentivizeFetchNPCs ?? false) && !NoOverworld`
+    (`FlagsCompute.cs:224`). `IncentivizedLocationCountMin` (`:229`) reads the
+    same way -- seven fetch slots, or six under No-Overworld. The `NOverworld`
+    incentive tree must drop the Nerrick row rather than gate it.
+  - **FFR computes seven fetch slots; the pack carries eight rows per tree.**
+    There is no `IncentivizeUnne` anywhere in `FlagsCompute.cs`, and
+    `ItemLocations.cs:277-278` makes Unne a *secondary* requirement on Lefein's
+    reward rather than a reward slot of its own. Whether the pack's `Dr Unne`
+    row answers to any FFR incentive at all is an open question, not a settled
+    defect; it wants the same treatment the free half got -- a cartridge with
+    `NPCFetchItems` off, diffed against `std497` -- before anything is changed
+    on it. The corpus has no such cartridge today.
 
   This is the same mistake the shop slot's close made and caught late, in the
   opposite direction. That one read a flag's absence from a schema as FFR having

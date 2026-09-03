@@ -86,7 +86,25 @@ with no code can be told apart from one nobody has got to.
   `rules` and `locations` too, so on that seed it is not a location, and all
   four location files show it anyway -- the two `incentives.json` on
   `npcsAreIncentive`, the two `overworld.json` on nothing at all. Its existence
-  wants the flag, not just its colour. `docs/ISSUES.md` has both halves.
+  wants the flag, not just its colour.
+
+  **And the fetch half is the same defect again**, so building only the above
+  closes half of it: `FlagsCompute.cs:220-226` computes the seven fetch NPCs as
+  `NPCFetchItems && IncentivizeFetchNPCs`, and the sixteen fetch rows across the
+  two trees carry `fetchQuestsAreIncentive` -- `IncentivizeFetchNPCs` alone.
+  `NPCFetchItems` has no code, no `NOT_MODELLED` row and no coverage row. Two
+  differences from the free half do not survive copying the fix across: Nerrick
+  is a three-term conjunction ending `&& !NoOverworld`, and FFR computes seven
+  fetch slots where the pack carries eight rows per tree, there being no
+  `IncentivizeUnne`. `docs/ISSUES.md` has all three halves and the open question
+  about `Dr Unne`.
+
+  **The gate row wants a cartridge the corpus does not have.** `nonpcitems497`
+  settles the free half only; the fetch half needs `NPCFetchItems` off against
+  `std497`, and the `Dr Unne` question needs the same one. Rolling it is the
+  first step of this entry, not the last -- a gate row that passes on
+  `nonpcitems497` while the fetch slots stay wrong is exactly the false green
+  this entry exists to avoid.
 
   **Its oracle cartridge already exists**, which is what this section asks of
   every item: `nonpcitems497`, and the before/after is seven priority locations,

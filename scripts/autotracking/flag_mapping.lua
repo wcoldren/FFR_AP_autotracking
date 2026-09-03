@@ -332,6 +332,26 @@ local NOT_MODELLED = {
       .. "the padding this list exists to prevent.",
   },
   {
+    ffr = "NPCFetchItems",
+    status = "unjudged",
+    owed = "npcFetchItems",
+    measure = "roll a 4.9.7 cartridge with NPCFetchItems off and diff it "
+      .. "against std497, the way nonpcitems497 settled the free half. The "
+      .. "corpus has no such cartridge; the same roll answers the Dr Unne "
+      .. "question below.",
+    why = "is the fetch half of the conjunction NPCItems is the free half of. "
+      .. "FlagsCompute.cs:220-226 computes the seven fetch NPCs as "
+      .. "NPCFetchItems && IncentivizeFetchNPCs, and the sixteen fetch rows "
+      .. "of incentive_slots.lua carry fetchQuestsAreIncentive, which is the "
+      .. "second conjunct alone -- so the ring is predicted wrong the same "
+      .. "way. Two things do not copy across from the free half: "
+      .. "IncentivizeNerrick ends && !NoOverworld (FlagsCompute.cs:224), and "
+      .. "there is no IncentivizeUnne at all, so FFR computes seven slots "
+      .. "where the pack carries eight rows per tree. Unlisted until now "
+      .. "because test_flag_coverage's consulted() greps FFR's reachability "
+      .. "logic, and this flag is read only on the incentive path.",
+  },
+  {
     ffr = "NPCSwatter",
     status = "unjudged",
     measure = "roll a 4.9.7 pair one flag apart and diff the exports",

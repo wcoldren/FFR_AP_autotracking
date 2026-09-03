@@ -132,6 +132,7 @@ either. The eleven above them are in both schemas.
 | `NoTail` | `noTail` | code — declared in `IVictoryConditionFlags` and never read there; see section A' |
 | `ShuffleObjectiveNPCs` | `objectiveNPCs`, through `$noObjectiveShuffle` | code — deliberately strict. `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf Doctor across their three homes and the roll reaches no file the pack can read, so with the flag on the two cells that move ask for all three homes at once. See "The permutation is the problem" below |
 | `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks. `ChestsKeyItems` is read directly — `maptab.lua:87`'s `cartridgeChestsAreChecks()` asks `ffrFlag` for it, and that answer reaches `chestsAreChecks()` and `logic.lua`'s `showPin()`. `NPCItems` is filed `unjudged`, and 2026-09-03 measured it on `nonpcitems497` against `std497`: **zero exported rules move, seven `priority_locations` go, and the caravan slot leaves the export outright** — the six free NPCs lose the computed `IncentivizeCaravan`'s other conjunct and stay checks; `Shop Item` stops being a location at all, 227 to 224. n/a for reachability is confirmed rather than assumed; what it is not n/a for is the gold ring on six and the *existence* of the seventh, and the pack rings all seven on `npcsAreIncentive` alone while showing the caravan pin unconditionally on the overworld tree — see section D, `docs/ISSUES.md` and `docs/ORACLE.md` |
+| `NPCFetchItems` | — | n/a for reachability; affects the incentive ring, and is not modelled. `FlagsCompute.cs:220-226` computes the seven fetch NPCs as `NPCFetchItems && IncentivizeFetchNPCs`, and the sixteen fetch rows of `scripts/incentive_slots.lua` carry `fetchQuestsAreIncentive` — the second conjunct alone — so the ring is predicted wrong the same way `NPCItems` predicts the free half wrong. **Unmeasured**: the corpus has no `NPCFetchItems`-off cartridge. Two things do not copy from the free half — `IncentivizeNerrick` ends `&& !NoOverworld` (`:224`), and there is no `IncentivizeUnne`, so FFR computes seven slots where the pack carries eight rows per tree. Filed `unjudged`; see `docs/ISSUES.md` |
 | `NPCSwatter` | — | n/a |
 
 ### No-Overworld / entrance shuffle (`MetroidVaniaMap.cs`, `EntrancesFloorsShuffle.cs`)
@@ -426,14 +427,22 @@ modelled.
 here can be checked against each other. The tally below is 31 rather than 30
 because `ExitToFR` was already there — the thirty are the ones this added:
 
-    ram 7   variant 1   noise 8   unmodellable 6   decided 4   unjudged 5
+    ram 7   variant 1   noise 8   unmodellable 6   decided 4   unjudged 6
 
 `unjudged` is the status that keeps the list usable. A list padded to make the
-test pass is the test not existing, so `NPCItems`, `NPCSwatter`, the two
-refight flags above and `LefeinSuperStore` say they are unmeasured and name the
-measurement, rather than borrowing a neighbour's reason.
+test pass is the test not existing, so `NPCItems`, `NPCFetchItems`,
+`NPCSwatter`, the two refight flags above and `LefeinSuperStore` say they are
+unmeasured and name the measurement, rather than borrowing a neighbour's reason.
 
-**Four of the five are still unmeasured; `NPCItems` is not**, as of 2026-09-03 —
+`NPCFetchItems` is the newest row and the one that was in **no** table at all
+until 2026-09-03. It is the fetch half of the conjunction `NPCItems` is the free
+half of, and it was invisible to the completeness check for a structural reason
+worth keeping in mind: `consulted()` greps FFR's *reachability* logic, and this
+flag is read only on the incentive path, so `reads` never contained it and its
+absence from `models` could not show up as a miss. A flag that only ever moves a
+ring is outside what that check can see.
+
+**Five of the six are still unmeasured; `NPCItems` is not**, as of 2026-09-03 —
 its measurement ran and found seven slots the pack rings and FFR does not
 (`docs/ISSUES.md`). It keeps the status because the vocabulary has no word for
 "measured, and now waiting on a code": `noise` and `decided` are both false of a
