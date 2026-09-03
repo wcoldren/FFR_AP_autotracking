@@ -306,7 +306,7 @@ rows look harder than `ShipDrydock` was.
 
 ### Measured
 
-Last run 2026-09-01.
+Last run 2026-09-03.
 
 | Check | Result |
 |---|---|
