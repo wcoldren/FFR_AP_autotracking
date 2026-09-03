@@ -70,6 +70,20 @@ with no code can be told apart from one nobody has got to.
 
   Until then both stay strict, which costs six Cardia Forest locations on a
   No-Overworld seed and the Elf Prince plus Dr Unne on a shuffled one.
+- **Seven incentive slots ring gold on a seed FFR did not incentivize them on.**
+  Opened 2026-09-03, by the first use of the export diff in section 5 and on the
+  cartridge rolled for it. `IncentivizeCaravan` is
+  `NPCItems && IncentivizeFreeNPCs`; the pack models the second conjunct and not
+  the first, so with `NPCItems` off and `IncentivizeFreeNPCs` on, FFR drops the
+  six free NPCs and the caravan slot from `priority_locations` and the pack rings
+  all seven. It wants an `npcItems` code and the conjunction on all seven rows,
+  in both incentive trees and `scripts/incentive_slots.lua` -- the shop-slot
+  build again, one conjunct along.
+
+  **Its oracle cartridge already exists**, which is what this section asks of
+  every item: `nonpcitems497`, and the before/after is seven priority locations
+  and zero moved rules (`docs/ORACLE.md`). So the gate row can demonstrate the
+  failure rather than report a pass after the fact.
 
 
 ## 2. Boxes that do not exist
@@ -323,9 +337,13 @@ and section 2 is what comes next.
   `ap_location_paths` bug closed the same day — inheriting that empty dict would
   have reported "no changes" for a file it never read.
 
-  **First use is the `NPCItems` pair**, which is the measurement that flag's own
-  row asks for and would move it off `unjudged`. It needs two cartridges rolled
-  and does not exist yet.
+  **First use was the `NPCItems` pair, 2026-09-03, and it found a defect.** One
+  cartridge rather than two: `std497` already carries `NPCItems` on, so it is
+  the control and only `nonpcitems497` had to be rolled. Zero rules moved and
+  seven priority locations did, which is the answer that flag's coverage row
+  asked for -- and the seven the pack rings on `npcsAreIncentive` alone. It is
+  a section 1 item now. The flag stays `unjudged` because what is unsettled is
+  the code and no longer the measurement.
 - **`check_logic`'s default `--ff1-world` was wrong and failed silently.
   Closed 2026-09-03.** `ap_location_paths` (`tools/check_logic.py:669`)
   defaulted to `<pack>/../Archipelago/worlds/ff1`, which resolves to

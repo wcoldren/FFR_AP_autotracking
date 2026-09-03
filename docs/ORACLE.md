@@ -262,12 +262,19 @@ flag decoder accepts a local build of it unmodified.
 | `hoardbridge497` | `oracle497_hoard` + `MapCardiaLandBridge` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the land bridge |
 | `hoarddockbridge497` | `oracle497_hoard` + both | `3B7E1C8A` | the same three | Bahamut's Cave's requirement with both, which is not the union |
 | `hoardhike497` | `oracle497_hoard` + `MapAirshipHike` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the hike |
+| `nonpcitems497` | `oracle497_nonpcitems` | `3B7E1C8A` | `std497` **minus** `NPCItems` | what `NPCItems` governs, which turns out to be the incentive pool and not the rules |
 | `hoarddockhike497` | `oracle497_hoard` + `MapBahamutCardiaDock` + `MapAirshipHike` | `3B7E1C8A` | the same three | the three Cardia-relevant flags a played seed rolled, carried on `std497`'s baseline rather than that seed's whole flag set, and the combination the pairs above do not cover |
 
-**Every cartridge here shares `std497`'s seed**, so anything that moves between
-an export and `std497`'s is the flag, not the roll -- a tighter control than
+**Every cartridge here shares `std497`'s seed**, a tighter control than
 `nov`/`nov2`, which hold the flags still and vary the seed. `std497` is the
 baseline they are all read against, which is why its row is the one to protect.
+
+**A shared seed holds the rules still, not the pool**, and this page said
+otherwise until 2026-09-03: "anything that moves between an export and
+`std497`'s is the flag, not the roll" is true of the rules, the location ids and
+`priority_locations`, and false of which locations are in the export at all. The
+figures are below, under "Diffing the corpus, and what one flag apart does not
+hold still".
 
 **Most of them are one flag from that baseline; the rest say which pair they
 isolate.** `drydock497`, `extended497`, `airship497`, `landbridge497`,
@@ -318,6 +325,9 @@ Last run 2026-09-01.
 | `hoard497`, pack rules vs FFR | **223 checked, 223 agree, 0 divergences** |
 | `hoarddock497`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** — it was 215 agree, 3 divergences over 10 locations before the `BahamutHoard` alternative |
 | `hoardbridge497`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** |
+| `nonpcitems497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** |
+| `std497` vs `nonpcitems497`, exported rules | **206 in both, 0 differ.** `NPCItems` moves no reachability rule at all |
+| `std497` vs `nonpcitems497`, `priority_locations` | **7 gone: King, Princess, Bikke, Sarda, Canoe Sage, CubeBot and Shop Item**, with `IncentivizeFreeNPCs` still on -- the `NPCItems` conjunct of the computed `IncentivizeCaravan`, measured rather than read off `FlagsCompute.cs`. The pack rings all seven; see `docs/ISSUES.md` |
 | `hoarddockbridge497`, pack rules vs FFR | **227 checked, 227 agree, 0 divergences** — it was 216 agree, 3 divergences over 11 locations |
 | `hoardhike497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
 | `hoarddockhike497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — and 95 agree, 13 distinct divergences over 129 locations against the rules as they stood at `2b0ff32`, which is what this row exists to have caught |
@@ -424,7 +434,7 @@ the 53 are not an artefact of it.
     O7=<corpus>/oracle-4.9.7
     for s in std drydock extended airship landbridge objnpc gaia gaiahwy \
              dock dockbridge hoard hoarddock hoardbridge hoarddockbridge hoardhike \
-             hoarddockhike; do
+             hoarddockhike nonpcitems; do
         python3 tools/check_logic.py $O7/${s}497/${s}497.nes \
             --ap-rules $O7/${s}497/${s}497.yaml --ff1-world $W
     done

@@ -388,3 +388,38 @@ Still true and not addressed here: the corpus README's sentence is unqualified
 where it sits, in `seeds/ff1/oracle-4.9.7/README.md`, which is in the workspace
 repo rather than this one.
 
+## The first use of the diff found a defect, one conjunct along
+
+Landed 2026-09-03, the same day as the tool. `NPCItems` was the measurement
+`docs/FLAG_COVERAGE.md` had been asking for by name, and it needed one cartridge
+rather than the two the roadmap said: `std497` already carries the flag on, so it
+is the control and only `nonpcitems497` had to be rolled.
+
+**The answer is clean and it is not the one the row expected.** Zero exported
+rules move -- `NPCItems` touches no reachability at all, which the row had
+guessed at with "n/a for reachability" and now has measured. Seven
+`priority_locations` go: King, Princess, Bikke, Sarda, Canoe Sage, CubeBot and
+Shop Item, with `IncentivizeFreeNPCs` still on. That is `IncentivizeCaravan`
+losing its other conjunct, demonstrated on a cartridge rather than read off
+`FlagsCompute.cs:217`.
+
+**And those seven are exactly the seven the pack rings.** All seven rows in
+`scripts/incentive_slots.lua` carry `npcsAreIncentive`, which is
+`IncentivizeFreeNPCs` alone; no `npcItems` code exists anywhere in the pack. So
+on that seed FFR incentivizes none of the seven and the board rings all seven
+gold. `docs/ISSUES.md` has the entry and `docs/ROADMAP.md` section 1 has the
+build.
+
+**It is the shop-slot mistake in the other direction, and that is the part worth
+keeping.** That one read a flag's absence from a schema as FFR having no such
+flag. This one modelled a computed flag by whichever conjunct the pack already
+had a name for -- `npcsAreIncentive` was there, `npcItems` was not, and the
+conjunction quietly became the term that had a code. The `flag-coverage` review
+had already written the general form of this down about a coverage row: a
+conjunction that comes out false demonstrates neither conjunct. It was recorded
+as a lesson about a test row and not carried across to a rule.
+
+The cartridge exists before the fix does, which is the order section 1 asks for:
+the gate row can show the ring the flag was wrong about rather than report a
+pass after the fact.
+

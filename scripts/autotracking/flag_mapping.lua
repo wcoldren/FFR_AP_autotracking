@@ -309,7 +309,16 @@ local NOT_MODELLED = {
   {
     ffr = "NPCItems",
     status = "unjudged",
-    measure = "roll a 4.9.7 pair one flag apart and diff the exports",
+    -- The measurement ran on 2026-09-03 -- nonpcitems497 against std497 --
+    -- and it moved zero access rules and seven priority locations. So what is
+    -- unsettled is no longer the measurement but the build: this flag is the
+    -- other conjunct of the computed IncentivizeCaravan, and the seven slots
+    -- that answer to it carry only npcsAreIncentive today. It stays here rather
+    -- than becoming noise or decided, because neither is true of a flag that
+    -- demonstrably moves a ring; it leaves when the code lands.
+    measure = "done: nonpcitems497 vs std497, docs/ISSUES.md, \"Seven "
+      .. "incentive slots ring gold on a seed FFR did not incentivize them "
+      .. "on\". What remains is a code, not a measurement.",
     why = "decides whether the NPCs hand out shuffled items. It is read in "
       .. "two places that do different things -- NPCs.cs:236 gives Nerrick "
       .. "the Canal or a Cabin, MetroidVaniaMap.cs:871 swaps a line of "

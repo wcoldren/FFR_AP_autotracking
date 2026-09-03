@@ -131,7 +131,7 @@ either. The eleven above them are in both schemas.
 | `EarlySage` | `earlySage` | code |
 | `NoTail` | `noTail` | code — declared in `IVictoryConditionFlags` and never read there; see section A' |
 | `ShuffleObjectiveNPCs` | `objectiveNPCs`, through `$noObjectiveShuffle` | code — deliberately strict. `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf Doctor across their three homes and the roll reaches no file the pack can read, so with the flag on the two cells that move ask for all three homes at once. See "The permutation is the problem" below |
-| `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks. `ChestsKeyItems` is read directly — `maptab.lua:87`'s `cartridgeChestsAreChecks()` asks `ffrFlag` for it, and that answer reaches `chestsAreChecks()` and `logic.lua`'s `showPin()`. `NPCItems` is filed `unjudged`, and 2026-09-03 gave that row its first measured consequence: it is one half of the computed `IncentivizeCaravan` that governs the shop slot's pin — see section D |
+| `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks. `ChestsKeyItems` is read directly — `maptab.lua:87`'s `cartridgeChestsAreChecks()` asks `ffrFlag` for it, and that answer reaches `chestsAreChecks()` and `logic.lua`'s `showPin()`. `NPCItems` is filed `unjudged`, and 2026-09-03 measured it on `nonpcitems497` against `std497`: **zero exported rules move and seven `priority_locations` go** — the six free NPCs and the caravan slot, the computed `IncentivizeCaravan` losing its other conjunct. n/a for reachability is confirmed rather than assumed; what it is not n/a for is the gold ring, and the pack rings all seven on `npcsAreIncentive` alone — see section D, `docs/ISSUES.md` and `docs/ORACLE.md` |
 | `NPCSwatter` | — | n/a |
 
 ### No-Overworld / entrance shuffle (`MetroidVaniaMap.cs`, `EntrancesFloorsShuffle.cs`)
@@ -431,7 +431,15 @@ because `ExitToFR` was already there — the thirty are the ones this added:
 `unjudged` is the status that keeps the list usable. A list padded to make the
 test pass is the test not existing, so `NPCItems`, `NPCSwatter`, the two
 refight flags above and `LefeinSuperStore` say they are unmeasured and name the
-measurement, rather than borrowing a neighbour's reason. `tests/test_flags.lua`
+measurement, rather than borrowing a neighbour's reason.
+
+**Four of the five are still unmeasured; `NPCItems` is not**, as of 2026-09-03 —
+its measurement ran and found seven slots the pack rings and FFR does not
+(`docs/ISSUES.md`). It keeps the status because the vocabulary has no word for
+"measured, and now waiting on a code": `noise` and `decided` are both false of a
+flag that demonstrably moves a ring, and the entry leaves this list when the
+code lands rather than before. Its `measure` field carries the result instead of
+the request, so nothing here asks twice for a measurement already taken. `tests/test_flags.lua`
 holds all of it: a known status, a real reason, a measurement on anything
 `unjudged`, and a `computed = true` exemption for the eight flags
 `FlagsCompute.cs` derives rather than stores — which have no field in either

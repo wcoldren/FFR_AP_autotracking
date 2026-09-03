@@ -665,6 +665,30 @@ Nothing here is urgent unless it says so.
   list, so it reproduced the OR answer by construction and could not have
   disagreed. It is evidence of nothing.
 
+- **Seven incentive slots ring gold on a seed FFR did not incentivize them on.**
+  Found 2026-09-03 by the first use of `tools/export_diff.py`, on the cartridge
+  rolled for it. `FlagsCompute.cs:217` makes the incentive status of the six
+  free NPCs and the caravan slot the *conjunction*
+  `(NPCItems ?? false) && (IncentivizeFreeNPCs ?? false)`. The pack models one
+  conjunct: all seven rows in `scripts/incentive_slots.lua` -- King, Sara,
+  Bikke, Sarda, Sages, Robot and Shop Item -- carry `npcsAreIncentive`, which is
+  `IncentivizeFreeNPCs`, and no `npcItems` code exists anywhere in the pack.
+
+  So on `NPCItems` off with `IncentivizeFreeNPCs` on, FFR drops all seven from
+  `priority_locations` and the pack rings all seven gold. Measured on
+  `nonpcitems497` against `std497`: seven priority locations gone, and **zero
+  access rules moved** -- the seven names FFR drops are exactly the seven the
+  pack rings. So this is a wrong ring rather than a wrong colour, and the fix is
+  the shop-slot fix one conjunct along: an `npcItems` code and the conjunction on
+  all seven, in both incentive trees and the generated table.
+
+  This is the same mistake the shop slot's close made and caught late, in the
+  opposite direction. That one read a flag's absence from a schema as FFR having
+  no such flag; this one modelled a computed flag by whichever conjunct the pack
+  already had a name for. A conjunction is not modelled by one of its terms --
+  which the review of `flag-coverage` said in almost these words about a
+  coverage row, and it was not carried across to a rule.
+
 ## Open questions
 
 - **`canon` has a latent false FAIL in `test_maps.lua` check 7.** It treats a
