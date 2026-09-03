@@ -424,8 +424,10 @@ modelled.
 
 **What the thirty became.** `NOT_MODELLED` in `flag_mapping.lua` carries a
 `status` drawn from the key at the top of this page, so an entry and its row
-here can be checked against each other. The tally below is 31 rather than 30
-because `ExitToFR` was already there — the thirty are the ones this added:
+here can be checked against each other. The tally below is 32 rather than 30
+because two entries were not part of that count: `ExitToFR` was already there,
+and `NPCFetchItems` was added on 2026-09-03 — the thirty are the ones this
+added:
 
     ram 7   variant 1   noise 8   unmodellable 6   decided 4   unjudged 6
 
