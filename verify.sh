@@ -2,6 +2,7 @@
 # The whole gate, in one command. Nothing is "done" on a successful edit alone.
 #
 #   ./verify.sh
+#   ./verify.sh --rom <a cartridge>
 #
 # Four stages, each reporting PASS, FAIL or SKIP. It exits non-zero if any
 # stage fails, and zero if some only skipped -- a skip is "this machine cannot
@@ -18,12 +19,24 @@
 # oracle corpus, no cartridges in it, no override installed. So someone who
 # installed this as a PopTracker pack sees skips and a green run rather than a
 # wall of failures. An override that is installed and stale is an answer rather
-# than an absence, and fails. Override any of these to point it elsewhere:
+# than an absence, and fails. Three paths decide how much it can answer:
 #
-#   LUA=lua5.4  PYTHON=python3
-#   FF1_ROM=<a cartridge>            strengthens stage 2
-#   FF1_CORPUS=<oracle-4.9.2 dir>    stage 3
-#   FF1_WORLD=<archipelago>/worlds/ff1
+#   --rom <a cartridge>              strengthens stage 2
+#   --corpus <oracle-4.9.2 dir>      stage 3
+#   --world <archipelago>/worlds/ff1
+#
+# Each is also read as FF1_ROM, FF1_CORPUS and FF1_WORLD from the environment,
+# and each can be set once in `verify.local.sh` beside this script: a shell
+# fragment this sources, ignored by git, holding the paths one machine happens
+# to use. Precedence is the flag, then the environment, then that file, then the
+# built-in guess -- so a one-off run overrides the file without editing it.
+#
+# The file is why the usage above is `./verify.sh` and nothing else. A path that
+# lives in the caller's invocation has to be retyped correctly every time and is
+# wrong on the next machine; a path that lives beside the script is stated once,
+# and is reviewable like anything else here.
+#
+#   LUA=lua5.4  PYTHON=python3       these stay environment-only
 #
 # Why check_logic runs on both cartridge kinds: the rules are one set serving
 # two modes since the noverworld-logic merge, so a change that satisfies one can
@@ -33,8 +46,45 @@ set -u
 
 ROOT=$(cd "$(dirname "$0")" && pwd)
 PY=${PYTHON:-python3}
-CORPUS=${FF1_CORPUS:-$HOME/repos/AP/seeds/ff1/oracle-4.9.2}
-WORLD=${FF1_WORLD:-$HOME/repos/AP/vendor/Archipelago/worlds/ff1}
+
+usage() {
+    echo "usage: $0 [--rom <cartridge>] [--corpus <dir>] [--world <dir>]" >&2
+    echo "       paths also come from the environment or ./verify.local.sh" >&2
+}
+want() {   # want <flag> <value>: a path flag given nothing is a typo, not a skip
+    [ -n "$2" ] || { echo "$1 wants a path" >&2; usage; exit 2; }
+}
+arg_rom= arg_corpus= arg_world=
+while [ $# -gt 0 ]; do
+    case $1 in
+        --rom)      want --rom "${2:-}";       arg_rom=$2;             shift 2 ;;
+        --rom=*)    arg_rom=${1#--rom=};       shift ;;
+        --corpus)   want --corpus "${2:-}";    arg_corpus=$2;          shift 2 ;;
+        --corpus=*) arg_corpus=${1#--corpus=}; shift ;;
+        --world)    want --world "${2:-}";     arg_world=$2;           shift 2 ;;
+        --world=*)  arg_world=${1#--world=};   shift ;;
+        -h|--help)  usage; exit 0 ;;
+        *)          echo "unknown option: $1" >&2; usage; exit 2 ;;
+    esac
+done
+
+# Read the environment before sourcing, so a value already exported wins over
+# the file rather than being silently replaced by it. Without this the file
+# would be the last word, and a one-off `FF1_ROM=... ./verify.sh` would run
+# against the wrong cartridge while looking like it had been told which.
+env_rom=${FF1_ROM:-} env_corpus=${FF1_CORPUS:-} env_world=${FF1_WORLD:-}
+CONFIG=${FF1_VERIFY_CONFIG:-$ROOT/verify.local.sh}
+if [ -f "$CONFIG" ]; then
+    . "$CONFIG"
+fi
+
+FF1_ROM=${arg_rom:-${env_rom:-${FF1_ROM:-}}}
+CORPUS=${arg_corpus:-${env_corpus:-${FF1_CORPUS:-$HOME/repos/AP/seeds/ff1/oracle-4.9.2}}}
+WORLD=${arg_world:-${env_world:-${FF1_WORLD:-$HOME/repos/AP/vendor/Archipelago/worlds/ff1}}}
+# Exported rather than passed down: tools/tests/run.sh and the suites under it
+# read FF1_ROM out of the environment, and this script is now where it is
+# decided rather than merely where it is forwarded.
+export FF1_ROM
 
 fails=0
 skips=0

@@ -3,3 +3,6 @@ __pycache__/
 bin/
 obj/
 *.bak
+
+# Machine-local config sourced by verify.sh -- paths, never content.
+*.local.sh
