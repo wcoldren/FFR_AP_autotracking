@@ -225,21 +225,53 @@ def in_bounds(src, lo, hi):
 
 
 BULLET = re.compile(r"^\s*[-*] ")
+# A row is required to close with its pipe as well as open with one. The
+# opening pipe alone also matches an indented example block --
+# STATUS.md:617 is `| UNREACHABLE | (free)` inside one -- and collapsing
+# such a line to itself would drop the block's identifiers and fail a
+# citation that is right. Both pipes separate the two across all 223
+# pipe-leading lines in the docs, and the leading one cannot be anchored
+# at column 0 instead: ISSUES.md:344 is a real table indented inside a
+# bullet.
+ROW = re.compile(r"^\s*\|.*\|\s*$")
 
 
 def paragraph(lines, i):
-    """The citing bullet, or the citing paragraph when it is not in a list.
+    """The citing bullet or table row, or the citing paragraph otherwise.
 
     Bounded at both ends by a blank line *or* by the start of another bullet.
     Running across bullet boundaries makes this useless in both directions: it
     swallows a neighbour's identifiers, and any one of them landing near the
     cited line passes a citation that has lost its subject.
+
+    A table row is one context for the same reason, and needs saying
+    separately because neither bound catches it: rows carry no blank line and
+    no bullet between them, so without this the loops below run to both ends
+    of the table and hand back every row at once. That is not a hypothetical
+    -- it is how a stale `locations/incentives.json:403` citation in
+    docs/ORACLE.md passed this check on 2026-09-03, a day after the section it
+    cited was deleted. The identifier pool became the whole 38-row table, and
+    the generic access-rule words other rows carry (`canal`, `ship`, `canoe`,
+    `floater`, `airshipHike`) sit within WINDOW lines of nearly any line in a
+    location file, so the citation had to name nothing and still matched.
+
+    The guard is on both loops as well as on the citing line, because the
+    boundary works in both directions: a citation in the prose immediately
+    above or below a table -- neither of which is separated from it by a
+    blank line in every markdown dialect -- would otherwise walk in and
+    collect the same pool. The early return above is not made redundant by
+    those two: the first row of a table has prose rather than a row on the
+    far side of it, so the backward loop's neighbour test does not stop
+    there, and only the return keeps that row from swallowing its heading.
     """
+    if ROW.match(lines[i]):
+        return lines[i]
     lo = hi = i
-    while lo > 0 and lines[lo - 1].strip() and not BULLET.match(lines[lo]):
+    while (lo > 0 and lines[lo - 1].strip()
+           and not BULLET.match(lines[lo]) and not ROW.match(lines[lo - 1])):
         lo -= 1
     while (hi + 1 < len(lines) and lines[hi + 1].strip()
-           and not BULLET.match(lines[hi + 1])):
+           and not BULLET.match(lines[hi + 1]) and not ROW.match(lines[hi + 1])):
         hi += 1
     return "\n".join(lines[lo:hi + 1])
 
@@ -575,8 +607,9 @@ check("and lists no page that is gone",
 
 # ------------------------------------------------------------------------
 # Each row above has to be able to fail, or this file is the thing it was
-# written to catch. These four exercise the machinery on inputs whose answer
-# is known, so a rewrite that quietly stops looking gets caught here.
+# written to catch. These exercise the machinery on inputs whose answer is
+# known, so a rewrite that quietly stops looking gets caught here. Not counted
+# here, because the count was "four" long after it was twenty.
 _SRC = read("tools/regen_maps.py")
 _RAW = open(os.path.join(PACK, "tools/regen_maps.py"), encoding="utf-8").read()
 check("a trailing newline is not counted as a line",
@@ -598,6 +631,25 @@ check("but does not run into the next bullet",
       paragraph(["- one `Alpha`", "- two `Beta`"], 0), "- one `Alpha`")
 check("nor back into the previous one",
       paragraph(["- one `Alpha`", "- two `Beta`"], 1), "- two `Beta`")
+# The table rows carry no blank line and no bullet, so before 2026-09-03 these
+# two came back as the whole table and every citation in one was answerable for
+# every other row's identifiers.
+check("nor across a table row, which has neither bound",
+      paragraph(["| one `Alpha` |", "| two `Beta` |"], 0), "| one `Alpha` |")
+check("and a row is not joined to the prose above it",
+      paragraph(["intro", "| one `Alpha` |", "| two `Beta` |"], 1),
+      "| one `Alpha` |")
+# The row guard has to hold from outside the table too, or the citing line one
+# line above or below a table still collects every row's identifiers -- which
+# is the whole of what the row case fixes, approached from the other side.
+check("nor prose joined to the table below it",
+      paragraph(["intro", "| one `Alpha` |", "| two `Beta` |"], 0), "intro")
+check("nor prose joined to the table above it",
+      paragraph(["| one `Alpha` |", "| two `Beta` |", "outro"], 2), "outro")
+# And an indented example block is not a table row, however it starts.
+check("an indented pipe with no closing pipe is not a row",
+      paragraph(["    | UNREACHABLE | (free)", "  and `Alpha` explains it"], 0),
+      "    | UNREACHABLE | (free)\n  and `Alpha` explains it")
 check("a quote that wraps in the prose is still read whole",
       QUOTED.findall('x "one two three four\n  five six" y'),
       ["one two three four\n  five six"])
