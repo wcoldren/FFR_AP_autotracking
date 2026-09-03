@@ -117,6 +117,14 @@ RAM_RULES = {
   -- low until a save is actually loaded. Fed-with-the-chest-shut is a real
   -- 0x00, so this cannot be tightened by demanding a nonzero byte.
   { code = "ruby",    stage = 1, addr = 0x6214, clear = 0x01 },  -- Titan fed
+  -- The same byte again, under the name the Locations cell hosts. `ruby` is
+  -- the item and its stage 1 is "fed"; `titan` is the box for the NPC, and a
+  -- box cannot host a code an item already provides -- FindObjectForCode would
+  -- hand back the Ruby, so the cell would read as cleared whenever the Ruby was
+  -- spent and could never be clicked on its own. Same bytes read twice on
+  -- purpose, the way sigil and mark are below, and for the same reason: the
+  -- code with the rule is not the code with the box.
+  { code = "titan",   stage = 0, addr = 0x6214, clear = 0x01 },  -- the cell
   { code = "tail",    stage = 0, addr = 0x602D },
   { code = "tail",    stage = 1, addr = 0x620E, mask = 0x02 },  -- Bahamut
   -- The Bottle is spent by USING it, not by handing it over, so its two events

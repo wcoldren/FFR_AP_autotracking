@@ -6,9 +6,9 @@ they live in, not on the tab for the map itself -- and regen_maps only ever
 rebuilt a node that already had a marker on a redrawn map, so a node with none
 was never given one. Three checks, one for each way that can come back:
 
-  * **every NPC the pack tracks resolves to a tile.** Fourteen of the twenty
-    the cartridge places have a location node; the other six -- Unne, Titan and
-    the four fiends -- host no section anywhere, so there is nothing to pin.
+  * **every NPC the pack tracks resolves to a tile.** Fifteen of the twenty
+    the cartridge places have a location node; the other five -- Unne and the
+    four fiends -- host no section anywhere, so there is nothing to pin.
     That split is asserted by name, because gaining or losing a node should be
     a deliberate edit and not a silent drift in a count.
 
@@ -57,7 +57,7 @@ PACK = os.path.dirname(TOOLS)
 
 LOCATIONS = ("locations/overworld.json", "locations/NOverworld/overworld.json")
 
-# The fourteen NPCs with a section somewhere in the location tree, and the node
+# The fifteen NPCs with a section somewhere in the location tree, and the node
 # each one's pin belongs to. Written out rather than counted so that moving a
 # section between nodes has to come here and say so.
 #
@@ -82,12 +82,15 @@ PINNED = {
     "sara": "Coneria Castle Sara",
     "sarda": "Sarda's Cave",
     "smith": "Dwarf Cave Smith",
+    "titan": "Titan's Tunnel Titan",
 }
 
-# The six the cartridge places that the pack has no box for. Not an oversight:
-# none of them holds a shuffled item, the four fiends write no flag that could
-# be autotracked at all, and `titan` as a code is already taken by ruby stage 2.
-UNPINNED = ("kraken", "lich", "marilith", "tiamat", "titan", "unne")
+# The five the cartridge places that the pack has no box for. Not an oversight:
+# none of them holds a shuffled item, and the four fiends write no flag that
+# could be autotracked at all. Titan was the sixth until the code `titan` was
+# freed -- ruby stage 2 carries `rubyDone` now -- and he is the one of the six
+# that has a signal: $6214 says he has been fed.
+UNPINNED = ("kraken", "lich", "marilith", "tiamat", "unne")
 
 # What tools/npc_positions.json holds. Not the pin list any more -- the pins
 # read the cartridge -- but tests/test_maps.lua has no cartridge, and reads

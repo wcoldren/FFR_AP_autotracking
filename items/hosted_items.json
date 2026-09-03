@@ -80,6 +80,12 @@
         "codes": "lefein"
     },
     {
+        "name": "Titan",
+        "type": "toggle",
+        "img": "images/locations/titan.png",
+        "codes": "titan"
+    },
+    {
         "name": "Waterfall Robot",
         "type": "toggle",
         "img": "images/locations/waterfall.png",
