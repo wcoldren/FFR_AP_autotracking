@@ -48,6 +48,21 @@ end
 -- (NPCFetchItems && IncentivizeFetchNPCs) -- FlagsCompute.cs:217, :220-226.
 -- Ringing on either conjunct alone gilded seven slots FFR never incentivized.
 local function slotIsIncentivized(slot)
+  -- FFR's IncentivizeNerrick carries a third term the other six do not:
+  -- (NPCFetchItems && IncentivizeFetchNPCs && !NoOverworld), FlagsCompute.cs:224.
+  -- The No-Overworld incentive sheet answers it by having no Nerrick section,
+  -- but the board tree is one file loaded by both variants, so its row says so
+  -- instead. Measured on nov, where Nerrick is a location and is in `rules` but
+  -- is not in priority_locations while his six siblings are.
+  --
+  -- No watch: standardWorld() reads the variant, which is fixed before the
+  -- first rule is evaluated and never moves. Fails open if logic.lua somehow
+  -- has not loaded, the way wantRings() does -- a missing global must not put
+  -- every ring out.
+  if slot.standardOnly and type(standardWorld) == "function"
+     and standardWorld() <= 0 then
+    return false
+  end
   for _, flag in ipairs(slot.flags) do
     if Tracker:ProviderCountForCode(flag) <= 0 then
       return false

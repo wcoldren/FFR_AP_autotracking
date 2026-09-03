@@ -108,6 +108,7 @@ def collect():
     rows = []
     seen = set()
     hosted_flag = {}
+    spoken_for = {rel: set() for rel in INCENTIVE_FILES}
 
     for rel in INCENTIVE_FILES:
         for node, section in sections(load(rel)):
@@ -117,6 +118,7 @@ def collect():
             hosted = section.get("hosted_item")
             if hosted:
                 hosted_flag.setdefault(hosted, flags)
+                spoken_for[rel].add(hosted)
             path = "@%s/%s" % (node, section["name"])
             if path not in seen:
                 seen.add(path)
@@ -124,6 +126,23 @@ def collect():
 
     for hosted, override in HOSTED_OVERRIDE.items():
         hosted_flag[hosted] = [override]
+
+    # A slot the standard sheet speaks for and the No-Overworld sheet does not.
+    #
+    # Read rather than listed, because the sheets already record it: FFR's
+    # IncentivizeNerrick is (NPCFetchItems && IncentivizeFetchNPCs &&
+    # !NoOverworld) -- FlagsCompute.cs:224, and IncentivizedLocationCountMin at
+    # :229 counts seven fetch slots or six under No-Overworld -- and the
+    # No-Overworld sheet answers that by having no Nerrick section at all.
+    # Deriving it from that keeps the fact in one place instead of two.
+    #
+    # It matters only on the board rows below. The two sheets' own rows are
+    # already right: a sheet the variant does not load resolves nowhere. The
+    # board tree is the problem, because locations/overworld.json and its
+    # NOverworld twin are byte-identical -- tests/test_maps.lua holds them that
+    # way and check_logic's --derived path depends on it -- so the board's
+    # Nerrick row exists on both modes and cannot be told apart by its file.
+    standard_only = spoken_for[INCENTIVE_FILES[0]] - spoken_for[INCENTIVE_FILES[1]]
 
     for node, section in sections(load(BOARD_FILE)):
         hosted = section.get("hosted_item")
@@ -135,7 +154,10 @@ def collect():
         path = "@%s/%s" % (node, section["name"])
         if path not in seen:
             seen.add(path)
-            rows.append({"path": path, "flags": flags})
+            row = {"path": path, "flags": flags}
+            if hosted in standard_only:
+                row["standardOnly"] = True
+            rows.append(row)
 
     return rows
 
@@ -159,11 +181,18 @@ def render(rows):
         "--",
         "-- Both incentive trees are listed and only one loads per variant, so a",
         "-- path that does not resolve is expected rather than an error.",
+        "--",
+        "-- `standardOnly` is FFR's third term on IncentivizeNerrick",
+        "-- (FlagsCompute.cs:224, `&& !NoOverworld`). It sits on a board row",
+        "-- because both variants load the same board tree, so the file cannot",
+        "-- say it and the row has to.",
         "INCENTIVE_SLOTS = {",
     ]
     for row in rows:
-        lines.append('  { flags = %-*s path = "%s" },'
-                     % (width, literal(row["flags"]), row["path"]))
+        lines.append('  { flags = %-*s path = "%s"%s },'
+                     % (width, literal(row["flags"]), row["path"],
+                        ", standardOnly = true" if row.get("standardOnly")
+                        else ""))
     lines.append("}")
     return "\n".join(lines) + "\n"
 

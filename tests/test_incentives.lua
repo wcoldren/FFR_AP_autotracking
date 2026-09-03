@@ -156,7 +156,7 @@ for flag in pairs(flagsUsed) do
 end
 local nflags = 0
 for _ in pairs(flagsUsed) do nflags = nflags + 1 end
-check("distinct incentive flags, all defined", nflags, 14)
+check("distinct incentive flags, all defined", nflags, 15)
 
 ------------------------------------------------------------------
 -- 4. incentiveSlot itself.
@@ -440,6 +440,39 @@ check("...including King",
 provided = { show_gold_rings = 1, npcItems = 1 }
 check("and NPCItems without the incentive flag rings nothing",
   refreshIncentiveHighlights(), 0)
+
+-- Nerrick's third term, which the other six fetch slots do not have.
+--
+-- FFR computes IncentivizeNerrick as (NPCFetchItems && IncentivizeFetchNPCs &&
+-- !NoOverworld) -- FlagsCompute.cs:224 -- and IncentivizedLocationCountMin at
+-- :229 reads the same way: seven fetch slots, or six under No-Overworld.
+-- Measured on the nov cartridge, whose four relevant flags are all on: Nerrick
+-- is a location and is in `rules`, and is the one fetch NPC missing from
+-- priority_locations while Smith, Astos, Matoya, Elf Prince, Lefein and Fairy
+-- are all in it.
+--
+-- The board tree is one file loaded by both variants, so the row carries the
+-- term rather than the file. Smith is the control: same sheet, same two flags,
+-- no third term, and he must keep his ring on both modes -- without him this
+-- would also pass if the variant check put every fetch ring out.
+provided = { show_gold_rings = 1, fetchQuestsAreIncentive = 1, npcFetchItems = 1 }
+refreshIncentiveHighlights()
+check("Nerrick rings on a standard seed",
+  sectionsByPath["@Dwarf Cave Nerrick/Nerrick (Vanilla Canal)"].Highlight,
+  Highlight.Priority)
+check("and so does Smith",
+  sectionsByPath["@Dwarf Cave Smith/Smithy McBeardSmith"].Highlight,
+  Highlight.Priority)
+
+Tracker.ActiveVariantUID = "7NOverworld"
+refreshIncentiveHighlights()
+check("Nerrick does not ring on a No-Overworld seed",
+  sectionsByPath["@Dwarf Cave Nerrick/Nerrick (Vanilla Canal)"].Highlight,
+  Highlight.None)
+check("and Smith still does",
+  sectionsByPath["@Dwarf Cave Smith/Smithy McBeardSmith"].Highlight,
+  Highlight.Priority)
+Tracker.ActiveVariantUID = "5standard"
 
 -- The rings toggle. A Highlight is not a pin state -- PopTracker draws it as a
 -- glow around a marker it is already drawing -- so this one is a guard inside
