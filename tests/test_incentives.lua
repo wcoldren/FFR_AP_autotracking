@@ -298,6 +298,34 @@ for _, path in ipairs(unresolved) do
   fails("no section at " .. path)
 end
 
+-- No row rings on an existence flag, and this row is here because reverting the
+-- change that made that true reddened nothing.
+--
+-- BahamutHoard says the Cardia chests are duplicated into Bahamut's Cave; it is
+-- not an incentive category, and a row naming it rings the slot gold on every
+-- hoard seed whatever IncentivizeCardia says. Three rows did until 2026-09-03.
+-- Two of them are graded against FFR -- they are Archipelago locations, and
+-- tools/tests/test_incentive_conjunction.py caught them on five cartridges.
+-- The third, @Bahamut's Cave/Cardia Incentive - Hoard, is graded by nothing:
+-- Bahamut's Cave is not an Archipelago location, so it sits in that suite's
+-- NOT_AP_LOCATIONS and its ring is invisible to the corpus. Taking BahamutHoard
+-- back out of incentive_slots.EXISTENCE_FLAGS flips that one row back and every
+-- suite stays green, which is the failure shape this pack refuses everywhere
+-- else. So the invariant is stated here rather than left to the corpus.
+--
+-- npcItems is the other existence flag and is deliberately not listed: it is
+-- half of FFR's computed IncentivizeCaravan (FlagsCompute.cs:217) and its rows
+-- name it as a conjunct for that reason, alongside npcsAreIncentive.
+for _, slot in ipairs(INCENTIVE_SLOTS) do
+  for _, flag in ipairs(slot.flags) do
+    if flag == "BahamutHoard" then
+      fails("BahamutHoard is an existence flag, not a ring flag, and "
+        .. slot.path .. " rings on it")
+    end
+  end
+end
+check("no slot rings on BahamutHoard", flagsInTable.BahamutHoard, nil)
+
 -- 26 on the incentive tab (the 25 demoted plus the hoard, which still hides),
 -- 3 more the NOverworld tree renames or hosts under a different node, and 25 on
 -- the real board.
