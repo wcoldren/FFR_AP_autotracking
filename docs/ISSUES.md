@@ -531,6 +531,37 @@ Nothing here is urgent unless it says so.
   surface, and restamping 29 markers against a crop this mode never renders is
   work with nothing to check it against until there is one.
 
+- **The `I: Shop Item` pin ignores the flag that governs it.** Found
+  2026-09-02. Every other incentive slot carries `^$incentiveSlot|<flag>`, so
+  the board can grey a slot the seed did not incentivize. `shopItem` carries
+  none, on the belief that FFR has no flag for it. FFR does:
+  `FlagsCompute.cs:217` computes
+  `IncentivizeCaravan => (NPCItems ?? false) && (IncentivizeFreeNPCs ?? false)`,
+  and `PlacementContext.cs:198` adds `ItemLocations.CaravanItemShop1` to the
+  incentive location pool on it. `IncentivizeFreeNPCs` is `npcsAreIncentive`
+  here (`scripts/autotracking/flag_mapping.lua:53`).
+
+  So on a seed with Main NPCs unincentivized the pin claims a slot that FFR
+  never considered, and it claims it in the one direction the board has no other
+  way to correct — the slot cannot be graded by `check_logic` against a rule it
+  does not have.
+
+  **Why it hid.** The flag is computed rather than declared, so it is absent
+  from both flag schemas; a search of the schema for "shop" or "caravan" returns
+  nothing and reads like proof. The generalisation is the one that keeps
+  recurring here: an absence in a derived index is not an absence in the source.
+  `FF1Randomizer-497` is vendored, and the answer was three greps into it.
+
+  **The residue is real and separate.** Even with the flag on, roughly half of
+  solo seeds hold a consumable, because `ItemPlacement.SelectVendorItem` falls
+  back to the treasure pool when no eligible incentive item is left. The slot's
+  incentive status is a flag; its content is the roll. Conflating those is what
+  produced the wrong close.
+
+  Fix: `^$incentiveSlot|npcsAreIncentive` on the `shopItem` section in both
+  incentive trees, and the matching row in `scripts/incentive_slots.lua`. Not
+  done here.
+
 - **The `I: Shop Item` pin clears itself now, and is deliberately still green
   until it does.** The pin is `Onrac Continent/I: Shop Item`, with empty
   `access_rules` at node and section level under an organisational parent, so
