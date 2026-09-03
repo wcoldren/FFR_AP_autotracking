@@ -182,6 +182,45 @@ do
   check("every not-modelled flag has a known status", #badStatus, 0)
   check("every not-modelled flag has a reason", #shortWhy, 0)
   check("every unjudged flag names its measurement", #noMeasure, 0)
+
+  -- And the measurement having *run* is a field, not a turn of phrase. The
+  -- NPCItems row was measured on 2026-09-03 and its `measure` rewritten from a
+  -- request into a result; the check above went on passing either way, because
+  -- a result is also a string longer than ten characters. So an `unjudged` flag
+  -- nobody has looked at and one waiting only on a build became
+  -- indistinguishable, and if the build never lands nothing here notices.
+  -- `measured` separates them, `owed` names the code that retires the entry,
+  -- and the third row is the one with teeth: once that code exists in the
+  -- mapping the flag is modelled, and an entry still sitting here is stale.
+  local codes = {}
+  for _, e in ipairs(cov.toggles or {}) do
+    if e.code then codes[e.code] = true end
+  end
+  local sayNothing, noOwed, landed = {}, {}, {}
+  for _, e in ipairs(cov.notModelled or {}) do
+    local label = tostring(e.ffr)
+    if e.status == "unjudged" then
+      local says = type(e.measure) == "string"
+        and e.measure:sub(1, 5) == "done:"
+      if says ~= (e.measured == true) then sayNothing[#sayNothing + 1] = label end
+      -- Only once measured. A flag nobody has looked at cannot yet know
+      -- whether it wants a code at all, let alone which -- demanding one
+      -- there would be the invented reason the `why` rule already forbids.
+      if e.measured and (type(e.owed) ~= "string" or #e.owed < 3) then
+        noOwed[#noOwed + 1] = label
+      end
+      if type(e.owed) == "string" and codes[e.owed] then
+        landed[#landed + 1] = label .. " (" .. e.owed .. ")"
+      end
+    end
+  end
+  check("a measured flag says so in a field, not only in its prose",
+        #sayNothing, 0)
+  check("every measured flag names the code that would retire it", #noOwed, 0)
+  check("and no flag sits unjudged once that code exists", #landed, 0)
+  for _, n in ipairs(sayNothing) do print("     measured/prose disagree: " .. n) end
+  for _, n in ipairs(noOwed) do print("     names no owed code: " .. n) end
+  for _, n in ipairs(landed) do print("     code landed, entry stale: " .. n) end
   for _, n in ipairs(badStatus) do print("     bad status: " .. n) end
   for _, n in ipairs(shortWhy) do print("     no reason: " .. n) end
   for _, n in ipairs(noMeasure) do print("     no measurement: " .. n) end

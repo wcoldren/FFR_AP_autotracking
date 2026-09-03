@@ -320,6 +320,14 @@ local NOT_MODELLED = {
     -- Six of the seven want the conjunction. The seventh, the caravan slot,
     -- wants more than that: it leaves the export entirely with this flag off,
     -- so its existence answers to npcItems and not only its colour.
+    -- `measured` is the field, not the "done:" prefix on the prose. The prose
+    -- carried the whole distinction for one commit, and the check below could
+    -- not tell a flag nobody has looked at from one waiting on a build: both
+    -- are `unjudged` with a long enough `measure`. `owed` names the code that
+    -- retires this entry, so the check can also say when the build has landed
+    -- and the entry has not left.
+    measured = true,
+    owed = "npcItems",
     measure = "done: nonpcitems497 vs std497, docs/ISSUES.md, \"Seven "
       .. "incentive slots ring gold on a seed FFR did not incentivize them "
       .. "on\". What remains is a code, not a measurement.",
@@ -327,8 +335,9 @@ local NOT_MODELLED = {
       .. "two places that do different things -- NPCs.cs:236 gives Nerrick "
       .. "the Canal or a Cabin, MetroidVaniaMap.cs:871 swaps a line of "
       .. "dialogue -- and FlagsCompute.cs:64, :69 folds it into RequiredRuby "
-      .. "and RequiredTnt. Whether any of that moves a pin on an Archipelago "
-      .. "seed has not been measured, and inventing a reason here would be "
+      .. "and RequiredTnt. What the measurement settled is the incentive "
+      .. "ring, not this: whether any of that moves an access rule came back "
+      .. "zero on the one pair, and inventing a wider reason here would be "
       .. "the padding this list exists to prevent.",
   },
   {

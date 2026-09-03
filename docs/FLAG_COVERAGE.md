@@ -448,9 +448,15 @@ its measurement ran and found seven slots the pack rings and FFR does not
 "measured, and now waiting on a code": `noise` and `decided` are both false of a
 flag that demonstrably moves a ring, and the entry leaves this list when the
 code lands rather than before. Its `measure` field carries the result instead of
-the request, so nothing here asks twice for a measurement already taken. `tests/test_flags.lua`
+the request, and a `measured = true` field carries the distinction the prose
+used to carry alone — for one commit the only difference between a flag nobody
+had looked at and one waiting on a build was that one `measure` string began
+"done:", which no check could read. `owed` names the code that retires the
+entry, and the check that bites is the third: once that code exists in the
+mapping, an entry still sitting here is stale. `tests/test_flags.lua`
 holds all of it: a known status, a real reason, a measurement on anything
-`unjudged`, and a `computed = true` exemption for the eight flags
+`unjudged`, `measured`/`owed` agreeing with the prose, no entry outliving its
+code, and a `computed = true` exemption for the eight flags
 `FlagsCompute.cs` derives rather than stores — which have no field in either
 schema, so the existing "every named flag is a real flag" check would otherwise
 have failed on them.
