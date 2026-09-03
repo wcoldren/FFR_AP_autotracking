@@ -394,6 +394,38 @@ for doc in DOCS:
                                     len(present)))
 check("every suite count the prose gives matches the suites", bad_count, [])
 
+# The same rot, one clause further along. The count above is the whole runner;
+# this is the subset gated on an environment variable, and it went stale on the
+# commit that made `test_export_diff.py` the second FF1_SEEDS suite while the
+# prose still said one. The count check above cannot see it -- 25 stayed 25 --
+# which is the point: a sentence saying how much of a bare run is real is worth
+# more than the total, and had nothing holding it.
+WORD = {"no": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+        "eleven": 11, "twelve": 12}
+GATED = re.compile(r"(\w+) more unless (FF1_[A-Z]+)")
+bad_gated = []
+for doc in DOCS:
+    for i, line in enumerate(read(doc)):
+        for m in GATED.finditer(line):
+            said = WORD.get(m.group(1).lower())
+            if said is None:
+                continue
+            _, present = runner_suites("tools/tests/run.sh", "test_", ".py")
+            # `os.environ.get`, not a bare mention: this very file names
+            # FF1_SEEDS in the comment above, and counting mentions made it
+            # count itself and report three.
+            want = "environ.get(\"%s\"" % m.group(2)
+            real = sum(1 for t in sorted(present)
+                       if any(want in ln
+                              for ln in read("tools/tests/test_%s.py" % t)))
+            if said != real:
+                bad_gated.append("%s:%d  \"%s\" -- %d suite%s name %s"
+                                 % (doc, i + 1, m.group(0), real,
+                                    "" if real == 1 else "s", m.group(2)))
+check("every gated-suite count the prose gives matches the suites",
+      bad_gated, [])
+
 # ------------------------------------------------------------------------ 4
 # FFR stamps eight uppercase hex characters. Anything shorter is a byte or an
 # address and is not a cartridge. At least one A-F is wanted as well: without
