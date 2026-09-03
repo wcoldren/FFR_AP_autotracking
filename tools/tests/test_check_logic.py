@@ -239,6 +239,61 @@ ok(c.compare(swept, only_key, set(), {}, (), set())[0] == "strict",
    "and still reports strict")
 
 
+# --- the world path: the default, and the two shapes that are not a path ---
+#
+# Nothing exercised the default before. verify.sh always passes --ff1-world, so
+# a default that resolved nowhere returned {}, every location read as unmapped,
+# and the run still exited 0 -- which is how it survived long enough for
+# docs/ORACLE.md to write the symptom up as procedure. A cheerful zero is the
+# one failure this tool cannot afford, so the default gets held down here.
+WORLD = os.path.join(c.PACK, "..", "..", "Archipelago", "worlds", "ff1")
+if os.path.exists(os.path.join(WORLD, "data", "locations.json")):
+    # From a foreign cwd, because the bug was a *relative* path that happened to
+    # resolve from the pack root and nowhere else.
+    cwd = os.getcwd()
+    os.chdir(tempfile.gettempdir())
+    try:
+        byname = c.ap_location_paths()
+        ok(len(byname) > 0, "the default --ff1-world resolves to a real table",
+           len(byname))
+        # "" is what a shell fragment yields when the variable behind it is
+        # unset. Counting it as given made `names` relative and resolved it
+        # against the caller's cwd: a miss on most, the wrong table on one that
+        # happens to hold data/locations.json.
+        ok(c.ap_location_paths(ff1="") == byname,
+           'an empty --ff1-world falls back to the default, not to cwd')
+    finally:
+        os.chdir(cwd)
+else:
+    print("skip  the default --ff1-world -- no vendor/Archipelago/worlds/ff1")
+
+# A `~` is the correct directory spelled the one way os.path.exists cannot see,
+# and the refusal makes that an abort rather than a skip. Fake a HOME so the
+# assertion does not depend on where this machine keeps its clone.
+home = os.environ.get("HOME")
+with tempfile.TemporaryDirectory() as tmp:
+    os.makedirs(os.path.join(tmp, "w", "data"))
+    with open(os.path.join(tmp, "w", "data", "locations.json"), "w") as handle:
+        json.dump({}, handle)
+    os.environ["HOME"] = tmp
+    try:
+        c.ap_location_paths(ff1="~/w")
+        ok(True, "a --ff1-world under ~ is expanded, not refused")
+    except SystemExit as exc:
+        ok(False, "a --ff1-world under ~ is expanded, not refused", str(exc))
+    finally:
+        if home is None:
+            del os.environ["HOME"]
+        else:
+            os.environ["HOME"] = home
+
+# And a path that really names nothing is still a refusal, not a silent {}.
+try:
+    c.ap_location_paths(ff1=os.path.join(tempfile.gettempdir(), "no-such-world"))
+    ok(False, "a --ff1-world naming nothing is refused")
+except SystemExit:
+    ok(True, "a --ff1-world naming nothing is refused")
+
 print()
 if fails:
     print("FAILED: " + ", ".join(fails))

@@ -216,11 +216,18 @@ def find_section(sections, path):
     A ref can match twice, because the same pin is written into both the board
     tree and the incentive poster -- "I: Shop Item/I: Shop Item" matches
     "Onrac Continent/..." and "I: Onrac Continent/..." alike. That is not
-    ambiguous at runtime: Tracker::getLocation returns the first location whose
-    id ends with the ref, and scripts/init.lua loads overworld.json before
-    incentives.json, so the board tree wins. Resolve it the way PopTracker
-    does rather than giving up, which is what left this pin ungraded on every
-    cartridge. Two hits inside the board tree are still a genuine ambiguity.
+    ambiguous at runtime -- but not by the suffix rule this function uses.
+    Tracker::getLocationAndSection splits a ref at its *last* slash, so the
+    location it looks up here is the single segment "I: Shop Item"; with no
+    slash left in it, Tracker::getLocation compares node *names* and never
+    reaches its id-suffix branch at all. scripts/init.lua:41-42 loads
+    overworld.json before incentives.json, so the board tree wins on load
+    order. Suffix and name-equality pick the same node today, and would stop
+    agreeing the moment a board node's id merely ends with a name it is not
+    itself named for -- at which point this function and the tracker disagree
+    about which section a ref reaches. Resolve it board-first rather than
+    giving up, which is what left this pin ungraded on every cartridge. Two
+    hits inside the board tree are still a genuine ambiguity.
     """
     if path in sections:
         return path
@@ -681,9 +688,21 @@ def ap_location_paths(pack=PACK, ff1=None):
     The default was also simply wrong, and is the reason docs/ORACLE.md calls
     --ff1-world load-bearing: the pack sits at vendor/ff1/<pack>, so `..` is
     vendor/ff1 and the world is one level further up at vendor/Archipelago.
+
+    Two shapes are *not* a path and fall back to the default rather than
+    aborting: None, and the empty string a shell fragment produces when the
+    variable behind it is unset. `--ff1-world ""` used to count as given, which
+    made `names` the relative `data/locations.json` and resolved it against the
+    caller's cwd -- a miss on most, and the wrong table on a cwd that happens to
+    have one. And a path is expanded here rather than at the call site, because
+    a `~` reaching this function is the correct directory spelled the one way
+    os.path.exists cannot see, and the refusal above turns that from a skip into
+    an abort.
     """
-    given = ff1 is not None
-    if ff1 is None:
+    given = bool(ff1)
+    if given:
+        ff1 = os.path.expanduser(ff1)
+    else:
         ff1 = os.path.join(pack, "..", "..", "Archipelago", "worlds", "ff1")
     names = os.path.join(ff1, "data", "locations.json")
     if not os.path.exists(names):

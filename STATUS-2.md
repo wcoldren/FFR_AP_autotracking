@@ -278,8 +278,14 @@ This one contributes a single row, because the board's node for the slot is
 itself named `I: Shop Item` -- the only board node wearing the sheet's prefix --
 so `@I: Shop Item/I: Shop Item` is both paths at once and the second is deduped
 away. That is not a new ambiguity: it is the collision `check_logic.find_section`
-already resolves, by the rule PopTracker itself uses, taking the first location
-whose id ends with the ref while `init.lua` loads `overworld.json` first. So the
+already resolves board-first. The rule that settles it is not the one first
+written down here: `Tracker::getLocationAndSection` splits a ref at its *last*
+slash, so what PopTracker looks up is the bare node name `I: Shop Item`, and
+with no slash left in it `Tracker::getLocation` compares names and never reaches
+the id-suffix branch. Load order does the rest, `init.lua` taking
+`overworld.json` first. Suffix and name-equality agree on this pin, which is why
+the wrong justification read as verified; they part company as soon as a board
+node's id ends with a name it is not itself named for. So the
 row reaches the board's section. What the sheet's section loses is the gold ring
 and nothing else -- its access rule and its pin rule are evaluated directly by
 PopTracker and never go through `FindObjectForCode`.
