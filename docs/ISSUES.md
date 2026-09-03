@@ -708,9 +708,11 @@ Nothing here is urgent unless it says so.
     unconditionally. With `NPCItems` off, all four show a check FFR did not
     create.
 
-  **The fetch half has the same shape and is not fixed by the above.** Read
-  from source rather than measured, so the numbers below are the source's and
-  not a cartridge's. `FlagsCompute.cs:220-226` computes the fetch NPCs as
+  **The fetch half has the same shape and is not fixed by the above.**
+  Measured 2026-09-03 on `nofetchitems497`, rolled for it: **zero access rules
+  move, 226 of 226 agree, and seven `priority_locations` go** -- Astos, Elf
+  Prince, Fairy, Lefein, Matoya, Nerrick and Smith, with `IncentivizeFetchNPCs`
+  still on. `FlagsCompute.cs:220-226` computes the fetch NPCs as
   `(NPCFetchItems ?? false) && (IncentivizeFetchNPCs ?? false)`, the same
   conjunction one flag along, and the pack again models one conjunct: the
   sixteen fetch rows of `scripts/incentive_slots.lua` -- eight per tree, Smithy,
@@ -724,22 +726,46 @@ Nothing here is urgent unless it says so.
   cannot see it either, because `consulted()` greps FFR's *reachability* logic
   and this flag is only read on the incentive path.
 
-  Two things in the fetch half do not match the free half, and both would be
-  got wrong by copying the six-NPC fix across:
+  **The repair is one thing here, not two.** All seven stay in `rules` and
+  `locations` -- 227 to 226, and both the removed and the added names are
+  chests, so the net one is pool churn the diff declines to attribute. There is
+  no caravan-shaped second half: nothing leaves the export, so the fetch fix is
+  the conjunction on the NPC rows and nothing else.
 
-  - **Nerrick is a three-term conjunction.** `IncentivizeNerrick` is
-    `(NPCFetchItems ?? false) && (IncentivizeFetchNPCs ?? false) && !NoOverworld`
-    (`FlagsCompute.cs:224`). `IncentivizedLocationCountMin` (`:229`) reads the
-    same way -- seven fetch slots, or six under No-Overworld. The `NOverworld`
-    incentive tree must drop the Nerrick row rather than gate it.
-  - **FFR computes seven fetch slots; the pack carries eight rows per tree.**
-    There is no `IncentivizeUnne` anywhere in `FlagsCompute.cs`, and
-    `ItemLocations.cs:277-278` makes Unne a *secondary* requirement on Lefein's
-    reward rather than a reward slot of its own. Whether the pack's `Dr Unne`
-    row answers to any FFR incentive at all is an open question, not a settled
-    defect; it wants the same treatment the free half got -- a cartridge with
-    `NPCFetchItems` off, diffed against `std497` -- before anything is changed
-    on it. The corpus has no such cartridge today.
+  **Nerrick is a three-term conjunction**, which does not show on this
+  cartridge. `IncentivizeNerrick` is `(NPCFetchItems ?? false) &&
+  (IncentivizeFetchNPCs ?? false) && !NoOverworld` (`FlagsCompute.cs:224`), and
+  `IncentivizedLocationCountMin` (`:229`) reads the same way -- seven fetch
+  slots, or six under No-Overworld. Nerrick is in the seven above because
+  `nofetchitems497` is a standard seed; the third term only bites on a
+  No-Overworld roll, so the `NOverworld` incentive tree must drop that row
+  rather than gate it.
+
+- **The pack has an eighth fetch incentive slot that FFR never fills.** Found
+  2026-09-03 on `nofetchitems497`, while measuring the flag above. The pack
+  gives `I: Dr Unne` a real incentive section -- `locations/incentives.json:403`
+  and its `NOverworld` twin, `hosted_item: "slabTranslated"`, gated on
+  `fetchQuestsAreIncentive` -- and `scripts/incentive_slots.lua:23`, `:53` list
+  it in both trees. FFR has no `IncentivizeUnne`. `FlagsCompute.cs:220-226`
+  computes exactly seven fetch conjunctions and Unne is not one of them, and the
+  export agrees from the other side: the seven `priority_locations` that leave
+  are Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick and Smith, and **`Dr
+  Unne` is not an Archipelago location at all** on either cartridge.
+
+  `ItemLocations.cs:277-278` says why: Unne is a *secondary* requirement on
+  Lefein's reward, not a reward slot, and `SCLogic.cs:555-557` resolves an NPC
+  gated on the Unne flag to Unne's own reachability -- which is why
+  `check_logic` waives the Lefein rule rather than diverging on it. So the pack
+  is right to model Unne for *reachability* and wrong to give him an incentive
+  slot: the ring can never be correct there, on any flagset, because there is
+  nothing for FFR to incentivize.
+
+  Not fixed with the conjunction above, and not the same defect: the seven rows
+  ring on the wrong condition, this row rings on no condition FFR has. Both
+  trees need the section reconsidered rather than re-gated. What it should
+  become -- dropped, or kept as reachability with the incentive section removed
+  -- is not settled here, because `slabTranslated` is a real hosted item and
+  removing the section may move more than the ring.
 
   This is the same mistake the shop slot's close made and caught late, in the
   opposite direction. That one read a flag's absence from a schema as FFR having

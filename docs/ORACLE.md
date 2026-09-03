@@ -263,6 +263,7 @@ flag decoder accepts a local build of it unmodified.
 | `hoarddockbridge497` | `oracle497_hoard` + both | `3B7E1C8A` | the same three | Bahamut's Cave's requirement with both, which is not the union |
 | `hoardhike497` | `oracle497_hoard` + `MapAirshipHike` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the hike |
 | `nonpcitems497` | `oracle497_nonpcitems` | `3B7E1C8A` | `std497` **minus** `NPCItems` | what `NPCItems` governs, which turns out to be the incentive pool and not the rules |
+| `nofetchitems497` | `oracle497_nofetchitems` | `3B7E1C8A` | `std497` **minus** `NPCFetchItems` | the same question for the fetch half, which turns out to be the incentive pool and not the rules either -- and which of the pack's eight fetch rows FFR actually incentivizes |
 | `hoarddockhike497` | `oracle497_hoard` + `MapBahamutCardiaDock` + `MapAirshipHike` | `3B7E1C8A` | the same three | the three Cardia-relevant flags a played seed rolled, carried on `std497`'s baseline rather than that seed's whole flag set, and the combination the pairs above do not cover |
 
 **Every cartridge here shares `std497`'s seed**, a tighter control than
@@ -331,6 +332,11 @@ Last run 2026-09-01.
 | `nonpcitems497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** |
 | `std497` vs `nonpcitems497`, exported rules | **206 in both, 0 differ.** `NPCItems` moves no reachability rule at all |
 | `std497` vs `nonpcitems497`, `priority_locations` | **7 gone: King, Princess, Bikke, Sarda, Canoe Sage, CubeBot and Shop Item**, with `IncentivizeFreeNPCs` still on -- the `NPCItems` conjunct of the computed `IncentivizeCaravan`, measured rather than read off `FlagsCompute.cs`. The pack rings all seven; see `docs/ISSUES.md` |
+| `nofetchitems497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
+| `std497` vs `nofetchitems497`, exported rules | **206 in both, 0 differ.** `NPCFetchItems` moves no reachability rule at all, the same as its free-half sibling |
+| `std497` vs `nofetchitems497`, `priority_locations` | **7 gone: Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick and Smith**, with `IncentivizeFetchNPCs` still on -- the `NPCFetchItems` conjunct of the seven computed at `FlagsCompute.cs:220-226`. The pack rings all seven; see `docs/ISSUES.md` |
+| `std497` vs `nofetchitems497`, whether a slot leaves | **no. All seven stay in `rules` and `locations`** -- 227 to 226, and both the removed and the added names are chests, so the net one is pool churn the tool declines to attribute. Unlike the free half there is no caravan-shaped second repair: the fetch fix is the conjunction on seven rows and nothing else |
+| `std497` vs `nofetchitems497`, `Dr Unne` | **not among the seven, and not an AP location at all.** FFR has no `IncentivizeUnne`; `SCLogic.cs:555-557` folds Unne into Lefein's reachability. The pack nonetheless gives `I: Dr Unne` an incentive section (`locations/incentives.json:403`, `hosted_item: slabTranslated`) gated on `fetchQuestsAreIncentive` -- an eighth slot FFR never fills |
 | `std497` vs `nonpcitems497`, the caravan slot | **`Shop Item` leaves `rules` and `locations` too**, not only the incentive pool: 227 locations to 224, and the six NPCs stay. So six of the seven are un-ringed checks and the seventh is not a check at all -- a different repair, and the one the pool heading hid until 2026-09-03 |
 | `hoarddockbridge497`, pack rules vs FFR | **227 checked, 227 agree, 0 divergences** — it was 216 agree, 3 divergences over 11 locations |
 | `hoardhike497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
@@ -482,7 +488,7 @@ heading and is not counted: a differ that counted it would have reported a
 finding for every flag in the corpus, including the one that found nothing.
 
 **Not counted is not the same as "it is the roll", and the sixteenth cartridge
-is why.** `nonpcitems497` is the only 4.9.7 export of the seventeen with no
+is why.** `nonpcitems497` is the only 4.9.7 export of the eighteen with no
 `Shop Item` in it at all — `NPCItems` off deletes the caravan slot rather than
 reassigning it — and that difference sat on line twenty of an uncounted list of
 chests until it was looked for. Nothing distinguishes a removed location from a
@@ -525,6 +531,11 @@ Generating one of the newer three, for the record:
     dotnet FF1R/bin/Release/net10.0/FF1R.dll generate "<vanilla FF1 ROM>" \
         -j $O7/flags/oracle497_airship.json -s 3B7E1C8A \
         -o $O7/airship497/airship497.nes
+
+`oracle497_nonpcitems` and `oracle497_nofetchitems` are each `oracle497_std`
+with exactly one boolean flipped -- `NPCItems` and `NPCFetchItems` respectively,
+both `true` in the stock preset, and `IncentivizeFreeNPCs` / `IncentivizeFetchNPCs`
+left on, which is what makes each pair isolate a single conjunct.
 
 ## Rebuilding
 

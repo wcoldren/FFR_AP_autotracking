@@ -99,12 +99,15 @@ with no code can be told apart from one nobody has got to.
   `IncentivizeUnne`. `docs/ISSUES.md` has all three halves and the open question
   about `Dr Unne`.
 
-  **The gate row wants a cartridge the corpus does not have.** `nonpcitems497`
-  settles the free half only; the fetch half needs `NPCFetchItems` off against
-  `std497`, and the `Dr Unne` question needs the same one. Rolling it is the
-  first step of this entry, not the last -- a gate row that passes on
-  `nonpcitems497` while the fetch slots stay wrong is exactly the false green
-  this entry exists to avoid.
+  **Both gate cartridges now exist.** `nonpcitems497` settles the free half and
+  `nofetchitems497`, rolled 2026-09-03, settles the fetch half: zero rules move,
+  226 of 226 agree, seven priority locations go, and all seven stay locations,
+  so the fetch repair is the conjunction alone. The gate row has to demonstrate
+  a failure on *both* -- one that passes on `nonpcitems497` while the fetch
+  slots stay wrong is exactly the false green this entry exists to avoid.
+
+  That roll also turned up a third thing, filed separately: the pack gives
+  `Dr Unne` an incentive slot FFR never fills, which no conjunction fixes.
 
   **Its oracle cartridge already exists**, which is what this section asks of
   every item: `nonpcitems497`, and the before/after is seven priority locations,

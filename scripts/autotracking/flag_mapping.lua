@@ -344,10 +344,13 @@ local NOT_MODELLED = {
     ffr = "NPCFetchItems",
     status = "unjudged",
     owed = "npcFetchItems",
-    measure = "roll a 4.9.7 cartridge with NPCFetchItems off and diff it "
-      .. "against std497, the way nonpcitems497 settled the free half. The "
-      .. "corpus has no such cartridge; the same roll answers the Dr Unne "
-      .. "question below.",
+    measured = true,
+    measure = "done: nofetchitems497 vs std497, rolled 2026-09-03. Zero access "
+      .. "rules move and 226 of 226 agree; seven priority locations go -- "
+      .. "Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick, Smith -- and all "
+      .. "seven stay locations, so unlike the free half there is no second "
+      .. "repair. Dr Unne is not among them. What remains is a code, not a "
+      .. "measurement.",
     why = "is the fetch half of the conjunction NPCItems is the free half of. "
       .. "FlagsCompute.cs:220-226 computes the seven fetch NPCs as "
       .. "NPCFetchItems && IncentivizeFetchNPCs, and the sixteen fetch rows "
@@ -356,9 +359,12 @@ local NOT_MODELLED = {
       .. "way. Two things do not copy across from the free half: "
       .. "IncentivizeNerrick ends && !NoOverworld (FlagsCompute.cs:224), and "
       .. "there is no IncentivizeUnne at all, so FFR computes seven slots "
-      .. "where the pack carries eight rows per tree. Unlisted until now "
-      .. "because test_flag_coverage's consulted() greps FFR's reachability "
-      .. "logic, and this flag is read only on the incentive path.",
+      .. "where the pack carries eight rows per tree -- the eighth being Dr "
+      .. "Unne, whom FFR does not incentivize at all and who is not an AP "
+      .. "location, which the roll settled rather than the source. Unlisted "
+      .. "until 2026-09-03 because test_flag_coverage's consulted() greps "
+      .. "FFR's reachability logic, and this flag is read only on the "
+      .. "incentive path.",
   },
   {
     ffr = "NPCSwatter",
