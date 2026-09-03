@@ -482,6 +482,122 @@ here, so the stamp records the file's sha1 and the bridge lets it agree but
 never disagree; `bridge/probe_rom_id.lua` is the measurement that would settle
 it. Detail in `STATUS.md`, "The art on disk now says what it was drawn for".
 
+**Incentive and gate markers want their own shape, and the shape is already
+taken.** Proposed 2026-09-02: incentive slots and gating events draw as diamonds
+on the map tabs while plain chests stay squares, so a glance separates "a key
+item was placed here" from "this is a chest". Feeding Titan is a gating event;
+the Floater turn-in is probably another; the full list is not drawn up.
+
+**Scope it against the base randomizer first; Archipelago is the later case.**
+That is not only a priority call, it is where the idea is native: an incentive
+slot is an FFR concept, defined by the `Incentivize*` flags in FFR's own schema,
+so a solo cartridge is what the shape is describing. An AP seed draws its pool
+from Archipelago instead, and what a diamond should mean there is a separate
+question that does not have to be answered to build this.
+
+The obstacle is that `diamond` already means something, and for a *rendering*
+reason rather than a semantic one. PopTracker's rect pin is opaque -- `drawRect`
+fills its interior with a solid state colour and `StateColors` carry no alpha --
+so a square pin on a tile with an NPC sprite drawn under it hides the sprite
+completely. `place_locations` emits a diamond exactly there, leaving the tile's
+four corners unpainted so the sprite reads through (`tools/regen_maps.py:786`).
+Titan's new pin came out a diamond for that reason and not because he is a gate.
+So this cannot simply adopt the shape: it has to say what a pin does when it is
+both an incentive and standing on a sprite. That is the question `ROADMAP.md`
+section 3 already holds as "What a diamond means", and this is a candidate
+answer to it rather than a separate item.
+
+Three shapes exist, not four: rect, diamond and trapezoid, with no circle, and
+state colours are not pack-selectable. Trapezoid is the one nothing uses yet,
+which makes it the obvious third channel if diamond stays booked for sprite
+collision.
+
+**A union is the cheapest way out, and it is coherent.** Let a diamond mean
+"a sprite check or an incentive slot" -- every notable sprite and event flag is
+a diamond, and not every diamond is one, because incentive chests are diamonds
+too. Nothing breaks: the rendering constraint is one-directional, a pin *on* a
+sprite must be a diamond or it hides it, and adding more diamonds never violates
+that. What is given up is reading the shape backwards; a diamond stops meaning
+"there is a sprite here" and starts meaning "something here is worth a look",
+which may be the more useful sentence on a board anyway.
+
+Two consequences to settle before drawing. **The sprite half is decided by a
+render flag, not by the seed**: `sprite_cells` is empty under `--npcs none`, so
+with sprites off every diamond is an incentive and with them on it is the union.
+A legend that says what a diamond means therefore has to be written from how the
+art was drawn, which is the kind of conditional that goes stale. And **shape is
+not the only free channel** -- `size` and `border_thickness` are already
+per-marker (the regen writes `size: 16, border_thickness: 2`), so a thicker or
+larger pin could carry "incentive" and leave the diamond to mean sprite alone.
+Worth trying against the union rather than assuming shape is the axis.
+
+**The shop pin is the one place this leaks, and the leak is new.** The bridge
+already knows whether the seed put a key item in any shop -- `readShopSlot`
+returns `item = nil` when none did, and the comment beside it says that is an
+ordinary outcome on roughly half of solo seeds. It publishes neither the shop
+nor the item on purpose, because naming either hands over the hunt, and
+`ff1/shopitem` carries only whether the thing has been bought. A diamond on that
+pin would say "there is one somewhere, go look" without naming which shop --
+weaker than what the pack currently refuses, but not nothing. So this idea owes
+a decision the pack has so far been able to avoid: does the board admit that a
+key item is in a shop at all? Answer it before drawing the shop pin, not after.
+
+Where to try it: the incentive sheet first, because it is one hand-drawn image
+whose pins are all slots, so nothing there competes for the shape. The overworld
+is the crowded one and the place the idea might not survive. Inside a dungeon
+tab, where a floor holds a handful of pins, the distinction should read easily.
+None of that is knowable without drawing it.
+
+**The icon half is a separate change, to the Locations grid rather than the
+maps, and it is a redraw of cells that already exist rather than a new
+encoding.** The rule: an incentive slot that is a *chest* draws as a chest
+carrying the area's glyph, and a key as well where the slot is behind a locked
+door. An incentive slot that is a *person* keeps the person. What the icon is
+for is telling the player what they are hunting, and today it does the opposite
+on most of the board.
+
+**The grid already makes the split; the icons are the only thing out of step.**
+Rows 1 and 2 of `shared_locations_grid` are the NPC slots and rows 3 and 4 are
+the chest slots -- but nine of the eleven chest cells are drawn as a monster or
+a person. `seaShrine.png` is a mermaid, `earth.png`, `redD.png`, `ordeals.png`,
+`iceCave.png`, `skyPalace.png` and `marsh.png` are the creature you meet near
+the chest, and `titansTrove` is the Titan himself. A player reading row 3 is
+told to look for people.
+
+The eleven, with what each would carry:
+
+| cell | drawn as |
+|---|---|
+| `marsh` | a chest with the Marsh Cave glyph |
+| `marshLocked` | the same, and a key |
+| `coneriaLocked` | a chest with the King of Coneria, and a key |
+| `iceCave` | a chest with the Ice Cave glyph |
+| `ordeals` | a chest with the Castle of Ordeals glyph |
+| `titansTrove` | a chest with a Titan on it |
+| `cardiaIncentive` | a chest with Bahamut on it |
+| `earth` | a chest with the Earth Cave glyph |
+| `volcano` | a chest with the Gurgu Volcano glyph |
+| `sea` | a chest with the Sea Shrine glyph |
+| `sky` | a chest with the Sky Palace glyph |
+
+`shopItem` sits in row 4 and is deliberately not in the table: it is a shop
+rather than a chest, and it is the one slot with no `^$incentiveSlot` flag at
+all, so whatever it draws as should say "shop" and not "chest".
+
+The key on the two locked rows is not a second encoding of the locked state --
+those cells already *are* the locked halves, `coneriaLocked` and `marshLocked`
+-- it is the icon finally saying what the cell has always meant.
+`cardiaIncentive` is safe to draw as Bahamut specifically: that section is named
+"Cardia Incentive - Hoard" and carries `visibility_rules: ["BahamutHoard"]`, so
+it is on the board only when the Hoard flag is on.
+
+This also settles a gap recorded 2026-09-02. `images/locations/titan.png` is the
+Titan sprite and currently serves both `titansTrove` and the Titan NPC cell,
+which now sit in adjacent rows wearing the same picture. Under this scheme the
+NPC keeps the bare sprite and the Trove gets the chest with a Titan on it, which
+is the distinction those two cells needed anyway.
+
+
 ## Bosses and trap tiles
 
 The four fiends and the ToFR refights have no pins. Two separate problems wearing
