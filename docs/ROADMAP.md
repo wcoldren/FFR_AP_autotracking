@@ -111,16 +111,39 @@ actually left.
   already requires `ruby`, and so does Sarda's Cave, so on a seed that
   incentivized the Trove the slot behind him is a key item on either mode. The
   cell belongs in both trees for that reason.
-- **`shopItem` has no incentive toggle because FFR has no such flag.** This
-  bullet used to read as missing wiring. It is not: there is no
-  `IncentivizeShopItem` anywhere in the 4-9-7 schema, and
-  `docs/FLAG_COVERAGE.md` records `Shop Item` as tracking where the shop landed — roll noise, not a flag. Nothing to map, so the honest close is to say
-  so on the board's Map Key rather than to build a toggle.
+- **`shopItem` should carry the free-NPC incentive flag and does not. Reopened
+  2026-09-02.** This bullet said FFR has no such flag, and closed on saying so
+  in the Map Key. Both halves were wrong, and the first one wrongly: there is no
+  `IncentivizeShopItem` in the flag string because the flag is *computed*
+  instead. `FlagsCompute.cs:217` reads
+  `IncentivizeCaravan => (NPCItems ?? false) && (IncentivizeFreeNPCs ?? false)`,
+  and `PlacementContext.cs:198` puts `ItemLocations.CaravanItemShop1` into the
+  incentive location pool when it is true. The shop slot is an incentive
+  location like any other. Searching a flag *schema* for a name containing
+  "shop" or "caravan" was always going to come back empty, and reporting that
+  absence as FFR's answer was the mistake.
 
-  **The pin clears itself now**, off the shop's stock in PRG ROM on a solo seed
-  and off flag byte `0xFF` on an Archipelago one, and `check_logic` can grade it
-  at last. It stays green until bought on purpose: naming the shop is the shop
-  hunt. See `docs/ISSUES.md`, "The `I: Shop Item` pin clears itself now".
+  `IncentivizeFreeNPCs` is what the pack already calls `npcsAreIncentive`
+  (`scripts/autotracking/flag_mapping.lua:53`, defaulting on), and FFR's own
+  label for it is "Main NPCs" — recorded in that file's own header comment,
+  which is where this could have been read off at any point. The fix is to give
+  the `shopItem` section the `^$incentiveSlot|npcsAreIncentive` rule that the
+  six free-NPC slots already carry, in both incentive trees and in
+  `scripts/incentive_slots.lua`.
+
+  Strictly the condition is the conjunction with `NPCItems`, which the pack
+  decodes but leaves without a code — `docs/FLAG_COVERAGE.md` files it
+  "unjudged" and says inventing a reason for it would be wrong. This is that
+  row's first measured consequence, and it is a reason.
+
+  What survives unchanged: **the pin clears itself**, off the shop's stock in
+  PRG ROM on a solo seed and off flag byte `0xFF` on an Archipelago one. And the
+  slot's *content* really is roll noise — `ItemPlacement.SelectVendorItem` falls
+  back to a consumable when no eligible incentive item is left, which is why
+  roughly half of solo seeds hold nothing worth hunting even with the flag on.
+  The slot's incentive status is a flag; what lands in it is the roll. Those two
+  were conflated, and that is what let the bullet close.
+  See `docs/ISSUES.md`, "The `I: Shop Item` pin ignores the flag that governs it".
 - **ToFR floor modelling.** The rules are *not* unwritten, which is what this
   bullet used to claim: `locations/overworld.json:410` carries three
   alternatives on the `ToFR` node and the seven chests inherit them. What is
