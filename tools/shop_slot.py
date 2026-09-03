@@ -25,7 +25,7 @@ SHOP_TYPE_CANDIDATES = (0x7EBB5, 0x3EBB5)
 SHOP_TOWNS = {61: "Coneria", 62: "Pravoka", 63: "Elfland",
               64: "CrescentLake", 65: "Gaia", 66: "Onrac", 70: "Caravan"}
 ITEM_BASE = 0x6020      # inventory byte for item id N
-KEY_ITEM_MAX = 16       # 17-21 are the canoe-item and orb bytes, not shop stock
+KEY_ITEM_MAX = 16       # 17-20 are the orbs and 21 the Shard, not shop stock
 
 # NewCheckForSpace. Present only on an Archipelago cartridge; a solo seed keeps
 # 0xEA all through here.

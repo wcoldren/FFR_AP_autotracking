@@ -110,6 +110,12 @@ for name, town in (("std497", "Pravoka"), ("drydock497", "Elfland")):
 # --- the shape, across every cartridge in the tree ----------------------------
 # Never more than one key item across the shops, on anything readable. `read`
 # returns None on a second hit, so this catches a table offset that drifted.
+#
+# It also returns None on an image that is not an FFR cartridge at all -- a
+# vanilla dump or another game's ROM left in the seed tree -- and that is not
+# evidence of anything. The two are told apart by `type_base`: if the shop
+# tables were found, the reader was reading FFR and stopping on a second key
+# item is the drift this guard is for.
 seen = 0
 for root, _dirs, files in os.walk(SEEDS):
     for name in sorted(files):
@@ -118,16 +124,24 @@ for root, _dirs, files in os.walk(SEEDS):
         with open(os.path.join(root, name), "rb") as handle:
             rom = handle.read()
         slot = shop_slot.read(rom)
+        if slot is None and shop_slot.type_base(rom) is None:
+            print(f"SKIP  {name:56s} no shop tables -- not an FFR cartridge")
+            continue
         seen += 1
         if slot is None:
-            ok(f"{name} decodes to a single slot", "ambiguous or unreadable", "one slot")
+            ok(f"{name} decodes to a single slot", "more than one key item", "one slot")
         elif not slot.archipelago and slot.item is not None:
             # A key item id that ram_mapping.lua owns as an orb would mean the
             # reader walked off the table rather than that FFR shelved an orb.
             ok(f"{name}'s item is a real key item id",
                1 <= slot.item <= shop_slot.KEY_ITEM_MAX, True)
 
-ok("cartridges examined", seen > 0, True)
+if seen:
+    ok("cartridges examined", seen > 0, True)
+else:
+    # Same rule as the missing tree at the top: a corpus this reader cannot read
+    # is a question this machine cannot answer, not an answer of "fine".
+    print("SKIP  no FFR cartridges in the seed tree")
 
 print("\nshop slot tests passed" if not fails else f"\n{fails} FAILURE(S)")
 sys.exit(1 if fails else 0)

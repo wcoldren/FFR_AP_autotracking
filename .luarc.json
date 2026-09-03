@@ -1,5 +1,5 @@
 {
     "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
-    "workspace.library": ["../../api/lua/definition"],
+    "workspace.library": ["../../PopTracker/api/lua/definition"],
     "runtime.version": "Lua 5.4"
 }

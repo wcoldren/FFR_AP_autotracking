@@ -1101,10 +1101,25 @@ frames(20)
 check("buying the shop key item publishes it",
   table.concat(textFrames(allSent())):find('"ff1/shopitem","value":true', 1, true) ~= nil, true)
 
-MEMORY[0x6024] = 0                       -- handed to the Elf Doctor
+-- The hand-over, as the cartridge does it: the Herb leaves inventory and the
+-- Elf Doctor's event bit goes up at $6205 (ram_mapping.lua's herb stage 1).
+-- Both halves matter -- the latch is what holds the check, and that bit is what
+-- tells a spent item apart from a game that was never played.
+MEMORY[0x6024] = 0
+MEMORY[0x6205] = 0x03
 frames(20)
 check("spending it does not take the check back",
   table.concat(textFrames(allSent())):find('"ff1/shopitem","value":false', 1, true), nil)
+
+-- But a new game on that same cartridge starts with the item unbought, and the
+-- latch has to let go of it. A practice run or a race-night restart is the
+-- ordinary way a second run happens on one seed; without this the pin reads as
+-- checked for the whole of it.
+for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end   -- a new game
+for a = 0x6021, 0x6035 do MEMORY[a] = 0 end        -- with an empty inventory
+frames(60)
+check("a new game releases the shop latch",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":false', 1, true) ~= nil, true)
 
 -- A consumable in the slot is the ordinary other half of the roll: roughly half
 -- of solo seeds have no key item in any shop, and nothing can be detected there.
@@ -1131,6 +1146,14 @@ MEMORY[0x6200 + 0xFF] = 0x03             -- the patch fired, object still visibl
 frames(20)
 check("flag byte 0xFF is what answers on an Archipelago cartridge",
   table.concat(textFrames(allSent())):find('"ff1/shopitem","value":true', 1, true) ~= nil, true)
+
+-- That byte is part of the save, so a save from before the purchase is the
+-- cartridge saying it has not happened -- and nothing here may argue with it.
+-- Same rule as the goal bit: where the save keeps its own record, the save wins.
+MEMORY[0x6200 + 0xFF] = 0x01             -- loaded a save from before the buy
+frames(20)
+check("and it is read back down again when an earlier save is loaded",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":false', 1, true) ~= nil, true)
 
 -- A 256K image keeps lut_ShopTypes in bank 0x0F instead, and the reader is
 -- meant to find it by reading rather than by assuming.
