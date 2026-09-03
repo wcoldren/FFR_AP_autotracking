@@ -19,7 +19,11 @@ false while the picture still looked plausible:
     nothing and ends on a way off the floor, a loot lane opens something --
     which is Graph.floor_items()'s answer and not a list here;
   * **the Map Key fits the map it is drawn on.** The band is the map's own
-    width and the narrowest map carrying a chest is sixteen tiles across.
+    width and the narrowest map carrying a chest is sixteen tiles across;
+  * **an authored lane walks the same floor the solver does.** The stops are a
+    person's, but the walking between them is the router's, so handing back the
+    order a solved lane already found has to reproduce that lane -- and a stop
+    that resolves to nowhere has to be refused rather than stepped over.
 
 Set FF1_ROM to a cartridge; without one this skips. A real FFR seed is
 strictly stronger than the vanilla image here -- vanilla has no shuffled
@@ -243,6 +247,67 @@ def main():
           strays, [])
     check("and no two route lanes on a map start in the same place",
           shared_starts, [])
+
+    # ------------------------------------------------- the authored lane
+    # The order is the author's and the walking is still the router's, so a
+    # solved lane handed back as its own stops must come out the same lane.
+    # This is the whole claim of "the router becomes the pathing primitive":
+    # if the two disagree, the editor would draw something the solver never
+    # would and neither would be wrong about the cartridge.
+    diverged, illegal = [], []
+    for map_id, lanes in plans.items():
+        f = L.Floor(rom, graph, map_id)
+        outs = set(L.exits(f))
+        spec = []
+        for r in lanes.runs:
+            stops = [{"kind": "arrival", "at": list(r.start),
+                      "in": list(r.start)}]
+            stops += [{"kind": "chest", "index": i} for i in r.got]
+            if r.path[-1] in outs:
+                stops.append({"kind": "exit", "at": list(r.path[-1])})
+            spec.append({"flavour": r.label, "stops": stops,
+                         "region": r.region})
+        back = L.authored(rom, graph, map_id, {"lanes": spec}, chests)
+        for r, a in zip(lanes.runs, back.runs):
+            if len(a.path) != len(r.path) or sorted(a.got) != sorted(r.got):
+                diverged.append((eg.MAP_NAMES[map_id], r.label,
+                                 len(a.path), len(r.path)))
+            for i, cell in enumerate(a.path):
+                if not f.walkable(cell):
+                    illegal.append((eg.MAP_NAMES[map_id], r.label, cell))
+            for x, y in zip(a.path, a.path[1:]):
+                dx = min((x[0] - y[0]) % 64, (y[0] - x[0]) % 64)
+                dy = min((x[1] - y[1]) % 64, (y[1] - x[1]) % 64)
+                if dx + dy != 1:
+                    illegal.append((eg.MAP_NAMES[map_id], r.label, x, y))
+    check("an authored lane reproduces the solved one it came from",
+          diverged, [])
+    check("and every step of it is a step the game allows", illegal, [])
+
+    # A stop that resolves to nowhere is a refusal, not a leg to step over.
+    # Drawing the lane without it reads as a shorter route rather than as a
+    # broken one, which is the failure that would never be noticed.
+    one = sorted(plans)[0]
+    wall = None
+    probe = L.Floor(rom, graph, one)
+    for c in ((x, y) for y in range(64) for x in range(64)):
+        if not probe.walkable(c):
+            wall = c
+            break
+    refused = []
+    for stops in ([{"kind": "arrival", "at": list(plans[one].runs[0].start),
+                    "in": list(plans[one].runs[0].start)},
+                   {"kind": "tile", "at": list(wall)}],
+                  [{"kind": "chest", "index": 9999},
+                   {"kind": "tile", "at": list(plans[one].runs[0].start)}]):
+        try:
+            L.authored(rom, graph, one,
+                       {"lanes": [{"flavour": "route", "stops": stops}]},
+                       chests)
+            refused.append(("drew it anyway", stops[-1]))
+        except ValueError:
+            pass
+    check("a stop that resolves to no tile is refused", refused, [])
 
     # ------------------------------------------------ the drawing's own rules
     # A loot lane is drawn as the *extension* of the route one, so purple should

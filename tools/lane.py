@@ -587,6 +587,185 @@ def plan(rom, graph, map_id, chests=None):
     return Lanes(runs, links(groups))
 
 
+# ------------------------------------------------------ the authored lane
+#
+# A solver cannot know which chests are worth taking on a given seed, so the
+# route wants a person in the loop (ROADMAP.md, "an editor rather than a better
+# solver"). What the person supplies is an *order*: a short list of stops. The
+# walking between them is still this module's, and the cost model below is
+# untouched -- Floor becomes the pathing primitive instead of the whole feature.
+#
+# A stop says what it is, not where it is, because the thing being authored has
+# to outlive the cartridge it was drawn on. `at` is a hint the editor redraws;
+# only a bare tile stop is authoritative about its own coordinates.
+
+STOP_KINDS = ("arrival", "chest", "exit", "tile")
+
+
+def anchors(f, stop, groups, start=None):
+    """[(col, row)] -- every tile this stop could be satisfied at.
+
+    Where the authored hint still holds on this cartridge it is the whole
+    answer, so a lane redrawn on the seed it was drawn for is the lane that was
+    drawn. Where it does not, the stop falls back to what it *means*, and only
+    then does the router get a choice:
+
+    * `arrival` moves between cartridges even when the floor does not. The
+      tiles the game can put you down on are the destinations of whatever
+      teleports point here, and a shuffle repoints them -- so this resolves to
+      the arrivals that reach the stop's own region anchor. Without the anchor
+      a two-region floor serves both halves from one door, which is the bug
+      plan() carries its own comment about.
+    * `chest` resolves to every tile you could stand on to open any tile of
+      that index, because an index can sit on more than one tile and opening
+      any clears the lot. Which one to use is part of the problem: the tile
+      nearest the door is not always the one the rest of the round wants.
+    * `exit` is a teleport tile of this map, so it is as stable as the digest
+      that guards the layout; the fallback is every other way off the floor,
+      which is exits()' own spoiler-safe rule.
+    * `tile` is the author pointing at a tile. There is nothing to resolve and
+      nothing to fall back to -- an unwalkable one is a refusal, not a nudge to
+      the nearest floor.
+    """
+    kind = stop.get("kind")
+    if kind == "tile":
+        at = tuple(stop["at"])
+        return [at] if f.walkable(at) else []
+    if kind == "chest":
+        out = []
+        for c in groups.get(stop["index"], ()):
+            for a in f.stand(c):
+                if a not in out:
+                    out.append(a)
+        return out
+    if kind == "arrival":
+        want = tuple(stop["in"])
+        out = [a for a in arrivals(f) if want in f.reached(a)]
+    elif kind == "exit":
+        out = exits(f, not_at=() if start is None else {start})
+    else:
+        raise ValueError("unknown stop kind %r" % (kind,))
+    at = tuple(stop["at"]) if stop.get("at") is not None else None
+    return [at] if at in out else out
+
+
+def walk(f, stops, groups, start=None):
+    """(path, got, gaps) -- the walking between authored stops, in their order.
+
+    The order is the author's, so this is not a tour. It is a layered shortest
+    path over the candidate sets, one layer per stop, and it is exact: taking
+    the nearest candidate at each step commits to a tile the next leg then pays
+    for, which is the defect nearest-neighbour had in Floor.lane one dimension
+    down. The layers are small -- tens of tiles, not thousands -- so the whole
+    thing costs one Dijkstra per distinct candidate, where the tour costs 2**n.
+
+    `gaps` is [(i, j)], the consecutive stops with no walk between them. A gap
+    is returned rather than bridged. A straight line between two tiles the game
+    will not let you walk between is the one thing a drawn lane must never say,
+    and a lane with a hole in it is not a lane -- so the caller refuses rather
+    than drawing either.
+    """
+    if not stops:
+        return [], [], []
+    sets = []
+    for i, stop in enumerate(stops):
+        cand = anchors(f, stop, groups, start=start)
+        if not cand:
+            return [], [], [(i, i)]
+        sets.append(cand)
+
+    # best[t] = (cost so far, the tile of the previous layer it came from).
+    best = {t: (0, None) for t in sets[0]}
+    trail = [best]
+    for k in range(1, len(sets)):
+        step, gap = {}, True
+        for t in sets[k]:
+            pick = None
+            for u, (c, _) in trail[k - 1].items():
+                d = f.cost_to(u, t)
+                if d == FAR:
+                    continue
+                if pick is None or c + d < pick[0]:
+                    pick = (c + d, u)
+            if pick is not None:
+                step[t] = pick
+                gap = False
+        if gap:
+            return [], [], [(k - 1, k)]
+        trail.append(step)
+
+    at = min(trail[-1], key=lambda t: trail[-1][t][0])
+    chosen = [at]
+    for k in range(len(sets) - 1, 0, -1):
+        at = trail[k][at][1]
+        chosen.append(at)
+    chosen.reverse()
+
+    path, got = [chosen[0]], []
+    for k, (a, b) in enumerate(zip(chosen, chosen[1:]), start=1):
+        seg = f.path(a, b)
+        if seg is None:
+            return [], [], [(k - 1, k)]
+        path += seg[1:]
+        if stops[k].get("kind") == "chest":
+            got.append(stops[k]["index"])
+    if stops[0].get("kind") == "chest":
+        got.insert(0, stops[0]["index"])
+    return path, got, []
+
+
+def authored(rom, graph, map_id, entry, chests=None):
+    """-> Lanes for one map from a lane file's layout entry, or None.
+
+    Takes the parsed entry and never a path: this module is the router and does
+    not open files, so the file, the digest and the refusal are lane_file's.
+
+    Raises ValueError naming the stops where a leg cannot be walked. The
+    alternative is drawing the lane with the leg missing, which reads as a
+    shorter route rather than as a broken one -- so a lane that cannot be
+    walked is not a lane to draw badly, it is a lane to refuse.
+    """
+    groups = chest_groups(rom, map_id, chests)
+    runs = []
+    for rn, spec in enumerate(entry.get("lanes", ())):
+        flavour = spec.get("flavour")
+        if flavour not in ("route", "loot"):
+            raise ValueError("map %d lane %d: unknown flavour %r"
+                             % (map_id, rn, flavour))
+        stops = spec.get("stops", [])
+        if len(stops) < 2:
+            raise ValueError("map %d lane %d: a lane needs at least two stops"
+                             % (map_id, rn))
+        # The loot lane prefers the route lane already drawn for this region,
+        # exactly as plan() does, so the two coincide where that is free.
+        prefer = ()
+        if flavour == "loot":
+            for r in runs:
+                if r.label == "route" and r.region == spec.get("region", rn):
+                    prefer = zip(r.path, r.path[1:])
+                    break
+        f = Floor(rom, graph, map_id, prefer=prefer)
+        first = anchors(f, stops[0], groups)
+        got_path, got, gaps = walk(f, stops, groups,
+                                   start=first[0] if first else None)
+        if gaps:
+            i, j = gaps[0]
+            raise ValueError(
+                "map %d lane %d: no walk from stop %d (%s) to stop %d (%s)"
+                % (map_id, rn, i, stops[i].get("kind"), j, stops[j].get("kind"))
+                if i != j else
+                "map %d lane %d: stop %d (%s) resolves to no tile on this "
+                "cartridge" % (map_id, rn, i, stops[i].get("kind")))
+        reach = f.reached(got_path[0])
+        missed = sorted(i for i, ts in groups.items() if i not in got and any(
+            x in reach for c in ts for x in f.stand(c)))
+        runs.append(Run(flavour, got_path[0], got_path, frozenset(f.trap),
+                        got, missed, spec.get("region", rn)))
+    if not runs:
+        return None
+    return Lanes(runs, links(groups))
+
+
 def turns(path):
     """Counted turns: a heading change you have to make yourself."""
     return sum(1 for a, b, c in zip(path, path[1:], path[2:])
