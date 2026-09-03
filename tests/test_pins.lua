@@ -143,15 +143,15 @@ for _, rel in ipairs(DUNGEON_TREES) do
   check(rel .. ": pins with no rule", n.none, 29)
 end
 
--- The sheets. 18 of 26 std slots and 21 of 28 nov ones can be spoken for by an
+-- The sheets. 17 of 25 std slots and 20 of 27 nov ones can be spoken for by an
 -- incentive flag; the rest hold a section no flag covers, so no rule may claim
 -- to hide them. Eight and seven: the three with no slot at all -- Temple of
 -- Fiends, ToFR, and Ryukahn Desert on the standard sheet -- and the five orb
 -- slots. Shop Item used to be a fourth; it has a flag now, because FFR
 -- computes the slot's incentive status out of NPCItems and IncentivizeFreeNPCs
 -- rather than declaring a flag of its own.
-local SHEET_RULED = { ["locations/incentives.json"] = 18,
-                      ["locations/NOverworld/incentives.json"] = 21 }
+local SHEET_RULED = { ["locations/incentives.json"] = 17,
+                      ["locations/NOverworld/incentives.json"] = 20 }
 for _, rel in ipairs(INCENTIVE_TREES) do
   local ruled = 0
   eachPin(trees[rel], function(_, marker)
@@ -366,8 +366,8 @@ end
 -- fix. With both conjuncts set, `npcsBoth` reproduces what `npcs` used to be --
 -- so the repair took the wrong seeds away without costing the right ones.
 local SHEET_DRAWN = {
-  ["locations/incentives.json"] = { on = 26, off = 8, npcs = 8, npcsBoth = 14 },
-  ["locations/NOverworld/incentives.json"] = { on = 28, off = 7, npcs = 7, npcsBoth = 13 },
+  ["locations/incentives.json"] = { on = 25, off = 8, npcs = 8, npcsBoth = 14 },
+  ["locations/NOverworld/incentives.json"] = { on = 27, off = 7, npcs = 7, npcsBoth = 13 },
 }
 for _, rel in ipairs(INCENTIVE_TREES) do
   local want = SHEET_DRAWN[rel]

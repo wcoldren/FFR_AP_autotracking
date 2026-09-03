@@ -264,8 +264,20 @@ Nothing here is urgent unless it says so.
   blue, and red outranks blue by design. Nothing to do in the pack; worth knowing
   if that setting is on.
 
-- **`shopItem`** is the one Locations-grid cell with no incentive toggle behind it
-  and no FFR flag mapped to it, so it is never blue and never gold.
+- **`shopItem` had no incentive toggle behind it and no FFR flag mapped to it,
+  so it was never blue and never gold. Closed 2026-09-03**, by the entry below
+  on the `I: Shop Item` pin: the section carries
+  `^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems` now, with
+  `visibility_rules: ["npcItems"]` and a `$showPin` restriction on the pin, so
+  it demotes and hides like every other slot.
+
+  Filed here because it outlived its own fix by a day while still reading as
+  open, which is the failure the header above describes -- an entry that goes
+  quiet sends the next reader after work already done. The close that made it
+  false is the entry named "The `I: Shop Item` pin ignores the flag that
+  governs it", which did not think to come up here. Named rather than pointed
+  at by position, because a positional pointer rots the same way -- this
+  sentence said "two entries down" and was already wrong when it was written.
 
 - **Our trap letters are not DarkmoonEX's**, by design. His are hand-assigned for
   vanilla and do not describe an FFR seed; ours are read per cartridge. Only
@@ -734,7 +746,9 @@ Nothing here is urgent unless it says so.
   `(NPCFetchItems ?? false) && (IncentivizeFetchNPCs ?? false)`, the same
   conjunction one flag along, and the pack again models one conjunct: the
   sixteen fetch rows of `scripts/incentive_slots.lua` -- eight per tree, Smithy,
-  Nerrick, Astos, Matoya, Elf Prince, Dr Unne, Lefein and Fairy -- carry
+  Nerrick, Astos, Matoya, Elf Prince, Dr Unne, Lefein and Fairy; fourteen and
+  seven since Dr Unne's slot was removed on 2026-09-03, so count against that
+  date, not against the file -- carry
   `fetchQuestsAreIncentive`, which `flag_mapping.lua:54` binds to
   `IncentivizeFetchNPCs` alone. `NPCFetchItems` was in both shipped schemas and in
   `tools/doormap.py`, and appeared nowhere in `scripts/`: no code, no
@@ -794,12 +808,14 @@ Nothing here is urgent unless it says so.
   that can name more than one id, or a check that treats an absent id as no slot
   rather than as a slot to ring. Both are waived by name meanwhile.
 
-- **The pack has an eighth fetch incentive slot that FFR never fills.** Found
+- **The pack has an eighth fetch incentive slot that FFR never fills. Fixed
+  2026-09-03**, by removing the section rather than re-gating it. Found
   2026-09-03 on `nofetchitems497`, while measuring the flag above. The pack
-  gives `I: Dr Unne` a real incentive section -- `locations/incentives.json:403`
-  and its `NOverworld` twin, `hosted_item: "slabTranslated"`, gated on
-  `fetchQuestsAreIncentive` -- and `scripts/incentive_slots.lua:23`, `:53` list
-  it in both trees. FFR has no `IncentivizeUnne`. `FlagsCompute.cs:220-226`
+  gave `I: Dr Unne` a real incentive section in `locations/incentives.json` and
+  its `NOverworld` twin -- `hosted_item: "slabTranslated"`, gated on
+  `fetchQuestsAreIncentive` -- and `scripts/incentive_slots.lua` listed it in
+  both trees. Described in the past tense, and with no line numbers, because
+  the close below removed both. FFR has no `IncentivizeUnne`. `FlagsCompute.cs:220-226`
   computes exactly seven fetch conjunctions and Unne is not one of them, and the
   export agrees from the other side: the seven `priority_locations` that leave
   are Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick and Smith, and **`Dr
@@ -826,6 +842,26 @@ Nothing here is urgent unless it says so.
   already had a name for. A conjunction is not modelled by one of its terms --
   which the review of `flag-coverage` said in almost these words about a
   coverage row, and it was not carried across to a rule.
+
+  **What closed it.** The `I: Melmond` node -- whose only section was `I: Dr
+  Unne` -- is gone from `locations/incentives.json` and its `NOverworld` twin,
+  and with it the incentives-tab pin. It was dropped rather than kept
+  unincentivized because the incentive sheet is a sheet of incentive slots, and
+  a slot FFR cannot incentivize on any flagset does not belong on it.
+
+  **`slabTranslated` did not move, which is why the cut is this clean.** The
+  board's own `Melmond/Dr Unne` in `locations/overworld.json:2641` is the same
+  section with the two incentive conjuncts stripped from every rule, and it
+  hosts `slabTranslated` already, so reachability, the marker clear and
+  `tests/test_ram.lua`'s Unne cases all read the board copy and are untouched.
+  The sheet copy was hosting a second time, not the only time.
+
+  **The board's ring came off on its own**, which is the generator working:
+  `tools/incentive_slots.py` only makes a board row for a section whose
+  `hosted_item` some *sheet* section registered, so removing the sheet section
+  removed both rows. `INCENTIVE_SLOTS` goes 56 to 54 and nothing in
+  `tools/incentive_slots.py` changed. `@Melmond/Dr Unne` is correspondingly gone
+  from the grader's `NOT_AP_LOCATIONS`: it is not a row to excuse any more.
 
 ## Open questions
 

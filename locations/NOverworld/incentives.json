@@ -420,39 +420,6 @@
                         "y": 805
                     }
                 ]
-            },
-            {
-                "name": "I: Melmond",
-                "access_rules": [
-                    "$standardWorld,$noShipDrydock,ship,canal,slab",
-                    "$standardWorld,airship,slab",
-                    "$standardWorld,melmondRiver,canoe,slab",
-                    "$noOverworld,slab"
-                ],
-                "sections": [
-                    {
-                        "name": "I: Dr Unne",
-                        "access_rules": [
-                            "^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems,$noObjectiveShuffle",
-                            "^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems,objectiveNPCs,$standardWorld,airship",
-                            "^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems,objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship",
-                            "^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems,objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
-                            "^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
-                            "^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems,objectiveNPCs,$noOverworld,$hasFloater"
-                        ],
-                        "hosted_item": "slabTranslated"
-                    }
-                ],
-                "map_locations": [
-                    {
-                        "map": "incentives",
-                        "x": 500,
-                        "y": 1000,
-                        "restrict_visibility_rules": [
-                            "$showPin|slot|fetchQuestsAreIncentive|npcFetchItems"
-                        ]
-                    }
-                ]
             }
         ]
     },
