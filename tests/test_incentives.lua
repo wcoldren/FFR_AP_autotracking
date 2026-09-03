@@ -62,13 +62,18 @@ local hidden = {}
 for _, file in ipairs(INCENTIVE_FILES) do
   eachSection(json.load(PACK .. "/" .. file), function(node, section)
     if section.visibility_rules then
-      hidden[#hidden + 1] = string.format("%s: %s/%s on %s", file, node.name,
-        section.name, section.visibility_rules[1])
+      hidden[#hidden + 1] = {
+        rule = section.visibility_rules[1],
+        text = string.format("%s: %s/%s on %s", file, node.name, section.name,
+          section.visibility_rules[1]),
+      }
     end
   end)
 end
--- Two per incentive sheet, and they mean opposite things -- which is why the
--- names are asserted and not only the count.
+-- Two per incentive sheet, and they mean opposite things -- which is why each
+-- flag is tallied and not only the total. A count alone passes on a sheet that
+-- lost the hoard's rule and grew a second npcItems one somewhere else, which is
+-- the shape a careless edit takes.
 --
 -- BahamutHoard is a map edit: the slot is hidden rather than demoted when the
 -- flag is off, and that flag is also what its ring answers to. npcItems is the
@@ -80,17 +85,26 @@ end
 --
 -- Both sheets host both. The NOverworld sheet was missing the hoard hosting
 -- entirely until the rules were brought into line with the standard sheet's.
-local HIDDEN_BY = { BahamutHoard = true, npcItems = true }
+local HIDDEN_BY = { "BahamutHoard", "npcItems" }
 check("only existence flags still hide a pin", #hidden, 2 * #INCENTIVE_FILES)
+local tally = {}
+for _, flag in ipairs(HIDDEN_BY) do tally[flag] = 0 end
 for _, one in ipairs(hidden) do
   local named = false
-  for flag in pairs(HIDDEN_BY) do
-    if one:find(flag, 1, true) then named = true end
+  for _, flag in ipairs(HIDDEN_BY) do
+    if one.rule:find(flag, 1, true) then
+      tally[flag] = tally[flag] + 1
+      named = true
+    end
   end
   if not named then
-    fails("a surviving visibility rule is " .. one
+    fails("a surviving visibility rule is " .. one.text
       .. ", which is neither BahamutHoard nor an existence flag")
   end
+end
+-- One of each per sheet, which is the half the total cannot say.
+for _, flag in ipairs(HIDDEN_BY) do
+  check("sections hidden by " .. flag, tally[flag], #INCENTIVE_FILES)
 end
 
 ------------------------------------------------------------------
