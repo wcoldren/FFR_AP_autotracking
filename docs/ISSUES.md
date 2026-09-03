@@ -665,9 +665,27 @@ Nothing here is urgent unless it says so.
   list, so it reproduced the OR answer by construction and could not have
   disagreed. It is evidence of nothing.
 
-- **Seven incentive slots ring gold on a seed FFR did not incentivize them on.**
-  Found 2026-09-03 by the first use of `tools/export_diff.py`, on the cartridge
-  rolled for it. `FlagsCompute.cs:217` makes the incentive status of the six
+- **Seven incentive slots ring gold on a seed FFR did not incentivize them on.
+  Fixed 2026-09-03.** Found the same day, by the first use of
+  `tools/export_diff.py`, on the cartridge rolled for it.
+
+  **What closed it.** `npcItems` and `npcFetchItems` are codes now, ANDed into
+  every alternative of the sections they speak for -- 14 free sections and 15
+  fetch ones across the two sheets. The caravan slot got `visibility_rules`
+  rather than a second conjunct, because its problem was existence. Nerrick got
+  a third term, derived from the sheets rather than listed. And the rings have a
+  grader of their own, `tools/tests/test_incentive_conjunction.py`, which was
+  the actual gap: `check_logic` grades access rules, the rings answer to
+  `priority_locations`, and nothing compared the two. Reverting the conjuncts
+  reddens 13 rings and one ghost; reverting the third term reddens Nerrick on
+  `nov` and `nov2`.
+
+  **Three findings the grader turned up on the way, none of them this defect**,
+  filed below: the Cardia progressive's stage-2 inheritance, a Sea Shrine
+  incentive chest `notail` does not have, and `Dr Unne`, which already had an
+  entry.
+
+  What the defect was: `FlagsCompute.cs:217` makes the incentive status of the six
   free NPCs and the caravan slot the *conjunction*
   `(NPCItems ?? false) && (IncentivizeFreeNPCs ?? false)`. The pack models one
   conjunct: all seven rows in `scripts/incentive_slots.lua` -- King, Sara,
@@ -718,9 +736,10 @@ Nothing here is urgent unless it says so.
   sixteen fetch rows of `scripts/incentive_slots.lua` -- eight per tree, Smithy,
   Nerrick, Astos, Matoya, Elf Prince, Dr Unne, Lefein and Fairy -- carry
   `fetchQuestsAreIncentive`, which `flag_mapping.lua:54` binds to
-  `IncentivizeFetchNPCs` alone. `NPCFetchItems` is in both shipped schemas and
-  in `tools/doormap.py`, and appears nowhere in `scripts/`: no code, no
-  `NOT_MODELLED` row, no row in `docs/FLAG_COVERAGE.md`. So a seed with
+  `IncentivizeFetchNPCs` alone. `NPCFetchItems` was in both shipped schemas and in
+  `tools/doormap.py`, and appeared nowhere in `scripts/`: no code, no
+  `NOT_MODELLED` row and -- until later the same day -- no row in
+  `docs/FLAG_COVERAGE.md` either. So a seed with
   `NPCFetchItems` off and `IncentivizeFetchNPCs` on rings those slots gold on a
   seed FFR did not incentivize them on -- the same defect, and the coverage test
   cannot see it either, because `consulted()` greps FFR's *reachability* logic
@@ -740,6 +759,40 @@ Nothing here is urgent unless it says so.
   `nofetchitems497` is a standard seed; the third term only bites on a
   No-Overworld roll, so the `NOverworld` incentive tree must drop that row
   rather than gate it.
+
+- **The Cardia ring cannot be switched off on a hoard seed.** Found 2026-09-03
+  by `tools/tests/test_incentive_conjunction.py`, which reports it on all six
+  `hoard*497` cartridges. Those roll `MapDragonsHoard` on with
+  `IncentivizeCardia` off, and the pack rings `Cardia Forest Island - Incentive
+  Major` gold on every one of them; FFR's `priority_locations` names no Cardia
+  location at all.
+
+  The cause is the shape of the model rather than a wrong flag.
+  `cardiaIsIncentive` is a progressive whose stage 2 is Bahamut's Hoard, and a
+  PopTracker progressive provides every code up to its current stage -- so
+  reaching stage 2 hands out stage 1's `cardiaIsIncentive` whatever
+  `IncentivizeCardia` says. `flag_mapping.lua`'s own comment says the
+  inheritance "only affects which pins are drawn", which is true, and is now
+  measured to be the wrong thing to be relaxed about.
+
+  No conjunction fixes it: the pack has no way to say "the hoard exists and
+  Cardia is not incentivized", because one progressive is carrying two
+  independent facts. Waived by name in the grader until it is decided, so the
+  disagreement stays printed rather than scoped away.
+
+- **A slot can ring for a location the seed does not have, and the caravan was
+  not the only one.** Found 2026-09-03 by the same grader. On `notail` the pack
+  rings `Sea Shrine Mermaids (B1) - Incentive Major`, which is not an
+  Archipelago location on that seed -- its Sea Shrine incentive chests are
+  `Incentive 1` and `Incentive 2`. `hoarddockbridge497` does the same with the
+  Cardia chest.
+
+  Same family as the caravan slot and a different cause. The caravan's existence
+  answers to a flag, so a rule can gate it; these are the seed naming a chest
+  slot differently, which no flag predicts, so the pack's row points at an id
+  the pool does not contain. What that should become is open -- probably a row
+  that can name more than one id, or a check that treats an absent id as no slot
+  rather than as a slot to ring. Both are waived by name meanwhile.
 
 - **The pack has an eighth fetch incentive slot that FFR never fills.** Found
   2026-09-03 on `nofetchitems497`, while measuring the flag above. The pack
@@ -776,12 +829,20 @@ Nothing here is urgent unless it says so.
 
 ## Open questions
 
-- **`canon` has a latent false FAIL in `test_maps.lua` check 7.** It treats a
-  rule as unconstrained only when *every* alternative empties out, but in
-  PopTracker an OR with one unconditional branch is unconditional. No rule
-  reaches it today — every `^$incentiveSlot` term sits either alone in its list
-  or in all of them — so this is a false FAIL waiting on the next incentive
-  rule rather than something being missed now.
+- **Retracted 2026-09-03: `canon` has no latent false FAIL in `test_maps.lua`
+  check 7.** This said `canon` treats a rule as unconstrained only when *every*
+  alternative empties out, where PopTracker makes an OR with one unconditional
+  branch unconditional. `canon` does not: it `return nil`s the whole rule on the
+  first alternative that empties, which is PopTracker's semantics. The guard was
+  already there when this was written, and the entry described the code it
+  replaced.
+
+  Recorded rather than deleted because the retraction is the useful part. This
+  was filed as a prediction — "a false FAIL waiting on the next incentive rule"
+  — and the next incentive rule has now been written, twice: every gated section
+  on both sheets carries a second `^$incentiveSlot` term. Nothing fired, because
+  nothing could have. A prediction about code that is not re-read against the
+  code is the failure mode this page keeps finding in itself.
 
 - **The toggle icons are sized against a filter a third darker than their
   docstring assumed.** `make_toggle_icons.py` draws only the "on" image and lets

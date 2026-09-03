@@ -70,47 +70,34 @@ with no code can be told apart from one nobody has got to.
 
   Until then both stay strict, which costs six Cardia Forest locations on a
   No-Overworld seed and the Elf Prince plus Dr Unne on a shuffled one.
-- **Seven incentive slots ring gold on a seed FFR did not incentivize them on,
-  and one of the seven is not a check at all.** Opened 2026-09-03, by the first
-  use of the export diff in section 5 and on the cartridge rolled for it.
-  `IncentivizeCaravan` is `NPCItems && IncentivizeFreeNPCs`; the pack models the
-  second conjunct and not the first, so with `NPCItems` off and
-  `IncentivizeFreeNPCs` on, FFR drops the six free NPCs and the caravan slot
-  from `priority_locations` and the pack rings all seven. It wants an `npcItems`
-  code and the conjunction on the NPC rows of `scripts/incentive_slots.lua` --
-  thirteen across the two incentive trees, seven in the `I:` tree and six in the
-  standard one -- and on the matching `access_rules`. The shop-slot build again,
-  one conjunct along.
+- **Seven incentive slots rang gold on seeds FFR did not incentivize them on,
+  and one of the seven was not a check at all. Closed 2026-09-03**, opened the
+  same day by the first use of the export diff in section 5.
 
-  **The caravan slot needs more than the conjunction**: `Shop Item` leaves
-  `rules` and `locations` too, so on that seed it is not a location, and all
-  four location files show it anyway -- the two `incentives.json` on
-  `npcsAreIncentive`, the two `overworld.json` on nothing at all. Its existence
-  wants the flag, not just its colour.
+  FFR computes two of its incentive conditions rather than storing them:
+  `IncentivizeCaravan` is `NPCItems && IncentivizeFreeNPCs`, and each of the
+  seven fetch incentives is `NPCFetchItems && IncentivizeFetchNPCs`. The pack
+  modelled the second conjunct of each, so either flag off with its partner on
+  rang seven slots FFR had dropped. Both flags now have a code, both are ANDed
+  into every alternative of the sections they speak for, and `IncentivizeNerrick`'s
+  third term -- `&& !NoOverworld` -- is derived from the two sheets rather than
+  listed. The caravan slot was the odd one and got `visibility_rules` instead: it
+  leaves `rules` and `locations` too, so it is not a check on that seed rather
+  than an unringed one.
 
-  **And the fetch half is the same defect again**, so building only the above
-  closes half of it: `FlagsCompute.cs:220-226` computes the seven fetch NPCs as
-  `NPCFetchItems && IncentivizeFetchNPCs`, and the sixteen fetch rows across the
-  two trees carry `fetchQuestsAreIncentive` -- `IncentivizeFetchNPCs` alone.
-  `NPCFetchItems` has no code, no `NOT_MODELLED` row and no coverage row. Two
-  differences from the free half do not survive copying the fix across: Nerrick
-  is a three-term conjunction ending `&& !NoOverworld`, and FFR computes seven
-  fetch slots where the pack carries eight rows per tree, there being no
-  `IncentivizeUnne`. `docs/ISSUES.md` has all three halves and the open question
-  about `Dr Unne`.
+  **What was actually missing was a grader, and that is the part worth
+  carrying forward.** `check_logic` grades access rules against FFR's
+  reachability; the rings answer to `priority_locations`, and nothing compared
+  the two. So did the completeness check miss it -- `consulted()` greps FFR's
+  reachability logic, and a flag that only ever moves a ring never appears
+  there. `tools/tests/test_incentive_conjunction.py` closes that: 23 exports,
+  four questions, and reverting each fix reddens exactly its own rows.
 
-  **Both gate cartridges now exist.** `nonpcitems497` settles the free half --
-  seven priority locations, three fewer exported locations, zero moved rules --
-  and `nofetchitems497`, rolled 2026-09-03, settles the fetch half: zero rules
-  move, 226 of 226 agree, seven priority locations go, and all seven stay
-  locations, so the fetch repair is the conjunction alone. The gate row has to
-  demonstrate a failure on *both* -- one that passes on `nonpcitems497` while
-  the fetch slots stay wrong is exactly the false green this entry exists to
-  avoid.
-
-  That roll also turned up a third thing, filed separately: the pack gives
-  `Dr Unne` an incentive slot FFR never fills, which no conjunction fixes.
-
+  The figures are in `docs/ORACLE.md` and the per-flag rows in
+  `docs/FLAG_COVERAGE.md`; `docs/ISSUES.md` has the entry and the three
+  further findings the grader turned up, none of which a conjunction fixes:
+  the Cardia progressive's stage-2 inheritance, a chest `notail` names
+  differently, and `Dr Unne`, whom FFR never incentivizes at all.
 
 ## 2. Boxes that do not exist
 

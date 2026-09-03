@@ -128,10 +128,16 @@ took a real check off the board, and on a shard hunt that was nearly every check
 
 "Slot" means one of the sections `scripts/incentive_slots.lua` names and nothing
 else. `^$incentiveSlot|<flag>` is ANDed only onto those, and only on the two
-incentive sheets -- `grep -c incentiveSlot locations/*.json` gives 25 and 29 on
-the sheets and **zero** on either dungeon tree -- so an ordinary chest cannot
-come out blue. The 26 dungeon-tree rows in that table are there so
+incentive sheets -- 26 gated sections on the standard sheet and 25 on the
+No-Overworld one, and **zero** on either dungeon tree -- so an ordinary chest
+cannot come out blue. The 26 dungeon-tree rows in that table are there so
 `scripts/incentives.lua` can ring them gold, not to demote them.
+
+A section can carry the term twice, because two of FFR's incentive conditions
+are conjunctions rather than flags, so counting terms and counting gated
+sections are different questions and the second is the one that means anything.
+`tests/test_incentives.lua` holds both, and holds every alternative of a section
+to naming the same set.
 
 Blue is a statement about what the seed promised, not about what is in the slot.
 FFR places a key item it did not pick as an incentive into the pool of locations
