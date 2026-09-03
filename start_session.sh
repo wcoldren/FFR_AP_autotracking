@@ -27,6 +27,8 @@
 #   FF1_NO_MAPS=1              skip step 1
 #   FF1_NO_EMU=1               skip step 2
 #   FF1_NO_TRACKER=1           skip step 3
+#   FF1_REGEN_ANYWAY=1         redraw even from a branch the art on disk was
+#                              not drawn from -- see the guard below
 
 set -u
 
@@ -64,6 +66,49 @@ find_app() {   # find_app <name> [<name>...]
     return 1
 }
 
+# Which branch a regen would bake into the override, and whether that is the
+# one the art on disk was drawn from.
+#
+# This matters because the override shadows the pack: PopTracker serves it
+# ahead of the checkout, so a redraw does not merely rebuild art -- it rewrites
+# the four location trees and `layouts/shared.json` from whatever this working
+# tree currently holds, and that is what the session then plays on. Nothing
+# about the art on disk says which branch wrote it. A regen from a branch
+# without the toggle work once wrote four location trees carrying no pin rules,
+# and would have silently dropped the Pins group at the next restart.
+#
+# regen_maps.py records the branch in its cache, so the comparison is against
+# the branch that drew this mode's art last rather than against a list of
+# blessed names kept here. Three answers, and only one of them stops anything:
+# a match, a mismatch, and "cannot tell" -- no git, a detached head, or art
+# drawn before the branch was recorded. "Cannot tell" says so and proceeds; a
+# guard that fires on an absence is one people learn to pass with the override,
+# which costs more than it saves.
+regen_ok() {   # regen_ok <mode> <branch the art was last drawn from, or ->
+    _mode=$1 _was=$2
+    if [ -n "${FF1_REGEN_ANYWAY:-}" ]; then
+        return 0
+    fi
+    _now=$(git -C "$ROOT" symbolic-ref --quiet --short HEAD 2>/dev/null) || _now=
+    if [ -z "$_now" ]; then
+        echo "  (cannot tell which branch this checkout is on; redrawing)"
+        return 0
+    fi
+    if [ "$_was" = "-" ]; then
+        echo "  (no branch recorded for the $_mode art on disk; redrawing from $_now)"
+        return 0
+    fi
+    if [ "$_now" = "$_was" ]; then
+        return 0
+    fi
+    echo "$_mode art was last drawn from '$_was'; this checkout is on '$_now'" >&2
+    echo "-> not redrawing. The override shadows the pack, so this would bake" >&2
+    echo "   the location trees and layout on '$_now' into what you play on." >&2
+    echo "   FF1_REGEN_ANYWAY=1 to redraw anyway." >&2
+    problems=$((problems + 1))
+    return 1
+}
+
 # ----------------------------------------------------------------- 1. the art
 step "1/3  map art"
 if [ -n "${FF1_NO_MAPS:-}" ]; then
@@ -93,49 +138,63 @@ except SystemExit as e:
 out = regen_maps.default_out()
 cache = os.path.join(out, regen_maps.CACHE_NAME)
 npcs, lanes = "all", "none"
+drawn = None
+# "-" rather than an empty field: this line is read back by a positional
+# `set --`, where an empty one would shift every field after it. Art drawn
+# before the branch was recorded has no branch, which is not a branch named "".
+branch = "-"
 try:
     with open(cache) as f:
         entry = json.load(f).get("modes", {}).get(mode, {})
     npcs = entry.get("npcs", npcs)
     lanes = entry.get("lanes", lanes)
     drawn = entry.get("rom")
+    branch = entry.get("branch") or "-"
 except (OSError, ValueError):
-    drawn = None
+    pass
 
 if drawn == sha:
-    print(f"current {mode} {npcs} {lanes}")
+    print(f"current {mode} {npcs} {lanes} {branch}")
 else:
     why = "no art for this mode yet" if drawn is None else "drawn from another cartridge"
-    print(f"redraw {mode} {npcs} {lanes} {why}")
+    print(f"redraw {mode} {npcs} {lanes} {branch} {why}")
 PY
 )
+    # Globbing off: a branch name is one of these fields now, and git allows
+    # characters the shell would otherwise expand against the working directory.
+    set -f
     set -- $plan
+    set +f
     verdict=${1:-cannot}
     case $verdict in
         current)
-            mode=$2 npcs=$3 lanes=$4
+            mode=$2 npcs=$3 lanes=$4 drawn_branch=$5
             # The art matches this cartridge, which does not yet mean it
             # matches the checkout: --verify is the one that compares those.
             if out=$("$PY" "$ROOT/tools/regen_maps.py" --verify 2>&1); then
                 echo "$mode art was drawn from this cartridge, and is current"
             else
                 echo "$out" | head -4
-                echo "-> the art is this cartridge's but predates the checkout; redrawing"
-                if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes"; then
-                    echo "redraw failed -- the tabs will show the shipped art" >&2
-                    problems=$((problems + 1))
+                if regen_ok "$mode" "$drawn_branch"; then
+                    echo "-> the art is this cartridge's but predates the checkout; redrawing"
+                    if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes"; then
+                        echo "redraw failed -- the tabs will show the shipped art" >&2
+                        problems=$((problems + 1))
+                    fi
                 fi
             fi
             ;;
         redraw)
-            mode=$2 npcs=$3 lanes=$4
-            shift 4
-            echo "redrawing $mode art from this cartridge -- $*"
-            # Not piped into tail: the exit status of a pipeline is the last
-            # command's, so gating on it would ask whether tail worked.
-            if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes"; then
-                echo "redraw failed -- the tabs will show the shipped art" >&2
-                problems=$((problems + 1))
+            mode=$2 npcs=$3 lanes=$4 drawn_branch=$5
+            shift 5
+            if regen_ok "$mode" "$drawn_branch"; then
+                echo "redrawing $mode art from this cartridge -- $*"
+                # Not piped into tail: the exit status of a pipeline is the
+                # last command's, so gating on it would ask whether tail worked.
+                if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes"; then
+                    echo "redraw failed -- the tabs will show the shipped art" >&2
+                    problems=$((problems + 1))
+                fi
             fi
             ;;
         *)

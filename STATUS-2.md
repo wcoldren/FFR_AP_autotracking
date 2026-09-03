@@ -142,3 +142,59 @@ The pair also turns out to be the plain union of the two flags,
 saying only because `hoarddockbridge497` established that a pair *can* fail to be
 the union, and one counter-example is enough to make "not the union" a result
 about that pair rather than a rule about pairs.
+
+## A regen bakes in the branch you are standing on
+
+Landed 2026-09-02. `start_session.sh` redraws the map art when the art on disk
+was drawn from another cartridge, and a redraw is not only art: `regen_maps.py`
+rebuilds the four location trees and `layouts/shared.json` from the working tree
+and writes them into the override, which PopTracker serves ahead of the pack. So
+the branch checked out at regen time decides what the session then plays on, and
+nothing about the art on disk records which branch that was.
+
+The rule already existed as a habit -- check the branch before any regen that
+will be played on -- earned when a regen from a branch without the toggle work
+wrote four location trees with zero pin rules into the override and would have
+dropped the Pins group at the next restart. A habit is the thing this pack keeps
+catching itself failing at, so it is code now.
+
+**The fingerprint that looks like it already covers this does not.** The cache
+carries `inputs`, a sha256 over `INPUT_FILES`, which lists all four location
+trees and `layouts/shared.json`, so it moves on exactly this edit. But it moves
+the same distance in both directions. `inputs` differing is what makes the regen
+*happen*; it has no opinion about whether the change was the work landing or the
+work missing, and on the run that caused this it said "the pack or these tools
+changed" and redrew.
+
+So the branch is recorded rather than derived. `checkout_id()` writes `branch`,
+`head` and `dirty` into a mode's cache slot at the moment that mode's art is
+written, and `regen_ok` compares before the next redraw. Recorded only where art
+is actually written: the "up to date, fill in the missing identity" path
+backfills `sha1` and `ffr` because `rom` proves the cartridge in hand is the one
+the art came from, and nothing on that path proves a branch.
+
+**Three answers, and the two that are not a mismatch were most of the work.** A
+detached head has a commit and no branch; a checkout with no git has neither;
+art drawn before this landed has no branch recorded at all. All three read as
+"cannot tell", redraw, and say that is what happened. The alternative -- fire on
+the absence -- makes the guard's first week a wall of false alarms on every
+override already installed, and what people learn in that week is
+`FF1_REGEN_ANYWAY=1`.
+
+`head` and `dirty` are recorded and not compared, which is worth saying out loud
+because this pack treats a field nothing reads as dead code. They are
+provenance, the role `sha1` and `ffr` already play for the cartridge: what this
+art was built from, answerable after the fact. `dirty` covers `INPUT_FILES`
+rather than the whole tree, because an edit to a note or a doc moves no drawn
+byte, and a guard that mentions one teaches its reader to skim.
+
+The demonstration is the same call twice, in `tools/tests/test_regen_branch.py`:
+on the matching branch it redraws and counts nothing, on a mismatch it skips step
+1 and counts a problem. It skips rather than aborting, so the emulator and the
+tracker still open on the art already on disk -- no other failure in that script
+aborts either. The guard is sliced out of `start_session.sh` rather than restated
+in the test, so rewording the message is free and changing the predicate is not.
+
+Still true and not addressed here: nothing tracked in the repo describes
+`start_session.sh` at all. It arrived undocumented outside its own header
+comment, and `docs/README.md`'s ownership map has no row that would hold it.
