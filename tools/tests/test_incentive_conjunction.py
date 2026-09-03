@@ -22,8 +22,9 @@ dropped them from, on each of two flags, for as long as the pack has had rings.
 
 Reads exports only -- no ROM. `export_diff.read` carries the seed's own decoded
 flags beside its rules, locations and priority pool, and `check_logic.flag_codes`
-turns those into the codes the board would be showing, so the prediction is the
-pack's own reading rather than a second copy of it here.
+turns those into the codes the board would be showing -- defaults included, so a
+flag the generator rolled predicts what a fresh grid shows rather than off. The
+prediction is the pack's own reading rather than a second copy of it here.
 
 Usage:
     tools/tests/test_incentive_conjunction.py

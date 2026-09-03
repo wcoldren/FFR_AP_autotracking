@@ -294,6 +294,30 @@ try:
 except SystemExit:
     ok(True, "a --ff1-world naming nothing is refused")
 
+# --- a rolled flag reads as the board reads it, not as off -----------------
+#
+# `flag_codes` predicts what the flag grid would be showing, and the grid is not
+# a plain reading of the decoded set: applyFFRFlagsToBoard tells two kinds of
+# nil apart. A tristate the generator rolled leaves its cell alone -- the
+# mapping's `default` on a grid nobody has touched -- while a flag the build
+# has never heard of is not in the decoded set at all and is a definite off.
+#
+# Reading both as off is what test_incentive_conjunction's prediction did, and
+# it is a blind spot rather than a failure only because no cartridge in either
+# corpus has rolled one: on a seed whose NPCItems came back nil, the board rings
+# the six free NPC slots and the grader predicted no ring, so a wrong ring on
+# that seed would have been recorded as agreement.
+ok("npcItems" in c.flag_codes({"NPCItems": True}),
+   "a flag the string sets is on")
+ok("npcItems" not in c.flag_codes({"NPCItems": False}),
+   "a flag the string clears is off")
+ok("npcItems" in c.flag_codes({"NPCItems": None}),
+   "a rolled flag defaulting on is on, the way the grid shows it")
+ok("npcItems" not in c.flag_codes({}),
+   "a flag the build does not have is off, default or not")
+ok("noTail" not in c.flag_codes({"NoTail": None}),
+   "and a rolled flag defaulting off stays off")
+
 print()
 if fails:
     print("FAILED: " + ", ".join(fails))

@@ -428,15 +428,27 @@ def flag_codes(flags, pack=PACK):
 
     The mapping is read out of scripts/autotracking/flag_mapping.lua rather than
     written out again here, so the harness and the pack cannot drift apart on
-    which FFR flag is which."""
+    which FFR flag is which.
+
+    A decoded flag says None for two different things and the board treats them
+    differently (`applyFFRFlagsToBoard`), so this does too. A key the schema has
+    but the string left None was rolled at generation: the board leaves that
+    cell where it was, which on a grid nobody has touched is the mapping's own
+    `default`. A key the schema does not have at all is a build with no such
+    flag, and reads as off -- which is also what a hand-built table gets for
+    every flag it does not mention.
+    """
     src = open(os.path.join(pack, "scripts/autotracking/flag_mapping.lua")).read()
-    pairs = re.findall(r'\{\s*ffr\s*=\s*"([^"]+)"\s*,\s*code\s*=\s*"([^"]+)"', src)
+    pairs = re.findall(
+        r'\{\s*ffr\s*=\s*"([^"]+)"\s*,\s*code\s*=\s*"([^"]+)"([^}]*)\}', src)
     if not pairs:
         raise SystemExit("could not read the flag mapping out of flag_mapping.lua")
 
     codes = set()
-    for ffr, code in pairs:
-        if flags.get(ffr) is True:
+    for ffr, code, rest in pairs:
+        value = flags.get(ffr)
+        if value is True or (value is None and ffr in flags
+                             and re.search(r'default\s*=\s*true', rest)):
             codes.add(code)
 
     # The progressives, whose stages are spelled out in the same file but as
