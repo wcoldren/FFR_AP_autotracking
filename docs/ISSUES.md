@@ -274,7 +274,10 @@ Nothing here is urgent unless it says so.
   Filed here because it outlived its own fix by a day while still reading as
   open, which is the failure the header above describes -- an entry that goes
   quiet sends the next reader after work already done. The close that made it
-  false is two entries down and did not think to come up here.
+  false is the entry named "The `I: Shop Item` pin ignores the flag that
+  governs it", which did not think to come up here. Named rather than pointed
+  at by position, because a positional pointer rots the same way -- this
+  sentence said "two entries down" and was already wrong when it was written.
 
 - **Our trap letters are not DarkmoonEX's**, by design. His are hand-assigned for
   vanilla and do not describe an FFR seed; ours are read per cartridge. Only
@@ -743,7 +746,9 @@ Nothing here is urgent unless it says so.
   `(NPCFetchItems ?? false) && (IncentivizeFetchNPCs ?? false)`, the same
   conjunction one flag along, and the pack again models one conjunct: the
   sixteen fetch rows of `scripts/incentive_slots.lua` -- eight per tree, Smithy,
-  Nerrick, Astos, Matoya, Elf Prince, Dr Unne, Lefein and Fairy -- carry
+  Nerrick, Astos, Matoya, Elf Prince, Dr Unne, Lefein and Fairy; fourteen and
+  seven since Dr Unne's slot was removed on 2026-09-03, so count against that
+  date, not against the file -- carry
   `fetchQuestsAreIncentive`, which `flag_mapping.lua:54` binds to
   `IncentivizeFetchNPCs` alone. `NPCFetchItems` was in both shipped schemas and in
   `tools/doormap.py`, and appeared nowhere in `scripts/`: no code, no
