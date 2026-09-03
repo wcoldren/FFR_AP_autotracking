@@ -91,7 +91,10 @@ log line.
 
 ## Measured
 
-Last run 2026-08-30, on freshly rebuilt cartridges.
+Last run 2026-09-03. The header names the freshest row in the table, which is
+`novnolefein`; the rows above it were run 2026-08-30 on freshly rebuilt
+cartridges, and the `nov` and `nov2` derived rows were regraded 2026-09-03
+against regenerated derivations.
 
 | Check | Result |
 |---|---|
@@ -99,8 +102,8 @@ Last run 2026-08-30, on freshly rebuilt cartridges.
 | `shard`, pack rules vs FFR | **229 checked, 229 agree, 0 divergences** |
 | `nov`, pack rules vs FFR | **226 compared, 220 agree, 6 deliberately strict**; of the 226, **215 independently supported** by the sweep, 11 not |
 | `nov2`, pack rules vs FFR | **224 compared, 218 agree, 6 deliberately strict** |
-| `nov`, derived rules vs FFR | **226 compared, 225 agree, 1 divergent** (Lefein) — **5 granted an off-vocabulary item**, so **221** are genuinely comparable; 255 derived, 0 unreachable |
-| `nov2`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein) — **5 granted**, **219** genuinely comparable; 255 derived, 0 unreachable |
+| `nov`, derived rules vs FFR | **226 compared, 225 agree, 1 divergent** (Lefein) — **5 granted an off-vocabulary item**, so **221** are genuinely comparable; 256 derived, 0 unreachable |
+| `nov2`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein) — **5 granted**, **219** genuinely comparable; 256 derived, 0 unreachable |
 | `nov` vs `nov2`, ToFR shuffle | **0 differences** |
 | `notail`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
 | `novnolefein`, derived rules vs FFR | **222 compared, 221 agree, 1 divergent** (Lefein, the same strict row `nov` has) — **5 granted an off-vocabulary item**; 256 derived, 0 unreachable |
@@ -560,8 +563,9 @@ had.
 | `LefeinSuperStore` across the 4.9.2 presets | **`true` in 4 of 4** — `oracle_std`, `oracle_nov`, `oracle_shard`, `oracle_notail` |
 | across the 4.9.7 presets | **`true` in 18 of 18** |
 | so the No-Overworld rules and the 75-link table were derived | **with the flag on**, which `docs/FLAG_COVERAGE.md` said was off |
-| the cartridge's own tiles, `oracle_nov` | **all 5 cells the flag-on branch of `ApplyMapMods` writes hold what it writes; no cell only the flag-off branch touches does** |
-| the three writes both branches share | **all 3 match, unflipped** — so `ApplyMapMods` ran and the `(x, y)` reading is right, which is what makes the answer above evidence rather than a miss |
+| the cartridge's own tiles, `oracle_nov` | **all 10 cells the flag-on branch of `ApplyMapMods` writes hold what it writes; 0 of the 14 that only the flag-off branch touches do** |
+| the three writes both branches share | **all 36 cells match, unflipped** — so `ApplyMapMods` ran and the `(x, y)` reading is right, which is what makes the answer above evidence rather than a miss |
+| why those numbers are not 5, 4 and 3 | those are **statements**, and a `Map.Put` writes a row of cells rather than one. The flag-on branch is 5 statements over 10 cells, the flag-off branch 4 over 18 of which 14 are its alone, and the shared writes 3 over 36 (`MetroidVaniaMap.cs:235-277`). Counting statements understated the evidence by a factor of two to twelve, and left a row whose job is to make the `(x, y)` reading auditable stating a number a reader cannot re-derive from the map |
 | what the flag-off branch would change | **`(x=0,y=2)` and `(x=1,y=2)` become tile `0x0E`, property `0x01`** — a plain wall where the corpus has `0x00` and walkable |
 | where those two cells sit | on the left-edge column. **Not its mouth**, which is the correction below |
 
@@ -589,7 +593,8 @@ read back off the cartridge, not off the preset.
 | does any derived rule move | **no.** Both cartridges derive **256 locations, 0 unreachable**, and the two sets have the same names |
 | the 10 locations whose rule differs | all of them are the **per-seed rolled things `docs/NOVERWORLD.md` already names** — 8 are the Cardia/Bahamut gateway permutation (`Bahamut's Cave Bahamut` trades rules with the seven `Cardia Forest` entries) and 2 are the ToFR bonus chest ids (`ToFR Kary Floor 1` and `ToFR Lute Plate Room 1` trade) |
 | does it grade differently against FFR | **no.** `check_logic --derived` gives **222 compared, 221 agree, 1 divergent**, and the divergence is the same deliberately-strict `Lefein` row `nov` has |
-| Lefein's own tiles | **72 cells differ**, and both branches' writes hold on their own cartridge. All three writes both branches share hold on both |
+| why that is 222 where `nov` is 226 | **not four comparisons lost -- the two exports do not cover the same locations.** FFR exports only the locations holding pool items and this pair re-rolls the placement, so 227 joined rules on `nov` and 223 on `novnolefein` share **204 names**: 23 appear only on `nov`, 19 only on `novnolefein`, and 6 shared names carry different rule text, those 6 being the Cardia Forest gateway rows. The "no" is about the divergence's identity, not about the counts |
+| Lefein's own tiles | **72 cells differ, and every one is a cell one of the two code paths writes** — 68 by `EnableLefeinSuperStore` (the 3×24 store blob at `(0x28, 0x01)`, and the tree cleared at `[0x00, 0x34]`), 4 by `ApplyMapMods`' two branches. Nothing else on the map moved. Each path's writes hold on its own cartridge: 36/36 shared and 10/10 flag-on-branch cells plus 70/70 store cells on `nov`, 14/14 off-branch-only cells on `novnolefein`, and **0 of those 14** hold the off value on `nov` |
 | three other maps differ too | Gaia 20 cells, Waterfall 4, Castle Ordeals 2F 14 — **roll churn, not the flag**; see below |
 
 **The flag does not seal the left-edge column; it moves the plug down a row.**
@@ -620,12 +625,45 @@ stream: `ApplyMapMods` runs at `MetroidVaniaMap.cs:58` and
 from what is on the maps (`:462`, `:22-44`). Which rng draw first differs was
 not pinned and is deliberately not claimed here.
 
-**One number in this file was tool drift, not the flag.** The committed
-`nov/derived_nov.json` holds 255 rules and a fresh derivation of the same
-cartridge holds 256; the extra one is `Titan's Tunnel Titan`, which the NPC
-location work added after that file was written. Re-deriving `nov` before
-comparing is what kept that from being read as a location the flag creates.
-The committed file has not been regenerated.
+**One number in this file was tool drift, not the flag, and the stale file is
+gone now.** The committed `nov/derived_nov.json` held 255 rules where a fresh
+derivation of the same cartridge holds 256; the extra one is `Titan's Tunnel
+Titan`, which the NPC location work added after that file was written.
+Re-deriving `nov` before comparing is what kept that from being read as a
+location the flag creates -- but leaving the stale file in the corpus left the
+trap armed for the next reader, who would run the comparison the way this page
+describes it and get a location only `novnolefein` appears to have. **Both
+No-Overworld derivations were regenerated on 2026-09-03**, `nov` and `nov2`
+alike, each gaining that one rule and changing no other; `nov` regrades
+226 compared / 225 agree / 1 divergent and `nov2` 224 / 223 / 1, unmoved. This
+also matters to `verify.sh` stage 3, which feeds `derived_nov.json` to
+`check_logic` -- it was grading the pack against a derivation the tool no longer
+produces.
+
+### What the flag does on a standard cartridge
+
+Measured 2026-09-03, because the entry above answers for No-Overworld and the
+flag is not a No-Overworld flag. `EnableLefeinSuperStore` is called from
+`Update()`, the general standard-maps pass (`SMUpdates.cs:116` at 4.9.7, `:39`
+at 4.9.2), and only its last two `TownTree` writes sit behind `if (nooverworld)`
+-- so the store blob and the tree clear land on either mode. That is now read
+off cartridges rather than off the call site:
+
+| question | answer |
+|---|---|
+| is the store on a standard cartridge | **yes, 72 of 72 blob cells on both `std` (4.9.2) and `std497` (4.9.7)**, with `[0x00, 0x34]` cleared to `0x00`, walkable, on both |
+| did `ApplyMapMods` run on them | **no** — 3 of its 46 cells match by chance, against 46 of 46 on `nov`. The map edit is `EnableLefeinSuperStore`'s alone there |
+| does it change what a party can reach in Lefein | **no pin's worth.** Walking `std`'s Lefein from the overworld arrival `(19, 23)` against the same map with the 73 written cells restored to their flag-off values, **all 14 objects on the map stay reachable at identical distances**, the Lefein man `$0F` at `(24, 21)` among them |
+| what does change | the 4 shop doors the store adds (`TP_SPEC_DOOR`), and **one** tile outside the 73: `(52, 63)`, an exit tile the cleared tree reaches across the map's vertical wrap. Lefein carries **no `TP_SPEC_TREASURE` tile at all**, so there is no chest for any of this to gate |
+
+The flag-off standard map is a reconstruction rather than a roll -- no cartridge
+in either corpus has the flag off on standard mode -- and it is sound because
+the base map is shared: `std` and `novnolefein` agree on Lefein everywhere
+except the cells one of these two code paths writes, plus `[0x03, 0x00]` and
+`[0x04, 0x00]` (`ApplyMapMods`' unconditional pair) and `(19, 21)`, the
+staircase No-Overworld stamps into the town. None of those is in the store's
+region, so `novnolefein`'s tiles there are what standard mode would hold with
+the flag off.
 
 
 ## Rebuilding
