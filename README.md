@@ -98,6 +98,17 @@ This does not modify the emulator. It is one Lua script that Mesen runs.
    reports anything, so nothing is marked while you sit on the title screen.
 5. Open a chest. It should clear in the tracker within a second.
 
+**`start_session.sh` is not part of this.** The whole directory goes in
+`packs/`, so you will see that script sitting in it. On macOS it opens Mesen
+with the bridge attached and opens PopTracker in one command -- but it is for
+working on the pack, not for playing. It needs Python, which nothing else on
+this page does, and the actual work it saves is redrawing the map tabs from
+your own cartridge, which is the optional upgrade rather than something the
+pack needs. It does not touch step 1, that setting is still one-time and
+manual, and it opens PopTracker without driving it, so steps 3 and 4 stay
+yours either way. See
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#what-you-need-to-work-on-it).
+
 Once connected it tracks chests and NPCs, Chaos, Garland and the Vampire, the
 four orbs being lit, key items and every turn-in stage (Crown to Astos, Slab to
 Unne and then Lefein, Ruby to the Titan, and so on), Bridge/Ship/Canal/Canoe/
