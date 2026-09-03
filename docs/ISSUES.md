@@ -774,25 +774,56 @@ Nothing here is urgent unless it says so.
   No-Overworld roll, so the `NOverworld` incentive tree must drop that row
   rather than gate it.
 
-- **The Cardia ring cannot be switched off on a hoard seed.** Found 2026-09-03
-  by `tools/tests/test_incentive_conjunction.py`, which reports it on all six
-  `hoard*497` cartridges. Those roll `MapDragonsHoard` on with
-  `IncentivizeCardia` off, and the pack rings `Cardia Forest Island - Incentive
-  Major` gold on every one of them; FFR's `priority_locations` names no Cardia
-  location at all.
+- **The Cardia ring cannot be switched off on a hoard seed. Fixed 2026-09-03**,
+  by splitting the progressive into two toggles. Found the same day by
+  `tools/tests/test_incentive_conjunction.py`. Six `hoard*497` cartridges roll
+  `MapDragonsHoard` on with `IncentivizeCardia` off; the grader reported five of
+  them as a wrong ring on `Cardia Forest Island - Incentive Major`, where FFR's
+  `priority_locations` names no Cardia location at all, and the sixth,
+  `hoarddockbridge497`, as a ghost instead -- see the entry below.
 
-  The cause is the shape of the model rather than a wrong flag.
-  `cardiaIsIncentive` is a progressive whose stage 2 is Bahamut's Hoard, and a
-  PopTracker progressive provides every code up to its current stage -- so
-  reaching stage 2 hands out stage 1's `cardiaIsIncentive` whatever
-  `IncentivizeCardia` says. `flag_mapping.lua`'s own comment says the
-  inheritance "only affects which pins are drawn", which is true, and is now
+  The cause was the shape of the model rather than a wrong flag.
+  `cardiaIsIncentive` was a progressive whose stage 2 was Bahamut's Hoard, and a
+  PopTracker progressive provides every code up to its current stage, so
+  reaching stage 2 handed out stage 1's `cardiaIsIncentive` whatever
+  `IncentivizeCardia` said. `flag_mapping.lua`'s own comment said the
+  inheritance "only affects which pins are drawn", which was true, and was
   measured to be the wrong thing to be relaxed about.
 
-  No conjunction fixes it: the pack has no way to say "the hoard exists and
-  Cardia is not incentivized", because one progressive is carrying two
-  independent facts. Waived by name in the grader until it is decided, so the
-  disagreement stays printed rather than scoped away.
+  **The first diagnosis of why it needed two items was wrong, and the
+  correction is the part worth carrying forward.** This entry used to say a
+  progressive *cannot* say "the hoard exists and Cardia is not incentivized".
+  It can: `inherit_codes: false` on stage 2 stops the downward walk after that
+  stage's own codes (`jsonitem.h:188-198`, transcribed at
+  `tests/item_model.lua:12` and implemented at `:51`, `:69-73`), and it would
+  have gone green on this corpus. It would also have been wrong in a way
+  nothing here could catch. A two-stage progressive has three states once
+  `allow_disabled` adds its zero; two independent booleans need four. The state
+  no relabelling reaches is a hoard seed that *does* incentivize Cardia --
+  a flagset FFR rolls freely and no cartridge in either corpus happens to hold.
+  So the grader alone could not have told the two fixes apart, and the argument
+  for the split is representational rather than mechanical.
+
+  What landed: `cardiaIsIncentive` and `BahamutHoard` are two toggles in
+  `items/flags.json` with a mapping row each, `tools/check_logic.py` stopped
+  mirroring the inheritance and now reads both codes out of `TOGGLES` like any
+  other flag, `BahamutHoard` joined `EXISTENCE_FLAGS` in
+  `tools/incentive_slots.py` -- it says the chests are in the cartridge, not
+  that they are incentivized -- and the two incentive sheets' hoard sections
+  gained `^$incentiveSlot|cardiaIsIncentive` beside the visibility rule they
+  already had, so the hoard slot is hidden on existence and demoted on the
+  incentive, the way the shop slot already was. The five wrong rings went and
+  the waiver went with them. `tests/test_incentives.lua` now walks all four
+  combinations of the two flags; the fourth, hoard on and Cardia off, is the one
+  the old shape could not state.
+
+  **What is not demonstrated: the No-Overworld half.** All six hoard cartridges
+  are standard seeds, and no No-Overworld hoard cartridge has been built (the
+  same gap `docs/ORACLE.md` records for the `BahamutHoard` alternative). So the
+  five-cartridge flip is standard-mode evidence, and the No-Overworld side rests
+  on the sheets being held in step by `tests/test_incentives.lua` rather than on
+  a measurement. A `novhoard` cartridge would close that and grade the
+  `$standardWorld`-guarded alternative at the same time.
 
 - **A slot can ring for a location the seed does not have, and the caravan was
   not the only one.** Found 2026-09-03 by the same grader. On `notail` the pack
@@ -806,7 +837,16 @@ Nothing here is urgent unless it says so.
   slot differently, which no flag predicts, so the pack's row points at an id
   the pool does not contain. What that should become is open -- probably a row
   that can name more than one id, or a check that treats an absent id as no slot
-  rather than as a slot to ring. Both are waived by name meanwhile.
+  rather than as a slot to ring.
+
+  **Only `notail` is waived now, and the other one did not get fixed.** The
+  Cardia half was reachable only because the pack ringed a Cardia slot on a
+  hoard seed at all; with the entry above fixed, the ring is decided by
+  `IncentivizeCardia`, which `hoarddockbridge497` has off, so the comparison
+  ends before the missing id is looked for. The waiver was removed rather than
+  left standing, because a waiver nothing can trigger reads as live evidence of
+  a live finding. The finding is live; this corpus can no longer show it, and a
+  seed that incentivized Cardia *and* rolled the hoard would show it again.
 
 - **The pack has an eighth fetch incentive slot that FFR never fills. Fixed
   2026-09-03**, by removing the section rather than re-gating it. Found

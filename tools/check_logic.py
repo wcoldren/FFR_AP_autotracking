@@ -466,10 +466,6 @@ def flag_codes(flags, pack=PACK):
     # landed, so it grades strict.
     if flags.get("ToFRMode") == 2:
         codes.add("shortToFR")
-    if flags.get("IncentivizeCardia") is True:
-        codes.add("cardiaIsIncentive")
-    if flags.get("MapDragonsHoard") is True:
-        codes.update(("cardiaIsIncentive", "BahamutHoard"))
 
     for flag, granted in FREE_FLAGS.items():
         if flags.get(flag) is True:

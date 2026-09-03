@@ -70,6 +70,23 @@ local TOGGLES = {
   { ffr = "IncentivizeSkyPalace",    code = "skyIsIncentive", default = true },
   { ffr = "IncentivizeSeaShrine",    code = "seaIsIncentive", default = true },
   { ffr = "IncentivizeConeria",      code = "coneriaLockedIsIncentive", default = true },
+  -- Two facts, two cells, and they were one cell until 2026-09-03.
+  -- IncentivizeCardia is an incentive category; MapDragonsHoard is a map edit
+  -- that duplicates the Cardia chests into Bahamut's Cave (SMUpdates.cs:534).
+  -- They were a progressive whose stage 2 was the hoard, which handed out
+  -- stage 1's code with it, so the pack ringed Cardia Forest on five
+  -- cartridges FFR incentivized nothing on.
+  --
+  -- The reason that had to become two items is a count, not the inheritance:
+  -- `inherit_codes: false` would have stopped stage 2 handing out stage 1's
+  -- code (jsonitem.h:188-198, transcribed in tests/item_model.lua:12) and gone
+  -- green on today's corpus. It would also have been wrong, silently: a
+  -- 2-stage progressive has three states once allow_disabled adds its 0, and
+  -- two independent booleans need four. The state it cannot hold either way is
+  -- a hoard seed that *does* incentivize Cardia, which FFR rolls freely and no
+  -- cartridge here happens to have. docs/ISSUES.md.
+  { ffr = "IncentivizeCardia",       code = "cardiaIsIncentive" },
+  { ffr = "MapDragonsHoard",         code = "BahamutHoard" },
 }
 
 -- Flags FFR's logic consults that carry no code here, each with the reason.
@@ -447,25 +464,6 @@ local PROGRESSIVES = {
       return airBoat == true and 1 or 0
     end,
   },
-  {
-    code = "cardiaIsIncentive",
-    -- Stage 2 is Bahamut's Hoard, which is a map edit rather than an incentive
-    -- category, so it comes from a different flag than stage 1. Stage 2
-    -- inherits stage 1's code, so a hoard seed also reads as Cardia-incentive;
-    -- that only affects which pins are drawn, never what is reachable.
-    --
-    -- The Hoard is asked first and a rolled one is unknown either way: it wins
-    -- outright when it is on, so no value of IncentivizeCardia settles the
-    -- stage without it.
-    stage = function(get)
-      local hoard = get("MapDragonsHoard")
-      if hoard == nil then return nil, "MapDragonsHoard" end
-      if hoard == true then return 2 end
-      local cardia = get("IncentivizeCardia")
-      if cardia == nil then return nil, "IncentivizeCardia" end
-      return cardia == true and 1 or 0
-    end,
-  },
 }
 
 -- Shard hunt: how many shards the black orb wants.
@@ -590,9 +588,9 @@ end
 -- drydocked the ship.
 --
 -- Both loops make the distinction, toggles and progressives alike. The
--- progressives are the half that was missed: their five source flags are all
--- tristates too, and reading a rolled one as off cleared a cell the player had
--- set by hand.
+-- progressives are the half that was missed: their three tristate source flags
+-- -- MapOpenProgression, its Extended and AirBoat -- are tristates too, and
+-- reading a rolled one as off cleared a cell the player had set by hand.
 --
 -- Telling them apart matters because the toggles survive a cartridge swap --
 -- `resetForNewGame` clears what the RAM feed owns, not the flag grid. Treating
@@ -647,10 +645,11 @@ function applyFFRFlagsToBoard(flags, version)
 
   -- The reader the stage functions take. Same three-way answer, minus the
   -- toggles' bookkeeping: an absent source flag reads as off, and is reported
-  -- on the same line the toggles use. No shipped schema is missing one of these
-  -- five -- 4.9.2 and 4.9.7 both carry all of them -- so that branch is here to
-  -- keep a future schema from reopening what the absent-flag branch just shut,
-  -- not because it fires today.
+  -- on the same line the toggles use. The stage functions read four flags
+  -- between them -- MapOpenProgression, its Extended, ToFRMode and AirBoat --
+  -- and no shipped schema is missing one, 4.9.2 and 4.9.7 carrying all four, so
+  -- that branch is here to keep a future schema from reopening what the
+  -- absent-flag branch just shut, not because it fires today.
   local function get(name)
     local value, why = readFlag(name)
     if why == "absent" then absent[#absent + 1] = name end
