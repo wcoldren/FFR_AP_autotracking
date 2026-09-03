@@ -68,7 +68,9 @@ chests outside the pool, orbs lit, items turned in, or shards from lighting orbs
 The **emulator feed** covers all of those, including the Sigil and Mark boxes on
 the No-Overworld item grid. Those are renamed items rather than new ones, so they
 are read from the bytes their originals already use and light on their own.
-Nothing needs a manual click on the emulator feed today.
+Nothing needs a manual click on the emulator feed today, with one honest
+qualifier: the shop key item clears itself, but only on a seed that put a key
+item in a shop at all.
 
 They run side by side. If a chest is in the AP pool both feeds report it and the
 tracker counts it once.
@@ -257,6 +259,14 @@ the one place on the overworld that is a shop rather than a door, the cartridge
 says which tile it is on, and `I: Shop Item` is placed there. A No-Overworld
 seed has no caravan and no airship desert, and those two pins are dropped and
 named in the run's output rather than left pointing at open sea.
+
+The pin marks the *slot*, not the shop holding it. Shop shuffle can put the key
+item in any of the six town item shops or in the caravan, and the pin does not
+move or turn red to say which -- finding it is the hunt. It clears itself when
+the item is bought, and stays green until then even on a seed that put it behind
+a vehicle. Roughly half of solo seeds put an ordinary consumable in the slot
+instead, and on those nothing can be detected and a click is still the way to
+clear it.
 
 ## Under the hood
 

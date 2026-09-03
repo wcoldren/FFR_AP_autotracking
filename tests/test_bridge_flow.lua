@@ -32,6 +32,39 @@ PRGROM = {}
 
 -- Write "FFRInfo|...|Flags: <flags>|Version: <version>" where FF1Lib puts it.
 -- The seed defaults, because only the art check reads it.
+-- Lay out lut_ShopTypes, lut_ShopData and the shop inventories the way an FFR
+-- cartridge does, so the bridge's reader has something real to walk. `item` is
+-- the id dropped into `shop`'s stock; pass ap = true to stamp the
+-- NewCheckForSpace patch head instead, which is what marks an Archipelago
+-- cartridge and turns the inventory watch off.
+function putShopTables(shop, item, ap, typeBase)
+  typeBase = typeBase or 0x7EBB5
+  -- Six item shops and a caravan, which is what the reader validates the
+  -- table's location by finding.
+  for _, id in ipairs({61, 62, 63, 64, 65, 66}) do
+    PRGROM[typeBase + id] = 0x06
+  end
+  PRGROM[typeBase + 70] = 0x07
+  -- Every shop gets a stock run of its own, at a distinct address.
+  for _, id in ipairs({61, 62, 63, 64, 65, 66, 70}) do
+    local addr = 0x8400 + id * 8
+    PRGROM[0x38300 + id * 2] = addr & 0xFF
+    PRGROM[0x38300 + id * 2 + 1] = (addr >> 8) & 0xFF
+    local data = 0x38000 + (addr - 0x8000)
+    -- Heal, Pure, then a terminator: ordinary consumables, nothing to detect.
+    PRGROM[data] = 25
+    PRGROM[data + 1] = 26
+    PRGROM[data + 2] = 0
+    if id == shop and item then
+      PRGROM[data] = item
+    end
+  end
+  if ap then
+    local head = { 0xae, 0x0c, 0x03, 0xe0, 0x16 }
+    for i, b in ipairs(head) do PRGROM[0x39F48 + i - 1] = b end
+  end
+end
+
 function putFlagRecord(version, flags, seed)
   PRGROM = {}
   if not version then return end
@@ -1031,6 +1064,115 @@ DRAWN = {}
 frames(60)
 check("a new game re-arms the solo clock", logsMatching(allLogs(), "run clock started"), 1)
 check("and the latch was released with it", advance(60), 60)
+
+------------------------------------------------------------------
+-- ff1/shopitem: the shop key item.
+--
+-- On an Archipelago cartridge FFR's NewCheckForSpace patch sets flag byte 0xFF
+-- and the whole thing is already answered. On a solo cartridge that patch is
+-- not installed at all, so the bridge reads the shop's stock out of PRG ROM and
+-- watches the one key item it finds. What goes on the wire is a bare boolean
+-- either way -- naming the shop or the item would give away the hunt.
+------------------------------------------------------------------
+
+local function freshCart(id)
+  ROM_INFO = { name = id .. ".nes", path = "/roms/" .. id .. ".nes",
+               fileSha1Hash = "sha-" .. id }
+  MEMORY = {}
+  MEMORY[0x6102] = 0x41
+  -- An all-zero flag page reads as an untrustworthy frame, so give it the
+  -- shape a new game has: every object visible, no event bit anywhere.
+  for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
+  frames(60)
+  allSent()
+end
+
+-- Solo cartridge, the Herb (id 4) in Elfland's shop. Its inventory byte is
+-- $6024, and it is the case that matters most: the Elf Doctor spends the Herb,
+-- so the latch is what keeps the check from coming back undone.
+putFlagRecord("4-9-7", "soloshop", "5EED0001")
+putShopTables(63, 4, false)
+freshCart("shopSolo")
+check("nothing bought, no shop check",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":true', 1, true), nil)
+
+MEMORY[0x6024] = 1                       -- bought the Herb
+frames(20)
+check("buying the shop key item publishes it",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":true', 1, true) ~= nil, true)
+
+-- The hand-over, as the cartridge does it: the Herb leaves inventory and the
+-- Elf Doctor's event bit goes up at $6205 (ram_mapping.lua's herb stage 1).
+-- Both halves matter -- the latch is what holds the check, and that bit is what
+-- tells a spent item apart from a game that was never played.
+MEMORY[0x6024] = 0
+MEMORY[0x6205] = 0x03
+frames(20)
+check("spending it does not take the check back",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":false', 1, true), nil)
+
+-- But a new game on that same cartridge starts with the item unbought, and the
+-- latch has to let go of it. A practice run or a race-night restart is the
+-- ordinary way a second run happens on one seed; without this the pin reads as
+-- checked for the whole of it.
+for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end   -- a new game
+for a = 0x6021, 0x6035 do MEMORY[a] = 0 end        -- with an empty inventory
+frames(60)
+check("a new game releases the shop latch",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":false', 1, true) ~= nil, true)
+
+-- A consumable in the slot is the ordinary other half of the roll: roughly half
+-- of solo seeds have no key item in any shop, and nothing can be detected there.
+putFlagRecord("4-9-7", "noshopki", "5EED0002")
+putShopTables(63, nil, false)
+freshCart("shopNone")
+MEMORY[0x6024] = 1
+frames(20)
+check("no key item in any shop leaves the pin alone",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":true', 1, true), nil)
+
+-- Archipelago cartridge. The slot holds the FireOrb sentinel, whose inventory
+-- byte $6032 is the Fire Orb's own -- so the inventory watch must be off here,
+-- and only flag byte 0xFF may answer.
+putFlagRecord("4-9-7", "apshop", "5EED0003")
+putShopTables(63, 18, true)
+freshCart("shopAp")
+MEMORY[0x6032] = 1                       -- the Fire Orb lit, nothing bought
+frames(20)
+check("an Archipelago cartridge does not read the orb byte as a purchase",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":true', 1, true), nil)
+
+MEMORY[0x6200 + 0xFF] = 0x03             -- the patch fired, object still visible
+frames(20)
+check("flag byte 0xFF is what answers on an Archipelago cartridge",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":true', 1, true) ~= nil, true)
+
+-- That byte is part of the save, so a save from before the purchase is the
+-- cartridge saying it has not happened -- and nothing here may argue with it.
+-- Same rule as the goal bit: where the save keeps its own record, the save wins.
+MEMORY[0x6200 + 0xFF] = 0x01             -- loaded a save from before the buy
+frames(20)
+check("and it is read back down again when an earlier save is loaded",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":false', 1, true) ~= nil, true)
+
+-- A 256K image keeps lut_ShopTypes in bank 0x0F instead, and the reader is
+-- meant to find it by reading rather than by assuming.
+putFlagRecord("4-9-7", "small", "5EED0004")
+putShopTables(62, 6, false, 0x3EBB5)
+freshCart("shopSmall")
+MEMORY[0x6026] = 1                       -- Tnt, id 6
+frames(20)
+check("the shop tables are found on a 256K image too",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":true', 1, true) ~= nil, true)
+
+-- A cartridge with no shop tables at all must say nothing rather than read
+-- arbitrary bytes as item ids.
+putFlagRecord(nil)
+freshCart("shopJunk")
+for a = 0x6021, 0x6035 do MEMORY[a] = 1 end
+frames(20)
+check("a non-FFR image publishes no purchase",
+  table.concat(textFrames(allSent())):find('"ff1/shopitem","value":true', 1, true), nil)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

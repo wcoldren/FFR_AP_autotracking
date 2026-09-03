@@ -31,6 +31,11 @@ local EVENT_BASE = 0x200
 -- the one event that does not always arrive in the flag page; see the ff1/goal
 -- read in onFF1Flags.
 local GOAL_LOCATION_ID = EVENT_BASE + 0xFE
+-- @I: Shop Item, the id LOCATION_MAPPING[767] carries. Like the Chaos kill it
+-- is not always in the flag page: FFR only patches byte 0xFF on an Archipelago
+-- seed, so a solo seed is answered by the bridge reading the shop out of ROM
+-- instead. See the ff1/shopitem read in onFF1Flags.
+local SHOP_LOCATION_ID = EVENT_BASE + 0xFF
 
 local UNMAPPED_CHEST_WARNED = {}
 
@@ -449,6 +454,15 @@ function onFF1Flags(store)
     checked[GOAL_LOCATION_ID] = true
   end
 
+  -- The shop key item, for the same reason and by the same route. On an
+  -- Archipelago seed the flag page already carried it and this agrees; on a
+  -- solo seed this is the only thing that clears the pin. The bridge sends a
+  -- bare boolean on purpose -- which shop holds the item, and which item it is,
+  -- would give away a hunt the seed means the player to do.
+  if store:ReadVariable("ff1/shopitem") == true then
+    checked[SHOP_LOCATION_ID] = true
+  end
+
   setUATChecked(checked)
 
   -- Bosses, orbs, turn-ins and vehicles are not Archipelago locations at all,
@@ -468,5 +482,6 @@ end
 -- order is not defined, and reading both out of one store removes any chance of
 -- decoding the new cartridge's flags against the old cartridge's identity.
 ScriptHost:AddVariableWatch("ff1mem",
-  {"ff1/mem", "ff1/ready", "ff1/rom", "ff1/flags", "ff1/goal", "ff1/art"},
+  {"ff1/mem", "ff1/ready", "ff1/rom", "ff1/flags", "ff1/goal", "ff1/art",
+   "ff1/shopitem"},
   onFF1Flags)

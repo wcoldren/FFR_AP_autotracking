@@ -98,6 +98,26 @@ ok(report["unmatched"] == [] and report["ambiguous"] == [],
 ok(c.find_section(sections, "Lone Node") is None,
    "find_section's suffix match does NOT resolve a bare node name")
 
+# The same pin is written into the board tree and the incentive poster, so a ref
+# matches twice. PopTracker resolves that to the board one -- getLocation takes
+# the first hit and init.lua loads overworld.json before incentives.json -- and
+# the harness has to agree, or the pin goes ungraded. Two board hits stay a
+# genuine ambiguity and still refuse.
+both = {
+    "Onrac Continent/I: Shop Item/I: Shop Item": {"chain": [], "hosted": "shopItem"},
+    "I: Onrac Continent/I: Shop Item/I: Shop Item": {"chain": [], "hosted": "shopItem"},
+}
+ok(c.find_section(both, "I: Shop Item/I: Shop Item")
+   == "Onrac Continent/I: Shop Item/I: Shop Item",
+   "find_section prefers the board tree when the incentive poster also matches")
+
+twice_on_board = {
+    "A/Shop/Shop": {"chain": [], "hosted": None},
+    "B/Shop/Shop": {"chain": [], "hosted": None},
+}
+ok(c.find_section(twice_on_board, "Shop/Shop") is None,
+   "find_section still refuses when the board tree itself is ambiguous")
+
 # A node with two sections: the derived rule is about the tiles beside one map
 # cell, which is equally true of every section that node hosts. Attaching to the
 # first would leave the other on a stale rule silently.

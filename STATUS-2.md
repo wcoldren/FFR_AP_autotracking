@@ -100,3 +100,45 @@ the whole story.
   about this machine's PopTracker install rather than about the code. Run it
   when the tracker looks wrong: it says whether the installed override predates
   the checkout, which is a failure with no visible symptom. `docs/ISSUES.md`.
+
+## The Cardia pins, and a combination the corpus did not have
+
+Closed 2026-09-01. Reported off `8EF791AA` played bridge-only: the Cardia chest
+pins were red while the Hoard was reachable. The defect was real and had already
+been fixed by the time it was looked at -- `73337dc` landed at 09:42 on 09-01 and
+`15ac915` at 12:04, and the session that saw it was running `2b0ff32` from 20:17
+the night before. `docs/ISSUES.md` carries the close, and which commit closes
+which half of it.
+
+What is worth keeping is not the fix.
+
+**The first three things checked were all the wrong thing, and each was cheap.**
+The decoder returned a real table, `MapDragonsHoard` came back on,
+`cardiaIsIncentive` reached stage 2, and `ProviderCountForCode("BahamutHoard")`
+was 1 -- the board had always had the code. Five of the six terms of the
+alternative were satisfied and `canal` was the only one that was not, which read
+like an answer and was not one: the rule that wanted `canal` was on a node whose
+siblings had three other routes, and it was the *absence* of those on the Cardia
+side that made the colour. Evaluating one alternative term by term says which
+term failed; it cannot say which alternative should have been there instead.
+
+**The state at the time was not recorded and did not need to be.** No save, and
+`ffr_times.log` carries only `start`, `clock` and `chaos` lines, so what was held
+is gone. Both states the report is consistent with -- Canal and Ship, or Floater
+and Ship -- were replayed against the rules as played and as they stand, and both
+reproduce the report on the old rules and come out green on the new. Two
+candidate states beat one recovered state, because the answer holds for either.
+
+**The corpus had each flag and not the combination.** `hoarddock497` and
+`hoardhike497` had a cartridge each; `MapDragonsHoard`, `MapBahamutCardiaDock`
+and `MapAirshipHike` together had none, and that is what a real seed rolled.
+`hoarddockhike497` is now the row, and it grades the rules that were being played
+well short of the current ones (`docs/ORACLE.md`) -- a gate that demonstrates the
+failure it was added for, rather than one added after the fact that can only
+report a pass.
+
+The pair also turns out to be the plain union of the two flags,
+`(Canal AND Ship) OR (Floater AND Ship) OR (Canoe AND Floater)`. That is worth
+saying only because `hoarddockbridge497` established that a pair *can* fail to be
+the union, and one counter-example is enough to make "not the union" a result
+about that pair rather than a rule about pairs.

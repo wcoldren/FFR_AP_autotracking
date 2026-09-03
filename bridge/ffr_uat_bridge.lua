@@ -92,6 +92,50 @@ local FLAGS_ROM_OFF = 0x7BE00
 local FLAGS_ROM_LEN = 512   -- comfortably past the longest record
 local FLAGS_MARKER = "FFRInfo"
 
+-- The shop key item, and why it takes two different reads.
+--
+-- FFR gives the item shop slot a synthetic object id of 0xFF so that buying a
+-- key item out of a shop sets a flag like any other check. Its NewCheckForSpace
+-- patch (FF1Lib/asm/0E_9F48_ItemShopCheckForSpace.asm:11-31) does
+-- `LDA $6200,Y / ORA #$02 / STA $6200,Y` with Y = 0xFF whenever the purchased
+-- item's id is below 0x16, i.e. a key item. That is exactly what Archipelago
+-- location 767 (0x2FF) means -- worlds/ff1/Client.py resolves an id at or above
+-- 0x200 to flag byte id-0x200 with mask 0x02.
+--
+-- On the 4.9.x line GlobalImprovements.cs installs that patch only under
+-- `if (archipelagoenabled)`, so a solo seed never writes the byte: measured
+-- across the cartridges in seeds/ff1/, every Archipelago one carries the patch
+-- and every seed rolled on the public site has NOPs there instead.
+--
+-- So a solo seed is read the other way round: the shop's stock is in PRG ROM,
+-- the key item is sitting in it, and since each key item is placed exactly once
+-- per seed, that item's inventory byte going non-zero *is* the purchase.
+local SHOP_BYTE = 0xFF      -- bit 0x02 within the flag array, Archipelago seeds
+local ITEMS_OFF = 0x020     -- `items` within MEM: id N counts at $6020 + N
+local SHOP_PTR_ROM = 0x38300  -- lut_ShopData, bank 0x0E $8300; entry 0 unused
+-- lut_ShopTypes lives in the fixed bank, which is 0x0F on a 256K image and 0x1F
+-- once FFR expands to 512K -- so a disassembly of the original gives the wrong
+-- one of these. Both are tried and the one that reads back as six item shops
+-- and a caravan wins, the same way readFlags insists on seeing FFRInfo rather
+-- than searching for it.
+local SHOP_TYPE_CANDIDATES = { 0x7EBB5, 0x3EBB5 }
+local SHOP_IDS = { 61, 62, 63, 64, 65, 66, 70 }   -- six item shops, then the caravan
+local SHOP_ID_MAX = 70
+-- Ids 1-16 are the key items that can honestly be watched in inventory. 17-20
+-- are the four orbs and 21 the Shard, which ram_mapping.lua already owns, and a
+-- shop holding one of those on a cartridge with no Archipelago patch would mean
+-- the decode is wrong rather than the seed strange. The canoe is not an item id
+-- at all -- it is the vehicle byte $6012, which ram_mapping.lua reads directly.
+local SHOP_KEY_ITEM_MAX = 16
+-- NewCheckForSpace, the patch that writes SHOP_BYTE. Present only on an
+-- Archipelago cartridge on the 4.9.x line; a solo seed has 0xEA all through
+-- here. Probing it is what keeps the inventory watch off an Archipelago
+-- cartridge, where the shop holds the FireOrb sentinel and its inventory byte
+-- $6032 is the Fire Orb's own -- watching it there would tick this check the
+-- moment the orb lit, and light the orb the moment the sentinel was bought.
+local AP_SHOP_PATCH_ROM = 0x39F48
+local AP_SHOP_PATCH_HEAD = "\xae\x0c\x03\xe0\x16"
+
 -- In-game guard, matching worlds/ff1/Client.py and the EmoTracker pack's
 -- isInGame(). All three bytes live inside MEM.
 local GUARD_A_OFF = 0x102   -- first character's name; 0 = title / char creation
@@ -494,8 +538,8 @@ local INFO_MSG =
   '[{"cmd":"Info","protocol":0,"name":"FF1R Mesen Bridge","version":"1.0.0"}]'
 
 -- Last state actually put on the wire, for diffing.
-local sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt =
-    nil, nil, nil, nil, nil, nil, nil
+local sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt, sentShop =
+    nil, nil, nil, nil, nil, nil, nil, nil
 
 local function varMem(mem)
   local parts = {}
@@ -522,7 +566,7 @@ local function varStr(name, value)
   return '{"cmd":"Var","name":"' .. name .. '","value":"' .. escaped .. '"}'
 end
 
-local function sendState(mem, ready, goal, map, rom, flags, art, force)
+local function sendState(mem, ready, goal, map, rom, flags, art, shop, force)
   local msgs = {}
   if force or mem ~= sentMem then
     msgs[#msgs + 1] = varMem(mem)
@@ -532,6 +576,12 @@ local function sendState(mem, ready, goal, map, rom, flags, art, force)
   end
   if force or goal ~= sentGoal then
     msgs[#msgs + 1] = varBool("ff1/goal", goal)
+  end
+  -- Whether the shop key item has been bought. A boolean and nothing else: the
+  -- bridge knows which shop and which item, and publishing either would hand
+  -- over the shop hunt.
+  if force or shop ~= sentShop then
+    msgs[#msgs + 1] = varBool("ff1/shopitem", shop)
   end
   if force or map ~= sentMap then
     msgs[#msgs + 1] = varNum("ff1/map", map)
@@ -557,8 +607,8 @@ local function sendState(mem, ready, goal, map, rom, flags, art, force)
     return
   end
   if send(wsEncodeText("[" .. table.concat(msgs, ",") .. "]")) then
-    sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt =
-        mem, ready, goal, map, rom, flags, art
+    sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt, sentShop =
+        mem, ready, goal, map, rom, flags, art, shop
   end
 end
 
@@ -583,6 +633,10 @@ local lastFlags = ""
 -- because it describes the cartridge rather than the save, and goes out on the
 -- same terms.
 local lastArt = ""
+-- Whether this cartridge's shop key item has been bought. Latched by
+-- shopItemBought against the turn-in that spends the item, and released there
+-- on a new game, a cartridge swap, or the save itself saying otherwise.
+local lastShop = false
 
 -- Which cartridge is in the slot. The pack uses this to notice that it is
 -- looking at a different game and drop the previous one's board -- without it,
@@ -814,6 +868,178 @@ end
 
 local function flagsOf(mem)
   return mem:sub(FLAGS_OFF + 1, FLAGS_OFF + FLAGS_LEN)
+end
+
+-- A flag page carrying no chest bit and no event bit anywhere is a game that
+-- has just been started: FF1 re-seeds the page from lut_InitGameFlags on the
+-- way to a new file, and nothing has been opened or talked to yet. It is the
+-- same test the pack uses on its side for "the feed went from checks to none".
+local function freshGame(mem)
+  local flags = flagsOf(mem)
+  for i = 1, #flags do
+    if (flags:byte(i) & 0x06) ~= 0 then     -- 0x02 event, 0x04 chest
+      return false
+    end
+  end
+  return true
+end
+
+-- { item = <id> } for the key item a shop holds, { item = nil, ap = true } on an
+-- Archipelago cartridge, or nil when the cartridge cannot be read. Memoised on
+-- the cartridge id for the same reason readFlags is: shop stock is in ROM and
+-- cannot move while a cartridge is loaded.
+--
+-- Deliberately bridge-local: the shop and the item are never published, logged
+-- or exposed under debug logging, and only the one boolean below leaves here.
+-- Naming the town or the item would hand over the shop hunt, which on a seed
+-- that has one is most of what the slot is for.
+local shopFor, shopSlot = nil, nil
+
+-- The offset lut_ShopTypes actually sits at on this image, validated by reading
+-- it: the six item shops must come back as type 6 and the caravan as 7.
+local function shopTypeBase()
+  for _, base in ipairs(SHOP_TYPE_CANDIDATES) do
+    local ok, types = pcall(EMU.readRom, base, SHOP_ID_MAX + 1)
+    if ok and type(types) == "string" and #types > SHOP_ID_MAX then
+      local good = true
+      for n, id in ipairs(SHOP_IDS) do
+        local want = (id == 70) and 7 or 6
+        local got = types:byte(id + 1)
+        if not got or (got & 0x07) ~= want then
+          good = false
+          break
+        end
+      end
+      if good then
+        return base
+      end
+    end
+  end
+  return nil
+end
+
+local function readShopSlot(rom)
+  if shopFor == rom then
+    return shopSlot
+  end
+  shopFor, shopSlot = rom, nil
+
+  if not EMU.readRom then
+    return nil
+  end
+
+  -- An Archipelago cartridge is answered by SHOP_BYTE and must not be answered
+  -- by inventory, so this probe comes first and short-circuits the rest.
+  local okAp, head = pcall(EMU.readRom, AP_SHOP_PATCH_ROM, #AP_SHOP_PATCH_HEAD)
+  if okAp and head == AP_SHOP_PATCH_HEAD then
+    shopSlot = { item = nil, ap = true }
+    return shopSlot
+  end
+
+  if not shopTypeBase() then
+    -- Not an FFR image, or a build that lays its shop tables out differently.
+    -- Say nothing and leave the pin manual rather than read arbitrary bytes as
+    -- item ids.
+    return nil
+  end
+
+  local okPtrs, ptrs = pcall(EMU.readRom, SHOP_PTR_ROM, (SHOP_ID_MAX + 1) * 2)
+  if not okPtrs or type(ptrs) ~= "string" then
+    return nil
+  end
+
+  local found = nil
+  for _, id in ipairs(SHOP_IDS) do
+    local lo, hi = ptrs:byte(id * 2 + 1), ptrs:byte(id * 2 + 2)
+    local addr = (lo and hi) and (lo | (hi << 8)) or 0
+    if addr >= 0x8000 and addr < 0xC000 then
+      local okEnt, entries = pcall(EMU.readRom, 0x38000 + (addr - 0x8000), 5)
+      if okEnt and type(entries) == "string" then
+        for k = 1, 5 do
+          local b = entries:byte(k)
+          if not b or b == 0 then
+            break
+          end
+          if b >= 1 and b <= SHOP_KEY_ITEM_MAX then
+            -- FFR places exactly one item in the slot, so a second reading
+            -- means the decode is wrong rather than the seed unusual. Refuse,
+            -- and the pin stays manual for this cartridge.
+            if found then
+              EMU.log("more than one shop holds a key item -- shop check stays manual")
+              return nil
+            end
+            found = b
+          end
+        end
+      end
+    end
+  end
+
+  -- Nothing found is an ordinary outcome, not a failure: roughly half of solo
+  -- seeds put a plain consumable in the slot, which nobody can be seen to buy.
+  -- Ten rolls on one played cartridge's flags gave five with no key item in any
+  -- shop. Those seeds keep a pin that only a click will clear.
+  shopSlot = { item = found, ap = false }
+  return shopSlot
+end
+
+-- Has the shop key item been bought?
+--
+-- An Archipelago cartridge carries the patch that writes SHOP_BYTE, so it keeps
+-- its own record and that record is part of the save. It is read fresh every
+-- tick, including back to false -- the same reasoning as goalReached: where the
+-- save remembers, the save has to win, or loading one from before the purchase
+-- leaves the pin lit for the rest of the run.
+--
+-- A solo cartridge has nothing that remembers, so the purchase is latched
+-- there: several key items are spent on the turn-in that follows -- ElfDoc
+-- decrements the Herb, and Ruby, Adamant, Slab, Tail, Bottle and Crystal go the
+-- same way. The pack replaces its whole checked set every tick, so an unlatched
+-- read would clear the pin on the purchase and un-clear it on the hand-over.
+-- The Herb is the shop item on two of the eight cartridges in seeds/ff1/, so
+-- that is the ordinary case rather than a corner of one.
+--
+-- The latch is released on a cartridge swap and on a new game. A practice run
+-- or a race-night restart is the ordinary way a second run happens on the same
+-- seed, and it starts with the item unbought.
+--
+-- Holding the item is read as having bought it. FFR places exactly one copy and
+-- it is in the shop, so the two coincide -- except when attaching mid-run to a
+-- save whose starting inventory was given the item outright.
+local shopBoughtFor, shopBought = nil, false
+
+local function shopItemBought(mem, rom)
+  if shopBoughtFor ~= rom then
+    shopBoughtFor, shopBought = rom, false
+  end
+  if freshGame(mem) then
+    -- A new game starts with the item unbought. Safe to do while the page still
+    -- reads fresh: the item is either in inventory, where the read below finds
+    -- it without help, or it has been handed over -- and every turn-in that
+    -- spends it sets the event bit that ends a fresh page.
+    shopBought = false
+  end
+
+  -- An Archipelago seed says so directly, in a byte we are already holding.
+  if (at(mem, FLAGS_OFF + SHOP_BYTE) & 0x02) ~= 0 then
+    return true
+  end
+
+  local slot = readShopSlot(rom)
+  if slot and slot.ap then
+    -- The byte above is this cartridge's own record of the purchase, and it is
+    -- clear. Nothing to latch, and nothing a latch could say that the save has
+    -- not already said better.
+    return false
+  end
+
+  if shopBought then
+    return true
+  end
+  if slot and slot.item and at(mem, ITEMS_OFF + slot.item) ~= 0 then
+    shopBought = true
+  end
+  return shopBought
 end
 
 -- The flag array initialises to 0x01 almost everywhere, so all-00 is never a
@@ -1114,20 +1340,6 @@ local function ensureTimerFor(rom)
   loadTimer(rom)
 end
 
--- A flag page carrying no chest bit and no event bit anywhere is a game that
--- has just been started: FF1 re-seeds the page from lut_InitGameFlags on the
--- way to a new file, and nothing has been opened or talked to yet. It is the
--- same test the pack uses on its side for "the feed went from checks to none".
-local function freshGame(mem)
-  local flags = flagsOf(mem)
-  for i = 1, #flags do
-    if (flags:byte(i) & 0x06) ~= 0 then     -- 0x02 event, 0x04 chest
-      return false
-    end
-  end
-  return true
-end
-
 -- Watch for a new game. Start only: once a run is going, a mid-run save load
 -- cannot satisfy freshGame, so loading a save resumes rather than restarts.
 --
@@ -1302,7 +1514,7 @@ local function scan()
 
   if not inGame(mem) or looksUninitialised(mem) then
     invalidate()
-    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags, lastArt)
+    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags, lastArt, lastShop)
     return
   end
 
@@ -1317,15 +1529,16 @@ local function scan()
   end
 
   if not isReady() then
-    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags, lastArt)
+    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags, lastArt, lastShop)
     return
   end
 
   lastMem = mem
   lastGoal = goalReached(at(mem, FLAGS_OFF + GOAL_BYTE))
+  lastShop = shopItemBought(mem, lastRom)
   lastMap = readMap()
   noteRunProgress(lastRom, lastGoal)
-  sendState(lastMem, true, lastGoal, lastMap, lastRom, lastFlags, lastArt)
+  sendState(lastMem, true, lastGoal, lastMap, lastRom, lastFlags, lastArt, lastShop)
 end
 
 ------------------------------------------------------------------
@@ -1358,8 +1571,8 @@ local function handleHandshake()
   end
 
   handshaked = true
-  sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt =
-      nil, nil, nil, nil, nil, nil, nil
+  sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt, sentShop =
+      nil, nil, nil, nil, nil, nil, nil, nil
   -- A client can connect and Sync before the first scan tick, and the very
   -- first thing it needs is which cartridge this is.
   lastRom = readRom()
@@ -1390,7 +1603,7 @@ local function handleFrames()
       -- parser for one string.
       if payload:find('"Sync"', 1, true) then
         sendState(lastMem, isReady(), lastGoal, lastMap, lastRom, lastFlags,
-                  lastArt, true)
+                  lastArt, lastShop, true)
       end
     end
   end
