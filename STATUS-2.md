@@ -344,7 +344,8 @@ and the figures; `docs/ROADMAP.md` section 5 has the close.
 The 4.9.7 README says "anything that moves between one of those exports and
 `std497`'s is the flag and not the roll", and that reads like a licence to diff
 everything in the file and call all of it the flag. It is true of the rules and
-false of the pool. FFR exports only the locations holding pool items, and a flag
+true of the pool only by count -- which is not the same as "the pool is the
+roll", and the section below is where that difference got paid for. FFR exports only the locations holding pool items, and a flag
 change moves the RNG stream, so which chests hold gold moves whether or not the
 logic did. All fifteen variants churn 17 to 23 locations in *both* directions
 against the baseline.
@@ -423,3 +424,58 @@ The cartridge exists before the fix does, which is the order section 1 asks for:
 the gate row can show the ring the flag was wrong about rather than report a
 pass after the fact.
 
+
+## The pool heading was hiding a flag, which is what a review is for
+
+Landed 2026-09-03, same day, off `/code-review` on the branch. The tool was
+right not to count the pool difference and wrong about why, and the sentence it
+was wrong in is one it had just corrected somebody else's version of.
+
+**The evidence supported a noise floor and the claim made was a verdict.**
+Fifteen variants churn 17 to 23 locations either way, so a *count* of pool
+differences attributes nothing -- that much is measured. "The pool is the roll"
+is a different sentence, and nothing in the corpus supported it, because until
+`nonpcitems497` the corpus held no flag whose effect is the pool's shape. The
+sixteenth cartridge held one. `NPCItems` off deletes the caravan slot: of the
+seventeen 4.9.7 exports, `nonpcitems497` is the only one with no `Shop Item` in
+it at all. That difference was printed on line twenty of an uncounted list under
+a heading that said it was gold moving between chests.
+
+**The fix is a cross-check, not a count.** Nothing separates a removed location
+from a reassigned one by counting, so the tool does not try. It crosses the pool
+difference with `priority_locations` -- the one set measured stable across the
+fifteen -- and marks a name that left both:
+
+    A only  Shop Item   -- and not in B's pool at all, so not a check on B
+
+A pool-shape flag that moves plain chests is still past what two exports settle;
+`ChestsKeyItems` is the one to expect, and the heading now says so rather than
+implying the opposite.
+
+**And the `NPCItems` finding was one repair short.** Six of the seven slots are
+a wrong ring -- the NPCs stay checks and lose their gold. The seventh is not a
+check at all on that seed, and all four location files show it anyway: the two
+`incentives.json` gate it on `npcsAreIncentive`, the two `overworld.json` gate
+it on nothing. Reading `PlacementContext.cs:243` would have got this wrong in
+both directions -- it forces vanilla placements on the six NPCs and the vendor
+slot alike, and the export keeps the six and drops the vendor. Which of the
+seven Archipelago still calls a location is a thing only the export says.
+
+**Four smaller ones from the same review, all now closed.** Schema-only flags
+were computed and then dropped whenever the shared flags all matched, which is
+the cross-version case the version note exists for. `read()` took the first
+scope with a `rules` key while `parse_ap_rules` requires a non-empty one, so a
+blob with two game scopes would have compared one game's locations against
+another's logic. The docstring claimed Archipelago yamls and spoilers were
+readable when the seed gate refuses every one of them, and now says FFR's export
+and why. And "all fifteen one-flag variants" was seven one-flag variants and
+eight pairs and triples, contradicting the same page two paragraphs up.
+
+**The tests grew the rows that would have caught them, and the seeded ones the
+file had none of.** Every row above was hand-built, so nothing exercised the
+reading -- not the permalink, not the nested scope, not the flag decode. Five
+rows now run against the corpus and skip without it, on `test_shop_slot.py`'s
+`FF1_SEEDS` pattern. Three mutations, each turning exactly its own rows red:
+drop the caravan cross-check and the row that names it fails; restore the
+schema-only suppression and two fail; weaken the scope test and the two-scope
+row fails.

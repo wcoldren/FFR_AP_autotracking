@@ -272,7 +272,10 @@ baseline they are all read against, which is why its row is the one to protect.
 **A shared seed holds the rules still, not the pool**, and this page said
 otherwise until 2026-09-03: "anything that moves between an export and
 `std497`'s is the flag, not the roll" is true of the rules, the location ids and
-`priority_locations`, and false of which locations are in the export at all. The
+`priority_locations`, and true of which locations are in the export at all only
+in the sense that nothing there can be attributed by counting. About twenty
+locations change hands either way on every pair. A flag that changes the pool's
+*shape* also moves locations in and out for real, and the two look alike. The
 figures are below, under "Diffing the corpus, and what one flag apart does not
 hold still".
 
@@ -328,6 +331,7 @@ Last run 2026-09-01.
 | `nonpcitems497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** |
 | `std497` vs `nonpcitems497`, exported rules | **206 in both, 0 differ.** `NPCItems` moves no reachability rule at all |
 | `std497` vs `nonpcitems497`, `priority_locations` | **7 gone: King, Princess, Bikke, Sarda, Canoe Sage, CubeBot and Shop Item**, with `IncentivizeFreeNPCs` still on -- the `NPCItems` conjunct of the computed `IncentivizeCaravan`, measured rather than read off `FlagsCompute.cs`. The pack rings all seven; see `docs/ISSUES.md` |
+| `std497` vs `nonpcitems497`, the caravan slot | **`Shop Item` leaves `rules` and `locations` too**, not only the incentive pool: 227 locations to 224, and the six NPCs stay. So six of the seven are un-ringed checks and the seventh is not a check at all -- a different repair, and the one the pool heading hid until 2026-09-03 |
 | `hoarddockbridge497`, pack rules vs FFR | **227 checked, 227 agree, 0 divergences** — it was 216 agree, 3 divergences over 11 locations |
 | `hoardhike497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
 | `hoarddockhike497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — and 95 agree, 13 distinct divergences over 129 locations against the rules as they stood at `2b0ff32`, which is what this row exists to have caught |
@@ -458,10 +462,12 @@ reporting a count when it cannot certify the pair is one seed, or when an export
 cannot be read at all.
 
 **The corpus README's "anything that moves between one of those exports and
-`std497`'s is the flag and not the roll" is true of the rules and not of the
-pool.** FFR exports only the locations holding pool items, and changing a flag
-moves the RNG stream, so which chests hold gold moves whether or not the logic
-does. Measured across all fifteen one-flag variants against `std497`:
+`std497`'s is the flag and not the roll" is true of the rules and true of the
+pool only by count.** FFR exports only the locations holding pool items, and
+changing a flag moves the RNG stream, so which chests hold gold moves whether or
+not the logic does. Measured against `std497` across the fifteen variants that
+predate the tool — seven of them one flag from the baseline, the rest the pairs
+and triples named above:
 
     variant             pool +   pool -   rules moved
     hoard497                17       20             0
@@ -474,6 +480,19 @@ All fifteen churn 17 to 23 locations in *both* directions, `hoard497` included,
 whose rules do not move at all. So the pool difference is printed under its own
 heading and is not counted: a differ that counted it would have reported a
 finding for every flag in the corpus, including the one that found nothing.
+
+**Not counted is not the same as "it is the roll", and the sixteenth cartridge
+is why.** `nonpcitems497` is the only 4.9.7 export of the seventeen with no
+`Shop Item` in it at all — `NPCItems` off deletes the caravan slot rather than
+reassigning it — and that difference sat on line twenty of an uncounted list of
+chests until it was looked for. Nothing distinguishes a removed location from a
+reassigned one by counting, so the tool crosses the pool difference with
+`priority_locations`, which is stable, and marks a name that left both:
+
+    A only  Shop Item   -- and not in B's pool at all, so not a check on B
+
+A pool-shape flag that moves plain chests — `ChestsKeyItems` is the one to
+expect — is still past what two exports can settle, and the heading says so.
 
 What is stable, and is therefore counted: the location ids, which never moved in
 fifteen pairs and which `LOCATION_MAPPING` is keyed on, and

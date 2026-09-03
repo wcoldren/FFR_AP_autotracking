@@ -19,9 +19,22 @@ The five ways this tool could quietly be wrong:
   - it reports a pair it cannot compare as agreement, when attribution is only
     sound at one seed and an export that does not name its seed cannot certify
     even that.
+
+And the one that got past the first version of this file: not counting the pool
+is right, and calling it the roll is not. A flag that changes the pool's shape
+removes locations outright -- `NPCItems` deletes the caravan slot -- and that
+difference lands in the uncounted list among twenty reassigned chests. The rows
+below hold the cross-check that names it: a `priority_locations` difference on a
+location the other export does not carry at all is a location that stopped
+existing, not one that lost a ring.
+
+The last rows want the seed tree and skip without it, because everything above
+builds its sides by hand and so exercises none of the reading: not the permalink,
+not the nested scope the sections come from, not the flag decode.
 """
 import contextlib
 import io
+import json
 import os
 import sys
 import tempfile
@@ -61,6 +74,13 @@ def run(a, b, **kw):
     with contextlib.redirect_stdout(buf):
         n = ed.report(a, b, **kw)
     return n, buf.getvalue()
+
+
+# The same default as test_shop_slot.py, which is the pack's one other
+# seed-tree test; a machine without the corpus skips rather than fails.
+SEEDS = os.environ.get("FF1_SEEDS",
+                       os.path.expanduser("~/repos/AP/seeds/ff1"))
+O7 = os.path.join(SEEDS, "oracle-4.9.7")
 
 
 def main():
@@ -153,6 +173,36 @@ def main():
     check("the differing flag is named", "MapDragonsHoard" in text
           and "False -> True" in text, True)
 
+    # A flag present in one schema and absent from the other, with every shared
+    # flag equal -- the cross-version case the version note exists for. Saying
+    # "identical on both sides" here suppresses the only answer there is.
+    n, text = run(side("a", version="4-9-2", flags={"Shared": True, "OnlyIn492": True}),
+                  side("b", version="4-9-7", flags={"Shared": True, "OnlyIn497": False},
+                       locations=None, priority=None))
+    check("a flag only one schema has is named even when the rest match",
+          "OnlyIn492" in text and "OnlyIn497" in text, True)
+    check("...and the report does not call that identical",
+          "identical on both sides" not in text, True)
+
+    # `parse_ap_rules` skips a scope whose `rules` is empty; reading the
+    # sections off a different scope than the rules came from would compare one
+    # game's locations against another's logic.
+    with tempfile.TemporaryDirectory() as tmp:
+        two = os.path.join(tmp, "two-scopes.yaml")
+        with open(two, "w") as handle:
+            handle.write(json.dumps({
+                "permalink": "4-9-7.finalfantasyrandomizer.com/?s=3B7E1C8A&f=x",
+                "Decoy": {"rules": {}, "locations": {"Wrong": 1},
+                          "priority_locations": ["Wrong"]},
+                "Final Fantasy": {"rules": {"Coneria Castle - Treasury 2": [["Key"]]},
+                                  "locations": {"Coneria Castle - Treasury 2": 258},
+                                  "priority_locations": ["Coneria Castle - Treasury 2"]},
+            }))
+        got = ed.read(two)
+        check("the sections come from the scope the rules came from",
+              (got["locations"], got["priority"]),
+              ({"Coneria Castle - Treasury 2": 258}, {"Coneria Castle - Treasury 2"}))
+
     # A file this tool cannot read must refuse, not inherit parse_ap_rules'
     # empty dict and report that nothing moved.
     with tempfile.TemporaryDirectory() as tmp:
@@ -177,6 +227,40 @@ def main():
         except SystemExit as err:
             code = err.code
         check("two exports in one directory refuses rather than picking", code, 2)
+
+    # Everything above is hand-built, so none of it reads an export. These do.
+    if not os.path.isdir(os.path.join(O7, "std497")):
+        print(f"SKIP  no 4.9.7 corpus at {O7} -- set FF1_SEEDS for the rest")
+    else:
+        std = ed.read(ed.find_export(os.path.join(O7, "std497")))
+        check("a real export names its seed and version",
+              (std["seed"], std["version"]), ("3B7E1C8A", "4-9-7"))
+        check("...and its sections come off the nested game scope",
+              (len(std["rules"]), len(std["locations"]), len(std["priority"])),
+              (227, 227, 21))
+        check("...and its flags decode", std["flags"].get("NPCItems"), True)
+        check("a directory holding one export resolves to it",
+              os.path.basename(ed.find_export(os.path.join(O7, "hoard497"))),
+              "hoard497.yaml")
+
+        # The pair the pool claim was wrong about. Zero rules move, the pool
+        # churns either way, and the caravan slot is the one difference in it
+        # that is the flag -- which the report must say on its own line.
+        no_npc = ed.read(ed.find_export(os.path.join(O7, "nonpcitems497")))
+        n, text = run(std, no_npc)
+        check("NPCItems moves seven priority locations and no rules", n, 7)
+        check("...and the caravan slot is called out as gone, not un-ringed",
+              "Shop Item   -- and not in B's pool at all" in text, True)
+        check("...while the chest churn stays uncounted",
+              "21 locations only in A, 18 only in B" in text, True)
+
+        # A pair whose rules do move, to prove the rule rows fire on a real
+        # export and not only on a hand-built one.
+        hoard = ed.read(ed.find_export(os.path.join(O7, "hoard497")))
+        n, text = run(std, hoard)
+        check("hoard497 moves no rule and no incentive", n, 0)
+        check("...and still churns the pool", "17 locations only in B" in text
+              or "20 locations only in A" in text, True)
 
     for f in fails:
         print("     " + f)

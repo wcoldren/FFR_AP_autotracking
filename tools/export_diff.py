@@ -10,17 +10,21 @@ tool.
 
 A and B are FFR's own Archipelago export (`<seed>.yaml`), or a directory holding
 exactly one -- which is how `seeds/ff1/oracle-4.9.7/` is laid out, one cartridge
-per directory. `check_logic.parse_ap_rules` reads them, so the Archipelago-side
-spellings (a generated yaml, a spoiler) are read too.
+per directory. FFR's own export and nothing else: `check_logic.parse_ap_rules`
+reads the Archipelago-side spellings too, but only FFR's export names the seed,
+and without the seed a pair cannot be certified as one roll. An Archipelago yaml
+or spoiler is therefore `incomparable` here rather than half-compared.
 
 ## What is signal and what is roll
 
 The corpus README says "anything that moves between one of those exports and
-`std497`'s is the flag and not the roll". **That is true of the rules and not of
-the pool**, and the difference is the whole reason this tool draws the line where
-it does. Changing a flag changes the RNG stream, so which chests hold gold moves
-even when the logic does not, and FFR exports only the locations holding pool
-items. Measured across all fifteen 4.9.7 one-flag variants against `std497`:
+`std497`'s is the flag and not the roll". **That is true of the rules and only
+by count of the pool**, and the difference is the whole reason this tool draws
+the line where it does. Changing a flag changes the RNG stream, so which chests
+hold gold moves even when the logic does not, and FFR exports only the locations
+holding pool items. Measured against `std497` across the fifteen 4.9.7 variants
+that predate this tool -- seven of them one flag from the baseline, the rest
+pairs and triples:
 
     variant             pool +   pool -   rules moved
     hoard497                17       20             0
@@ -33,7 +37,20 @@ Every pair churns seventeen to twenty-three locations in *both* directions,
 including `hoard497`, which moves no rule at all. A differ that reported that
 churn as the flag's effect would be wrong on all fifteen, and would report a
 finding for a flag that changed nothing. So the pool difference is printed under
-its own heading, called what it is, and is not counted.
+its own heading and is not counted.
+
+**Not counted is not the same as "it is the roll", and the sixteenth cartridge
+is why.** A flag that changes the pool's *shape* moves locations in and out of
+the export for real: `NPCItems` off deletes the caravan slot outright, and
+`nonpcitems497` is the only 4.9.7 export of the seventeen with no `Shop Item` in
+it at all. That difference sat on line twenty of an uncounted list of chests.
+There is no way to tell a removed location from a reassigned one by counting, so
+this tool does not try; what it does instead is cross the pool difference with
+`priority_locations`, which is stable, and say so on the location's own line. A
+name that leaves the incentive pool *and* the export did not lose a ring, it
+stopped existing. A pool-shape flag that moves plain chests -- `ChestsKeyItems`
+is the one to expect -- is still beyond what two exports can settle, and the
+heading says that rather than implying otherwise.
 
 The three things that are signal, and were stable across all fifteen pairs where
 they were not the flag's own doing:
@@ -46,7 +63,9 @@ they were not the flag's own doing:
               worth a row of its own even though nothing has ever tripped it.
   priority_locations  the incentive pool. Identical across all fifteen, so it
               is not roll noise, and it is where a flag like the computed
-              `IncentivizeCaravan` lands.
+              `IncentivizeCaravan` lands. It is also the one stable set the pool
+              difference can be crossed with, which is what turns the caravan
+              slot's disappearance from churn into a line that says so.
 
 ## Three answers, not two
 
@@ -142,8 +161,13 @@ def read(path):
         pass
     game = {}
     if isinstance(blob, dict):
+        # The same test `parse_ap_rules` applies, so the sections below come
+        # from the scope the rules came from. A weaker one -- `"rules" in scope`
+        # -- picks an earlier block with an empty `rules` and then reads the
+        # locations of one game against the rules of another.
         for scope in (blob, *(v for v in blob.values() if isinstance(v, dict))):
-            if isinstance(scope, dict) and "rules" in scope:
+            if isinstance(scope, dict) and isinstance(scope.get("rules"), dict) \
+                    and scope["rules"]:
                 game = scope
                 break
 
@@ -162,7 +186,10 @@ def read(path):
         return out
     match, seed = PERMALINK.match(permalink), SEED.search(permalink)
     out["version"] = match.group(1) if match else None
-    out["seed"] = seed.group(1) if seed else None
+    # Upper-cased because comparable() compares this as a string. FFR writes
+    # uppercase, but the regex accepts either, and a hand-edited permalink
+    # differing only in case is one seed and must not read as two.
+    out["seed"] = seed.group(1).upper() if seed else None
     if out["version"] is None:
         out["why"] = "no FFR version in the permalink"
         return out
@@ -207,6 +234,14 @@ def flag_diff(a, b):
     return changed, sorted(set(fa) - shared), sorted(set(fb) - shared)
 
 
+# Suffixed to a priority_locations line whose name is not in the other export at
+# all. Two sentences short of a paragraph because it lands on a location's line,
+# but it is the difference between "FFR did not incentivize this" and "FFR did
+# not create this", and those want different repairs in the pack.
+GONE_B = "   -- and not in B's pool at all, so not a check on B"
+GONE_A = "   -- and not in A's pool at all, so not a check on A"
+
+
 def show_alt(alt):
     """One alternative, as FFR means it. `(always)` rather than `()`.
 
@@ -241,14 +276,21 @@ def report(a, b, ap_paths=None, pool=False):
     print()
     if changed is None:
         print("flags: not decoded on both sides, so nothing here is attributed.")
-    elif changed:
+    elif changed or only_a or only_b:
         for name in sorted(changed):
             was, now = changed[name]
             print("flag: %-34s %s -> %s" % (name, was, now))
+        # Outside the `changed` branch on purpose. These are exactly what the
+        # version note above warns about, and a cross-version pair whose shared
+        # flags all match is the case that note exists for -- printing "flags:
+        # identical on both sides" there would suppress them at the one moment
+        # they are the whole answer.
         for name in only_a:
             print("flag: %-34s only in %s's schema" % (name, a["version"]))
         for name in only_b:
             print("flag: %-34s only in %s's schema" % (name, b["version"]))
+        if not changed:
+            print("flags: every flag in both schemas is identical.")
     else:
         print("flags: identical on both sides.")
 
@@ -287,6 +329,12 @@ def report(a, b, ap_paths=None, pool=False):
 
     # The incentive pool. A location set like the pool below, but stable across
     # all fifteen one-flag pairs, so a change here is the flag and gets counted.
+    #
+    # It is also the only stable set the pool difference can be crossed with. A
+    # name that leaves the incentive pool and the export together did not lose
+    # its ring, it stopped existing -- the caravan slot on `NPCItems` off -- and
+    # that is a different repair from an un-ringed check. Said on the name's own
+    # line rather than counted twice; it is already one of these differences.
     if a["priority"] is None or b["priority"] is None:
         print("\npriority_locations: not carried by both export shapes, so not "
               "compared.")
@@ -295,18 +343,22 @@ def report(a, b, ap_paths=None, pool=False):
         if gained or lost:
             print("\npriority_locations (the incentive pool)")
             for name in sorted(lost):
-                print("      A only  %s" % name)
+                print("      A only  %s%s" % (name, GONE_B if name not in b["rules"] else ""))
             for name in sorted(gained):
-                print("      B only  %s" % name)
+                print("      B only  %s%s" % (name, GONE_A if name not in a["rules"] else ""))
             n += len(gained) + len(lost)
 
-    # Not counted, and said out loud. See the module docstring for the figures.
+    # Not counted, and the reason is a noise floor rather than a verdict. See
+    # the module docstring for the figures.
     gained = sorted(set(b["rules"]) - set(a["rules"]))
     lost = sorted(set(a["rules"]) - set(b["rules"]))
     print("\npool: %d locations only in A, %d only in B. Not counted -- changing "
           "a flag\n      moves the RNG stream, so which chests hold gold churns "
           "by about twenty\n      either way even on a pair whose rules do not "
-          "move at all." % (len(lost), len(gained)))
+          "move at all. A flag that\n      changes the pool's shape moves "
+          "locations here too, and counting cannot tell\n      a removed "
+          "location from a reassigned one -- the section above names the ones\n"
+          "      it can." % (len(lost), len(gained)))
     if pool:
         for name in lost:
             print("      A only  %s" % name)
@@ -314,7 +366,7 @@ def report(a, b, ap_paths=None, pool=False):
             print("      B only  %s" % name)
 
     print("\n%d difference%s" % (n, "" if n == 1 else "s"))
-    if n and changed is not None and not changed:
+    if n and changed is not None and not (changed or only_a or only_b):
         print("...and the flags are identical, so nothing here has anything to "
               "be attributed to.\nTwo cartridges of one seed and one flagset "
               "should produce one export.")
@@ -337,7 +389,15 @@ def main():
     b = read(find_export(args.export_b))
     # Same policy as check_logic: a path given and not found is a typo and
     # refuses, the default being absent is an ordinary machine and skips.
-    paths = check_logic.ap_location_paths(ff1=args.ff1_world)
+    # ap_location_paths refuses a --ff1-world that names nothing, and its
+    # SystemExit carries 1. That is this tool's "these differ" code, so a sweep
+    # scripted on the exit status would record a difference for a run that never
+    # compared anything. Re-refuse at 2, which is what a tool that cannot tell
+    # owes its caller.
+    try:
+        paths = check_logic.ap_location_paths(ff1=args.ff1_world)
+    except SystemExit as err:
+        refuse(str(err) or "check_logic could not resolve --ff1-world")
     n = report(a, b, paths, args.pool)
     return 2 if n is None else (1 if n else 0)
 

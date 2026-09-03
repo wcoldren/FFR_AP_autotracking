@@ -678,9 +678,34 @@ Nothing here is urgent unless it says so.
   `priority_locations` and the pack rings all seven gold. Measured on
   `nonpcitems497` against `std497`: seven priority locations gone, and **zero
   access rules moved** -- the seven names FFR drops are exactly the seven the
-  pack rings. So this is a wrong ring rather than a wrong colour, and the fix is
-  the shop-slot fix one conjunct along: an `npcItems` code and the conjunction on
-  all seven, in both incentive trees and the generated table.
+  pack rings.
+
+  **Six of the seven are a wrong ring. The seventh is a check that does not
+  exist.** `Shop Item` leaves `rules` and `locations` as well as
+  `priority_locations` -- 227 exported locations to 224 -- while the six NPCs
+  stay in both. `PlacementContext.cs:243` forces vanilla placements on the six
+  and on the vendor slot alike when `NPCItems` is off, and `SelectVendorItem`
+  (`ItemPlacement.cs:227`) hands back a Bottle before it looks at anything, so
+  the source alone does not say which of the seven Archipelago still calls a
+  location. The export does, and it says the caravan slot is not one. Reading
+  that off `PlacementContext.cs` would have got it wrong in both directions.
+
+  So the fix is two, not one:
+
+  - **The ring, on six.** An `npcItems` code and the conjunction on the NPC rows
+    of `scripts/incentive_slots.lua` -- thirteen `npcsAreIncentive` rows across
+    the two incentive trees, seven in the `I:` tree and six in the standard one,
+    which has no caravan row -- and on the matching `access_rules` in
+    `locations/incentives.json` and `locations/NOverworld/incentives.json`. This
+    is the shop-slot build one conjunct along.
+  - **The slot, on one.** The caravan slot needs `npcItems` on its *existence*,
+    not its colour, in all four location files. Today
+    `locations/incentives.json` and its `NOverworld` twin gate the section on
+    `^$incentiveSlot|npcsAreIncentive` and the pin on
+    `$showPin|slot|npcsAreIncentive`, and `locations/overworld.json` and its
+    twin gate neither -- the overworld tree shows a shop-item check
+    unconditionally. With `NPCItems` off, all four show a check FFR did not
+    create.
 
   This is the same mistake the shop slot's close made and caught late, in the
   opposite direction. That one read a flag's absence from a schema as FFR having

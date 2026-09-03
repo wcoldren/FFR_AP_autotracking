@@ -316,6 +316,10 @@ local NOT_MODELLED = {
     -- that answer to it carry only npcsAreIncentive today. It stays here rather
     -- than becoming noise or decided, because neither is true of a flag that
     -- demonstrably moves a ring; it leaves when the code lands.
+    --
+    -- Six of the seven want the conjunction. The seventh, the caravan slot,
+    -- wants more than that: it leaves the export entirely with this flag off,
+    -- so its existence answers to npcItems and not only its colour.
     measure = "done: nonpcitems497 vs std497, docs/ISSUES.md, \"Seven "
       .. "incentive slots ring gold on a seed FFR did not incentivize them "
       .. "on\". What remains is a code, not a measurement.",

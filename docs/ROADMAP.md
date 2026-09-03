@@ -70,20 +70,29 @@ with no code can be told apart from one nobody has got to.
 
   Until then both stay strict, which costs six Cardia Forest locations on a
   No-Overworld seed and the Elf Prince plus Dr Unne on a shuffled one.
-- **Seven incentive slots ring gold on a seed FFR did not incentivize them on.**
-  Opened 2026-09-03, by the first use of the export diff in section 5 and on the
-  cartridge rolled for it. `IncentivizeCaravan` is
-  `NPCItems && IncentivizeFreeNPCs`; the pack models the second conjunct and not
-  the first, so with `NPCItems` off and `IncentivizeFreeNPCs` on, FFR drops the
-  six free NPCs and the caravan slot from `priority_locations` and the pack rings
-  all seven. It wants an `npcItems` code and the conjunction on all seven rows,
-  in both incentive trees and `scripts/incentive_slots.lua` -- the shop-slot
-  build again, one conjunct along.
+- **Seven incentive slots ring gold on a seed FFR did not incentivize them on,
+  and one of the seven is not a check at all.** Opened 2026-09-03, by the first
+  use of the export diff in section 5 and on the cartridge rolled for it.
+  `IncentivizeCaravan` is `NPCItems && IncentivizeFreeNPCs`; the pack models the
+  second conjunct and not the first, so with `NPCItems` off and
+  `IncentivizeFreeNPCs` on, FFR drops the six free NPCs and the caravan slot
+  from `priority_locations` and the pack rings all seven. It wants an `npcItems`
+  code and the conjunction on the NPC rows of `scripts/incentive_slots.lua` --
+  thirteen across the two incentive trees, seven in the `I:` tree and six in the
+  standard one -- and on the matching `access_rules`. The shop-slot build again,
+  one conjunct along.
+
+  **The caravan slot needs more than the conjunction**: `Shop Item` leaves
+  `rules` and `locations` too, so on that seed it is not a location, and all
+  four location files show it anyway -- the two `incentives.json` on
+  `npcsAreIncentive`, the two `overworld.json` on nothing at all. Its existence
+  wants the flag, not just its colour. `docs/ISSUES.md` has both halves.
 
   **Its oracle cartridge already exists**, which is what this section asks of
-  every item: `nonpcitems497`, and the before/after is seven priority locations
-  and zero moved rules (`docs/ORACLE.md`). So the gate row can demonstrate the
-  failure rather than report a pass after the fact.
+  every item: `nonpcitems497`, and the before/after is seven priority locations,
+  three fewer exported locations, and zero moved rules (`docs/ORACLE.md`). So
+  the gate row can demonstrate the failure rather than report a pass after the
+  fact.
 
 
 ## 2. Boxes that do not exist
@@ -320,16 +329,28 @@ and section 2 is what comes next.
   independence the bullet below would.
 
   **The scope was one assumption short, and the corpus said so.** "One flag
-  apart holds everything but the flag still" is true of the rules and false of
-  the pool: FFR exports only the locations holding pool items, and a flag moves
-  the RNG stream, so all fifteen 4.9.7 variants churn 17 to 23 locations in both
-  directions against `std497` — `hoard497` among them, whose rules do not move
-  at all. A differ that counted that churn would have found something for every
-  flag in the corpus including the one that found nothing, which is the shape of
-  a tool that looks like it works. The pool difference is printed under its own
-  heading and not counted; the rules, the location ids and
+  apart holds everything but the flag still" is true of the rules and true of
+  the pool only by count: FFR exports only the locations holding pool items, and
+  a flag moves the RNG stream, so all fifteen 4.9.7 variants churn 17 to 23
+  locations in both directions against `std497` — `hoard497` among them, whose
+  rules do not move at all. A differ that counted that churn would have found
+  something for every flag in the corpus including the one that found nothing,
+  which is the shape of a tool that looks like it works. The pool difference is
+  printed under its own heading and not counted; the rules, the location ids and
   `priority_locations` are. Figures and the invocation: `docs/ORACLE.md`,
   "Diffing the corpus, and what one flag apart does not hold still".
+
+  **Not counting it is right; calling it the roll was not, and the fix landed
+  the same day the review asked for it.** A flag that changes the pool's *shape*
+  removes locations for real, and `NPCItems` off deletes the caravan slot —
+  `nonpcitems497` is the only 4.9.7 export of the seventeen with no `Shop Item`
+  in it. That difference sat on line twenty of an uncounted list of chests, and
+  the heading told the reader it was gold moving between them. Counting cannot
+  separate a removed location from a reassigned one, so the tool crosses the
+  pool difference with `priority_locations` — stable across the fifteen — and
+  marks a name that left both. A pool-shape flag that moves plain chests
+  (`ChestsKeyItems`) is still past what two exports settle, and the heading now
+  says that instead of implying the opposite.
 
   Three answers rather than two, like `tofr_diff.py`: a pair it cannot certify
   as one seed, and an export it cannot read at all, both exit 2 rather than
@@ -337,13 +358,15 @@ and section 2 is what comes next.
   `ap_location_paths` bug closed the same day — inheriting that empty dict would
   have reported "no changes" for a file it never read.
 
-  **First use was the `NPCItems` pair, 2026-09-03, and it found a defect.** One
-  cartridge rather than two: `std497` already carries `NPCItems` on, so it is
-  the control and only `nonpcitems497` had to be rolled. Zero rules moved and
-  seven priority locations did, which is the answer that flag's coverage row
-  asked for -- and the seven the pack rings on `npcsAreIncentive` alone. It is
-  a section 1 item now. The flag stays `unjudged` because what is unsettled is
-  the code and no longer the measurement.
+  **First use was the `NPCItems` pair, 2026-09-03, and it found a defect --
+  then, once the pool heading stopped hiding it, a second one.** One cartridge
+  rather than two: `std497` already carries `NPCItems` on, so it is the control
+  and only `nonpcitems497` had to be rolled. Zero rules moved and seven priority
+  locations did, which is the answer that flag's coverage row asked for -- and
+  the seven the pack rings on `npcsAreIncentive` alone. Six of those are a wrong
+  ring; the seventh, the caravan slot, is a check the pack shows on a seed where
+  FFR did not create it. Both are section 1 items now. The flag stays `unjudged`
+  because what is unsettled is the code and no longer the measurement.
 - **`check_logic`'s default `--ff1-world` was wrong and failed silently.
   Closed 2026-09-03.** `ap_location_paths` (`tools/check_logic.py:669`)
   defaulted to `<pack>/../Archipelago/worlds/ff1`, which resolves to
