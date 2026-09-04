@@ -8,9 +8,15 @@ while the file still parsed and the picture still looked plausible:
     A picker that returned the first entry regardless passes any file with one
     layout in it, which is every file on the day it is written -- so this runs
     both ways round, on a document holding two;
-  * **the digest reads the tileset, not only the tiles.** Map tiles are ids
-    into a property table and the table is what walkability comes off, so two
-    maps with the same grid under different tilesets must not share a digest;
+  * **the digest reads the tile properties, not only the tiles.** Map tiles are
+    ids into a per-tileset property table and the table is what walkability
+    comes off, so two maps with the same grid under different properties must
+    not share a digest -- and, since 2026-09-04, the narrowing that goes with
+    that: the digest must move for a laid tile's class and for the fixed/random
+    sort that prices a step, and must not move for a trap tile's formation id
+    or for a tile id the map never lays. Both halves are checked by patching a
+    copy of the cartridge, because a digest that noticed everything would pass
+    the first three of those and refuse every reroll;
   * **validate says all of what is wrong.** One complaint per defect, each
     demonstrated on its own broken document, because a validator that returns
     a bare bool cannot say what to fix and one that stops at the first makes
@@ -181,6 +187,15 @@ try:
     LF.write("marshB3", marked)
     check("a retrace mark survives a write and read",
           LF.read("marshB3")["layouts"][0].get("retrace"), True)
+    # A file written under an older VERSION -- restored from history, carried
+    # on a branch -- is openable by the editor, since `read` does not validate
+    # and only `load` does. Writing back the number it was loaded with would
+    # save it as unopenable again, with no way for the author to migrate it.
+    LF.write("marshB3", dict(two, version=1))
+    check("a document loaded at an older version is written at today's",
+          LF.read("marshB3")["version"], LF.VERSION)
+    check("and so a round trip through the editor makes it valid again",
+          LF.validate(LF.read("marshB3")), [])
     check("read of a map with no file is None", LF.read("nosuchmap"), None)
 finally:
     shutil.rmtree(LF.LANES, ignore_errors=True)
@@ -308,6 +323,66 @@ check("no two differently-laid maps share a digest", clash, [])
 check("every digest is sixteen hex characters",
       sorted({len(d) for d in digests.values()}), [16])
 
+
+# What the digest must and must not notice, on a patched copy of this
+# cartridge. A trap tile's formation id is rolled per seed and a tileset entry
+# no cell places decides nothing, so both have to be invisible here or the
+# authored art is thrown away on every reroll; the class of a laid tile and the
+# fixed/random sort both move where a lane can go, so both have to be seen.
+def _patched(map_id, tile, byte, value):
+    """This cartridge with one property byte of one tile id overwritten."""
+    hurt = bytearray(rom)
+    tileset = rom[rm.TILESET_LUT + map_id]
+    hurt[rm.TILESET_PROP + tileset * rm.PROP_STRIDE + tile * 2 + byte] = value
+    return bytes(hurt)
+
+
+_inverted = rm.battle_byte_inverted(rom)
+_fixed_tiles = rm.fixed_formations(rom)
+_trap = _trap_map = None
+for _m in sorted(rm.MAP_FILES):
+    _set = rom[rm.TILESET_LUT + _m]
+    _laid = {t & 0x7F for t in rm.map_tiles(rom, _m)}
+    _here = sorted(t for (s, t) in _fixed_tiles if s == _set and t in _laid)
+    if _here:
+        _trap, _trap_map = _here[0], _m
+        break
+check("some laid tile on this cartridge is a fixed-formation trap",
+      _trap is not None, True)
+
+if _trap is not None:
+    _base = (rm.TILESET_PROP
+             + rom[rm.TILESET_LUT + _trap_map] * rm.PROP_STRIDE)
+    _b1 = rom[_base + _trap * 2 + 1]
+    # A different formation, still a fixed one: any non-zero value under FFR's
+    # inverted test, any value with the top bit clear under a vanilla one.
+    _other = ((_b1 ^ 0x01) or 0x02) if _inverted else ((_b1 ^ 0x01) & 0x7F)
+    check("a trap tile's formation id does not move the digest",
+          LF.digest(_patched(_trap_map, _trap, 1, _other), _trap_map),
+          digests[_trap_map])
+    # And the sort that formation id decides does move it: 0 reads as a random
+    # encounter on an FFR cartridge, 0x80 on a vanilla one, and a random
+    # encounter prices a step differently from a fixed trap.
+    _rand = 0x00 if _inverted else 0x80
+    check("but whether that tile is a fixed trap or an encounter does",
+          LF.digest(_patched(_trap_map, _trap, 1, _rand), _trap_map)
+          != digests[_trap_map], True)
+
+_m = min(rm.MAP_FILES)
+_laid = {t & 0x7F for t in rm.map_tiles(rom, _m)}
+_base = rm.TILESET_PROP + rom[rm.TILESET_LUT + _m] * rm.PROP_STRIDE
+_one = min(_laid)
+check("a laid tile's property byte 0 moves the digest",
+      LF.digest(_patched(_m, _one, 0, rom[_base + _one * 2] ^ eg.TP_NOMOVE),
+                _m) != digests[_m], True)
+_unlaid = sorted(set(range(ec.TILES_PER_SET)) - _laid)
+check("this map lays fewer than every tile in its tileset", bool(_unlaid), True)
+if _unlaid:
+    _u = _unlaid[0]
+    check("a tile id the map never lays does not move the digest",
+          LF.digest(_patched(_m, _u, 0, rom[_base + _u * 2] ^ 0xFF), _m),
+          digests[_m])
+
 # A lane authored against this cartridge is a walk the game allows. Built from
 # the solver's own answer so the suite needs no committed file to have a case.
 one = None
@@ -383,6 +458,22 @@ try:
     lanes, why = LF.load(rom, graph, one, chests)
     check("a stop pointing into rock is refused, and the refusal says which",
           (lanes, bool(why) and "stop 1" in why), (None, True))
+
+    # An unreadable image is a complaint too, and the digest is inside the
+    # guard that makes it one. Since the digest started reading the
+    # fixed/random sort it can raise where it never could before, and a
+    # traceback out of load() takes down a caller walking every map -- the one
+    # shape this function returns a `why` rather than throwing to avoid.
+    blind = bytearray(rom)
+    blind[rm.INES_HEADER + rm.fixed_bank(rom) * rm.BANK_SIZE
+          + rm.SMMOVE_BATTLE_BPL] = 0xEA
+    try:
+        lanes, why = LF.load(bytes(blind), graph, one, chests)
+        got = (lanes, "SMMove_Battle" in (why or ""))
+    except ValueError as e:
+        got = ("raised", str(e))
+    check("an image whose battle byte cannot be read is refused, not raised",
+          got, (None, True))
 finally:
     shutil.rmtree(LF.LANES, ignore_errors=True)
     LF.LANES = keep

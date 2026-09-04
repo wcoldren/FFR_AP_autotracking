@@ -20,11 +20,29 @@ on. Two mechanisms, and they guard different things:
   arrival, a chest index, an exit, or a bare tile -- and `lane.anchors` resolves
   it per cartridge. See that function for what each kind falls back to.
 * **The layout digest** refuses what the stops cannot survive. It covers the
-  map's 4096 decompressed tiles *and* its tileset id and that tileset's 256-byte
-  property block -- because the tiles are ids into that table, and the table is
-  what `Floor.walkable`, `Floor.enter` and the trap classification actually
-  read. Two identical tile grids under different tilesets walk differently, and
+  map's 4096 decompressed tiles *and*, for every tile id the map actually lays,
+  the two things the walk reads about that tile: property byte 0 -- walkability
+  and special class -- and whether a trap tile there is a fixed formation or a
+  random encounter. The tiles are ids into a per-tileset table, so two identical
+  grids whose tilesets disagree about a laid tile's class walk differently, and
   a digest that missed that would happily draw a lane through rock.
+
+  **What it leaves out is the seed's noise, and leaving it out is the point.**
+  Property byte 1 holds a fixed trap tile's formation id, and FFR rolls those
+  per seed, so a digest over the whole 256-byte block churns on every reroll
+  while nothing the router reads has moved: it refused 47 of 57 floors between
+  two cartridges that lay 56 of them identically. What byte 1 does decide is
+  the fixed/random sort -- `render_maps.fixed_formations` reads it through
+  `battle_byte_inverted`, and that sorting prices `Floor.enter` and so can move
+  a drawn lane -- so the derived bit is hashed and the id underneath it is not.
+  Tile ids the map never lays are out for the same reason: a tileset entry no
+  cell places cannot decide whether a lane drawn on that map still holds. The
+  measurements behind both are `docs/ISSUES.md`, under the entry this narrowing
+  closed.
+
+  The tileset id itself is not hashed. It is not what the walk reads -- the
+  properties are, and now every property the walk reads is in the digest
+  directly, which an id can only stand in for.
 
 One more thing lives on a layout entry, and it is a judgement rather than a
 measurement: **`retrace`**, whether this floor's lanes should prefer their own
@@ -41,10 +59,10 @@ cartridge in hand, so the walking is always legal for that cartridge and a
 moved NPC simply makes the lane detour. The digest guards the author's clicked
 tiles, and those are geometry.
 
-Sixteen hex characters over 4352 bytes. That is not a cryptographic claim and
-is not meant as one -- it is a fingerprint against a corpus of a few dozen
-layouts, where the question is "is this the floor I drew on" and not "can this
-be forged".
+Sixteen hex characters over the grid and a few hundred bytes of property. That
+is not a cryptographic claim and is not meant as one -- it is a fingerprint
+against a corpus of a few dozen layouts, where the question is "is this the
+floor I drew on" and not "can this be forged".
 
 `load` answers with three distinguishable outcomes rather than a bool, because
 "there is no authored lane here" and "there is one and it is wrong" are not the
@@ -64,7 +82,11 @@ import extract_chests  # noqa: E402
 import render_maps  # noqa: E402
 
 LANES = os.path.join(HERE, "lanes")
-VERSION = 1
+# 2 since 2026-09-04, when `digest` narrowed. The stops did not change shape --
+# the version moved because the key every layout is stored under did, and a
+# file written under the old one would otherwise read as "no layout for this
+# cartridge", which is the ordinary outcome rather than the defect it is.
+VERSION = 2
 FLAVOURS = ("route", "loot")
 # What a caller may say about retracing. "auto" is the only one that reads the
 # file; the other two are a person overruling every entry at once, which is how
@@ -72,19 +94,33 @@ FLAVOURS = ("route", "loot")
 RETRACE = ("auto", "on", "off")
 
 
-def digest(rom, map_id):
+def digest(rom, map_id, fixed=None):
     """Sixteen hex characters over everything that decides where a lane can go.
 
-    The decompressed tiles, the tileset id, and that tileset's property block.
-    See the module docstring for why the last two are in and why objects are
-    not.
+    The decompressed tiles, and then for each tile id the map lays, in
+    ascending order: the id, its property byte 0, and whether a trap tile there
+    is a fixed formation. See the module docstring for what is left out and
+    why.
+
+    `fixed` is `render_maps.fixed_formations(rom)` and is taken as an argument
+    only so a caller digesting every map on one cartridge computes it once; it
+    is a property of the cartridge, not of the map, and building it scans every
+    tile of every tileset. `load` takes and forwards it for the same reason.
     """
+    tiles = render_maps.map_tiles(rom, map_id)
     tileset = rom[extract_chests.TILESET_LUT + map_id]
     base = extract_chests.TILESET_PROP + tileset * extract_chests.PROP_STRIDE
+    if fixed is None:
+        fixed = render_maps.fixed_formations(rom)
     h = hashlib.sha256()
-    h.update(bytes(render_maps.map_tiles(rom, map_id)))
-    h.update(bytes((tileset,)))
-    h.update(bytes(rom[base:base + extract_chests.PROP_STRIDE]))
+    h.update(bytes(tiles))
+    # The id goes in beside its properties. The grid above already determines
+    # which ids these are, so it adds nothing -- but it makes the property
+    # stream say which tile each pair belongs to rather than leaving that to be
+    # inferred from a hash the reader cannot see.
+    for t in sorted({x & 0x7F for x in tiles}):
+        h.update(bytes((t, rom[base + t * 2],
+                        1 if (tileset, t) in fixed else 0)))
     return h.hexdigest()[:16]
 
 
@@ -108,10 +144,18 @@ def write(name, doc):
     killed mid-save leaves the previous file rather than half of a new one.
     Stable key order and a trailing newline, so a git diff says what changed
     rather than reshuffling the document around it.
+
+    The version written is always VERSION, never the one that was read. A file
+    is only ever written after its digests have been recomputed against the
+    cartridge in hand, so what lands on disk is a document in today's format
+    whatever the loaded one said -- and carrying the old number forward would
+    leave a file restored from history or carried on a branch permanently
+    unopenable, since `validate` refuses it and saving it again would not fix
+    it.
     """
     if not os.path.isdir(LANES):
         os.makedirs(LANES)
-    ordered = {"version": doc.get("version", VERSION),
+    ordered = {"version": VERSION,
                "map": doc["map"],
                "map_id": doc["map_id"],
                "layouts": doc.get("layouts", [])}
@@ -250,7 +294,8 @@ def stamp(rom, path):
     return regen_maps.cartridge_id(rom, path)["ffr"]
 
 
-def load(rom, graph, map_id, chests=None, name=None, retrace="auto"):
+def load(rom, graph, map_id, chests=None, name=None, retrace="auto",
+         fixed=None):
     """(Lanes|None, why) for one map, on this cartridge.
 
     `why` is None when a lane was drawn, and otherwise says which of the three
@@ -264,6 +309,9 @@ def load(rom, graph, map_id, chests=None, name=None, retrace="auto"):
 
     `retrace` is one of RETRACE and defaults to "auto", which is the layout
     entry's own say. See wants_retrace().
+
+    `fixed` is passed straight to digest(); see there for why a caller looping
+    over every map should build it once and hand it in.
     """
     if name is None:
         name = render_maps.MAP_FILES[map_id]
@@ -273,11 +321,16 @@ def load(rom, graph, map_id, chests=None, name=None, retrace="auto"):
     bad = validate(doc)
     if bad:
         return None, "%s: %s" % (name, "; ".join(bad))
-    dig = digest(rom, map_id)
-    entry = pick(doc, dig)
-    if entry is None:
-        return None, "no layout for this cartridge (digest %s)" % dig
+    # digest() is inside the guard too, and not only lane.authored(). It
+    # reads the fixed/random sort through `battle_byte_inverted`, which raises
+    # on an image whose SMMove_Battle branch is neither of the two opcodes it
+    # knows -- and this function's whole point is to classify a failure rather
+    # than throw one at a caller that is walking every map.
     try:
+        dig = digest(rom, map_id, fixed)
+        entry = pick(doc, dig)
+        if entry is None:
+            return None, "no layout for this cartridge (digest %s)" % dig
         return lane.authored(rom, graph, map_id, entry, chests,
                              retrace=wants_retrace(entry, retrace)), None
     except ValueError as e:

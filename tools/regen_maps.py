@@ -434,9 +434,12 @@ def authored_lanes(rom, graph, retrace="auto"):
     """
     out, unmatched, refused = {}, [], []
     chests = extract_chests.extract(rom)[0]
+    # Once for the cartridge rather than once per map: every digest below
+    # needs it, and building it scans every tile of every tileset.
+    fixed = render_maps.fixed_formations(rom)
     for map_id, name in render_maps.MAP_FILES.items():
         lanes, why = lane_file.load(rom, graph, map_id, chests, name=name,
-                                    retrace=retrace)
+                                    retrace=retrace, fixed=fixed)
         if why is None:
             out[name] = lanes
         elif why == "no file":

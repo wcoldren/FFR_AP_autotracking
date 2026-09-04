@@ -82,15 +82,21 @@ that mode, not a file swap.
 **The standard half moved from `duck-weekly-0831` to `duck-weekly-0831-v2` on
 2026-09-04**, when the authored lanes landed. A lane file is keyed by the map's
 layout digest and refuses a cartridge it was not drawn for, and all 57 were
-drawn on `duck-weekly-0831-v2`: only 10 of them resolve on `duck-weekly-0831`,
-so the art it renders carries ten lanes rather than fifty-seven. The two seeds
-differ in one setting of 568 and it is `Spoilers`, so nothing else about the
-art moves with them.
+drawn on `duck-weekly-0831-v2`: 10 of them resolved on `duck-weekly-0831` at
+the time, so the art it renders carried ten lanes rather than fifty-seven. The
+two seeds differ in one setting of 568 and it is `Spoilers`, so nothing else
+about the art moves with them -- what does move is the six floors the two seeds
+lay differently, which is why the count was never going to be 57. **Under the
+narrowed digest it is 51**, and that is the measurement to quote: the ten was a
+property of the digest, not of the cartridge.
 
-`duck-104` carries no authored lane at all -- none of the 57 resolves on it --
-so the No-Overworld art is rendered `--lanes none` and its floors show no
-route. Drawing them is an authoring pass in `tools/lane_edit.py` against that
-cartridge, not a flag.
+**15 of the 57 authored lanes resolve on `duck-104`**, since the layout digest
+narrowed on 2026-09-04: those are the floors laid tile-for-tile as their
+standard twins, where the authored lane draws the same path and only the digest
+had refused it. The other 42 draw nothing yet. 32 of them accept the standard
+lanes ported verbatim and want reviewing in `tools/lane_edit.py` against this
+cartridge; the last 10 are an authoring pass there (`docs/ROADMAP.md` section
+4).
 
 **`F258553F` and `F2585541` are different cartridges.** Both are FFR 4.9.2,
 both GameMode 2, both ToFRMode 2 (Short), and they differ in the last two

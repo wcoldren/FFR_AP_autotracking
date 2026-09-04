@@ -305,10 +305,11 @@ class Session:
     def index(self):
         pal = render_maps.NES_PALETTE
         maps = []
+        fixed = render_maps.fixed_formations(self.rom)
         for mid, name in sorted(render_maps.MAP_FILES.items(),
                                 key=lambda kv: kv[1]):
             doc = lane_file.read(name)
-            dig = lane_file.digest(self.rom, mid)
+            dig = lane_file.digest(self.rom, mid, fixed)
             maps.append({
                 "id": mid, "name": name,
                 "chests": len(lane.chest_groups(self.rom, mid, self.chests)),
@@ -340,15 +341,16 @@ def loops_table(rom, graph, chests, only=None):
     in a different order draw the same line.
     """
     out = {}
+    fixed = render_maps.fixed_formations(rom)
     for mid, name in render_maps.MAP_FILES.items():
         if only is not None and name != only:
             continue
         off, why = lane_file.load(rom, graph, mid, chests, name=name,
-                                  retrace="off")
+                                  retrace="off", fixed=fixed)
         if why is not None:
             continue
         on, why = lane_file.load(rom, graph, mid, chests, name=name,
-                                 retrace="on")
+                                 retrace="on", fixed=fixed)
         if why is not None:
             continue
         out[name] = [lane.loops_of(off.runs), lane.loops_of(on.runs),

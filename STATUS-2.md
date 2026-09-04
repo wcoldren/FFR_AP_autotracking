@@ -647,3 +647,55 @@ reason the rail marks a floor by its edges and not by its numbers. Had it shown
 counts, all three would have read as unaffected and none of these three
 decisions would have been made at all.
 
+
+
+## The digest was refusing floors over enemies it had no business reading
+
+The lane files were keyed by a digest over the map's tiles, its tileset id and
+that tileset's whole 256-byte property block. The block is two bytes per tile,
+and the second one is a fixed trap tile's formation id -- which FFR rolls per
+seed. So the key churned on every reroll while nothing the router reads had
+moved, and the format's stated purpose, outliving the seed it was drawn on, was
+delivered by the typed stops and then taken away by the digest.
+
+**The narrowing is not "drop byte 1".** That byte decides one thing the walk
+cares about: `render_maps.fixed_formations` reads it through
+`battle_byte_inverted` to sort fixed traps from random encounters, and the sort
+prices `Floor.enter`, so it can move a drawn lane. The digest now hashes the
+grid and then, per tile id the map actually lays, that id, its byte 0 and the
+derived fixed/random bit. Restricting to laid ids is the other half: a tileset
+entry no cell places cannot decide whether a lane drawn on that map still holds.
+
+**The tileset id came out with it.** It was in the digest as a stand-in for the
+properties -- two identical grids under different tilesets walk differently --
+and the narrow digest hashes those properties directly, for every tile the map
+lays. An id is the weaker claim of the two, and keeping it would refuse a
+cartridge that renumbered a tileset without changing what any laid tile does.
+
+**What it bought, on the files as committed.** All 57 still resolve on
+`duck-weekly-0831-v2`, the cartridge they were drawn on. 15 now resolve on
+`duck-104` with nothing authored for it -- the floors laid tile-for-tile as
+their standard twins, where the ported lane draws the same path anyway. And a
+standard reroll keeps 51 of 57 where it kept 10: `duck-102`, `duck-103` and
+`duck-weekly-0831` all land on 51, `practice-72A52C25` on 49, and each of those
+is that cartridge's tile-grid ceiling exactly. The six floors `duck-weekly-0831`
+misses are `gaia` and the five ToFR floors, which it genuinely lays differently.
+
+**`VERSION` went to 2 and all 57 files were re-keyed in one pass**, refusing any
+file whose stored digest was not the old digest of that cartridge. The bump is
+what makes a stale file say so: without it, a file written under the old key
+reads back as "no layout for this cartridge", which is the ordinary outcome on a
+reroll rather than the defect it would be.
+
+**Four rows in `test_lane_file.py` hold the shape**, on a patched copy of the
+cartridge rather than a fixture: a trap tile's formation id must not move the
+digest, the fixed/random sort must, a laid tile's byte 0 must, and a tile id the
+map never lays must not. A digest that noticed everything passed three of those,
+which is why the first row exists at all.
+
+**The standard art is byte-identical across the change**, which is the check
+worth keeping: a private render of `duck-weekly-0831-v2` into a scratch
+directory matches the installed override's 68 files exactly. The narrowing
+accepts strictly more cartridges and draws the same lane on the ones it already
+accepted, so the only visible movement is the 15 floors the No-Overworld half
+gains.

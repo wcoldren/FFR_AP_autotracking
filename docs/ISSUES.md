@@ -922,8 +922,24 @@ Nothing here is urgent unless it says so.
   `tools/incentive_slots.py` changed. `@Melmond/Dr Unne` is correspondingly gone
   from the grader's `NOT_AP_LOCATIONS`: it is not a row to excuse any more.
 
-- **The layout digest refuses a floor over which enemies a trap tile spawns.**
-  `lane_file.digest` hashes the map's tiles, its tileset id and that tileset's
+- **The layout digest refuses a floor over which enemies a trap tile spawns.
+  Closed 2026-09-04**, by narrowing it to what the walk reads. `lane_file.digest`
+  now hashes the grid and then, for each tile id the map actually lays, that
+  id, its `b0` and the derived fixed/random bit -- no `b1` formation id, no
+  unlaid tile, and no tileset id, which was only ever standing in for the
+  properties that are now hashed directly. `VERSION` went to 2 with it and all
+  57 lane files were re-keyed, so a file written under the old key fails
+  validation loudly instead of reading as the ordinary "no layout for this
+  cartridge". What it bought, measured on the files as committed: all 57 still
+  resolve on `duck-weekly-0831-v2`, **15 now resolve on `duck-104` with nothing
+  authored for it**, and a standard reroll keeps **51 of 57** where it kept 10.
+  The remaining 42 No-Overworld floors are the port, which is `docs/ROADMAP.md`
+  section 4 and not this entry.
+
+  The measurements the change was made on, kept because they are what a future
+  argument about the digest has to beat:
+
+  `lane_file.digest` hashed the map's tiles, its tileset id and that tileset's
   whole 256-byte property block, and the block is two bytes per tile: `b0`, the
   walkability and special class, and `b1`, the special's argument -- for a
   `TP_SPEC_BATTLE` tile, the formation id. FFR rolls formation ids per seed, so
@@ -952,14 +968,16 @@ Nothing here is urgent unless it says so.
   half: a tileset entry the map never places cannot decide whether a lane drawn
   on that map still holds.
 
-  **What it costs today is the whole No-Overworld half of the drawn art.** None
-  of the 57 authored lanes resolves on `duck-104`, so that mode renders with no
-  route on any floor. 47 of the 57 port to it verbatim and walk, and on the 18
-  floors whose tiles are identical the ported lane draws a byte-identical path
-  -- they are already correct there and only the digest refuses them.
+  **What it cost was the whole No-Overworld half of the drawn art.** None of the
+  57 authored lanes resolved on `duck-104`, so that mode rendered with no route
+  on any floor. 47 of the 57 port to it verbatim and walk, and on the 18 floors
+  whose tiles are identical the ported lane draws a byte-identical path -- they
+  were already correct there and only the digest refused them. Fifteen of those
+  eighteen are what the narrowing handed back without a port.
 
-  Changing the digest rewrites the key every authored file is stored under, so
-  it wants the review gate and a regen per mode, not a quiet edit.
+  Changing the digest rewrote the key every authored file is stored under, which
+  is why it was one pass over all 57 with a `VERSION` bump behind it rather than
+  a quiet edit -- and why it takes a regen per mode to reach the installed art.
 
 ## Open questions
 
@@ -1040,11 +1058,21 @@ Nothing here is urgent unless it says so.
   refuses a floor the stops could not survive -- but `region` is neither. It is
   a position in `lane.regions()`, and that list is built from the arrivals,
   which come off the NORM and ENTR teleport tables. The digest covers the
-  map's tiles, its tileset id and that tileset's property block, and objects
-  and tables are deliberately outside it. So two cartridges can lay a floor
-  identically, match the digest, and still disagree about which region is index
-  2 -- a shuffle that repoints a door into the other half of MarshCaveB2 is
-  enough.
+  map's tiles and, for each tile id the map lays, the two properties the walk
+  reads about it; objects and tables are deliberately outside it. So two
+  cartridges can lay a floor identically, match the digest, and still disagree
+  about which region is index 2 -- a shuffle that repoints a door into the
+  other half of MarshCaveB2 is enough.
+
+  **Narrowing the digest on 2026-09-04 widened this, and that is worth saying
+  out loud.** It used to hash the tileset id and the whole 256-byte property
+  block; it now hashes property byte 0 and the derived fixed/random bit, for
+  laid tile ids only. More cartridges therefore match a given layout, which is
+  the entire point of the change -- and every extra match is another chance for
+  the disagreement above. The new population has a name: the 15 `duck-104`
+  floors that resolve under the new digest and did not under the old one are
+  exactly the floors whose stored region indices have never been read on that
+  cartridge.
 
   What it costs is bounded and worth stating, because it is smaller than it
   sounds: the index only decides which route lane a loot lane subtracts its
@@ -1061,9 +1089,12 @@ Nothing here is urgent unless it says so.
   deriving on load and ignoring what is stored, which makes a written field a
   lie, or dropping it from the format, which loses the author's ability to say
   "these two lanes are one region" on a floor whose halves the router reads as
-  joined. Neither is obviously right, and no lane has been authored yet, so
-  there is nothing to migrate and no cost to waiting. Raised 2026-09-03, out of
-  the same measurement that filtered the phantom arrivals.
+  joined. Neither is obviously right. What has changed since this was raised
+  is that there is now something to migrate: the editor has written all 57 lane
+  files and they carry stored `region` indices, so dropping the field is a data
+  change and not just a format one. Raised 2026-09-03, out of the same
+  measurement that filtered the phantom arrivals; the digest note above added
+  2026-09-04.
 
 - **The agreement figures used to grant away most of what they appeared to
   compare. Largely closed 2026-08-30.** `check_logic --derived` hands every

@@ -1,10 +1,10 @@
 {
- "version": 1,
+ "version": 2,
  "map": "mirage2F",
  "map_id": 40,
  "layouts": [
   {
-   "digest": "da9edff1d45b1821",
+   "digest": "201860c14415a56b",
    "seen": [
     "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
    ],
