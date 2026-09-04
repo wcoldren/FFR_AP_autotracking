@@ -539,6 +539,34 @@ check("  and is named in the log", rolled:find("MapDragonsHoard", 1, true) ~= ni
 check("  while a stated IncentivizeCardia still applies",
       byCode["cardiaIsIncentive"].Active, false)
 
+-- entranceShuffle is the one derived value here, and the one that does not keep
+-- what it had when its sources come back rolled. Nothing can click it, so
+-- keeping what it had is keeping the last cartridge's answer; it fails open
+-- instead, and says on its own line that a roll is what decided it.
+local doors = {}
+for k, v in pairs(flags) do doors[k] = v end
+doors.Entrances, doors.Towns, doors.Floors = false, false, false
+byCode["entranceShuffle"].Active = true
+local said = capture(function() applyFFRFlagsToBoard(doors, "4-9-7") end)
+check("three flags that all say no leave the doors still",
+      byCode["entranceShuffle"].Active, false)
+check("  and say nothing about it", said:find("Entrance Pins", 1, true), nil)
+
+doors.Entrances = nil
+said = capture(function() applyFFRFlagsToBoard(doors, "4-9-7") end)
+check("a rolled Entrances is assumed to move the doors",
+      byCode["entranceShuffle"].Active, true)
+check("  and is named in the log", said:find("assumed to move", 1, true) ~= nil, true)
+check("  by name", said:find("Entrances", 1, true) ~= nil, true)
+
+-- A flag that plainly says on settles it, so the roll beside it decided
+-- nothing and is not reported as though it had.
+doors.Entrances, doors.Towns = true, nil
+said = capture(function() applyFFRFlagsToBoard(doors, "4-9-7") end)
+check("a stated Entrances beats a rolled Towns",
+      byCode["entranceShuffle"].Active, true)
+check("  and the roll is not reported", said:find("assumed to move", 1, true), nil)
+
 ------------------------------------------------------------------
 print("\n-- the goal, once the seed has been read")
 --

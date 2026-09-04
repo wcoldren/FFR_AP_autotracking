@@ -684,9 +684,40 @@ function applyFFRFlagsToBoard(flags, version)
   --
   -- Not counted in `applied`: that number is settings the cartridge asked for,
   -- and this is one the pack worked out from three of them.
-  setToggle("entranceShuffle", readFlag("Entrances") == true
-                               or readFlag("Towns") == true
-                               or readFlag("Floors") == true)
+  -- All three are tristates, so all three have the third answer, and this is
+  -- the one place in the function where it does not mean "leave the cell
+  -- alone". The cells that get left alone are the player's to set; this one is
+  -- on no layout and nothing can click it, so keeping what it had only means
+  -- keeping the previous cartridge's answer -- the staleness the absent-flag
+  -- branch exists to stop.
+  --
+  -- It fails open instead, the way logic.lua's toggleOn does: unknown draws the
+  -- pins. A trapezoid is drawn where the cartridge's own teleport tables put
+  -- the door, so on a seed that turns out to move nothing the pins are
+  -- redundant rather than wrong, and Entrance Pins has an Off stage for that.
+  -- Reading unknown as off is the answer that costs something: a cartridge
+  -- whose Entrances was rolled genuinely has shuffled doors, and the Auto stage
+  -- drew nothing and said nothing about it.
+  local doorsMove, doorsRolled = false, {}
+  for _, name in ipairs({ "Entrances", "Towns", "Floors" }) do
+    local value, why = readFlag(name)
+    if value == true then
+      doorsMove = true
+    elseif why == "rolled" then
+      doorsRolled[#doorsRolled + 1] = name
+    end
+  end
+  setToggle("entranceShuffle", doorsMove or #doorsRolled > 0)
+  -- Reported on its own line rather than with `random`: that one says "left as
+  -- they were", and this is the value that gets moved instead of left. A flag
+  -- that was rolled next to one that plainly says on is not an unknown, so it
+  -- only speaks up when the roll is what decided it.
+  if not doorsMove and #doorsRolled > 0 then
+    table.sort(doorsRolled)
+    print("flags: rolled at generation, so the doors are assumed to move and "
+          .. "Entrance Pins on Auto will draw them -- "
+          .. table.concat(doorsRolled, ", "))
+  end
 
   applied = applied + applyShardCount(flags, random)
 
