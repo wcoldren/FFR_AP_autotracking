@@ -751,3 +751,71 @@ nothing to look at.
 **The art moved this time.** `regen_maps.py` on `duck-104` drew 47 and wrote 32
 of 67 files — exactly the ported floors, which is the tally agreeing with itself
 from the other end.
+## The doors are on the map
+
+2026-09-04. Thirty trapezoids on the standard overworld, one per door, plus the
+three-stage control that switches them and a decision about diamonds that had to
+be taken first.
+
+**The union, before a third shape existed.** A diamond meant two things already
+-- a pin standing on a sprite, because a rect is opaque and would hide it, and
+an incentive slot -- and the trapezoid arriving meaning "entrance" is what made
+that worth closing rather than tolerating. Settled as a union: a diamond means
+"a sprite check or an incentive slot", and the shape no longer reads backwards.
+Nothing that gets drawn changed. It went in `README.md` and not the Map Key
+`docs/ROADMAP.md` had asked for, because the Map Key is rendered art whose band
+is reserved only where there is something to say -- shape rows would reserve one
+on all 61 maps, change every crop height, and move every marker coordinate.
+
+**The pins cannot live in the committed trees, and finding that out settled most
+of the design.** `overworld_pins.restamp` drops any marker on an overworld map
+whose node the resolver did not place, and `place_locations` treats an
+unplaceable node on a redrawn map as fatal. A committed node set is one fixed
+count and the cartridge's is not -- 30 doors and 99 floor links on the standard
+oracle against 165 links on the No-Overworld one -- so a node absent from a seed
+would hard-fail the regen. Everything is injected by `regen_maps` into its own
+output instead. The consequence is worth banking: the four committed trees never
+change, so `check_logic`, `test_maps.lua`, `test_pins.lua`'s counts and
+`pin_visibility --check` all stay green by construction, and the invariants
+`test_maps.lua` owns had to be restated in a suite that can still see them.
+
+**The doors keep their tiles.** Twenty-seven of the thirty already carried a
+place pin, and a trapezoid is the same size box as a rect, so coincident means
+one of them invisible and which one depends on tree order. `spread()` already
+stacked pins that shared a door; it now takes the door tiles as occupied before
+it starts. Every standard overworld place pin therefore moved up by one marker
+height -- the most visible change here, and the one that makes a town read as a
+door with its contents on top. The doors are anchors for the crop too, because
+five of them carry no place pin and two of those sit well away from the nearest;
+that cost six rows and no width, and the eight-pass fixed point settled.
+
+**Where the injection goes is load-bearing in both directions.** After
+`restamp`, which would otherwise take all thirty straight back out. Before
+`pin_visibility.stamp`, so the rule is the stamper's to write -- it learned an
+`entrance` kind keyed on the injected group's *name*, not on the marker's shape,
+because keying on the shape would make the shape the source of truth for what a
+pin means, which is the reading the diamond entry had just closed.
+
+**The Auto stage needed an item, not a flag read.** `Tracker::isVisible` resolves
+a marker's visibility rule with no cache, but the view only asks on
+`onStateChanged` -- an item changing. The incentive `$showPin|slot` rules refresh
+because their flags are items; a rule reading `FFR_FLAGS` alone would have
+nothing to fire it and would draw the previous cartridge's answer. So
+`flag_mapping` ORs `Entrances`, `Towns` and `Floors` into an ungridded
+`entranceShuffle` toggle. `test_mapping.lua`'s "every flag reaches a grid" check
+caught it the moment it was added, which is what `OFF_BOARD` is for.
+
+**And a greyed icon nobody had named.** Chasing why a pinned `Overworld Tab`
+does not survive Reset turned up that `init.lua`'s `tabMode.CurrentStage = 0` had
+always been a no-op -- with `allow_disabled` false, `Lua_NewIndex` compares
+`_stage1` against itself -- and that the item has been drawing its *disabled* row
+at every stage since it landed, because `FromJSON` raises `stage1` only for a
+composite toggle and `_changeStateImpl` never moves it for a plain progressive.
+`Active = true` is the fix and cannot carry an opinion about the stage.
+
+Reset itself is upstream's. The snapshot is taken one line after `init.lua` and
+one line before the autosave restore, `saveState` ignores the ScriptHost so Lua
+state is neither saved nor restored, and the sandbox opens no `io`. What was in
+reach was making that snapshot hold what `items/flags.json` declares rather than
+what a script wrote over it, and `docs/ISSUES.md` carries the rest with the
+citations.

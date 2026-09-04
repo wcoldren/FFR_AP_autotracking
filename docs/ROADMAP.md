@@ -49,7 +49,7 @@ work it is, not how much it matters.
 | §3 | Warn once when a stale override shadows pack edits |
 | §3 | Room-level zoom, after the towns |
 | §3 | The regen's execution half, after the detection half |
-| §4 | Entrance markers |
+| §4 | Entrance markers: the dungeon floor links, then where a door goes |
 | §4 | The lanes still to draw: ten No-Overworld floors, 32 ported drafts, the by-eye pass, the run-wide order |
 | §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
@@ -205,9 +205,22 @@ Things a bridge-only player checks that the board has no cell for.
 ## 4. Maps
 
 - **Entrance markers.** On a shuffled seed the hand art's exits are wrong, so
-  these are the top map item for a No-Overworld or entrance-rando player; the
-  design is in `STATUS.md`, "Designed, not started". First increment is the
-  bridge's edge log plus a console print, display half after.
+  these are the top map item for a No-Overworld or entrance-rando player.
+
+  **The overworld doors landed 2026-09-04**: 30 trapezoid pins on a standard
+  cartridge, one per door, drawn on regenerated art only and switched by the
+  three-stage `Entrance Pins` control. A door's *position* is not shuffled, so
+  that half is cartridge-invariant and spoils nothing. Left, in order:
+
+  * the dungeon floor links -- 99 staircases on a standard cartridge and 165 on
+    a No-Overworld one, drawn the same way. Look at a No-Overworld render before
+    committing to it: 165 always-reachable pins is a readability question that
+    only answers itself once drawn.
+  * where a door now *goes*, which is the half that needs the observation
+    channel. The bridge watches party position and publishes an edge log, so the
+    permutation is learned by walking through it and reveal-on-visit cannot
+    spoil a seed; the design is in `STATUS.md`, "Designed, not started", and the
+    first increment is that log plus a console print.
 - **The lanes still to draw.** Three things, in the order they cost a player
   something:
 

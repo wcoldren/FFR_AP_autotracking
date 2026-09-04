@@ -537,6 +537,16 @@ that. What is given up is reading the shape backwards; a diamond stops meaning
 "there is a sprite here" and starts meaning "something here is worth a look",
 which may be the more useful sentence on a board anyway.
 
+**One control governs two axes, and they could be split.** `Entrance Pins` asks
+one question -- does this seed move doors -- and switches both halves of the
+answer together. FFR asks two: `Entrances` and `Towns` permute doors, `Floors`
+permutes staircases, and a seed can roll either without the other. So a board
+could reasonably want the overworld trapezoids without 99 more inside the
+dungeons, or the reverse. Nothing about the current shape blocks it: `showPin`
+takes arguments already, and `pin_visibility` would stamp `$showPin|entrance|door`
+against `$showPin|entrance|floor` the way it already stamps a slot's flags. Not
+worth two cells until somebody wants one half off, which is not yet known.
+
 **Settled 2026-09-04, as the naming half only.** The union is now what a diamond
 means: `docs/ISSUES.md`, "What a diamond means", records it and `README.md`,
 "What the pin shapes mean", tells a player. It was settled because the trapezoid
