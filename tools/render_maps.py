@@ -945,6 +945,14 @@ ARROW_PX = 6                  # the drawn length of a direction arrow
 # that is most of the information.
 ARROW_EVERY = 7
 
+# How far along the lane a head may slide to get off a tile that already holds
+# one pointing the other way. Two is not a tuning knob so much as the smallest
+# number that does the job twice over: a collision is one tile, and the tile
+# next to it is free unless two heads from two runs land side by side, which
+# needs the third. Wider would start moving heads far enough that the every-
+# seventh spacing stops being what the eye reads.
+ARROW_NUDGE = 2
+
 # The key's own wording. No punctuation anywhere: font.CHARS is digits and
 # letters only, so a slash in "Optimal w/Key" draws as a gap.
 LANE_KEY_TEXT = {
@@ -1166,16 +1174,50 @@ def draw_lanes(out, w, h, crop, lanes):
                     dot(x + (o if x1 == x2 else 0),
                         y + (o if y1 == y2 else 0), col)
 
+    # Where a head has already been drawn, and pointing which way. An arrow is
+    # a triangle whose tip is the tile centre, so two of them on one tile
+    # pointing opposite ways meet tip to tip and draw a bowtie -- a shape that
+    # says "both ways" only to someone who already knows, and reads as a blot
+    # to everyone else. A corridor walked out and back is exactly where that
+    # happens: the two passes are separate stretches of `mine`, so the every-
+    # seventh rule can land on the same tile from either end.
+    #
+    # It is deliberately keyed on the *image* and not on the run. Nine of the
+    # twenty-seven collisions on the duck cartridge are between two different
+    # runs -- six of them down one BahamutCave corridor that two regions' route
+    # lanes both walk, cyan over cyan -- and those draw the same bowtie as the
+    # eighteen within a single run. A per-run set would leave them.
+    heads = {}
+
+    def opposed(tile, d):
+        return any(o == (-d[0], -d[1]) for o in heads.get(tile, ()))
+
     for run, base, mine in drawn:
         for n, (a, b) in enumerate(mine):
             # By index, not by value. Comparing the pair fires on every crossing
-            # of that ordered edge, not just the last -- which costs no pixels,
-            # since a repeated edge ends at the same tile and _arrow is a pure
-            # function of it, so the extra call redraws the same arrowhead. It
-            # is still the wrong question to ask, and it stops being free the
-            # moment an arrow depends on anything but (a, b).
-            if n % ARROW_EVERY == ARROW_EVERY - 1 or n == len(mine) - 1:
-                _arrow(dot, cell, a, b, base)
+            # of that ordered edge, not just the last, and an arrow now depends
+            # on more than (a, b) -- on what is already drawn -- so a repeat is
+            # no longer the free redraw it was when _arrow was pure.
+            if n % ARROW_EVERY != ARROW_EVERY - 1 and n != len(mine) - 1:
+                continue
+            # Nudged along the lane rather than dropped. The head still has to
+            # be somewhere: skipping it on a doubled-back corridor takes away
+            # the one mark that says the return leg exists, which is the
+            # information the arrows are there for. One tile of offset is
+            # enough to separate them -- a head reaches ARROW_PX back from a
+            # centre and tiles are TILE_PX apart, so adjacent heads clear each
+            # other by four pixels even nose to nose.
+            #
+            # Backward first -- _nudge says why, and it is the whole of
+            # whether this reads as two arrows or as a lump.
+            for j in _nudge(n, len(mine)):
+                c, d = mine[j]
+                step = (d[0] - c[0], d[1] - c[1])
+                if opposed(d, step):
+                    continue
+                if _arrow(dot, cell, c, d, base):
+                    heads.setdefault(d, set()).add(step)
+                break
 
     # The start box, on a black ring. Marsh Cave's floor is light grey and a
     # bare white square on it is invisible -- the same reason the trap letters
@@ -1196,19 +1238,54 @@ def draw_lanes(out, w, h, crop, lanes):
                 dot(at[0] + hi, at[1] + d, rgb)
 
 
+def _nudge(n, count):
+    """The edge indices to try for the head the rule scheduled at `n`.
+
+    `n` first, then **backward**, then forward, each within ARROW_NUDGE and
+    inside the path. Which way round is not a taste: it is the difference
+    between the fix working and the fix drawing a different blot.
+
+    A head is a triangle with its tip on the tile centre and its base
+    ARROW_PX - 1 behind. So of two heads that oppose each other, the one that
+    moves has to end up on the far side of the one that stays -- tips facing,
+    bases pointing away -- and going *backward* along its own path is what puts
+    it there, because its own path runs against the other's. That leaves a
+    clear tile of lane between the two tips: they read as two arrowheads.
+
+    Forward lands it on the near side instead, and the two bases finish six
+    pixels apart facing each other, which draws a rhombus. Measured on
+    BahamutCave's corridor, that is no more readable than the bowtie it
+    replaced -- a symmetric lump on the line, saying no direction at all.
+    Forward stays as the fallback only because the first edge of a lane has
+    nothing behind it.
+    """
+    yield n
+    for k in range(1, ARROW_NUDGE + 1):
+        if n - k >= 0:
+            yield n - k
+    for k in range(1, ARROW_NUDGE + 1):
+        if n + k < count:
+            yield n + k
+
+
 def _arrow(dot, cell, a, b, rgb):
-    """A triangle at `b`, pointing the way the step went.
+    """A triangle at `b`, pointing the way the step went. True if it drew one.
 
     Drawn by stepping back along the line and spreading across it. The spread
     goes on the *perpendicular* axis -- putting it on the axis of travel draws
     a smear down the lane that reads as nothing at all.
+
+    The return value is what lets the caller record where a head went. It has
+    to be what was actually drawn and not what was asked for: a step off the
+    crop or across the torus join draws nothing, and remembering a head there
+    would make the next lane dodge a tile that has no arrow on it.
     """
     pa, pb = cell(*a), cell(*b)
     if pa is None or pb is None:
-        return
+        return False
     (x1, y1), (x2, y2) = pa, pb
     if abs(x1 - x2) > TILE_PX or abs(y1 - y2) > TILE_PX:
-        return
+        return False
     dx, dy = (x2 - x1) // TILE_PX, (y2 - y1) // TILE_PX
     cx, cy = x2 + TILE_PX // 2, y2 + TILE_PX // 2
     for k in range(ARROW_PX):
@@ -1217,6 +1294,7 @@ def _arrow(dot, cell, a, b, rgb):
                 dot(cx - dx * k, cy + spread, rgb)
             else:
                 dot(cx + spread, cy - dy * k, rgb)
+    return True
 
 
 def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,

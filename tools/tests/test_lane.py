@@ -123,8 +123,95 @@ def regions_do_not_share_edges():
     return fails
 
 
+def arrowheads_do_not_meet_nose_to_nose():
+    """No tile carries two heads pointing opposite ways.
+
+    An arrowhead is a triangle whose tip is the tile centre, so two of them on
+    one tile pointing opposite ways touch at the tip and draw a bowtie. It is
+    not a near-miss: on the duck cartridge it happened on 27 tiles across 9
+    maps, six of them down one BahamutCave corridor that two regions' route
+    lanes both walk. The arrows exist to say which way round a doubled-back
+    lane goes, and a bowtie is the one shape that says neither way.
+
+    Needs no cartridge. draw_lanes takes a frame, a crop and the runs, and an
+    arrowhead is findable in the pixels: the triangle's base sits ARROW_PX - 1
+    back from the tile centre and spreads that far across, so the corner of the
+    base is a pixel only a head pointing that way ever writes -- the lane line
+    itself is LANE_PX wide and never reaches it.
+
+    Three cases, and the first and third are what has to survive the second.
+    A head must still be drawn where nothing is in its way, and two heads that
+    merely turn a corner on one tile are a corner and read fine -- moving those
+    would be the fix overreaching.
+    """
+    fails = []
+    crop = rm.Crop(box=(0, 15, 0, 9))
+    w, h = 16 * rm.TILE_PX, 10 * rm.TILE_PX
+    k = rm.ARROW_PX - 1
+
+    def run(label, path, region=0):
+        return L.Run(label, path[0], list(path), frozenset(), [], [], region)
+
+    def frame(runs):
+        out = bytearray(w * h * 3)
+        rm.draw_lanes(out, w, h, crop, L.Lanes(list(runs), []))
+        return out
+
+    def head(out, tile, d):
+        """Is there a head at `tile` pointing `d`? Read off its base corner."""
+        cx = tile[0] * rm.TILE_PX + rm.TILE_PX // 2
+        cy = tile[1] * rm.TILE_PX + rm.TILE_PX // 2
+        x, y = ((cx - d[0] * k, cy + k) if d[0] else (cx + k, cy - d[1] * k))
+        i = (y * w + x) * 3
+        return tuple(out[i:i + 3]) != (0, 0, 0)
+
+    def check(label, got, want):
+        if got != want:
+            fails.append(f"{label}: got {got!r}, want {want!r}")
+        print(f"{'ok  ' if got == want else 'FAIL'} {label}")
+
+    # One run, nothing in its way: the head lands on the tile the rule picked,
+    # which is the last edge's. Without this the two below would also pass on a
+    # draw_lanes that had stopped drawing arrows at all.
+    east = run("route", [(1, 1), (2, 1), (3, 1)])
+    one = frame([east])
+    check("a lane's last step still gets its head", head(one, (3, 1), (1, 0)), True)
+
+    # Two runs walking into the same tile from opposite ends -- BahamutCave's
+    # corridor, in miniature. Long enough westward that the every-seventh rule
+    # rather than the last edge schedules the collision, which is what leaves
+    # the head somewhere to go in *both* directions and makes the case below
+    # about which one it picks.
+    west = run("route", [(c, 1) for c in range(10, 0, -1)], region=1)
+    two = frame([east, west])
+    check("the head that was there first stays",
+          head(two, (3, 1), (1, 0)), True)
+    check("the opposing head is not drawn on top of it",
+          head(two, (3, 1), (-1, 0)), False)
+    # Which side it moves to is the whole of whether the fix worked. Backward
+    # along its own lane puts it past the head that stayed, tips facing across
+    # a clear tile: two arrowheads. Forward would put it in front, where the
+    # two bases finish six pixels apart and draw a rhombus -- a lump on the
+    # line as directionless as the bowtie, which is why (2, 1) is checked and
+    # not merely left unstated.
+    check("it is nudged along its own lane, not dropped",
+          head(two, (4, 1), (-1, 0)), True)
+    check("and past the head that stayed, not up against it",
+          head(two, (2, 1), (-1, 0)), False)
+
+    # A corner is two heads on one tile at right angles. They do not overlap
+    # and they read as what they are, so nothing moves.
+    south = run("route", [(3, 3), (3, 2), (3, 1)], region=1)
+    corner = frame([east, south])
+    check("two heads that turn a corner are both left where they are",
+          (head(corner, (3, 1), (1, 0)), head(corner, (3, 1), (0, -1))),
+          (True, True))
+    return fails
+
+
 def main():
     fails = regions_do_not_share_edges()
+    fails += arrowheads_do_not_meet_nose_to_nose()
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):
         print("SKIP  set FF1_ROM to a Final Fantasy cartridge for the rest")
