@@ -129,6 +129,10 @@ INPUT_FILES = [
     "tools/regen_maps.py",
     "tools/render_maps.py",
     "tools/lane.py",
+    # Here rather than left to lane_files_sha() below: this file decides which
+    # layout a lane file's digest resolves to, so narrowing the digest changed
+    # the drawn art without moving a byte of tools/lanes/.
+    "tools/lane_file.py",
     "tools/font.py",
     "tools/render_overworld.py",
     "tools/overworld_pins.py",
@@ -1218,8 +1222,8 @@ def verify(out_dir):
         return 1
 
     inputs_sha = inputs_fingerprint()
-    bad = [MODE_DIRS[m] for m, was in sorted(cache.get("modes", {}).items())
-           if was.get("inputs") != inputs_sha]
+    modes_ = sorted(cache.get("modes", {}).items())
+    bad = [MODE_DIRS[m] for m, was in modes_ if was.get("inputs") != inputs_sha]
     if bad:
         print("the pack changed since this override was written, so the "
               "tracker is serving the older copy of every file in INPUT_FILES "
@@ -1227,6 +1231,22 @@ def verify(out_dir):
               "group with no warning")
         for name in bad:
             print(f"  stale: {name}")
+    # The lane files are not in INPUT_FILES and must not be: they have no
+    # bearing on a mode drawn --lanes none, and globbing them in would redraw
+    # that mode's art on every authoring edit. So they are compared here the
+    # way flag_change compares them -- per mode, and only where authored lanes
+    # were actually drawn. Without this the whole 2026-09-04 re-key of all 57
+    # files left this stage green over art drawn from the old stops.
+    lanes_sha = lane_files_sha()
+    drawn = [MODE_DIRS[m] for m, was in modes_
+             if was.get("lanes") == "authored"
+             and was.get("lane_files") != lanes_sha]
+    if drawn:
+        print("a lane file changed since this override was written, so the "
+              "tracker is serving art drawn from the old stops")
+        for name in drawn:
+            print(f"  stale: {name}")
+        bad += [name for name in drawn if name not in bad]
     if not outputs_intact(out_dir, cache):
         print("and files the last run wrote have been changed or removed")
         bad = bad or ["outputs"]

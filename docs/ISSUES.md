@@ -16,6 +16,30 @@ Nothing here is urgent unless it says so.
 
 ## Known wrong
 
+- **The override staleness check read one cache key and not the other, so an
+  edited lane file left it green. Closed 2026-09-04**, found by the digest
+  narrowing below: re-keying all 57 lane files changed what the standard art
+  draws, and `regen_maps.py --verify` -- verify.sh stage 4 -- said the override
+  was current. Two holes, both on the same path. `verify()` compared the
+  INPUT_FILES fingerprint and the written files and stopped there, while the
+  `lane_files` sha it needed was already in the cache and already read by
+  `flag_change`, which is what decides a redraw; and `tools/lane_file.py` was
+  not in INPUT_FILES at all, though it decides which layout a digest resolves
+  to. So a lane edit was invisible to the stage that exists to notice one.
+
+  `verify()` now compares `lane_files` the way `flag_change` does -- per mode,
+  and only where that mode drew `--lanes authored`, because the files have no
+  bearing on art rendered `--lanes none` and globbing them into INPUT_FILES
+  would redraw the No-Overworld half on every authoring edit. Three rows in
+  `tools/tests/test_lane_file.py` hold it, against a fabricated override
+  directory rather than the machine's.
+
+  **The lesson is about the shape rather than the two lines.** A cache key that
+  one reader compares and another does not is a green check over stale art, and
+  the second reader is the one a person trusts -- `flag_change` runs when you
+  have already decided to regen. Any key added to a mode's cache slot needs
+  both readers, or it is decoration in the one that gets read.
+
 - **The Cardia islands had one standard-world route where Bahamut's Cave had
   two. Closed 2026-09-01**, by `73337dc`, `52ba9d5` and `15ac915` -- before it
   was diagnosed, which is why it is filed closed rather than fixed. Reported off

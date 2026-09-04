@@ -285,6 +285,40 @@ check("and is not where none are",
                                   lane_files="not the hash"),
                              flags(lanes="none")), None)
 
+# And the same question asked of the installed override, which is the reading
+# that failed silently: `verify` compared INPUT_FILES and the written files and
+# nothing else, so re-keying all 57 lane files on 2026-09-04 left verify.sh
+# stage 4 green over art drawn from the old stops. A fabricated override
+# directory rather than the machine's, so this stays a test of the checkout.
+def _override(**slot):
+    d = tempfile.mkdtemp(prefix="override-")
+    regen_maps.write_cache(d, {
+        "version": regen_maps.CACHE_VERSION, "outputs": {},
+        "modes": {"std": dict({"inputs": regen_maps.inputs_fingerprint(),
+                               "npcs": "none", "lanes": "authored",
+                               "retrace": "auto",
+                               "lane_files": regen_maps.lane_files_sha()},
+                              **slot)}})
+    return d
+
+
+_ok = _override()
+_moved = _override(lane_files="not the hash")
+_none = _override(lanes="none", lane_files="not the hash")
+try:
+    check("verify passes an override drawn from the lane files as they stand",
+          regen_maps.verify(_ok), 0)
+    check("and reports one drawn from lane files that have since changed",
+          regen_maps.verify(_moved), 1)
+    check("and does not, where that mode drew no authored lane",
+          regen_maps.verify(_none), 0)
+finally:
+    for d in (_ok, _moved, _none):
+        shutil.rmtree(d, ignore_errors=True)
+
+check("the file that decides which layout a digest picks is an input",
+      "tools/lane_file.py" in regen_maps.INPUT_FILES, True)
+
 # ------------------------------------------------- every committed lane file
 committed = sorted(f for f in os.listdir(LF.LANES)
                    if f.endswith(".json")) if os.path.isdir(LF.LANES) else []

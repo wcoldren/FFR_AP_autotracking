@@ -225,7 +225,7 @@ else
     # the checkout". Calling all of them stale asserts a comparison that never
     # happened -- the mistake stage 3 above takes care not to make. Match what
     # it actually said.
-    if echo "$out" | grep -q "the pack changed since this override was written\|files the last run wrote have been changed"; then
+    if echo "$out" | grep -q "the pack changed since this override was written\|a lane file changed since this override was written\|files the last run wrote have been changed"; then
         echo "  (not a code failure: the drawn art predates the checkout. Re-run"
         echo "   regen_maps.py once per mode, reading --npcs and --lanes back out"
         echo "   of .regen_cache.json first -- both default to none.)"

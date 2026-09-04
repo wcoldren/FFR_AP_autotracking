@@ -693,6 +693,15 @@ digest, the fixed/random sort must, a laid tile's byte 0 must, and a tile id the
 map never lays must not. A digest that noticed everything passed three of those,
 which is why the first row exists at all.
 
+**The re-key found a green check over stale art.** With all 57 files rewritten
+and the standard art necessarily redrawn, `verify.sh` stage 4 said the override
+was current. `verify()` compared the INPUT_FILES fingerprint and the written
+files and nothing else -- and `tools/lane_file.py`, which decides which layout a
+digest resolves to, was not in INPUT_FILES. The `lane_files` sha it wanted was
+already in the cache and already read by `flag_change`. One key, two readers,
+one of them not reading it. Both holes are closed, and `docs/ISSUES.md` carries
+the entry because the shape outlives these two lines.
+
 **The standard art is byte-identical across the change**, which is the check
 worth keeping: a private render of `duck-weekly-0831-v2` into a scratch
 directory matches the installed override's 68 files exactly. The narrowing
