@@ -123,6 +123,46 @@ check("validate says all of what is wrong, not the first thing",
       len(LF.validate({"version": 99, "map": "nowhere", "map_id": 61,
                        "layouts": []})) >= 3, True)
 
+# --------------------------------------------------------------- the retrace
+# The one key on a layout entry that is a judgement rather than a measurement,
+# so the only way it can be wrong is silently: nothing here rejects an unknown
+# key, and a misspelt value read for its truthiness would draw a floor marked
+# "no" retraced.
+check("validate accepts a layout that says nothing about retrace",
+      LF.validate(doc_with({"digest": "a" * 16, "lanes": [a_lane()]})), [])
+for v in (True, False):
+    check("validate accepts retrace %r" % v,
+          LF.validate(doc_with({"digest": "a" * 16, "retrace": v,
+                                "lanes": [a_lane()]})), [])
+for why, v in (("a string", "yes"), ("a string that is falsey", "no"),
+               ("an int", 1), ("null", None)):
+    check("validate rejects retrace as %s" % why,
+          len(LF.validate(doc_with({"digest": "a" * 16, "retrace": v,
+                                    "lanes": [a_lane()]}))), 1)
+
+# wants_retrace is the one place the tri-state meets the key. Both halves of
+# every row matter: an override that quietly deferred to the entry would make
+# "render the set the other way" impossible, which is what the comparison pass
+# is built on.
+for mode, entry, want in (
+        ("auto", {}, False),
+        ("auto", {"retrace": False}, False),
+        ("auto", {"retrace": True}, True),
+        ("on", {}, True),
+        ("on", {"retrace": False}, True),
+        ("off", {"retrace": True}, False),
+        ("off", {}, False)):
+    check("wants_retrace(%s, %r) is %r" % (mode, entry.get("retrace"), want),
+          LF.wants_retrace(entry, mode), want)
+check("wants_retrace on no entry at all is off", LF.wants_retrace(None), False)
+try:
+    LF.wants_retrace({}, "sometimes")
+    check("a retrace mode not one of the three is refused", False, True)
+except ValueError:
+    check("a retrace mode not one of the three is refused", True, True)
+check("and 'auto' is the default, so a caller saying nothing reads the file",
+      LF.wants_retrace({"retrace": True}), True)
+
 # ------------------------------------------------------------- the round trip
 keep = LF.LANES
 LF.LANES = tempfile.mkdtemp(prefix="lanes-")
@@ -134,6 +174,13 @@ try:
           [e["digest"] for e in back["layouts"]], ["a" * 16, "b" * 16])
     check("a file is written whole, with no temp left beside it",
           sorted(os.listdir(LF.LANES)), ["marshB3.json"])
+    # write() rebuilds the document from `layouts` whole, which is what lets a
+    # key it has never heard of survive an editor round-trip. If that ever
+    # stops being true, a saved judgement is lost on the next save.
+    marked = doc_with(dict(two["layouts"][0], retrace=True), two["layouts"][1])
+    LF.write("marshB3", marked)
+    check("a retrace mark survives a write and read",
+          LF.read("marshB3")["layouts"][0].get("retrace"), True)
     check("read of a map with no file is None", LF.read("nosuchmap"), None)
 finally:
     shutil.rmtree(LF.LANES, ignore_errors=True)
@@ -159,9 +206,29 @@ try:
     LF.write("marshB3", edited)
     check("and editing one moves it again",
           regen_maps.lane_files_sha() != one_file, True)
+    # Marking a floor for retrace needs no cache key of its own, because it is
+    # a change to a lane file's contents. If it ever stopped moving this hash,
+    # ticking the box would redraw nothing and the tool would say it was
+    # current -- the one failure mode a cache has.
+    marked = doc_with(dict(edited["layouts"][0], retrace=True))
+    LF.write("marshB3", marked)
+    check("and marking one for retrace moves it too",
+          regen_maps.lane_files_sha() != one_file, True)
 finally:
     shutil.rmtree(LF.LANES, ignore_errors=True)
     LF.LANES = keep
+
+# The slot held a bool before the setting became per-layout, so a slot written
+# then is read rather than compared. False becomes "auto" and not "off" on
+# purpose: no committed lane file carried the key while such a slot could be
+# written, so the two drew identical art and reading it as "off" would force a
+# redraw that changes nothing.
+for was, want in (({"retrace": True}, "on"), ({"retrace": False}, "auto"),
+                  ({}, "auto"), ({"retrace": "off"}, "off"),
+                  ({"retrace": "auto"}, "auto"), ({"retrace": "on"}, "on"),
+                  ({"retrace": "sometimes"}, "auto")):
+    check("a cache slot of %r reads as %r" % (was.get("retrace"), want),
+          regen_maps.retrace_slot(was), want)
 
 # ------------------------------------------------- every committed lane file
 committed = sorted(f for f in os.listdir(LF.LANES)

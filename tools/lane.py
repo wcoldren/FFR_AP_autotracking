@@ -891,6 +891,45 @@ def authored(rom, graph, map_id, entry, chests=None, retrace=False):
     return Lanes(runs, links(groups))
 
 
+def loops(path):
+    """How many independent loops this walk draws.
+
+    The circuit rank of the drawn line read as an undirected graph. A walk that
+    goes out and comes back the same way draws each edge once and scores 0; a
+    return that picks different tiles closes a circuit and scores 1 per
+    independent one.
+
+    Over `edges()` rather than the path, for that function's reason: the same
+    steps in a different order draw the same line, and a walk that revisits a
+    tile is not thereby a loop. Which is the whole measurement -- 22.3% of the
+    drawn edges on the 57 authored files are walked in both directions and none
+    twice in the same direction, so a retraced out-and-back is already one line
+    and counting repeats would report loops that nobody can see.
+
+    This is what `retrace` is judged on. `docs/ISSUES.md`, "Is a loop worth
+    collapsing?", holds the judgement itself, which is not a number.
+    """
+    es = edges(path)
+    if not es:
+        return 0
+    # `|E| - |V| + |components|`, with the last term folded away: a walk is
+    # consecutive, so the line it draws is one piece and the count is always 1.
+    # (A repeated tile drops an edge and does not break the chain -- the walk
+    # goes on from the tile it stood still on.)
+    return len(es) - len({t for e in es for t in e}) + 1
+
+
+def loops_of(runs):
+    """The loops a map's whole drawing carries: loops() summed over its runs.
+
+    Per run and not over the runs joined, because two runs are two lines. A
+    route lane and its region's loot lane share most of their edges by design
+    -- that is what the coincidence tie-break is for -- and counting them as
+    one graph would read every one of those shared corridors as a circuit.
+    """
+    return sum(loops(r.path) for r in runs)
+
+
 def turns(path):
     """Counted turns: a heading change you have to make yourself."""
     return sum(1 for a, b, c in zip(path, path[1:], path[2:])

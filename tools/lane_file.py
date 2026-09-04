@@ -26,6 +26,15 @@ on. Two mechanisms, and they guard different things:
   read. Two identical tile grids under different tilesets walk differently, and
   a digest that missed that would happily draw a lane through rock.
 
+One more thing lives on a layout entry, and it is a judgement rather than a
+measurement: **`retrace`**, whether this floor's lanes should prefer their own
+edges and so collapse a loop into one line. It sits beside `digest` and `lanes`
+because it is a claim about how *one floor on one cartridge layout* is drawn --
+per layout, because a No-Overworld seed's version of a floor may loop where the
+standard one does not. `wants_retrace` is where it and the caller's override
+meet; `docs/ISSUES.md`, "Is a loop worth collapsing?", is why the answer is not
+one setting for the whole set.
+
 Map objects are deliberately *outside* the digest. A gate NPC standing in a
 doorway changes the walk, but the loader re-walks every leg against the
 cartridge in hand, so the walking is always legal for that cartridge and a
@@ -57,6 +66,10 @@ import render_maps  # noqa: E402
 LANES = os.path.join(HERE, "lanes")
 VERSION = 1
 FLAVOURS = ("route", "loot")
+# What a caller may say about retracing. "auto" is the only one that reads the
+# file; the other two are a person overruling every entry at once, which is how
+# both sides of the comparison get rendered once entries start disagreeing.
+RETRACE = ("auto", "on", "off")
 
 
 def digest(rom, map_id):
@@ -127,6 +140,27 @@ def pick(doc, dig):
     return None
 
 
+def wants_retrace(entry, mode="auto"):
+    """Whether to draw this layout retraced, under this override.
+
+    The one place the tri-state is interpreted, so `lane.py` keeps taking a
+    plain bool and stays ignorant of the key -- the format, its defaults and
+    its refusals are this module's, which is the split the docstring above
+    states.
+
+    `auto` is the default and lets the entry decide, absent meaning off. `on`
+    and `off` are a person overruling every entry at once; `on` is what the
+    bare `--retrace` flag meant before the key existed, and what every
+    measurement recorded against that flag was taken with.
+    """
+    if mode not in RETRACE:
+        raise ValueError("retrace %r is not one of %s"
+                         % (mode, ", ".join(RETRACE)))
+    if mode != "auto":
+        return mode == "on"
+    return bool((entry or {}).get("retrace", False))
+
+
 def validate(doc):
     """[complaint] -- everything wrong with this document's shape.
 
@@ -157,6 +191,13 @@ def validate(doc):
         dig = entry.get("digest")
         if not isinstance(dig, str) or len(dig) != 16:
             out.append("%s: digest %r is not sixteen hex characters" % (where, dig))
+        # Absent is the ordinary case and means "not retraced". Present has to
+        # be a bool: nothing here rejects an unknown key, so a misspelt value
+        # would otherwise be read for its truthiness and a floor marked
+        # "retrace": "no" would draw retraced.
+        if "retrace" in entry and not isinstance(entry["retrace"], bool):
+            out.append("%s: retrace %r is not true or false"
+                       % (where, entry["retrace"]))
         lanes_ = entry.get("lanes")
         if not isinstance(lanes_, list) or not lanes_:
             out.append("%s: no lanes" % where)
@@ -209,7 +250,7 @@ def stamp(rom, path):
     return regen_maps.cartridge_id(rom, path)["ffr"]
 
 
-def load(rom, graph, map_id, chests=None, name=None, retrace=False):
+def load(rom, graph, map_id, chests=None, name=None, retrace="auto"):
     """(Lanes|None, why) for one map, on this cartridge.
 
     `why` is None when a lane was drawn, and otherwise says which of the three
@@ -220,6 +261,9 @@ def load(rom, graph, map_id, chests=None, name=None, retrace=False):
                            have -- an ordinary thing on a seed that re-laid it
       anything else        a layout that does match, whose stops do not resolve
                            or whose legs cannot be walked
+
+    `retrace` is one of RETRACE and defaults to "auto", which is the layout
+    entry's own say. See wants_retrace().
     """
     if name is None:
         name = render_maps.MAP_FILES[map_id]
@@ -235,6 +279,6 @@ def load(rom, graph, map_id, chests=None, name=None, retrace=False):
         return None, "no layout for this cartridge (digest %s)" % dig
     try:
         return lane.authored(rom, graph, map_id, entry, chests,
-                             retrace=retrace), None
+                             retrace=wants_retrace(entry, retrace)), None
     except ValueError as e:
         return None, str(e)

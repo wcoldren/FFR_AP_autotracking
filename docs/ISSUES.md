@@ -1183,30 +1183,42 @@ Nothing here is urgent unless it says so.
 - **Does anyone outside this repo use the pack?** It decides the four `NoMap`
   variants question in `docs/IDEAS.md`, and nothing else can settle it.
 
-- **Is a loop worth collapsing?** `regen_maps.py --retrace` points the prefer
-  tie-break at a lane's own edges as it accumulates them, so a return leg
-  retraces the outbound wherever retracing is free. It is off by default and
-  the reason is a judgement, not a defect.
+- **Is a loop worth collapsing?** Retracing points the prefer tie-break at a
+  lane's own edges as it accumulates them, so a return leg retraces the
+  outbound wherever retracing is free. **Whether it should is a per-floor
+  judgement, and as of 2026-09-04 the answer is recorded per floor**: a
+  `retrace` key on the layout entry in `tools/lanes/<map>.json`, absent meaning
+  no. `regen_maps.py --retrace` is the override rather than the switch —
+  `auto` (the default) lets each entry say, `on` and `off` force the whole set,
+  and a bare `--retrace` still means `on`, which is what every figure below was
+  measured with.
 
   What it does is measured. Across the 57 authored files on a duck cartridge:
   7007 drawn edges, 22.3% of them walked both ways and **none** twice in the
   same direction, so a retraced out-and-back is already one line. What is not
   collapsed is the return picking *different* tiles, which draws a loop — 67 of
-  them over 27 of the 102 lanes. With `--retrace` the loop count over the whole
-  set falls from 72 to 23, SeaShrineB2 from 8 to 0 and VolcanoB4 from 7 to 1,
-  and the walk does not move: every one of 378 legs runs between the same two
-  tiles for the same cost, which `tools/tests/test_lane.py` checks rather than
+  them over 27 of the 102 lanes. Retraced, the loop count over the whole set
+  falls from 72 to 23, SeaShrineB2 from 8 to 0 and VolcanoB4 from 7 to 1, and
+  the walk does not move: every one of 378 legs runs between the same two tiles
+  for the same cost, which `tools/tests/test_lane.py` checks rather than
   asserts. The bill is time — one Dijkstra per leg rather than per lane, since
   a growing prefer set invalidates `Floor.search`'s memo — about half again on
-  a regen, and more than that on `/path` during authoring, where the editor
-  pays it per drag.
+  a regen, and more than that on `/path` during authoring, which is why the
+  editor's live canvas does not retrace and its baked preview does.
 
-  The unsettled part is whether every loop should go. On a floor that genuinely
-  loops, one line with arrows both ways can read as "walk this twice" when what
-  is true is "there is a way round" — and there the loop is the more honest
-  drawing. Deciding that needs the by-eye pass against DarkmoonEX's images that
-  `docs/ROADMAP.md` section 4 already wants, on the maps the flag changes, not
-  on the two it was demonstrated with.
+  **The judgement itself is still open, and it is now 24 separate judgements.**
+  On a floor that genuinely loops, one line with arrows both ways can read as
+  "walk this twice" when what is true is "there is a way round" — and there the
+  loop is the more honest drawing. So the maps get looked at one at a time,
+  with `tools/lane_edit.py`'s A/B flip: `Preview A/B` bakes the floor both ways
+  and space swaps between two images the browser already holds, because the
+  difference on most of them is one corridor and a re-bake loses it.
+
+  **24 of the 57 draw differently, and 21 is the wrong number to work from.**
+  ConeriaTown, MarshCaveB3 and SeaShrineB1 are redrawn without their loop count
+  moving, so the editor's map rail marks a floor by whether its *drawn edges*
+  differ and shows the count only as the label. `lane_edit.py --check` prints
+  the same table for planning the pass from a terminal.
 
   One thing it corrects on the way past: the invariant is *same anchors, same
   per-leg cost*, and not "steps and turns come out identical". `STEP` and `TURN`

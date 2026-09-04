@@ -409,7 +409,7 @@ def route_lanes(rom, graph):
     return out
 
 
-def authored_lanes(rom, graph, retrace=False):
+def authored_lanes(rom, graph, retrace="auto"):
     """({map name: Lanes}, unmatched, refused) -- the hand-drawn routes.
 
     Three outcomes per map and they are not the same event, which is why this
@@ -422,6 +422,10 @@ def authored_lanes(rom, graph, retrace=False):
     stops will not resolve or whose legs cannot be walked, is a defect, and
     that one stops the run: a lane through rock is a claim the art would make
     in the player's face.
+
+    `retrace` is one of lane_file.RETRACE and is passed through whole: "auto"
+    lets each layout entry decide, which is the default and the reason this
+    takes a string rather than the bool it used to.
 
     There is deliberately no fallback to route_lanes for a map with no
     authored lane. Mixed art cannot say which kind you are looking at and the
@@ -442,6 +446,27 @@ def authored_lanes(rom, graph, retrace=False):
         else:
             refused.append((name, why))
     return out, unmatched, refused
+
+
+def retrace_slot(was):
+    """The `retrace` a cache slot means, in today's vocabulary.
+
+    The slot held a bool before the setting became per-layout, so a slot
+    written then has to be read rather than compared. True meant "every map
+    on", which is "on". False meant "every map off" -- but no committed lane
+    file carried a `retrace` key while such a slot could be written, so "off"
+    and "auto" drew the identical art and reading it as "auto" avoids a redraw
+    that would change nothing. An absent key is a slot from before the flag
+    existed, and reads the same way for the same reason.
+
+    Marking a floor needs no key of its own here: lane_files_sha() hashes the
+    files' contents, so an entry gaining `retrace: true` invalidates the art by
+    itself.
+    """
+    v = was.get("retrace", "auto")
+    if isinstance(v, bool):
+        return "on" if v else "auto"
+    return v if v in lane_file.RETRACE else "auto"
 
 
 def lane_files_sha():
@@ -1258,13 +1283,21 @@ def main():
                          "nothing on a map that has none. Off by default: a "
                          "solver cannot know which chests are worth the detour "
                          "on a given seed, which is what the editor is for")
-    ap.add_argument("--retrace", action="store_true",
-                    help="with --lanes authored, let a lane prefer its own "
-                         "edges as it accumulates them, so a return leg "
-                         "retraces the outbound wherever retracing is free. "
-                         "Collapses a loop into one line where the two legs "
-                         "cost the same; costs about half again in time, and "
-                         "changes no walk -- see lane.walk()")
+    ap.add_argument("--retrace", nargs="?", const="on", default="auto",
+                    choices=lane_file.RETRACE,
+                    help="with --lanes authored, whether a lane may prefer "
+                         "its own edges as it accumulates them, so a return "
+                         "leg retraces the outbound wherever retracing is "
+                         "free. That collapses a loop into one line where the "
+                         "two legs cost the same; it costs about half again "
+                         "in time and changes no walk -- see lane.walk(). "
+                         "Whether a loop is worth collapsing is a per-floor "
+                         "judgement, so the default 'auto' lets each layout "
+                         "entry in tools/lanes/ say. A bare --retrace means "
+                         "'on', which forces every map and is what the flag "
+                         "meant before the entries could; 'off' forces every "
+                         "map the other way, which is how both sides get "
+                         "rendered for comparison once the entries disagree")
     ap.add_argument("--force", action="store_true",
                     help="regenerate even if nothing changed")
     ap.add_argument("--dry-run", action="store_true",
@@ -1333,7 +1366,7 @@ def main():
             and was.get("inputs") == inputs_sha
             and was.get("npcs", "none") == args.npcs
             and was.get("lanes", "none") == args.lanes
-            and was.get("retrace", False) == args.retrace
+            and retrace_slot(was) == args.retrace
             and (args.lanes != "authored"
                  or was.get("lane_files") == lane_files_sha())
             and was.get("marker") == [args.marker_size, args.marker_border]
@@ -1383,8 +1416,8 @@ def main():
     elif was and was.get("lanes", "none") != args.lanes:
         print(f"--lanes changed from {was.get('lanes', 'none')} to "
               f"{args.lanes} since the last run")
-    elif was and was.get("retrace", False) != args.retrace:
-        print(f"--retrace changed from {was.get('retrace', False)} to "
+    elif was and retrace_slot(was) != args.retrace:
+        print(f"--retrace changed from {retrace_slot(was)} to "
               f"{args.retrace} since the last run")
     elif (was and args.lanes == "authored"
             and was.get("lane_files") != lane_files_sha()):

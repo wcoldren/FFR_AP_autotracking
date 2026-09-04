@@ -64,6 +64,26 @@ for m in re.finditer(r"""['"](/[A-Za-z0-9_.]*)""", script):
     asked.add(m.group(1))
 check("every route the page asks for is one the server serves",
       sorted(asked - set(LE.ROUTES)), [])
+
+# The A/B flip started out keypress-only, and the keypress is exactly the one
+# that cannot work when it is wanted: clicking `retrace this floor` leaves
+# focus in the checkbox, where space is the browser's own toggle -- so the
+# first thing a person does on a floor disarmed the flip *and* silently
+# unticked the box. There is no DOM here to click, so what is checked is that
+# the page never went back to having one way in.
+# Named one at a time rather than counted: a count cannot tell a pointer path
+# from a second keypath, and it was the absence of any pointer path that made
+# the flip look broken.
+check("clicking the map flips it, so the flip needs no keyboard at all",
+      "el('wrap').onclick = () => { if (ab) showSide(ab.side ? 0 : 1); };"
+      in LE.TEMPLATE, True)
+check("clicking either half of the A/B control flips to that half",
+      "b.onclick = e => { e.stopPropagation(); showSide(+b.dataset.s); }"
+      in LE.TEMPLATE, True)
+check("and the control is on the page to be clicked",
+      'id="abA"' in LE.TEMPLATE and 'id="abB"' in LE.TEMPLATE, True)
+check("and ticking the retrace box hands focus back, so space still flips",
+      "el('tRetrace').blur();" in LE.TEMPLATE, True)
 check("and the page asks for more than nothing", bool(asked), True)
 check("__DATA__ appears exactly once", LE.TEMPLATE.count("__DATA__"), 1)
 page = LE.TEMPLATE.replace("__DATA__", "{}")
@@ -198,6 +218,31 @@ check("and one preference set spelled two ways is one entry",
       session.floor(name, prefer=[((1, 1), (1, 2)), ((2, 2), (2, 3))]) is
       session.floor(name, prefer=[((2, 3), (2, 2)), ((1, 2), (1, 1))]), True)
 
+# A floor whose drawing retrace changes, and one it leaves alone -- picked off
+# the committed files while they are still the ones LF.LANES points at, and
+# scanned only until both are in hand. The pair is what makes the retrace
+# parameter's effect checkable rather than merely renderable.
+changed = unchanged = None
+for nm in rm.MAP_FILES.values():
+    if changed and unchanged:
+        break
+    m_ = session.map_id(nm)
+    a_, why_ = LF.load(session.rom, session.graph, m_, session.chests,
+                       name=nm, retrace="off")
+    if why_ is not None:
+        continue
+    b_, why_ = LF.load(session.rom, session.graph, m_, session.chests,
+                       name=nm, retrace="on")
+    if why_ is not None:
+        continue
+    spec_ = LF.pick(LF.read(nm), LF.digest(session.rom, m_))["lanes"]
+    same_ = ([L.edges(r.path) for r in a_.runs]
+             == [L.edges(r.path) for r in b_.runs])
+    if same_ and not unchanged:
+        unchanged = (nm, spec_)
+    elif not same_ and not changed:
+        changed = (nm, spec_, L.loops_of(a_.runs), L.loops_of(b_.runs))
+
 keep = LF.LANES
 LF.LANES = tempfile.mkdtemp(prefix="lanes-")
 httpd = LE.Server((LE.HOST, 0), LE.make_handler(session))
@@ -276,6 +321,58 @@ try:
     # before showing it rather than squashing the band and the map into one.
     check("and it is taller than the frame the page pins for editing",
           png_hw(body)[1] > png_hw(editing_png)[1], True)
+    # The retrace parameter, and the whole point of the A/B flip: the same
+    # spec, the same map, two different pictures. Without a floor that the flag
+    # actually changes this proves nothing, so the pair is picked off the
+    # committed files above and both halves are asserted.
+    def bake(nm, spec, retrace):
+        return get("/preview.png?name=%s&retrace=%d&spec=%s"
+                   % (nm, retrace, urllib.parse.quote(json.dumps(spec))))
+
+    check("a floor the retrace flag redraws was found to test with",
+          changed is not None, True)
+    if changed:
+        nm, spec, off_n, on_n = changed
+        (ca, ba), (cb, bb) = bake(nm, spec, 0), bake(nm, spec, 1)
+        check("the baked preview draws %s differently with retrace on" % nm,
+              (ca, cb, ba == bb), (200, 200, False))
+        print("     (%s loops %d -> %d)" % (nm, off_n, on_n))
+    check("and one it leaves alone", unchanged is not None, True)
+    if unchanged:
+        nm, spec = unchanged
+        (ca, ba), (cb, bb) = bake(nm, spec, 0), bake(nm, spec, 1)
+        # Byte-identical, not merely "no complaint": a parameter that reached
+        # nothing would pass a check that only asked whether both rendered.
+        check("and draws %s identically either way" % nm,
+              (ca, cb, ba == bb), (200, 200, True))
+
+    # The page polls this until it is filled, so `null` is a state and not an
+    # error. A route that 500'd or 404'd before the pass landed would leave the
+    # rail empty for the life of the session with nothing said.
+    code, body = get("/loops")
+    check("the triage table reads as null until the pass behind it lands",
+          (code, json.loads(body)), (200, {"loops": None}))
+    session._loops = {"marshB3": [3, 3, True]}
+    code, body = get("/loops")
+    check("and is served as it stands once it has",
+          (code, json.loads(body)["loops"]), (200, {"marshB3": [3, 3, True]}))
+
+    # The judgement the pass exists to record. It is written only when true:
+    # `false` on every entry would be 57 lines of no information and would make
+    # a floor nobody looked at indistinguishable from one that was and left.
+    code, body = post("/save", {"map": name, "retrace": True, "lanes": [
+        {"flavour": run.label, "region": run.region, "stops": stops}]})
+    entry = LF.pick(LF.read(name), LF.digest(session.rom, mid))
+    check("a retrace mark saved from the page reaches the layout entry",
+          (code, entry.get("retrace")), (200, True))
+    check("and load() then draws that floor retraced with no flag at all",
+          LF.wants_retrace(entry), True)
+    code, body = post("/save", {"map": name, "retrace": False, "lanes": [
+        {"flavour": run.label, "region": run.region, "stops": stops}]})
+    entry = LF.pick(LF.read(name), LF.digest(session.rom, mid))
+    check("and unticking it takes the key back out rather than writing false",
+          (code, "retrace" in entry), (200, False))
+
     code, body = get("/nosuchroute")
     check("an unknown route is a 404 and not a page", code, 404)
 

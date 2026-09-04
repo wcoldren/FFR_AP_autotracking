@@ -37,6 +37,7 @@ import entrance_graph as eg                                    # noqa: E402
 import extract_chests as ec                                    # noqa: E402
 import font                                                    # noqa: E402
 import lane as L                                               # noqa: E402
+import lane_file as LF                                         # noqa: E402
 import render_maps as rm                                       # noqa: E402
 
 
@@ -209,9 +210,60 @@ def arrowheads_do_not_meet_nose_to_nose():
     return fails
 
 
+def loops_counts_circuits_not_repeats():
+    """loops() is the circuit rank of the drawn line, and nothing else.
+
+    The measurement it rests on: of the drawn edges across the authored files,
+    22.3% are walked in both directions and none twice in the same direction.
+    So a retraced out-and-back is *already* one line, and a counter that scored
+    revisits would report loops on every lane that comes back the way it went
+    -- which is most of them, and none of which anyone can see on the art.
+
+    Hand-built, because a definition checked only against the corpus is a
+    definition that says whatever the corpus says.
+    """
+    fails = []
+
+    def check(label, got, want):
+        if got != want:
+            fails.append(f"{label}: got {got!r}, want {want!r}")
+        print(f"{'ok  ' if got == want else 'FAIL'} {label}")
+
+    line = [(0, 0), (1, 0), (2, 0), (3, 0)]
+    check("a straight walk draws no loop", L.loops(line), 0)
+    check("and coming back the same way still draws none",
+          L.loops(line + line[-2::-1]), 0)
+    check("a walk that stands still draws none either",
+          L.loops([(0, 0), (0, 0), (1, 0)]), 0)
+    check("an empty walk is nothing to count", L.loops([]), 0)
+
+    # Out along the top, back along the bottom: one circuit, and the shape
+    # `--retrace` exists to collapse.
+    box = [(0, 0), (1, 0), (2, 0), (2, 1), (1, 1), (0, 1), (0, 0)]
+    check("a return down a different corridor draws one loop", L.loops(box), 1)
+    check("and it is one loop however long the tail on it",
+          L.loops(box + [(0, 0), (0, 2), (0, 3)]), 1)
+
+    # Two circuits are two, not one: the count is over *independent* loops,
+    # which is what "how much does this floor loop" means. The second is walked
+    # back out over edges the first already drew, so it adds three not five.
+    twin = box + [(1, 0), (2, 0), (3, 0), (3, 1), (2, 1)]
+    check("two circuits off one walk count two", L.loops(twin), 2)
+
+    # loops() drops the components term because a walk is consecutive and the
+    # line it draws is one piece. That is the assumption the arithmetic rests
+    # on, so it is worth one row: a repeated tile drops an edge and must not
+    # break the chain.
+    stalled = [(0, 0), (1, 0), (1, 0), (2, 0), (2, 1), (1, 1), (1, 0)]
+    check("a walk that stands still mid-loop still draws one",
+          L.loops(stalled), 1)
+    return fails
+
+
 def main():
     fails = regions_do_not_share_edges()
     fails += arrowheads_do_not_meet_nose_to_nose()
+    fails += loops_counts_circuits_not_repeats()
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):
         print("SKIP  set FF1_ROM to a Final Fantasy cartridge for the rest")
@@ -512,6 +564,77 @@ def main():
           dearer, [])
     check("on more than a handful of legs, or the two above prove nothing",
           counted > 100, True)
+
+    # loops() over the committed files, both ways. The figures themselves are a
+    # fact about one cartridge and belong in the docs; what is checked here is
+    # what has to hold on any of them.
+    table = {}
+    for map_id, name in rm.MAP_FILES.items():
+        a, why = LF.load(rom, graph, map_id, chests, name=name, retrace="off")
+        if why is not None:
+            continue
+        b, why = LF.load(rom, graph, map_id, chests, name=name, retrace="on")
+        if why is not None:
+            continue
+        table[name] = (a, b)
+
+    def rank(runs):
+        """Circuit rank the long way, components walked rather than assumed.
+
+        loops() folds the components term away on the grounds that a walk is
+        consecutive and so draws one piece. That is an argument, and this is
+        the corpus disagreeing with it if it is wrong.
+        """
+        total = 0
+        for r in runs:
+            es = L.edges(r.path)
+            if not es:
+                continue
+            adj = {}
+            for e in es:
+                x, y = tuple(e)
+                adj.setdefault(x, set()).add(y)
+                adj.setdefault(y, set()).add(x)
+            seen, comps = set(), 0
+            for v in adj:
+                if v in seen:
+                    continue
+                comps += 1
+                stack = [v]
+                seen.add(v)
+                while stack:
+                    u = stack.pop()
+                    for w in adj[u] - seen:
+                        seen.add(w)
+                        stack.append(w)
+            total += len(es) - len(adj) + comps
+        return total
+
+    if table:
+        wrong = [n for n, (a, b) in table.items()
+                 if L.loops_of(a.runs) != rank(a.runs)
+                 or L.loops_of(b.runs) != rank(b.runs)]
+        check("loops() matches the components walk on every drawn lane",
+              wrong, [])
+        off_n = sum(L.loops_of(a.runs) for a, _ in table.values())
+        on_n = sum(L.loops_of(b.runs) for _, b in table.values())
+        check("retracing does not add loops anywhere in the set",
+              on_n <= off_n, True)
+        check("and takes some away, or the flag draws nothing",
+              on_n < off_n, True)
+        # The count is not the same question as the drawing, and a triage list
+        # keyed on the count would send you past the maps where they differ.
+        redrawn = [n for n, (a, b) in table.items()
+                   if [L.edges(r.path) for r in a.runs]
+                   != [L.edges(r.path) for r in b.runs]]
+        quiet = [n for n in redrawn
+                 if L.loops_of(table[n][0].runs)
+                 == L.loops_of(table[n][1].runs)]
+        check("some floor is redrawn without its loop count moving",
+              bool(quiet), True)
+        print("     (%d of %d authored map(s) redrawn, %d of them silently; "
+              "loops %d -> %d)"
+              % (len(redrawn), len(table), len(quiet), off_n, on_n))
 
     # A stop that resolves to nowhere is a refusal, not a leg to step over.
     # Drawing the lane without it reads as a shorter route rather than as a

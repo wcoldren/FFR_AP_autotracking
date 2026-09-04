@@ -561,3 +561,68 @@ worth the detour is a judgement pass that wants a person and a seed in front of
 them, and `tools/lanes/` is empty on purpose rather than seeded with the
 solver's answer wearing an author's hat.
 
+
+## Whether a floor should retrace is 24 questions, and the numbers hid three
+
+`--retrace` landed as one switch over 57 files, off, with the reason recorded
+as a judgement rather than a defect: on a floor that genuinely loops, one line
+with arrows both ways reads as "walk this twice" when what is true is "there is
+a way round". A switch cannot hold that answer, because the answer is different
+per floor. So it moved onto the layout entry -- `retrace` beside `digest` and
+`lanes` in `tools/lanes/<map>.json` -- and the flag became the override:
+`--retrace {auto,on,off}`, `auto` by default, a bare `--retrace` still meaning
+`on` so that every figure ever measured against it still means what it said.
+
+**Written only when true.** `false` on every entry would be 57 lines of no
+information, and worse, it would make a floor nobody has looked at
+indistinguishable from one that was looked at and left alone -- which is
+exactly the distinction the pass ahead produces.
+
+**The triage measurement is what changed the design, and it did it twice.** The
+first pass counted loops: 72 over the whole set, 23 retraced, on 21 maps. The
+note being worked from said 24. Both are right. ConeriaTown, MarshCaveB3 and
+SeaShrineB1 are *redrawn* without their loop count moving, and a map rail built
+on the counts would have marked those three as untouched and sent the pass
+straight past them. So the rail asks whether the drawn *edges* differ and shows
+the count only as a label. A full regen either way confirms it: exactly 24 of
+the 61 images change, and `--retrace auto` with nothing marked is byte-identical
+to `--retrace off`.
+
+**A checkbox that re-bakes is the wrong instrument for this.** The difference on
+most of the 24 is one corridor, and a bake takes about a second -- long enough
+to lose what you were comparing against. `Preview A/B` fetches both renders,
+holds them as object URLs, and swaps `img.src` between two images the browser
+has already decoded, so the change happens in front of you. A is always retrace
+off and B always on, fixed and independent of the checkbox, because a caption
+that could not name what was on screen would be worse than no caption.
+
+**And the flip must not be a keypress alone, which is how it was built first.**
+Space was the only way to swap, and space is the one key that cannot work when
+it is wanted: clicking `retrace this floor` leaves focus in the checkbox, where
+space is the browser's own toggle. So the first thing a person does on a floor
+disarmed the flip *and* silently unticked the box they had just ticked -- which
+presents as "I click the box and A/B and see no difference", with nothing on
+the page suggesting otherwise. There are now three ways in and none of them is
+required to be the keyboard: an A|B control in the caption, a click anywhere on
+the map, and the key. The checkbox hands focus back on change so the key keeps
+working. Each path has its own test row, named rather than counted -- the first
+version of that test counted flip call sites and stayed green when the
+map-click path was deleted.
+
+**`loops()` folds the components term away, which is an argument and not an
+identity.** The circuit rank is `|E| - |V| + |components|`, and a walk is
+consecutive, so its line is one piece and that term is always 1. A repeated
+tile drops an edge without breaking the chain. `test_lane.py` runs the
+long-hand version -- components actually walked -- over every drawn lane on the
+corpus against the folded one, so the argument is checked rather than trusted.
+
+**The live canvas deliberately does not retrace.** `/path` runs per drag and a
+growing prefer set invalidates `Floor.search`'s memo, which is one Dijkstra per
+leg instead of per lane. The judgement is about the baked art and the baked
+preview is where it gets made.
+
+**Nothing has been judged yet.** No lane file carries the key. The pass is 24
+floors and a person, and it wants its own commit -- the 57 authored files are
+the irreplaceable part of this branch and a mechanism commit should not be
+carrying data edits.
+

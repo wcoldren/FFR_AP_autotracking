@@ -74,7 +74,7 @@ HOST = "127.0.0.1"
 # Every route the page is allowed to ask for. The suite reads this and the
 # fetches out of TEMPLATE and compares the two -- a renamed route 404s in
 # silence and the only symptom is a preview that stops updating.
-ROUTES = ("/", "/map.png", "/map.json", "/preview.png",
+ROUTES = ("/", "/map.png", "/map.json", "/preview.png", "/loops",
           "/path", "/save", "/quit")
 
 
@@ -116,6 +116,9 @@ class Session:
         self._floor = collections.OrderedDict()
         self._data = {}
         self.lock = threading.Lock()
+        # The retrace triage table, filled in off-thread: see loops().
+        self._loops = None
+        self._loops_lock = threading.Lock()
 
     def _mode(self):
         """'std', 'nov', or 'unknown' where the cartridge does not say.
@@ -225,6 +228,31 @@ class Session:
         self._data[name] = out
         return out
 
+    def loops(self):
+        """loops_table() for this cartridge, or None until it has been built.
+
+        `None` is a state and not an error: the pass behind it walks every
+        authored map both ways and takes about eight seconds, which is too long
+        for the page's first paint and too short to be worth writing down. So
+        the rail asks, gets null, and asks again.
+        """
+        with self._loops_lock:
+            return self._loops
+
+    def start_loops(self):
+        """Fill the triage table on a daemon thread. Returns immediately."""
+        def run():
+            # Its own Graph, deliberately. Graph memoises floor items, walks
+            # and teleports into plain dicts, and this pass would be writing
+            # into them for eight seconds while the page reads them for every
+            # drag. Building a second one is free next to the ROM read already
+            # done, and makes the sharing question not arise.
+            graph = eg.Graph(eg.Rom.of(self.rom, self.path))
+            out = loops_table(self.rom, graph, self.chests)
+            with self._loops_lock:
+                self._loops = out
+        threading.Thread(target=run, daemon=True).start()
+
     def index(self):
         pal = render_maps.NES_PALETTE
         maps = []
@@ -249,12 +277,45 @@ class Session:
                 "maps": maps}
 
 
-def lanes_from(session, name, spec):
-    """spec -> (Lanes|None, complaint). Never raises for a bad lane."""
+def loops_table(rom, graph, chests):
+    """{name: [off, on, changed]} for every map with an authored lane.
+
+    Both halves of the retrace triage. The counts say how much a floor's
+    drawing loops each way; `changed` says whether the drawing differs at all,
+    and it is a separate question because the counts do not answer it -- three
+    of the maps the flag redraws come out with the same number both ways.
+
+    Over lane.edges(), which is what "the same drawing" means: the same steps
+    in a different order draw the same line.
+    """
+    out = {}
+    for mid, name in render_maps.MAP_FILES.items():
+        off, why = lane_file.load(rom, graph, mid, chests, name=name,
+                                  retrace="off")
+        if why is not None:
+            continue
+        on, why = lane_file.load(rom, graph, mid, chests, name=name,
+                                 retrace="on")
+        if why is not None:
+            continue
+        out[name] = [lane.loops_of(off.runs), lane.loops_of(on.runs),
+                     [lane.edges(r.path) for r in off.runs]
+                     != [lane.edges(r.path) for r in on.runs]]
+    return out
+
+
+def lanes_from(session, name, spec, retrace=False):
+    """spec -> (Lanes|None, complaint). Never raises for a bad lane.
+
+    `retrace` is a plain bool here and not one of lane_file.RETRACE: the entry
+    this builds is synthetic and carries no `retrace` key, so there is nothing
+    for "auto" to read. The page says outright which of the two it wants.
+    """
     mid = session.map_id(name)
     try:
         return lane.authored(session.rom, session.graph, mid,
-                             {"lanes": spec}, session.chests), None
+                             {"lanes": spec}, session.chests,
+                             retrace=retrace), None
     except (ValueError, KeyError) as e:
         return None, str(e)
 
@@ -305,12 +366,19 @@ def make_handler(session):
                 if u.path == "/preview.png":
                     name = q["name"][0]
                     spec = json.loads(q["spec"][0])
+                    retrace = q.get("retrace", ["0"])[0] == "1"
                     with session.lock:
-                        lanes, why = lanes_from(session, name, spec)
+                        lanes, why = lanes_from(session, name, spec, retrace)
                         if why:
                             return self._json({"ok": False, "why": why}, 400)
                         return self._send(200, session.preview(name, lanes),
                                           "image/png")
+                if u.path == "/loops":
+                    # Not under session.lock: the table is built off-thread
+                    # against its own Graph and guarded by its own lock, and
+                    # taking the big one here would make the page's polling
+                    # contend with the drag it is polling during.
+                    return self._json({"loops": session.loops()})
             except (KeyError, IndexError, ValueError) as e:
                 return self._json({"ok": False, "why": str(e)}, 400)
             self._json({"ok": False, "why": "no such route"}, 404)
@@ -365,6 +433,16 @@ def make_handler(session):
                 entry["lanes"] = spec
                 if body.get("note"):
                     entry["note"] = body["note"]
+                # Written only when it is true. An absent key already means
+                # "not retraced", so writing `false` onto every entry would put
+                # 57 lines of no information into the diff and make an
+                # unvisited floor indistinguishable from one that was looked at
+                # and left alone -- which is exactly the distinction the pass
+                # is producing.
+                if body.get("retrace"):
+                    entry["retrace"] = True
+                else:
+                    entry.pop("retrace", None)
                 if session.stamp not in entry.setdefault("seen", []):
                     entry["seen"].append(session.stamp)
                 bad = lane_file.validate(doc)
@@ -377,9 +455,10 @@ def make_handler(session):
             # ../../../../var/... says less than the path itself.
             pack = os.path.dirname(HERE)
             shown = os.path.relpath(where, pack)
-            print("saved %s -- %d lane(s), digest %s"
+            print("saved %s -- %d lane(s), digest %s%s"
                   % (where if shown.startswith(os.pardir) else shown,
-                     len(spec), dig))
+                     len(spec), dig,
+                     ", retraced" if body.get("retrace") else ""))
             return self._json({"ok": True, "path": where})
 
     return Handler
@@ -413,6 +492,22 @@ def check(session):
             print("  %-24s REFUSED %s" % (name, why))
     print("\n%d map(s) draw an authored lane, %d have a file for another "
           "layout, %d have none" % (drawn, other, none))
+
+    # The retrace triage, as a list to work from. The page shows the same
+    # figures in its map rail; this is for planning the pass from a terminal.
+    table = loops_table(session.rom, session.graph, session.chests)
+    changed = {n: v for n, v in table.items() if v[2]}
+    print("\nretrace: %d of %d authored map(s) draw differently, "
+          "loops %d -> %d"
+          % (len(changed), len(table),
+             sum(v[0] for v in table.values()),
+             sum(v[1] for v in table.values())))
+    for nm, (a, b, _) in sorted(changed.items(),
+                                key=lambda kv: kv[1][1] - kv[1][0]):
+        # A map whose count does not move still redraws, and is the one kind
+        # a list of numbers would hide.
+        print("  %-24s %d -> %d%s"
+              % (nm, a, b, "" if a != b else "   (tiles only)"))
     return 1 if bad else 0
 
 
@@ -437,6 +532,7 @@ def main():
     if args.check:
         return check(session)
 
+    session.start_loops()
     httpd = Server((HOST, args.port), make_handler(session))
     url = "http://%s:%d/" % (HOST, httpd.server_address[1])
     if args.map:
@@ -538,6 +634,16 @@ button.pri:hover:not(:disabled){filter:brightness(1.1); color:#fff}
 #ov{position:absolute; left:0; top:0}
 label.tog{display:flex; gap:6px; align-items:center; font-size:11px;
   color:var(--muted); cursor:pointer}
+#flip{position:sticky; top:0; z-index:2; display:flex; gap:10px;
+  align-items:baseline; padding:6px 10px; margin-bottom:6px; font-size:12px;
+  border:1px solid var(--line-soft); border-radius:2px;
+  background:var(--surface); width:max-content}
+#flip b{font-weight:600}
+#flip .seg button{padding:2px 10px; font-size:11px; font-weight:600}
+#flipHint{color:var(--muted); font-size:11px}
+#wrap.ab{cursor:pointer}
+.m .lp{font-size:10px; color:var(--muted); margin-left:6px; white-space:nowrap}
+.m .lp.on{color:var(--accent)}
 </style>
 <div id="app">
   <div id="rail">
@@ -545,6 +651,7 @@ label.tog{display:flex; gap:6px; align-items:center; font-size:11px;
       <p class="eyebrow">Lane editor</p>
       <h1 id="rom">&nbsp;</h1>
       <div class="sub mono" id="seen">&nbsp;</div>
+      <div class="sub" id="triage">&nbsp;</div>
     </div>
     <div id="maps"></div>
     <div class="pad">
@@ -582,13 +689,24 @@ label.tog{display:flex; gap:6px; align-items:center; font-size:11px;
       </div>
     </div>
     <div id="msg"></div>
-    <div class="pad row">
-      <button class="pri" id="save">Save</button>
-      <button id="prev">Preview as baked</button>
-      <button id="revert">Revert</button>
+    <div class="pad">
+      <label class="tog" id="retraceBox" title="Let this floor's lanes prefer their own edges, so a return leg retraces the outbound and a loop collapses into one line. Saved with the lane."><input type="checkbox" id="tRetrace"> retrace this floor</label>
+      <div class="row" style="margin-top:8px">
+        <button class="pri" id="save">Save</button>
+        <button id="prev">Preview A/B</button>
+        <button id="revert">Revert</button>
+      </div>
     </div>
   </div>
   <div id="stage">
+    <div id="flip" hidden>
+      <div class="seg" id="ab">
+        <button data-s="0" class="on" id="abA">A</button>
+        <button data-s="1" id="abB">B</button>
+      </div>
+      <b id="flipSide">&nbsp;</b>
+      <span id="flipHint">click either side, the map, or press space</span>
+    </div>
     <div id="wrap"><img id="img" alt=""><canvas id="ov"></canvas></div>
   </div>
 </div>
@@ -663,6 +781,7 @@ const label = s => s.kind === 'chest' ? 'chest ' + s.index
 
 async function load(n) {
   if (dirty && !confirm('Discard unsaved changes to ' + name + '?')) return;
+  endFlip();
   name = n; location.hash = n;
   D = await (await fetch('/map.json?name=' + encodeURIComponent(n))).json();
   el('img').src = '/map.png?name=' + encodeURIComponent(n);
@@ -672,6 +791,8 @@ async function load(n) {
   el('img').width = c.width; el('img').height = c.height;
   lanes = D.entry ? JSON.parse(JSON.stringify(D.entry.lanes)) : [];
   if (!lanes.length) lanes = [{ flavour: 'route', region: 0, stops: [] }];
+  /* Absent means not retraced, which is what an unvisited floor looks like. */
+  el('tRetrace').checked = !!(D.entry && D.entry.retrace);
   cur = 0; sel = -1; undo = []; redo = []; dirty = false; drawn = {};
   for (const m of document.querySelectorAll('.m'))
     m.classList.toggle('on', m.dataset.n === n);
@@ -876,6 +997,9 @@ document.addEventListener('keydown', e => {
     { e.preventDefault(); (e.shiftKey ? el('redo') : el('undo')).click(); }
   if ((e.key === 'Delete' || e.key === 'Backspace') && sel >= 0)
     { e.preventDefault(); el('del').click(); }
+  /* Only while both bakes are up: space is otherwise the page scroll. */
+  if (e.key === ' ' && ab)
+    { e.preventDefault(); showSide(ab.side ? 0 : 1); }
 });
 for (const b of document.querySelectorAll('#flav button')) b.onclick = () => {
   const f = b.dataset.f, reg = lanes[cur] ? lanes[cur].region : 0;
@@ -895,20 +1019,80 @@ for (const b of document.querySelectorAll('#zoom button')) b.onclick = () => {
   el('wrap').style.transform = 'scale(' + zoom + ')';
 };
 for (const id of ['tWalk', 'tTrap', 'tDoor', 'tChest']) el(id).onchange = paint;
+/* Not with those four. They are view state and are not persisted; this one is
+   the judgement the pass exists to record, and it goes into the lane file. */
+el('tRetrace').onchange = () => {
+  dirty = true;
+  /* Hand focus back to the page. Left in the checkbox, space is the browser's
+     toggle and the flip never sees the key -- see the comment on the A/B
+     buttons below. */
+  el('tRetrace').blur();
+  say(el('tRetrace').checked
+    ? 'this floor will be drawn retraced -- Save to record it'
+    : 'this floor will be drawn as walked -- Save to record it', '');
+};
 
 el('save').onclick = async () => {
   const keep = lanes.filter(L => L.stops.length >= 2);
   if (!keep.length) { say('nothing to save: a lane needs at least two stops', 'bad'); return; }
   const r = await (await fetch('/save', { method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ map: name, lanes: keep }) })).json();
+    body: JSON.stringify({ map: name, lanes: keep,
+                          retrace: el('tRetrace').checked }) })).json();
   if (r.ok) { dirty = false; say('saved ' + r.path, 'good');
     const m = document.querySelector('.m[data-n="' + name + '"]');
     if (m) { m.classList.add('has'); m.classList.remove('stale'); } }
   else say(r.why, 'bad');
 };
-el('prev').onclick = () => {
+/* The A/B flip. Both bakes are fetched, decoded and held as object URLs, and
+   the flip swaps img.src between two images the browser already has -- so the
+   difference happens in front of you. Re-baking on a toggle takes about a
+   second, which on most of these floors is long enough to lose what you were
+   comparing against: the change is usually one corridor.
+
+   A is always retrace off and B always on, fixed and independent of the
+   checkbox, so the caption can name what is on screen without ambiguity. The
+   checkbox is the decision being recorded, not the thing being looked at. */
+let ab = null;   /* {urls: [offURL, onURL], side: 0|1} while flipping */
+
+function endFlip() {
+  if (!ab) return;
+  for (const u of ab.urls) URL.revokeObjectURL(u);
+  ab = null;
+  el('flip').hidden = true;
+  el('wrap').classList.remove('ab');
+}
+
+function showSide(i) {
+  if (!ab) return;
+  ab.side = i;
+  el('img').src = ab.urls[i];
+  el('abA').classList.toggle('on', i === 0);
+  el('abB').classList.toggle('on', i === 1);
+  const lp = LOOPS && LOOPS[name];
+  el('flipSide').textContent = (i ? 'retrace on' : 'retrace off') +
+    (lp ? '  --  ' + lp[i] + ' loop' + (lp[i] === 1 ? '' : 's') : '');
+}
+
+async function bake(retrace, spec) {
+  const r = await fetch('/preview.png?name=' + encodeURIComponent(name) +
+    '&retrace=' + (retrace ? '1' : '0') +
+    '&spec=' + encodeURIComponent(JSON.stringify(spec)));
+  if (!r.ok) throw new Error(((await r.json()) || {}).why || 'bake failed');
+  return URL.createObjectURL(await r.blob());
+}
+
+el('prev').onclick = async () => {
   const keep = lanes.filter(L => L.stops.length >= 2);
+  if (!keep.length) { say('nothing to bake: a lane needs at least two stops', 'bad'); return; }
+  const at = name;
+  say('baking both ways...', '');
+  let urls;
+  try { urls = await Promise.all([bake(false, keep), bake(true, keep)]); }
+  catch (e) { say(String(e.message || e), 'bad'); return; }
+  /* The map may have been swapped while those were baking. */
+  if (at !== name) { for (const u of urls) URL.revokeObjectURL(u); return; }
+  endFlip();
   /* The baked frame is taller: it reserves the Map Key band this page renders
      none of. load() pins the image to the map-only frame, so leaving those on
      squashes the band and the map together into it -- and the overlay, which is
@@ -916,10 +1100,21 @@ el('prev').onclick = () => {
      Both are restored by the next load(). */
   el('img').removeAttribute('width'); el('img').removeAttribute('height');
   el('ov').hidden = true;
-  el('img').src = '/preview.png?name=' + encodeURIComponent(name) +
-    '&spec=' + encodeURIComponent(JSON.stringify(keep));
-  say('showing the baked render, band and all. Pick the map again to go back.', '');
+  el('flip').hidden = false;
+  el('wrap').classList.add('ab');
+  ab = { urls: urls, side: 0 };
+  showSide(0);
+  say('baked both ways. Space flips A/B; pick the map again to go back.', '');
 };
+/* Three ways in, and the keypress is the least of them. It was the only one
+   at first, and it is the one that cannot work when you most want it: clicking
+   the retrace checkbox leaves focus in the checkbox, where space is the
+   browser's own toggle -- so the first thing a person does on a floor silently
+   disarms the flip and unticks the box they just ticked. */
+for (const b of document.querySelectorAll('#ab button'))
+  b.onclick = e => { e.stopPropagation(); showSide(+b.dataset.s); };
+el('flip').onclick = () => { if (ab) showSide(ab.side ? 0 : 1); };
+el('wrap').onclick = () => { if (ab) showSide(ab.side ? 0 : 1); };
 el('revert').onclick = () => { dirty = false; load(name); };
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
@@ -929,8 +1124,41 @@ el('maps').innerHTML = INDEX.maps.map(m =>
   '<div class="m ' + (m.authored ? 'has' : m.otherLayout ? 'stale' : '') +
   '" data-n="' + m.name + '"><span>' + m.name + '</span><span class="n">' +
   (m.authored ? 'drawn' : m.otherLayout ? 'other layout' : m.chests + ' chests') +
-  '</span></div>').join('');
+  '</span><span class="lp" data-lp="' + m.name + '"></span></div>').join('');
 for (const m of document.querySelectorAll('.m')) m.onclick = () => load(m.dataset.n);
+
+/* The retrace triage, filled in when the server's background pass lands.
+   Two thirds of the authored maps draw identically either way, so without
+   this the pass is 57 floors instead of 24.
+
+   Keyed on whether the *drawing* differs, not on the counts: three of the maps
+   the flag redraws come out with the same number of loops both ways, and a
+   badge reading the numbers alone would send you straight past them. */
+let LOOPS = null;
+async function pollLoops() {
+  try {
+    const r = await (await fetch('/loops')).json();
+    if (!r.loops) { setTimeout(pollLoops, 3000); return; }
+    LOOPS = r.loops;
+  } catch (e) { setTimeout(pollLoops, 5000); return; }
+  let n = 0;
+  for (const [nm, v] of Object.entries(LOOPS)) {
+    const s = document.querySelector('.lp[data-lp="' + nm + '"]');
+    if (!s) continue;
+    if (!v[2]) { s.textContent = '--'; continue; }
+    n++;
+    s.className = 'lp on';
+    s.textContent = v[0] === v[1] ? v[0] + '\u2192' + v[1] + '*'
+                                  : v[0] + '\u2192' + v[1];
+    s.title = v[0] === v[1]
+      ? 'redrawn, same loop count -- the tiles move'
+      : 'loops ' + v[0] + ' with retrace off, ' + v[1] + ' with it on';
+  }
+  el('triage').textContent = n + ' of ' + Object.keys(LOOPS).length +
+    ' draw differently with retrace';
+  if (ab) showSide(ab.side);
+}
+pollLoops();
 load((location.hash || '').slice(1) || INDEX.maps[0].name);
 </script>
 '''
