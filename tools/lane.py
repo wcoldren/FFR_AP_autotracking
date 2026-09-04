@@ -668,8 +668,24 @@ def walk(f, stops, groups, start=None):
     if not stops:
         return [], [], []
     sets = []
+    last = len(stops) - 1
     for i, stop in enumerate(stops):
-        cand = anchors(f, stop, groups, start=start)
+        # `start` is the tile the lane came in by, and it is told to anchors()
+        # so an `exit` stop means a way off the floor *other* than that one.
+        # Stop 0 is that tile, so passing it its own start excludes it from its
+        # own candidate set: the lane is then drawn from a staircase nobody
+        # clicked, or -- on a floor with one exit -- from nowhere at all, which
+        # refuses the whole bake.
+        cand = anchors(f, stop, groups, start=None if i == 0 else start)
+        if 0 < i < last:
+            # Stepping on a teleport takes you off the floor, so a lane may end
+            # on one and may not pass through one. Floor.search and Floor.stand
+            # already hold that rule; anchors() cannot, because an `exit`
+            # resolves to teleports by definition and a `tile` stop can name a
+            # staircase. Walking on through it is the IceCaveB2 drawing
+            # Floor.stand carries its comment about -- so a middle stop with
+            # nowhere else to be is a gap, not a nudge to the nearest floor.
+            cand = [t for t in cand if t not in f.teleports]
         if not cand:
             return [], [], [(i, i)]
         sets.append(cand)
@@ -714,6 +730,21 @@ def walk(f, stops, groups, start=None):
     return path, got, []
 
 
+def region_of(f, tile, regs=None):
+    """Which half of the floor a tile is on: the index plan() would give it.
+
+    A lane's region is what pairs a loot lane with the route lane whose edges
+    it subtracts, so a lane file that does not say gets the answer read off the
+    cartridge rather than a lane number standing in for one. Reachability here
+    is the asymmetric thing regions() documents, so the question asked is
+    whether an arrival of the region reaches the tile.
+    """
+    for i, r in enumerate(regions(f) if regs is None else regs):
+        if any(tile in f.reached(a) for a in r):
+            return i
+    return 0
+
+
 def authored(rom, graph, map_id, entry, chests=None):
     """-> Lanes for one map from a lane file's layout entry, or None.
 
@@ -724,24 +755,52 @@ def authored(rom, graph, map_id, entry, chests=None):
     alternative is drawing the lane with the leg missing, which reads as a
     shorter route rather than as a broken one -- so a lane that cannot be
     walked is not a lane to draw badly, it is a lane to refuse.
+
+    Two things the file is not allowed to decide, because a person writing one
+    should not have to think about either: the **order** its lanes appear in --
+    a loot lane pairs with its region's route lane wherever that lane sits in
+    the list -- and, where a lane states no `region`, which region it belongs
+    to, which is read off the cartridge instead. The runs come back in plan()'s
+    own order: one region at a time, route before loot.
     """
     groups = chest_groups(rom, map_id, chests)
-    runs = []
-    for rn, spec in enumerate(entry.get("lanes", ())):
-        flavour = spec.get("flavour")
-        if flavour not in ("route", "loot"):
+    specs = list(enumerate(entry.get("lanes", ())))
+    for rn, spec in specs:
+        if spec.get("flavour") not in ("route", "loot"):
             raise ValueError("map %d lane %d: unknown flavour %r"
-                             % (map_id, rn, flavour))
-        stops = spec.get("stops", [])
-        if len(stops) < 2:
+                             % (map_id, rn, spec.get("flavour")))
+        if len(spec.get("stops", [])) < 2:
             raise ValueError("map %d lane %d: a lane needs at least two stops"
                              % (map_id, rn))
+    # A loot lane prefers the route lane of its own region, and can only do
+    # that if the route lane is already drawn -- so the order the file happens
+    # to be written in is not allowed to decide it. The editor can write
+    # [loot, route]: it seeds an empty route lane, appends a lane the moment
+    # you switch flavour, and drops the ones with fewer than two stops on save.
+    # Route first, stable otherwise; the finished runs are re-ordered below.
+    specs.sort(key=lambda p: p[1]["flavour"] != "route")
+    plain, regs = None, None
+    runs = []
+    for rn, spec in specs:
+        flavour, stops = spec["flavour"], spec["stops"]
+        region = spec.get("region")
+        if region is None:
+            # Read off the cartridge, and emphatically not the lane's index in
+            # the file: that hands a two-lane entry's route lane region 0 and
+            # its loot lane region 1, which unpairs them in silence -- no
+            # prefer, no subtracted edges, and a purple line drawn in full down
+            # a corridor that is already cyan.
+            if plain is None:
+                plain = Floor(rom, graph, map_id)
+                regs = regions(plain)
+            here = anchors(plain, stops[0], groups)
+            region = region_of(plain, here[0], regs) if here else 0
         # The loot lane prefers the route lane already drawn for this region,
         # exactly as plan() does, so the two coincide where that is free.
         prefer = ()
         if flavour == "loot":
             for r in runs:
-                if r.label == "route" and r.region == spec.get("region", rn):
+                if r.label == "route" and r.region == region:
                     prefer = zip(r.path, r.path[1:])
                     break
         f = Floor(rom, graph, map_id, prefer=prefer)
@@ -760,9 +819,12 @@ def authored(rom, graph, map_id, entry, chests=None):
         missed = sorted(i for i, ts in groups.items() if i not in got and any(
             x in reach for c in ts for x in f.stand(c)))
         runs.append(Run(flavour, got_path[0], got_path, frozenset(f.trap),
-                        got, missed, spec.get("region", rn)))
+                        got, missed, region))
     if not runs:
         return None
+    # Back into the shape plan() emits and Lanes documents: one region at a
+    # time, its route lane before its loot lane.
+    runs.sort(key=lambda r: (r.region, r.label != "route"))
     return Lanes(runs, links(groups))
 
 

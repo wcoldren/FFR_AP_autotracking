@@ -1115,22 +1115,27 @@ def draw_lanes(out, w, h, crop, lanes):
                 if a != b and not (run.label == "loot"
                                    and frozenset((a, b)) in shared)]
 
-    shared = set()
-    drawn = []
-    owner = None
+    # A loot run subtracts its own region's route run and no other, found by
+    # region and not by what precedes it in the list. Position cannot say which
+    # that is -- a region whose only way out is the way it came in has no route
+    # run at all, so the run before a loot run may belong to the previous
+    # region, and subtracting its edges erases the middle of a line drawn as
+    # continuous. Nor can order: plan() emits route before loot, but a Lanes
+    # read off a file need not, and a loot run that finds no route run drawn
+    # yet is drawn in full -- a second line down a corridor that already has
+    # one, which is the "two ways through here" this whole pass exists to
+    # avoid. Indexed up front, so neither can be wrong.
+    route_edges = {}
     for run in lanes.runs:
-        # plan() emits [route?, loot?] per region, so a loot run subtracts its
-        # own region's route run and no other. Pairing by position cannot say
-        # which that is: a region whose only way out is the way it came in has
-        # no route run at all, so the run before a loot run may belong to the
-        # previous region -- and subtracting its edges erases the middle of a
-        # line that is drawn as continuous.
         if run.label == "route":
-            shared = {frozenset((a, b))
-                      for a, b in zip(run.path, run.path[1:]) if a != b}
-            owner = run.region
-        elif run.region != owner:
-            shared = set()
+            route_edges.setdefault(run.region, set()).update(
+                frozenset((a, b))
+                for a, b in zip(run.path, run.path[1:]) if a != b)
+
+    drawn = []
+    for run in lanes.runs:
+        shared = (route_edges.get(run.region, set())
+                  if run.label == "loot" else set())
         base = NES_PALETTE[LANE_LOOT if run.label == "loot" else LANE_ROUTE]
         forced = NES_PALETTE[LANE_FORCED]
         mine = steps(run, shared)

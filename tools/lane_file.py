@@ -166,6 +166,11 @@ def validate(doc):
             if spec.get("flavour") not in FLAVOURS:
                 out.append("%s: flavour %r is not one of %s"
                            % (at, spec.get("flavour"), ", ".join(FLAVOURS)))
+            reg = spec.get("region")
+            if reg is not None and (isinstance(reg, bool)
+                                    or not isinstance(reg, int) or reg < 0):
+                out.append("%s: region %r is not a region index; it pairs a "
+                           "loot lane with the route lane it subtracts" % (at, reg))
             stops = spec.get("stops")
             if not isinstance(stops, list) or len(stops) < 2:
                 out.append("%s: a lane needs at least two stops" % at)

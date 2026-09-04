@@ -103,6 +103,17 @@ check("validate rejects a lane of one stop",
                                 "lanes": [{"flavour": "route",
                                            "stops": [{"kind": "exit",
                                                       "at": [1, 1]}]}]}))), 1)
+# The region is what pairs a loot lane with the route lane whose edges it
+# subtracts, so a value that is not a region index is worth a complaint rather
+# than a lane drawn twice down one corridor.
+for why, reg in (("a negative region", -1), ("a region that is a string", "0"),
+                 ("a region that is a boolean", True)):
+    check("validate rejects %s" % why,
+          len(LF.validate(doc_with({"digest": "a" * 16,
+                                    "lanes": [dict(a_lane(), region=reg)]}))), 1)
+check("and accepts a lane that states no region at all",
+      LF.validate(doc_with({"digest": "a" * 16, "lanes": [a_lane()]})), [])
+
 mismatched = dict(two, map_id=61)
 check("validate rejects a map_id that disagrees with the map name",
       len(LF.validate(mismatched)), 1)

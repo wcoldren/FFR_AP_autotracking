@@ -71,6 +71,15 @@ check("and nothing placeholder-shaped survives substitution",
       re.findall(r"__[A-Z][A-Z0-9_]*__", page), [])
 check("the editor listens on loopback only", LE.HOST, "127.0.0.1")
 
+# Three ways the page could keep looking like it worked while being wrong, each
+# guarded in the JavaScript and each read back out of it here.
+check("undo clamps the current lane after restoring a shorter document",
+      script.count("clamp(); sel = -1; refresh();"), 2)
+check("a refresh overtaken by a newer one discards its own answers",
+      "if (mine !== gen) return done();" in script, True)
+check("and the baked preview is not forced into the editing frame",
+      "removeAttribute('width')" in script, True)
+
 # ------------------------------------------- the page's tile-pixel arithmetic
 # A transcription of the page's px(), checked against Crop.place rather than
 # against a second reading of it. The two lines below are also matched against
@@ -119,8 +128,49 @@ if not path or not os.path.exists(path):
 
 import lane as L  # noqa: E402
 import lane_file as LF  # noqa: E402
+import regen_maps as RM  # noqa: E402
+
+
+def png_hw(b):
+    """(width, height) out of a PNG's IHDR."""
+    return (int.from_bytes(b[16:20], "big"), int.from_bytes(b[20:24], "big"))
+
 
 session = LE.Session(path)
+
+# The image you click on has to be cropped the way the art is. content_crop
+# keeps a speck only where something stands on it, so a crop built without the
+# NPC cells is a few cells tighter than the bake's on any map an NPC keeps
+# alive -- which clips an edge NPC out of the image and puts a clicked stop on
+# a different tile from the one that gets drawn.
+baked = RM.crops(session.rom, session.graph, RM.npc_cells_of(session.rom))
+blind = RM.crops(session.rom, session.graph)
+check("the editor crops the way the bake crops",
+      [n for n in sorted(baked) if session.crops[n] != baked[n]], [])
+print("     (%d map(s) on this cartridge have an NPC that moves the box)"
+      % len([n for n in blind if blind[n] != baked[n]]))
+
+# Whether a *real* NPC moves a box is a fact about the cartridge in hand, and on
+# some it moves none -- which would make the check above pass for a Session that
+# dropped the argument entirely. So the claim tested here is the one that does
+# not depend on the seed: the cells are what content_crop keeps the box open
+# for, so a caller that omits them is one cartridge away from a different grid.
+moved = None
+for nm in sorted(blind):
+    mid_ = session.map_id(nm)
+    _, specks = rm.drop_specks(
+        rm.content_cells(rm.map_tiles(session.rom, mid_)), ())
+    if not specks:
+        continue
+    stood_on = sorted(specks[0])[0]
+    probed = RM.crops(session.rom, session.graph,
+                      {mid_: [("npc probe",) + stood_on]})
+    if probed[nm] != blind[nm]:
+        moved = (nm, stood_on)
+        break
+print("     (an NPC on %s at %s moves that map's box)" % (moved or ("none",) * 2))
+check("and the NPC cells decide the box, so handing them over is not "
+      "decoration", moved is not None, True)
 mid = next((m for m in sorted(rm.MAP_FILES)
             if L.plan(session.rom, session.graph, m, session.chests)), None)
 check("some map on this cartridge carries a lane to author", mid is not None, True)
@@ -135,6 +185,18 @@ if run.path[-1] in outs:
     stops.append({"kind": "exit", "at": list(run.path[-1])})
 wall = next(c for c in ((x, y) for y in range(64) for x in range(64))
             if not floor.walkable(c))
+
+# The Floor cache carries the preference set in its key, and a loot lane's
+# preference is the route lane's *current* drawing -- so it changes on every
+# edit to the route lane. Uncapped, that holds one fully-searched floor per
+# edit for the life of the process.
+for k in range(LE.Session.FLOORS + 4):
+    session.floor(name, prefer=[((0, 0), (0, k + 1))])
+check("the Floor cache is capped rather than growing per edit",
+      len(session._floor) <= LE.Session.FLOORS, True)
+check("and one preference set spelled two ways is one entry",
+      session.floor(name, prefer=[((1, 1), (1, 2)), ((2, 2), (2, 3))]) is
+      session.floor(name, prefer=[((2, 3), (2, 2)), ((1, 2), (1, 1))]), True)
 
 keep = LF.LANES
 LF.LANES = tempfile.mkdtemp(prefix="lanes-")
@@ -166,6 +228,7 @@ try:
     check("the served page carries no unfilled placeholder",
           (code, b"__DATA__" in body), (200, False))
     code, body = get("/map.png?name=" + name)
+    editing_png = body
     check("the map is served as a PNG the page can show",
           (code, body[:4]), (200, b"\x89PNG"))
     code, body = get("/map.json?name=" + name)
@@ -208,6 +271,11 @@ try:
         name, urllib.parse.quote(json.dumps([
             {"flavour": run.label, "region": run.region, "stops": stops}]))))
     check("the baked preview renders", (code, body[:4]), (200, b"\x89PNG"))
+    # It reserves the Map Key band the editing image renders none of, so it is
+    # a taller frame -- which is why the page has to unpin the image's height
+    # before showing it rather than squashing the band and the map into one.
+    check("and it is taller than the frame the page pins for editing",
+          png_hw(body)[1] > png_hw(editing_png)[1], True)
     code, body = get("/nosuchroute")
     check("an unknown route is a 404 and not a page", code, 404)
 

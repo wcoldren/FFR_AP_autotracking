@@ -249,6 +249,19 @@ def main():
           shared_starts, [])
 
     # ------------------------------------------------- the authored lane
+    def drawn_as(rom_, graph_, mid_, spec_, chests_):
+        """One entry's runs, flattened to what the drawing actually depends on."""
+        got_ = L.authored(rom_, graph_, mid_, {"lanes": spec_}, chests_)
+        return [(r.label, r.region, r.path) for r in got_.runs]
+
+    def stops_of(r, outs):
+        """One solved run as the stops that would have authored it."""
+        st = [{"kind": "arrival", "at": list(r.start), "in": list(r.start)}]
+        st += [{"kind": "chest", "index": i} for i in r.got]
+        if r.path[-1] in outs:
+            st.append({"kind": "exit", "at": list(r.path[-1])})
+        return st
+
     # The order is the author's and the walking is still the router's, so a
     # solved lane handed back as its own stops must come out the same lane.
     # This is the whole claim of "the router becomes the pathing primitive":
@@ -308,6 +321,94 @@ def main():
         except ValueError:
             pass
     check("a stop that resolves to no tile is refused", refused, [])
+
+    # The first stop is the lane's own start, so it is the one stop that must
+    # not be resolved against a start. An `exit` stop falls back to exits(),
+    # which drops the tile you came in by -- so telling stop 0 that it came in
+    # by itself excludes it from its own candidates, and the lane is drawn from
+    # a staircase nobody clicked, or from nothing at all where the floor has
+    # only one.
+    elsewhere, posed = [], 0
+    for map_id in sorted(plans):
+        f = L.Floor(rom, graph, map_id)
+        outs = L.exits(f)
+        if not outs:
+            continue
+        door = outs[0]
+        onward = sorted(t for t in f.reached(door)
+                        if t != door and t not in f.teleports)
+        if not onward:
+            continue
+        posed += 1
+        stops = [{"kind": "exit", "at": list(door)},
+                 {"kind": "tile", "at": list(onward[len(onward) // 2])}]
+        try:
+            at = L.authored(rom, graph, map_id,
+                            {"lanes": [{"flavour": "route", "stops": stops}]},
+                            chests).runs[0].path[0]
+        except ValueError as e:                # a one-exit floor refused it
+            at = str(e)
+        if at != door:
+            elsewhere.append((eg.MAP_NAMES[map_id], door, at))
+    print(f"     ({posed} map(s) can pose the exit-as-first-stop question)")
+    check("a lane whose first stop is an exit starts at that staircase",
+          elsewhere, [])
+    check("and some map on this cartridge poses that question", posed > 0, True)
+
+    # Stepping on a teleport takes you off the floor, so a lane may end on one
+    # and may not pass through one. The solved lane is held to that above; an
+    # authored one can click a staircase in the middle of its order, and the
+    # walk it would draw is one the game refuses.
+    through, asked = [], 0
+    for map_id in sorted(plans):
+        f = L.Floor(rom, graph, map_id)
+        home = plans[map_id].runs[0].start
+        stair = next((t for t in L.exits(f)
+                      if t != home and t in f.reached(home)), None)
+        if stair is None:
+            continue
+        asked += 1
+        stops = [{"kind": "arrival", "at": list(home), "in": list(home)},
+                 {"kind": "exit", "at": list(stair)},
+                 {"kind": "tile", "at": list(home)}]
+        try:
+            drew = L.authored(rom, graph, map_id,
+                              {"lanes": [{"flavour": "route", "stops": stops}]},
+                              chests)
+            through.append((eg.MAP_NAMES[map_id], stair,
+                            len(drew.runs[0].path)))
+        except ValueError:
+            pass
+    print(f"     ({asked} map(s) have a staircase to click mid-order)")
+    check("a staircase clicked as a middle stop is refused, not walked through",
+          through, [])
+    check("and some map on this cartridge has one to click", asked > 0, True)
+
+    # A file that does not say which region a lane belongs to, in the order the
+    # editor can save it. Neither may change the drawing: a region defaulting
+    # to the lane's index hands a two-lane entry regions 0 and 1 and unpairs
+    # them, and a route lane arriving second leaves the loot lane nothing to
+    # prefer -- both of which draw purple down a corridor that is already cyan.
+    unpaired, pairs = [], 0
+    for map_id in sorted(plans):
+        by = {r.label: r for r in plans[map_id].runs if r.region == 0}
+        if len(by) < 2:
+            continue
+        pairs += 1
+        outs = set(L.exits(L.Floor(rom, graph, map_id)))
+        stated = [{"flavour": "route", "region": 0,
+                   "stops": stops_of(by["route"], outs)},
+                  {"flavour": "loot", "region": 0,
+                   "stops": stops_of(by["loot"], outs)}]
+        bare = [{"flavour": "loot", "stops": stops_of(by["loot"], outs)},
+                {"flavour": "route", "stops": stops_of(by["route"], outs)}]
+        if (drawn_as(rom, graph, map_id, stated, chests)
+                != drawn_as(rom, graph, map_id, bare, chests)):
+            unpaired.append(eg.MAP_NAMES[map_id])
+    print(f"     ({pairs} map(s) carry both lanes in one region)")
+    check("a file that states no region, written loot first, draws the lane "
+          "it would have stated", unpaired, [])
+    check("and some map on this cartridge carries both lanes", pairs > 0, True)
 
     # ------------------------------------------------ the drawing's own rules
     # A loot lane is drawn as the *extension* of the route one, so purple should

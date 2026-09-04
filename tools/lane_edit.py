@@ -27,20 +27,25 @@ second crop here would be two derivations free to drift.
 **There is no pathfinder in the JavaScript.** Every edit posts its stops back
 and redraws from the answer. Two implementations would be two answers, and the
 one you see while authoring has to be the one that bakes. It is affordable
-because `Floor` memoises its search per start tile and the Floors live as long
-as the process: the first drag pays for a Dijkstra, the rest are free.
+because `Floor` memoises its search per start tile and the Floors outlive the
+request: dragging a route lane's stop pays for a Dijkstra once. A loot lane is
+the exception and cannot be otherwise -- it walks holding the route lane's
+current drawing as its tie-break, so editing the route lane invalidates it by
+construction, and `Session.FLOORS` is the cap that keeps that from accumulating
+a fully-searched floor per keystroke.
 
 **Save re-resolves and re-walks from scratch, ignoring what the browser
 computed, and refuses rather than writing.** The editor must not be able to
 author a file `regen_maps` will then refuse -- a refusal at bake time is a
 refusal in front of a map you have stopped looking at.
 
-    tools/lane_edit.py ROM [--map NAME] [--port N] [--no-browser]
+    tools/lane_edit.py ROM [--map NAME] [--port N] [--no-browser] [--mode M]
     tools/lane_edit.py ROM --check      # resolve every lane file, draw nothing
 
 `--check` is the question "which of my authored lanes still apply to this
 seed", answered without opening a window.
 """
+import collections
 import http.server
 import json
 import os
@@ -81,20 +86,51 @@ class Session:
     request would make the page feel like the solver it replaces.
     """
 
-    def __init__(self, path):
+    # How many Floors to hold. The key has to carry `prefer`, because it
+    # changes what the walk costs -- but a loot lane's prefer is the route
+    # lane's *current* drawing, so it changes on every edit to the route lane
+    # and an uncapped cache keeps one fully-searched floor per distinct set for
+    # the life of the process. Small on purpose: authoring works one map at a
+    # time, and the entries worth keeping are that map's route Floor and its
+    # last few loot ones.
+    FLOORS = 8
+
+    def __init__(self, path, mode=None):
         self.path = path
         with open(path, "rb") as f:
             self.rom = f.read()
         self.graph = eg.Graph(eg.Rom.of(self.rom, path))
         self.chests = extract_chests.extract(self.rom)[0]
-        self.crops = regen_maps.crops(self.rom, self.graph)
+        # Through regen_maps' own NPC cells, because content_crop drops a speck
+        # only when nothing there stands on it. Cropping without them is a box
+        # a few cells tighter than the bake's on any map an NPC keeps alive --
+        # which clips an edge NPC out of the image you click on, makes
+        # /preview.png a frame that is not the one that bakes, and can put a
+        # clicked stop in a region the baked crop keeps and this one dropped.
+        self.npc_cells = regen_maps.npc_cells_of(self.rom)
+        self.crops = regen_maps.crops(self.rom, self.graph, self.npc_cells)
         self.marks = render_maps.trap_marks(self.rom)
         self.stamp = lane_file.stamp(self.rom, path)
-        self.mode = regen_maps.mode_of(self.rom, None)
+        self.mode = mode or self._mode()
         self._png = {}
-        self._floor = {}
+        self._floor = collections.OrderedDict()
         self._data = {}
         self.lock = threading.Lock()
+
+    def _mode(self):
+        """'std', 'nov', or 'unknown' where the cartridge does not say.
+
+        A caption and nothing more: a lane file is keyed by the layout digest,
+        and no part of authoring one reads the mode. regen_maps has to stop on
+        a cartridge it cannot classify because it files art by mode -- this
+        tool does not, so a vanilla cartridge is a session that says "unknown"
+        rather than a tool that will not start with advice about a flag. It has
+        the flag too, for saying so outright.
+        """
+        try:
+            return regen_maps.mode_of(self.rom, self.path)
+        except SystemExit:
+            return "unknown"
 
     def map_id(self, name):
         for mid, n in render_maps.MAP_FILES.items():
@@ -103,11 +139,22 @@ class Session:
         raise KeyError(name)
 
     def floor(self, name, prefer=()):
-        key = (name, tuple(sorted(frozenset(e) for e in prefer)) or None)
-        if key not in self._floor:
-            self._floor[key] = lane.Floor(self.rom, self.graph,
-                                          self.map_id(name), prefer=prefer)
-        return self._floor[key]
+        """The Floor for one map under one preference set, least-recent evicted.
+
+        The key is a set of unordered pairs rather than a sorted list of them:
+        frozensets order by subset, which is partial, so sorting them is not a
+        canonical form and two spellings of the same preference could miss each
+        other in the cache.
+        """
+        key = (name, frozenset(frozenset(e) for e in prefer))
+        f = self._floor.pop(key, None)
+        if f is None:
+            f = lane.Floor(self.rom, self.graph, self.map_id(name),
+                           prefer=prefer)
+        self._floor[key] = f
+        while len(self._floor) > self.FLOORS:
+            self._floor.popitem(last=False)
+        return f
 
     def png(self, name):
         """The map as it will be baked, minus the Map Key band.
@@ -377,12 +424,16 @@ def main():
     ap.add_argument("--port", type=int, default=0,
                     help="0 lets the OS pick, which is the default")
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--mode", choices=("std", "nov"),
+                    help="say which art set this cartridge belongs in, where "
+                         "it carries no FFR flag block to read it from. A "
+                         "caption only; nothing authored here depends on it")
     ap.add_argument("--check", action="store_true",
                     help="resolve every lane file against this cartridge and "
                          "exit; opens no socket and draws nothing")
     args = ap.parse_args()
 
-    session = Session(args.rom)
+    session = Session(args.rom, args.mode)
     if args.check:
         return check(session)
 
@@ -572,6 +623,15 @@ const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
 const has = (list, t) => list.some(x => same(x, t));
 
 function say(text, kind) { const m = el('msg'); m.textContent = text || ''; m.className = kind || ''; }
+/* Undo restores a document that may be shorter than the one `cur` indexes:
+   switching flavour or region snapshots *before* appending a lane and then
+   points cur at it. paint() reads lanes[cur] without a guard, and it runs
+   inside refresh()'s timeout -- so the throw takes load()'s promise with it and
+   the page stops responding rather than showing anything. */
+function clamp() {
+  if (!lanes.length) lanes = [{ flavour: 'route', region: 0, stops: [] }];
+  if (cur >= lanes.length || cur < 0) cur = lanes.length - 1;
+}
 function snapshot() { undo.push(JSON.stringify(lanes)); if (undo.length > 200) undo.shift(); redo = []; dirty = true; }
 
 /* Which region a tile belongs to, so an arrival stop can carry its anchor.
@@ -608,6 +668,7 @@ async function load(n) {
   el('img').src = '/map.png?name=' + encodeURIComponent(n);
   const c = el('ov');
   c.width = D.size[0] * T; c.height = D.size[1] * T;
+  c.hidden = false;
   el('img').width = c.width; el('img').height = c.height;
   lanes = D.entry ? JSON.parse(JSON.stringify(D.entry.lanes)) : [];
   if (!lanes.length) lanes = [{ flavour: 'route', region: 0, stops: [] }];
@@ -642,20 +703,32 @@ function syncUI() {
 /* Every edit asks the server. There is no pathfinder here on purpose: two
    implementations would be two answers and the one drawn while authoring has
    to be the one that bakes. */
-let pending = null;
+let pending = null, gen = 0;
 function refresh() {
   clearTimeout(pending);
   return new Promise(done => { pending = setTimeout(async () => {
-    drawn = {};
-    for (let i = 0; i < lanes.length; i++) {
+    /* clearTimeout cancels a refresh that has not started. It cannot cancel one
+       already inside this body, and a /path on a cold map takes about a second
+       -- far past the 80ms debounce. So each pass carries a generation and
+       builds its own answers: without it the older pass writes a leg into the
+       newer pass's table and the page draws geometry for a stop that has since
+       moved. */
+    const mine = ++gen, out = {};
+    /* Route lanes first, so a loot lane always has its region's route drawing
+       to prefer. The array order is the author's -- switching flavour appends
+       -- and lane.authored sorts for the same reason, so leaving it to the
+       array here would draw a page the bake then disagrees with. */
+    const order = lanes.map((L, i) => i).sort(
+      (a, b) => (lanes[a].flavour !== 'route') - (lanes[b].flavour !== 'route'));
+    for (const i of order) {
       const L = lanes[i];
-      if (L.stops.length < 2) { drawn[i] = { path: [], gaps: [] }; continue; }
+      if (L.stops.length < 2) { out[i] = { path: [], gaps: [] }; continue; }
       let prefer = [];
       if (L.flavour === 'loot')
         for (let j = 0; j < lanes.length; j++)
           if (lanes[j].flavour === 'route' && lanes[j].region === L.region
-              && drawn[j] && drawn[j].path.length > 1) {
-            const p = drawn[j].path;
+              && out[j] && out[j].path.length > 1) {
+            const p = out[j].path;
             for (let k = 1; k < p.length; k++) prefer.push([p[k - 1], p[k]]);
             break;
           }
@@ -663,8 +736,10 @@ function refresh() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ map: name, flavour: L.flavour,
                                stops: L.stops, prefer }) })).json();
-      drawn[i] = r;
+      if (mine !== gen) return done();
+      out[i] = r;
     }
+    drawn = out;
     const g = Object.values(drawn).some(d => (d.gaps || []).length);
     if (g) say('a leg has no walk -- the dashed red one. Save is refused until it does.', 'bad');
     else if (dirty) say('unsaved', '');
@@ -790,9 +865,11 @@ el('up').onclick = () => { snapshot(); const s = lanes[cur].stops;
 el('down').onclick = () => { snapshot(); const s = lanes[cur].stops;
   [s[sel + 1], s[sel]] = [s[sel], s[sel + 1]]; sel++; refresh(); };
 el('undo').onclick = () => { if (!undo.length) return;
-  redo.push(JSON.stringify(lanes)); lanes = JSON.parse(undo.pop()); sel = -1; refresh(); };
+  redo.push(JSON.stringify(lanes)); lanes = JSON.parse(undo.pop());
+  clamp(); sel = -1; refresh(); };
 el('redo').onclick = () => { if (!redo.length) return;
-  undo.push(JSON.stringify(lanes)); lanes = JSON.parse(redo.pop()); sel = -1; refresh(); };
+  undo.push(JSON.stringify(lanes)); lanes = JSON.parse(redo.pop());
+  clamp(); sel = -1; refresh(); };
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z')
@@ -832,6 +909,13 @@ el('save').onclick = async () => {
 };
 el('prev').onclick = () => {
   const keep = lanes.filter(L => L.stops.length >= 2);
+  /* The baked frame is taller: it reserves the Map Key band this page renders
+     none of. load() pins the image to the map-only frame, so leaving those on
+     squashes the band and the map together into it -- and the overlay, which is
+     positioned over the map-only grid, no longer sits on the tiles it names.
+     Both are restored by the next load(). */
+  el('img').removeAttribute('width'); el('img').removeAttribute('height');
+  el('ov').hidden = true;
   el('img').src = '/preview.png?name=' + encodeURIComponent(name) +
     '&spec=' + encodeURIComponent(JSON.stringify(keep));
   say('showing the baked render, band and all. Pick the map again to go back.', '');

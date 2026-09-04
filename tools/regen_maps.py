@@ -349,6 +349,23 @@ def inputs_fingerprint():
 
 # ---------------------------------------------------------------- calibration
 
+def npc_cells_of(rom):
+    """{map id: [(what, col, row)]} -- every cell an NPC stands on.
+
+    What the crop must not lose. Lifted out of main() because the editor needs
+    the same set: content_crop drops a speck only when nothing here stands on
+    it, so a caller that leaves this out crops a few cells tighter than the
+    bake does, and a tool that authors on that box is authoring on a different
+    grid from the one the art is drawn on.
+    """
+    out = {}
+    for name, places in extract_npcs.extract(rom).items():
+        for q in places:
+            out.setdefault(q["map_id"], []).append(
+                (f"npc {name}", q["tile_col"], q["tile_row"]))
+    return out
+
+
 def crops(rom, graph, npc_cells=None):
     """{map name: render_maps.Crop} -- what each rendered image covers.
 
@@ -1384,11 +1401,7 @@ def main():
     # What the crop must not lose. Built before the crop rather than after it,
     # because the crop now reads it too: content_crop drops a speck only when
     # nothing here stands on it. The guard below re-reads the same set.
-    npc_cells = {}
-    for name, places in extract_npcs.extract(rom).items():
-        for q in places:
-            npc_cells.setdefault(q["map_id"], []).append(
-                (f"npc {name}", q["tile_col"], q["tile_row"]))
+    npc_cells = npc_cells_of(rom)
     box_graph = graph or entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
 
     # The crop box is the one number both halves of this depend on: the art is
@@ -1406,9 +1419,10 @@ def main():
         for name, why in refused_lanes:
             print(f"  {name}: REFUSED {why}")
         print("  authored lanes: %d map(s) drawn, %d for another layout, "
-              "%d with no file"
-              % (len(lanes), len(unmatched),
-                 len(render_maps.MAP_FILES) - len(lanes) - len(unmatched)))
+              "%d refused, %d with no file"
+              % (len(lanes), len(unmatched), len(refused_lanes),
+                 len(render_maps.MAP_FILES) - len(lanes) - len(unmatched)
+                 - len(refused_lanes)))
     rows = legend_rows(rom, lanes)
 
     # Which trees this mode's pins live in, and the tiles the cartridge puts
