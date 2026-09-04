@@ -196,7 +196,7 @@ different ones, they come from `colors.json` in your PopTracker config directory
     square       an ordinary check
     diamond      a sprite check or an incentive slot -- something here is
                  worth a look
-    trapezoid    a door -- a way in or out
+    trapezoid    a door or a staircase -- a way in or out
 
 A diamond does *not* mean "there is a sprite here". It started out that way, for
 a rendering reason rather than a meaning one: a square pin is opaque and exactly
@@ -229,8 +229,10 @@ the board described above.
     Incentive Rings          the gold ring, without hiding anything
     Entrance Pins            the door and staircase markers -- auto, off, on
 
-`Entrance Pins` clicks round three ways rather than off and on, because the
-useful default is not the same on every cartridge. On **Auto**, where it starts,
+`Entrance Pins` covers both halves at once -- the doors on the overworld and
+every staircase and hole inside a dungeon. It clicks round three ways rather
+than off and on, because the useful default is not the same on every
+cartridge. On **Auto**, where it starts,
 the pins draw when the seed has actually moved the doors -- a No-Overworld
 board, or one that rolled `Entrances`, `Towns` or `Floors` -- and stay away on
 an ordinary standard seed, where every door is where the map already shows it. A

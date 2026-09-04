@@ -1305,7 +1305,7 @@ Nothing here is urgent unless it says so.
   reading the shape backwards; a diamond stops meaning "there is a sprite here".
   Nothing else breaks, because the rendering constraint that booked the shape is
   one-directional: a pin *on* a sprite must be a diamond or it hides it, which is
-  why `place_locations` emits one exactly there (`tools/regen_maps.py:934`), and
+  why `marker_pixel` emits one exactly there (`tools/regen_maps.py:1007`), and
   adding more diamonds never violates that. It is a naming decision only —
   nothing starts emitting diamonds that did not emit them before.
 

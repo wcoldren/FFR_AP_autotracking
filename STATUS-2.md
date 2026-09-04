@@ -819,3 +819,44 @@ state is neither saved nor restored, and the sandbox opens no `io`. What was in
 reach was making that snapshot hold what `items/flags.json` declares rather than
 what a script wrote over it, and `docs/ISSUES.md` carries the rest with the
 citations.
+
+## And the staircases with them
+
+2026-09-04, the same day. 99 floor links on the standard cartridge and 165 on
+the No-Overworld one, in the same group and under the same switch as the doors.
+A door and a staircase are the same thing to a player and to the toggle; that
+they come from two different tables is the tool's problem.
+
+**The warp filter is the whole feature.** `Graph.teleports` returns warp tiles
+as well as links, and a town's entire outer border is warp-to-overworld: 33,281
+of them on the standard oracle against 99 real links. Keeping `norm` and `exit`
+and dropping `warp` is the difference between a board and a fog. The suite
+asserts the warp count outright rather than the links alone, because the way
+that filter goes wrong is by disappearing.
+
+**Same-floor links were nearly filtered out, and the measurement said not to.**
+The case for dropping them was that a warp pad is not a hole. The case against
+was worth having the numbers for: every same-floor link in the game is on
+Castle of Ordeals 2F, 15 of them on both cartridge kinds, so the filter is not a
+general rule at all -- it is a decision about one room. Ordeals 2F is the
+teleport maze, the pins land on its pads, and that is the floor where they say
+most. Left in.
+
+**Ice Cave B2 is the other end of the same argument and also stayed.** Fifteen
+of its nineteen holes land on one tile of iceB3. On a No-Overworld cartridge the
+other four do not: one goes back up to B1 and one drops into Gurgu Volcano B2.
+Nothing on the floor tells them apart, which is the argument for drawing all
+nineteen rather than the four that are interesting.
+
+**A trapezoid beats a diamond.** Three tiles on the standard oracle and seven on
+the No-Overworld one are both a floor link and a drawn sprite. `marker_pixel`
+takes an explicit shape for exactly this: the diamond rule is a rendering
+answer, and letting it win would have a door start meaning "something here is
+worth a look" instead. The sprite is covered on those ten tiles and the count is
+printed, so a number that grows is news.
+
+**A claim that did not survive being checked.** The first look at Ice Cave B2
+said the pins sat over the trap-tile letters. They do not -- zero overlaps
+across all 61 maps, because a trap tile is standing ground and a link tile is a
+hole. The pins in that preview had been drawn at 24px when the map's markers are
+14px, which is also what made the floor look like a blob.

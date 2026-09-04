@@ -49,7 +49,7 @@ work it is, not how much it matters.
 | §3 | Warn once when a stale override shadows pack edits |
 | §3 | Room-level zoom, after the towns |
 | §3 | The regen's execution half, after the detection half |
-| §4 | Entrance markers: the dungeon floor links, then where a door goes |
+| §4 | Entrance markers: where a door now goes |
 | §4 | The lanes still to draw: ten No-Overworld floors, 32 ported drafts, the by-eye pass, the run-wide order |
 | §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
@@ -212,10 +212,12 @@ Things a bridge-only player checks that the board has no cell for.
   three-stage `Entrance Pins` control. A door's *position* is not shuffled, so
   that half is cartridge-invariant and spoils nothing. Left, in order:
 
-  * the dungeon floor links -- 99 staircases on a standard cartridge and 165 on
-    a No-Overworld one, drawn the same way. Look at a No-Overworld render before
-    committing to it: 165 always-reachable pins is a readability question that
-    only answers itself once drawn.
+  **The dungeon floor links landed the same day**: 99 staircases and holes on a
+  standard cartridge, 165 on a No-Overworld one, in the same group and under the
+  same switch. Same-floor links are kept -- every one of them in the game is a
+  warp pad on Castle of Ordeals 2F, 15 on both cartridge kinds -- because they
+  are the same kind of tile as a real link and a player wants to know. Left:
+
   * where a door now *goes*, which is the half that needs the observation
     channel. The bridge watches party position and publishes an edge log, so the
     permutation is learned by walking through it and reveal-on-visit cannot

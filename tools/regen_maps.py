@@ -931,6 +931,108 @@ def marker_tiles(rom, locations, dropped=None):
     return {k: v for k, v in out.items() if v}
 
 
+# What counts as a floor link. Warp (TP_TELE_WARP) is excluded and the reason
+# is not a nicety: a town's entire outer border is warp-to-overworld, 33,381
+# tiles on the standard oracle against 99 real links, so including it is the
+# difference between a feature and a board nobody can read.
+FLOOR_LINK_KINDS = (entrance_graph.TP_TELE_NORM, entrance_graph.TP_TELE_EXIT)
+
+
+def entrance_tiles(graph):
+    """{node name: (map_id, col, row)} -- every staircase and hole.
+
+    Read straight off each map's own teleport table, which is the table the
+    engine reads to move you, so anything the game treats as a link is here and
+    nothing else is.
+
+    Named by where the link *is*, never by where it goes. The destination is the
+    shuffled half and a node name shows in the location list, so naming one
+    would hand over the permutation the pins exist to let you discover. Position
+    is not shuffled, so this name is stable across a regen of the same seed.
+
+    Same-floor links are kept. Every one of them in the game is a warp pad on
+    Castle of Ordeals 2F -- 15 on both cartridge kinds -- and they are the same
+    kind of tile as a real link, which is what a player wants to know.
+    """
+    out = {}
+    for map_id in render_maps.MAP_FILES:
+        for col, row, kind, _ in graph.teleports(map_id):
+            if kind in FLOOR_LINK_KINDS:
+                name = (overworld_pins.ENTRANCE_PREFIX
+                        + f"{entrance_graph.MAP_NAMES[map_id]} {col},{row}")
+                out[name] = (map_id, col, row)
+    return out
+
+
+def entrance_children(by_rom, tiles, sprite_cells=None):
+    """([node], [unplaceable], [(name, map)]) -- one location per floor link.
+
+    Each link is its own node with its own single section, for the reason
+    overworld_pins.entrance_group gives: a node carrying markers and no sections
+    of its own is hidden, and a section below item_count 1 draws a marker that
+    reports nothing.
+
+    The third return is the links that share a tile with a drawn sprite. They
+    stay trapezoids -- see marker_pixel -- and are counted so a number that
+    grows is news rather than a sprite nobody notices going missing.
+    """
+    kids, lost, shaded = [], [], []
+    for name, (map_id, col, row) in sorted(tiles.items()):
+        ml = marker_pixel(by_rom, map_id, col, row, shape="trapezoid")
+        if ml is None:
+            lost.append((name, entrance_graph.MAP_NAMES[map_id], col, row))
+            continue
+        if (col, row) in (sprite_cells or {}).get(map_id, ()):
+            shaded.append((name, ml["map"]))
+        kids.append({
+            "name": name,
+            "sections": [{"name": name[len(overworld_pins.ENTRANCE_PREFIX):]}],
+            "map_locations": [ml],
+        })
+    return kids, lost, shaded
+
+
+def maps_by_rom_id(cal):
+    """{rom map id: [(pack map name, calibration entry)]}.
+
+    A ROM map can back several pack names -- the composites -- so this is a list
+    and region_for picks which, first match wins.
+    """
+    by_rom = {}
+    for name, entry in cal.items():
+        by_rom.setdefault(entry["rom_map_id"], []).append((name, entry))
+    return by_rom
+
+
+def marker_pixel(by_rom, map_id, col, row, sprite_cells=None, shape=None):
+    """One map_locations entry for a tile, or None if no drawn map holds it.
+
+    The one place a tile becomes a pixel, so composites, multi-region maps and
+    the diamond rule are all decided here and not in each caller.
+
+    `shape` overrides that rule, and the entrance pins are why it exists: a
+    trapezoid on a tile that also holds a drawn sprite stays a trapezoid. The
+    shape says what kind of thing the pin is, and a door that turned into a
+    diamond because somebody was standing on it would be saying something else.
+    Rare -- three such tiles on the standard oracle and seven on the
+    No-Overworld one -- and reported by the caller rather than silent.
+    """
+    for name, entry in by_rom.get(map_id, []):
+        region = region_for(entry, col, row)
+        if region is None:
+            continue
+        half = entry["tile_px"] // 2
+        ml = {"map": name,
+              "x": region["offset_x"] + col * entry["tile_px"] + half,
+              "y": region["offset_y"] + row * entry["tile_px"] + half}
+        if shape is not None:
+            ml["shape"] = shape
+        elif (col, row) in (sprite_cells or {}).get(map_id, ()):
+            ml["shape"] = "diamond"
+        return ml
+    return None
+
+
 def place_locations(cal, tiles_by_name, path, sprite_cells=None):
     """-> (new document, placed, unmoved, unplaceable, shaded).
 
@@ -965,26 +1067,13 @@ def place_locations(cal, tiles_by_name, path, sprite_cells=None):
     Sized and centred exactly as before, so the pin still marks its own tile.
     """
     doc = lenient(os.path.join(PACK, path))
-    by_rom = {}
-    for name, entry in cal.items():
-        by_rom.setdefault(entry["rom_map_id"], []).append((name, entry))
+    by_rom = maps_by_rom_id(cal)
     placed = unmoved = 0
     unplaceable = []
     shaded = []
 
     def pixels(map_id, col, row):
-        for name, entry in by_rom.get(map_id, []):
-            region = region_for(entry, col, row)
-            if region is None:
-                continue
-            half = entry["tile_px"] // 2
-            ml = {"map": name,
-                  "x": region["offset_x"] + col * entry["tile_px"] + half,
-                  "y": region["offset_y"] + row * entry["tile_px"] + half}
-            if (col, row) in (sprite_cells or {}).get(map_id, ()):
-                ml["shape"] = "diamond"
-            return ml
-        return None
+        return marker_pixel(by_rom, map_id, col, row, sprite_cells)
 
     def walk(nodes):
         nonlocal placed, unmoved
@@ -1644,6 +1733,9 @@ def main():
     placed = unmoved = 0
     unplaceable = []
     shaded = []
+    links = 0
+    link_unplaceable = []
+    link_shaded = []
     # The incentive sheet is handed no tiles rather than handed the board's and
     # trusted not to match any: tiles_by_name is keyed by bare node name, and
     # `I: Shop Item` is already a node name in both documents. If a board node
@@ -1678,18 +1770,29 @@ def main():
                                               origin=ow_box[:2])
         ow_moved += moved
         ow_dropped += drops
-        # The doors, onto the board tree only. The incentive sheet is a poster
-        # of slots and a door is not a slot.
+        # The doors and the floor links, onto the board tree only. The
+        # incentive sheet is a poster of slots and neither is a slot.
         #
         # After restamp, which drops any marker on an overworld map whose node
         # it was not handed a placement for -- these are placed here, not
-        # resolved, so it would take every one of them straight back out. And
-        # before the stamp, so the rule is pin_visibility's to write: it knows
-        # the group by name, and spelling the rule at a second site is what its
+        # resolved, so it would take every door straight back out. And before
+        # the stamp, so the rule is pin_visibility's to write: it knows the
+        # group by name, and spelling the rule at a second site is what its
         # docstring exists to prevent.
-        if rel is dungeon_locations and ow_doors:
-            doc.append(overworld_pins.entrance_group(ow_doors,
-                                                     origin=ow_box[:2]))
+        #
+        # One group for both halves. A door and a staircase are the same kind of
+        # thing to a player and to the toggle that switches them; that they come
+        # from two tables is this tool's problem and nobody else's.
+        if rel is dungeon_locations:
+            group = overworld_pins.entrance_group(ow_doors, origin=ow_box[:2])
+            kids, link_lost, link_shade = entrance_children(
+                maps_by_rom_id(cal), entrance_tiles(ow_graph), sprite_cells)
+            group["children"] += kids
+            links += len(kids)
+            link_unplaceable += link_lost
+            link_shaded += link_shade
+            if group["children"]:
+                doc.append(group)
         pin_visibility.stamp(doc)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
         placed += pl
@@ -1942,6 +2045,23 @@ def main():
             print(f"    {name} on {m}")
         if len(shaded) > 10:
             print(f"    ... and {len(shaded) - 10} more")
+    # The entrance half. Reported separately because it answers a different
+    # question from a chest pin: not "is the marker on the right tile" but "does
+    # this board show every way off this floor".
+    if ow_doors or links:
+        print(f"  {len(ow_doors)} overworld doors and {links} floor links are "
+              "trapezoids, drawn where the cartridge's own teleport tables put "
+              "them")
+        if link_shaded:
+            # A trapezoid wins over a diamond here: the shape says what kind of
+            # thing the pin is, and a door that turned into a diamond because
+            # somebody is standing on it would be saying something else.
+            print(f"    {len(link_shaded)} of them share a tile with a drawn "
+                  "sprite and stay trapezoids, so the shape keeps its meaning "
+                  "and the sprite is covered")
+        for name, m, col, row in sorted(link_unplaceable):
+            print(f"    {name} is on {m} at {col},{row}, which no drawn map "
+                  "holds, so it gets no pin")
     kept = sum(c.size[0] * c.size[1] for c in crops_.values())
     print(f"  cropped to a mean {kept / len(crops_) / 4096 * 100:.0f}% of the "
           f"64x64 grid; {sum(1 for r in rows.values() if r)} maps reserve a "
