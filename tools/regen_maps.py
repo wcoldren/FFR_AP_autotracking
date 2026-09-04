@@ -2048,7 +2048,12 @@ def main():
     # The entrance half. Reported separately because it answers a different
     # question from a chest pin: not "is the marker on the right tile" but "does
     # this board show every way off this floor".
-    if ow_doors or links:
+    # link_unplaceable is in the guard because it is the one of the three that
+    # can be non-empty while the other two are zero: a No-Overworld run where
+    # every floor link failed marker_pixel has no doors and no placed links,
+    # and that is exactly the run whose unplaceable list has to be printed
+    # rather than counted and dropped.
+    if ow_doors or links or link_unplaceable:
         print(f"  {len(ow_doors)} overworld doors and {links} floor links are "
               "trapezoids, drawn where the cartridge's own teleport tables put "
               "them")
