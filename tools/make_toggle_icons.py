@@ -80,6 +80,10 @@ GROUND = (24, 24, 28)
 EDGE = (0, 0, 0)
 GLYPH = (188, 188, 188)
 
+# The same glyph, dimmed, from images/flags/noAutoTab.png -- which is how this
+# family already says "this one is switched off".
+DIM = (90, 90, 90)
+
 # PopTracker's own, so the icon matches the board: src/ui/mapwidget.cpp:32 and :58.
 CHECKABLE = (0x30, 0x40, 0xFF)
 PRIORITY = (0xFF, 0xD7, 0x00)
@@ -128,6 +132,25 @@ class Canvas:
                 if d == half:
                     self.set(x, y, c)
                 elif d < half and fill is not None:
+                    self.set(x, y, fill)
+
+    def trapezoid(self, cx, cy, half, c, fill=None):
+        """The shape an entrance pin is drawn as.
+
+        PopTracker's geometry, not an invented one: `drawTrapezoid` puts the
+        top edge at the middle half of the box and the bottom edge at its full
+        width (`uilib/drawhelper.cpp:228`), so the outline widens evenly from
+        top to bottom. Half a box is two pixels of slant per four rows at this
+        size, which is shallow enough that the sides never break.
+        """
+        top, bottom = cy - half, cy + half
+        span = bottom - top
+        for y in range(top, bottom + 1):
+            w = half // 2 + (half - half // 2) * (y - top) // span
+            for x in range(cx - w, cx + w + 1):
+                if y in (top, bottom) or x in (cx - w, cx + w):
+                    self.set(x, y, c)
+                elif fill is not None:
                     self.set(x, y, fill)
 
     def ring(self, cx, cy, r, c):
@@ -241,8 +264,42 @@ def mode_mismatch():
     return c
 
 
+def entrance_pins_on():
+    """Two trapezoids, which is what an entrance pin is drawn as."""
+    c = Canvas()
+    c.border()
+    c.trapezoid(11, 12, 6, GLYPH)
+    c.trapezoid(22, 21, 6, GLYPH)
+    return c
+
+
+def entrance_pins_off():
+    """The same two, dimmed the way noAutoTab.png dims autoTab.png."""
+    c = Canvas()
+    c.border()
+    c.trapezoid(11, 12, 6, DIM)
+    c.trapezoid(22, 21, 6, DIM)
+    return c
+
+
+def entrance_pins_auto():
+    """One of each: on some seeds these draw and on others they do not.
+
+    The stage is "the seed decides", so the icon says the answer is not fixed
+    rather than picking one of the two to show.
+    """
+    c = Canvas()
+    c.border()
+    c.trapezoid(11, 12, 6, GLYPH)
+    c.trapezoid(22, 21, 6, DIM)
+    return c
+
+
 ICONS = {
     "showChestPins": chest_pins,
+    "entrancePinsAuto": entrance_pins_auto,
+    "entrancePinsOff": entrance_pins_off,
+    "entrancePinsOn": entrance_pins_on,
     "showNpcPins": npc_pins,
     "showSkippedPins": skipped_pins,
     "showIncentiveRings": incentive_rings,

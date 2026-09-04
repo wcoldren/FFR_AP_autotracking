@@ -293,13 +293,16 @@ local NOT_MODELLED = {
       .. "say it, and a toggle that tried would have to be wrong on every "
       .. "seed. The pack's answer is the entrance markers -- learned by "
       .. "observation, so reveal-on-visit cannot spoil -- which is "
-      .. "docs/ROADMAP.md section 4.",
+      .. "docs/ROADMAP.md section 4. Still unmodellable as a rule, but it is "
+      .. "read now: it is one of the three that derive entranceShuffle, which "
+      .. "decides whether the entrance pins draw on an Auto board.",
   },
   {
     ffr = "Towns",
     status = "unmodellable",
     why = "the town shuffle, the same permutation one layer in "
-      .. "(MetroidVaniaMap.cs:63, :1124, :1156). Entrances' case exactly.",
+      .. "(MetroidVaniaMap.cs:63, :1124, :1156). Entrances' case exactly, "
+      .. "including deriving entranceShuffle with it.",
   },
   {
     ffr = "Floors",
@@ -307,8 +310,8 @@ local NOT_MODELLED = {
     why = "the floor shuffle, which permutes staircases rather than doors "
       .. "(MetroidVaniaMap.cs:1134, :1144, :1215). Entrances' case, per "
       .. "floor. tools/entrance_graph.py already reads the whole permutation "
-      .. "off a cartridge; what is missing is a way for the board to show "
-      .. "it.",
+      .. "off a cartridge; the board draws where the staircases are and not "
+      .. "yet where they go. Derives entranceShuffle with the other two.",
   },
   {
     ffr = "EntrancesMixedWithTowns",
@@ -558,6 +561,10 @@ function resetFlagsToDefaults()
   if Tracker.ActiveVariantUID:find("shardHunt") then
     setShardsRequired(SHARD_DEFAULT)
   end
+  -- Derived rather than declared, so it is not in TOGGLES and has to be put
+  -- back by hand. A cartridge whose flags cannot be read must not leave the
+  -- previous seed's doors marked on the board.
+  setToggle("entranceShuffle", false)
   -- And the decoded set with them, or logic reading a setting with no cell on
   -- the board would still be answering out of the last cartridge.
   FFR_FLAGS = nil
@@ -663,6 +670,23 @@ function applyFFRFlagsToBoard(flags, version)
       applied = applied + 1
     end
   end
+
+  -- Derived, and not a setting: "does this seed move doors at all". Three FFR
+  -- flags answer it -- Entrances shuffles the overworld doors, Towns the town
+  -- ones, Floors the staircases -- and all three sit in NOT_MODELLED, because
+  -- none of them is a rule the logic can read. What they gate is a display: the
+  -- Auto stage of Entrance Pins.
+  --
+  -- It has to be an item rather than an ffrFlag() call at the point of use.
+  -- PopTracker resolves a marker's visibility rule with no cache, but the view
+  -- only asks when an item changes, so a rule reading FFR_FLAGS alone would have
+  -- nothing to repaint it when a new cartridge arrives.
+  --
+  -- Not counted in `applied`: that number is settings the cartridge asked for,
+  -- and this is one the pack worked out from three of them.
+  setToggle("entranceShuffle", readFlag("Entrances") == true
+                               or readFlag("Towns") == true
+                               or readFlag("Floors") == true)
 
   applied = applied + applyShardCount(flags, random)
 

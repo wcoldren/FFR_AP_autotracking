@@ -298,7 +298,14 @@ end
 --     Anything deliberately kept off the board goes on OFF_BOARD with its
 --     reason, so this fails both ways: adding a hidden flag fails, and giving a
 --     listed one a cell without taking it off the list fails too.
-local OFF_BOARD = {}
+local OFF_BOARD = {
+  -- Derived by flag_mapping.lua from Entrances, Towns and Floors rather than
+  -- being one of them, so there is no setting a cell could show. It exists to
+  -- give the Auto stage of Entrance Pins an item to repaint on: PopTracker
+  -- re-asks a marker's visibility rule when an item changes and at no other
+  -- time, so the answer has to be an item and not a read of FFR_FLAGS.
+  ["Entrance Shuffle"] = true,
+}
 local flagItems = {}
 for _, item in ipairs(json.load(PACK .. "/items/flags.json")) do
   local codes = {}

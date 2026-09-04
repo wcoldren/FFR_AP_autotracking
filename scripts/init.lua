@@ -107,6 +107,16 @@ tabSwitch.Active = true
 local tabMode = Tracker:FindObjectForCode("tab_mode")
 tabMode.CurrentStage = 0
 
+-- Entrance Pins starts on Auto, which is where items/flags.json leaves it. The
+-- Active write is not a default: a progressive with allow_disabled false starts
+-- at stage1 0 and nothing but an explicit Active moves it (PopTracker
+-- core/jsonitem.cpp:95-121, :214-237), and stage1 0 is the row the disabled
+-- image filter is applied to -- so without this the icon is drawn greyed at
+-- every stage. It cannot change which stage is showing; Lua_NewIndex forces the
+-- value true when allow_disabled is false.
+local entrancePins = Tracker:FindObjectForCode("entrance_pins")
+entrancePins.Active = true
+
 -- AutoTracking for Poptracker
 if PopVersion and PopVersion>="0.18.0" then
   ScriptHost:LoadScript("scripts/autotracking.lua")

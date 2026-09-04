@@ -214,13 +214,28 @@ the pack spends them carefully.
 
 ## Turning pins off
 
-The **Pins** group in the left dock, under Incentives, has four switches. All
-four start on, so a board you never touch is the board described above.
+The **Pins** group in the left dock, under Incentives, has four switches and one
+three-stage control. All four switches start on, so a board you never touch is
+the board described above.
 
     Chest Pins               the 251 chest markers on the dungeon and town maps
     NPC Pins                 the NPC markers on those same maps
     Skipped Incentive Pins   the blue slots on the Incentive Locations tab
     Incentive Rings          the gold ring, without hiding anything
+    Entrance Pins            the door and staircase markers -- auto, off, on
+
+`Entrance Pins` clicks round three ways rather than off and on, because the
+useful default is not the same on every cartridge. On **Auto**, where it starts,
+the pins draw when the seed has actually moved the doors -- a No-Overworld
+board, or one that rolled `Entrances`, `Towns` or `Floors` -- and stay away on
+an ordinary standard seed, where every door is where the map already shows it. A
+No-Overworld seed can be door-shuffled as well; that is an ordinary cartridge
+rather than a special case, and Auto says yes to both halves. Click it round to
+pin the answer yourself either way.
+
+Entrance pins are drawn from the cartridge, so they exist on regenerated map art
+and not on the hand-drawn art the pack ships with. On a board with no
+regenerated art the control is there and has nothing to hide.
 
 These hide *markers*, not checks. A hidden pin's location stays in the tree, in
 the counts, and clearable from the location list -- switching Chest Pins off is

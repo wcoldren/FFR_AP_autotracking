@@ -412,5 +412,34 @@
         "img" : "images/flags/showIncentiveRings.png",
         "codes" : "show_gold_rings",
         "initial_active_state" : true
+    },
+    {
+        "name" : "Entrance Pins",
+        "type" : "progressive",
+        "allow_disabled" : false,
+        "loop" : true,
+        "stages" : [
+            {
+                "name" : "Entrance Pins: Auto (the seed decides)",
+                "img" : "images/flags/entrancePinsAuto.png",
+                "codes" : "entrance_pins"
+            },
+            {
+                "name" : "Entrance Pins: always off",
+                "img" : "images/flags/entrancePinsOff.png",
+                "codes" : "entrance_pins"
+            },
+            {
+                "name" : "Entrance Pins: always on",
+                "img" : "images/flags/entrancePinsOn.png",
+                "codes" : "entrance_pins"
+            }
+        ]
+    },
+    {
+        "name" : "Entrance Shuffle",
+        "type" : "toggle",
+        "img" : "images/flags/entrancePinsOn.png",
+        "codes" : "entranceShuffle"
     }
 ]

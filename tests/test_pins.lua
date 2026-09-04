@@ -38,6 +38,13 @@ local KIND_TOGGLE = {
   slot  = "show_skipped",
 }
 
+-- Kinds whose control is a staged mode rather than a switch, held apart because
+-- everything asserted about a toggle below is wrong about these: no
+-- initial_active_state, and "on" is a stage rather than a boolean.
+local KIND_MODE = {
+  entrance = "entrance_pins",
+}
+
 -- Kinds showPin answers for that nothing stamps yet. Empty, now that all three
 -- are wired; kept because it is the thing that fails in both directions when a
 -- fourth is drawn ahead of its toggle -- a stamped rule with no item, and an
@@ -203,6 +210,47 @@ for kind, code in pairs(KIND_TOGGLE) do
 end
 check("pin toggles defined and starting on", wired, 3)
 
+-- The staged controls. A progressive carries its codes on the stages rather
+-- than at the top, so defOf cannot see them.
+local stageDefOf = {}
+for _, def in ipairs(defs) do
+  for _, st in ipairs(def.stages or {}) do
+    if st.codes then stageDefOf[st.codes] = def end
+  end
+end
+local modes = 0
+for kind, code in pairs(KIND_MODE) do
+  local def = stageDefOf[code]
+  if not def then
+    fails(string.format("no item in items/flags.json stages the code %s, which "
+                        .. "showPin reads for the %s kind", code, kind))
+  else
+    modes = modes + 1
+    if def.type ~= "progressive" then
+      fails(code .. " is a " .. tostring(def.type) .. ", not a progressive")
+    end
+    -- allow_disabled would add a synthetic 0-stage and shift every stage index
+    -- showPin compares against by one (PopTracker core/jsonitem.cpp:473).
+    if def.allow_disabled ~= false then
+      fails(code .. " must set allow_disabled false, or its stage numbers move")
+    end
+    if def.loop ~= true then
+      fails(code .. " does not loop, so the last stage is a dead end")
+    end
+    if #(def.stages or {}) ~= 3 then
+      fails(code .. " has " .. #(def.stages or {}) .. " stages, not the three "
+            .. "showPin reads: auto, off, on")
+    end
+    for i, st in ipairs(def.stages or {}) do
+      if st.codes ~= code then
+        fails(string.format("%s stage %d codes %q, so showPin's kind lookup "
+                            .. "would miss it", code, i, tostring(st.codes)))
+      end
+    end
+  end
+end
+check("staged pin controls defined", modes, 1)
+
 for kind, code in pairs(PENDING_TOGGLE) do
   if defOf[code] then
     fails(string.format("%s is an item now -- take the %s kind out of "
@@ -224,6 +272,11 @@ for _, row in ipairs(grid.content.rows) do
   for _, code in ipairs(row) do inGrid[code] = true end
 end
 for _, code in pairs(KIND_TOGGLE) do
+  if not inGrid[code] then
+    fails(code .. " is an item but is not in the Pins grid, so nothing can click it")
+  end
+end
+for _, code in pairs(KIND_MODE) do
   if not inGrid[code] then
     fails(code .. " is an item but is not in the Pins grid, so nothing can click it")
   end
@@ -293,6 +346,38 @@ check("a chests-are-checks seed keeps its skipped slots",
 chestsAreChecks = function() return false end
 check("an ordinary seed does not", showPin("slot", "npcsAreIncentive"), 0)
 chestsAreChecks = nil
+
+-- The entrance kind. Off and on are the player's, and beat everything. Auto is
+-- two questions with two sources, and either may be the only one available: the
+-- variant is set before the first rule runs and needs no cartridge, while
+-- entranceShuffle is derived by flag_mapping.lua from Entrances, Towns and
+-- Floors and needs a flag record. Both can answer yes at once -- No-Overworld's
+-- own full shuffle only runs with Entrances or Towns set.
+local entrancePins = byCode.entrance_pins
+provided = {}
+entrancePins.CurrentStage = 0
+check("auto draws no entrance pin on a plain standard seed", showPin("entrance"), 0)
+provided = { entranceShuffle = 1 }
+check("auto draws once the seed moves doors", showPin("entrance"), 1)
+provided = {}
+Tracker.ActiveVariantUID = "7NOverworld"
+check("auto draws on No-Overworld with no cartridge read", showPin("entrance"), 1)
+provided = { entranceShuffle = 1 }
+check("and on a No-Overworld seed that shuffles as well", showPin("entrance"), 1)
+Tracker.ActiveVariantUID = "5standard"
+entrancePins.CurrentStage = 1
+check("always-off beats a seed that moved the doors", showPin("entrance"), 0)
+provided = {}
+entrancePins.CurrentStage = 2
+check("always-on beats a seed that moved nothing", showPin("entrance"), 1)
+entrancePins.CurrentStage = 0
+
+-- Fails open like every other kind: a control nobody defined draws the pin
+-- rather than emptying the maps.
+byCode.entrance_pins = nil
+check("an undefined entrance control draws", showPin("entrance"), 1)
+byCode.entrance_pins = entrancePins
+provided = {}
 
 ------------------------------------------------------------------
 -- 5. What each toggle is worth, counted through the real showPin.

@@ -291,10 +291,17 @@ end
 -- tools/regen_maps.py stamps a regenerated tree through the same function, so
 -- the committed tree and a regen output cannot drift apart on this.
 local PIN_TOGGLE = {
-  chest = "show_chests",
-  npc   = "show_npcs",
-  slot  = "show_skipped",
+  chest    = "show_chests",
+  npc      = "show_npcs",
+  slot     = "show_skipped",
+  entrance = "entrance_pins",
 }
+
+-- Stages of the Entrance Pins control, in items/flags.json order. It is a
+-- three-stage progressive rather than a switch because the useful default is
+-- not the same on every cartridge, so "the seed decides" has to be a position
+-- the player can leave it in as well as one they can overrule.
+local ENTRANCE_AUTO, ENTRANCE_OFF, ENTRANCE_ON = 0, 1, 2
 
 local PIN_WARNED = {}
 
@@ -326,6 +333,40 @@ function showPin(kind, ...)
     warnOnce(kind, "showPin does not know the pin kind " .. tostring(kind)
                    .. " -- drawing the pin")
     return 1
+  end
+  if kind == "entrance" then
+    -- Auto is off on a plain standard seed and on when the doors have actually
+    -- moved. Two questions, two sources, and either may be the only one there:
+    --
+    --   the variant       a No-Overworld board is doors all the way down, and
+    --                     ActiveVariantUID is set before the first rule runs,
+    --                     so this half answers with no cartridge in sight
+    --   entranceShuffle   set by flag_mapping.lua from Entrances, Towns and
+    --                     Floors. An item rather than an ffrFlag() call, for
+    --                     the reason isNoOverworld() gives above: PopTracker
+    --                     re-asks a rule when an item changes and at no other
+    --                     time, so a rule reading only FFR_FLAGS would draw the
+    --                     previous cartridge's answer until something else moved
+    --
+    -- Both halves can hold at once. No-Overworld's own full shuffle only runs
+    -- with Entrances or Towns set, so a doubly shuffled seed is an ordinary
+    -- cartridge rather than a contradiction to resolve.
+    local obj = Tracker:FindObjectForCode(code)
+    if not obj then
+      warnOnce(code, "no pin toggle named " .. tostring(code) .. " -- drawing the pin")
+      return 1
+    end
+    local stage = obj.CurrentStage or ENTRANCE_AUTO
+    if stage == ENTRANCE_OFF then
+      return 0
+    end
+    if stage == ENTRANCE_ON then
+      return 1
+    end
+    if isNoOverworld() then
+      return 1
+    end
+    return Tracker:ProviderCountForCode("entranceShuffle") > 0 and 1 or 0
   end
   if kind == "slot" then
     -- A slot this seed did incentivize is not a skipped one, so the toggle has
