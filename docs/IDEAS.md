@@ -537,6 +537,15 @@ that. What is given up is reading the shape backwards; a diamond stops meaning
 "there is a sprite here" and starts meaning "something here is worth a look",
 which may be the more useful sentence on a board anyway.
 
+**Settled 2026-09-04, as the naming half only.** The union is now what a diamond
+means: `docs/ISSUES.md`, "What a diamond means", records it and `README.md`,
+"What the pin shapes mean", tells a player. It was settled because the trapezoid
+was about to arrive meaning "entrance", and three shapes on a board people read
+is the wrong moment to discover the second one means two things. Nothing changed
+in what gets drawn -- the decision licenses incentive-slot diamonds, it does not
+emit them. What is still unscoped is below: emitting them at all, the shop leak
+that comes with it, and whether shape is even the right channel.
+
 Two consequences to settle before drawing. **The sprite half is decided by a
 render flag, not by the seed**: `sprite_cells` is empty under `--npcs none`, so
 with sprites off every diamond is an incentive and with them on it is the union.

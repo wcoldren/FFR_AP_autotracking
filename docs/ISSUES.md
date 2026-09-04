@@ -1262,15 +1262,31 @@ Nothing here is urgent unless it says so.
   `tests/test_maps.lua` check 7 waived `fairy` by name and now waives nothing —
   every slot the two trees share has to match.
 
-- **What a diamond means is unsettled.** Square and diamond are the same size,
-  centre, colours and click target; the only difference is that a diamond leaves
-  the tile's four corners unpainted so a sprite reads behind it. At three pins
-  that read as an exception. At fourteen it is every NPC pin there is, on both
-  modes, which makes the shape a category whether or not it was meant as one —
-  especially once the trapezoid arrives meaning "entrance". Either say out loud
-  that diamond means NPC, or move the sprite off-centre within its tile so a
-  square pin stops covering it. The first is free and is what the output already
-  looks like.
+- **What a diamond means. Answered 2026-09-04: a union.** Square and diamond are
+  the same size, centre, colours and click target; the only difference is that a
+  diamond leaves the tile's four corners unpainted so a sprite reads behind it.
+  At three pins that read as an exception. At fourteen it is every NPC pin there
+  is, on both modes, which makes the shape a category whether or not it was meant
+  as one — especially once the trapezoid arrives meaning "entrance". Either say
+  out loud that diamond means NPC, or move the sprite off-centre within its tile
+  so a square pin stops covering it. The first is free and is what the output
+  already looks like.
+
+  Answered as neither, and wider than both: **a diamond means "a sprite check or
+  an incentive slot"** — "something here is worth a look". What is given up is
+  reading the shape backwards; a diamond stops meaning "there is a sprite here".
+  Nothing else breaks, because the rendering constraint that booked the shape is
+  one-directional: a pin *on* a sprite must be a diamond or it hides it, which is
+  why `place_locations` emits one exactly there (`tools/regen_maps.py:934`), and
+  adding more diamonds never violates that. It is a naming decision only —
+  nothing starts emitting diamonds that did not emit them before.
+
+  Recorded for players in `README.md`, "What the pin shapes mean", rather than in
+  the Map Key that `docs/ROADMAP.md` section 3 asked for. The Map Key is rendered
+  art: `draw_map_key` (`tools/render_maps.py:1024`) draws lane bars and trap
+  letters into a per-map band that is reserved only where there is something to
+  say, so shape rows would reserve a band on all 61 maps, change every crop
+  height and move every marker coordinate.
 
 - **Should the variant be auto-selected from `GameMode`? Answered 2026-09-01:
   it cannot be.** The suspicion in this entry was right and is now checked

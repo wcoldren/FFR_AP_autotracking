@@ -191,6 +191,27 @@ The colours themselves are PopTracker's rather than the pack's -- packs choose
 which state a pin reports, not what colour the tracker paints it. If you want
 different ones, they come from `colors.json` in your PopTracker config directory.
 
+## What the pin shapes mean
+
+    square       an ordinary check
+    diamond      a sprite check or an incentive slot -- something here is
+                 worth a look
+
+A diamond does *not* mean "there is a sprite here". It started out that way, for
+a rendering reason rather than a meaning one: a square pin is opaque and exactly
+one tile, so a square drawn over an NPC hides him completely, while a diamond
+leaves the tile's four corners unpainted and the sprite reads through. Incentive
+chests are diamonds as well, so the shape reads forwards only -- every pin
+standing on a sprite is a diamond, and not every diamond is standing on one.
+
+Which half you are looking at depends on how the art was drawn. Render the maps
+without sprites and nothing is left for a pin to collide with, so every diamond
+on the board is an incentive slot.
+
+Shape and colour are separate channels: the shape says what kind of thing a pin
+is, the colour says how it stands. PopTracker has three shapes and no more, so
+the pack spends them carefully.
+
 ## Turning pins off
 
 The **Pins** group in the left dock, under Incentives, has four switches. All

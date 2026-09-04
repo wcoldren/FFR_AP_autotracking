@@ -46,7 +46,6 @@ work it is, not how much it matters.
 | §1 | The two rolls the bridge should read, not guess at |
 | §2 | ToFR floor modelling |
 | §3 | Whether Inspect survives `hide unreachable locations` |
-| §3 | What a diamond means |
 | §3 | Warn once when a stale override shadows pack edits |
 | §3 | Room-level zoom, after the towns |
 | §3 | The regen's execution half, after the detection half |
@@ -195,7 +194,12 @@ Things a bridge-only player checks that the board has no cell for.
   <map>")`, per `docs/IDEAS.md`.
 - **`hide unreachable locations` swallows skipped slots.** Decide whether
   Inspect should survive it.
-- **What a diamond means.** Settle it and put it in the Map Key.
+- **What a diamond means. Answered 2026-09-04**: a union — a diamond means "a
+  sprite check or an incentive slot", and the shape no longer reads backwards to
+  "there is a sprite here". Written up for players in `README.md`, "What the pin
+  shapes mean", rather than in the Map Key this bullet asked for, because the Map
+  Key is rendered art and shape rows would move every marker on every map.
+  `docs/ISSUES.md`, "What a diamond means", holds the reasoning.
 - **Stale user-override shadowing pack edits.** Warn once.
 
 ## 4. Maps
