@@ -465,5 +465,39 @@ check("a stated pool outranks the cartridge", overworldTab(), "Incentive Locatio
 Archipelago = nil
 ffrFlag = nil
 
+------------------------------------------------------------------
+-- 9. the fresh board's defaults are declared, not written.
+--
+-- scripts/init.lua used to set both of these at load. The tab_mode write was a
+-- no-op -- with allow_disabled false the guard in Lua_NewIndex compares a value
+-- with itself (PopTracker core/jsonitem.cpp:473-500) -- and both of them landed
+-- in the reset snapshot PopTracker takes one line after init.lua runs, so Reset
+-- walked a pinned choice back to what the script had asserted rather than to
+-- what the pack declares.
+--
+-- Declaring them is what makes the snapshot the pack's own answer. This is the
+-- check that fails if someone puts the writes back: an item whose default lives
+-- in a script has no default here at all.
+------------------------------------------------------------------
+local defs = {}
+for _, def in ipairs(json.load(PACK .. "/items/flags.json")) do
+  if def.name then defs[def.name] = def end
+end
+check("Auto-Tab declares that it starts on",
+      defs["Auto-Tab"] and defs["Auto-Tab"].initial_active_state, true)
+-- Nothing declares a starting stage, so stage 0 is Auto by position. Saying so
+-- here is what stops the stages being reordered under overworldTab()'s
+-- comparisons without anything noticing.
+check("Overworld Tab starts on Auto by position",
+      defs["Overworld Tab"] and defs["Overworld Tab"].initial_stage_idx, nil)
+check("  and its first stage is the Auto one",
+      defs["Overworld Tab"].stages[1].name,
+      "Overworld Tab: Auto (the seed decides)")
+
+local init = io.open(PACK .. "/scripts/init.lua"):read("a")
+check("init.lua asserts no tab stage",
+      init:match("tab_mode[^\n]*\n[^\n]*CurrentStage") ~= nil, false)
+check("  and no Auto-Tab default", init:match("tabSwitch%.Active") ~= nil, false)
+
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

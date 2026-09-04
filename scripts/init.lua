@@ -97,23 +97,27 @@ end
 ScriptHost:LoadScript("scripts/autotracking/flag_mapping.lua")
 resetFlagsToDefaults()
 
--- The map tab follows the player by default; click it off when you would
--- rather stay on the floor you are reading.
-local tabSwitch = Tracker:FindObjectForCode("tab_switch")
-tabSwitch.Active = true
--- And which of the two overworld tabs it follows to. Stage 0 is Auto, which
--- reads the seed; click it round to pin the incentive map or the full one.
--- See overworldTab() in scripts/autotracking/maptab.lua.
+-- The two map-tab controls, and the pin control, are declared in
+-- items/flags.json and are not set here. Nothing below is a default.
+--
+-- Active is a rendering fix, not a preference. A progressive with
+-- allow_disabled false starts at stage1 0 -- FromJSON raises it only for a
+-- composite toggle and honours initial_active_state only for the toggle family
+-- (PopTracker core/jsonitem.cpp:95-121), and _changeStateImpl moves stage2 and
+-- never stage1 for this type (:214-237). Item::setStage indexes
+-- _surfs[stage1][stage2], so stage1 0 is the disabled row, and with settings.json
+-- filtering that row grayscale and dim the icon is drawn greyed at every stage
+-- for ever. Lua_NewIndex forces the value true when allow_disabled is false
+-- (:459-460), so this cannot carry an opinion about which stage is showing.
+--
+-- What used to be here was `tabMode.CurrentStage = 0`, which was a no-op --
+-- with allow_disabled false the guard reads `_stage2 ~= 0 or _stage1 ~= _stage1`
+-- and never fires -- and which asserted stage 0 into the reset snapshot
+-- PopTracker takes one line after this script runs. See docs/ISSUES.md, "A
+-- pinned control cannot survive Reset", for what that costs and why the fix is
+-- upstream.
 local tabMode = Tracker:FindObjectForCode("tab_mode")
-tabMode.CurrentStage = 0
-
--- Entrance Pins starts on Auto, which is where items/flags.json leaves it. The
--- Active write is not a default: a progressive with allow_disabled false starts
--- at stage1 0 and nothing but an explicit Active moves it (PopTracker
--- core/jsonitem.cpp:95-121, :214-237), and stage1 0 is the row the disabled
--- image filter is applied to -- so without this the icon is drawn greyed at
--- every stage. It cannot change which stage is showing; Lua_NewIndex forces the
--- value true when allow_disabled is false.
+tabMode.Active = true
 local entrancePins = Tracker:FindObjectForCode("entrance_pins")
 entrancePins.Active = true
 

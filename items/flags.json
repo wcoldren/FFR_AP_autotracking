@@ -360,7 +360,8 @@
         "type" : "toggle",
         "img" : "images/flags/autoTab.png",
         "codes" : "tab_switch",
-        "disabled_img" : "images/flags/noAutoTab.png"
+        "disabled_img" : "images/flags/noAutoTab.png",
+        "initial_active_state" : true
     },
     {
         "name" : "Overworld Tab",

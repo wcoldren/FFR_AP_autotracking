@@ -16,6 +16,34 @@ Nothing here is urgent unless it says so.
 
 ## Known wrong
 
+- **A pinned control cannot survive Reset, and no pack-side change can make it.**
+  Found 2026-09-04 while making the `Overworld Tab` choice stick. A stage pinned
+  by hand does survive a *restart*: PopTracker autosaves item state and restores
+  it after `scripts/init.lua` has run, and `progressive:Overworld Tab` is in the
+  save like every other item. Reset is the one that takes it back.
+  `StateManager::saveState(…, "reset")` runs at PopTracker `poptracker.cpp:1440`,
+  one line after `LoadScript("scripts/init.lua")` and one line before the
+  autosave restore, and `reloadTracker` (`:1473-1483`) either replays that
+  snapshot or reloads the pack with the autosave switched off. The snapshot is
+  every item exactly as init.lua left it.
+
+  Nothing in the pack widens that. `saveState`'s `ScriptHost*` parameter is
+  unnamed and unused (`core/statemanager.cpp:29`), so Lua globals are neither
+  saved nor restored and there is no call to re-save the reset state; watching
+  an item and re-applying a choice cannot tell a reset from a click; and the Lua
+  sandbox never opens `io` (`poptracker.cpp:1224-1229`), so there is nowhere
+  else to keep it. Two narrower losses have the same shape and the same answer:
+  the save is keyed by pack version and variant
+  (`core/statemanager.cpp:62-66`), so a version bump or a variant switch also
+  starts from the declared defaults.
+
+  What was in reach is done. `init.lua` no longer asserts a stage -- the write
+  it used to make was a no-op anyway (`core/jsonitem.cpp:473-500`, where
+  allow_disabled false makes the guard compare a value with itself) -- so the
+  snapshot now holds what `items/flags.json` declares rather than what a script
+  wrote, and the declared defaults are the thing to change. The rest is
+  upstream's.
+
 - **The override staleness check read one cache key and not the other, so an
   edited lane file left it green. Closed 2026-09-04**, found by the digest
   narrowing below: re-keying all 57 lane files changed what the standard art
