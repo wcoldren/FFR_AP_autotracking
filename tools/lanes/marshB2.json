@@ -110,9 +110,35 @@
        ]
       }
      ]
+    },
+    {
+     "flavour": "loot",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "tile",
+       "at": [
+        7,
+        8
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        17,
+        16
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        26,
+        8
+       ]
+      }
+     ]
     }
-   ],
-   "ported": true
+   ]
   }
  ]
 }

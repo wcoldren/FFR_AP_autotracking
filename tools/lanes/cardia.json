@@ -369,10 +369,34 @@
        ]
       }
      ]
+    },
+    {
+     "flavour": "loot",
+     "region": 2,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        30,
+        18
+       ],
+       "in": [
+        30,
+        18
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 252,
+       "at": [
+        44,
+        8
+       ]
+      }
+     ]
     }
    ],
-   "retrace": true,
-   "ported": true
+   "retrace": true
   }
  ]
 }

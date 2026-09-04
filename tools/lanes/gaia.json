@@ -134,9 +134,32 @@
        ]
       }
      ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        41,
+        52
+       ],
+       "in": [
+        33,
+        53
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        61,
+        62
+       ]
+      }
+     ]
     }
-   ],
-   "ported": true
+   ]
   }
  ]
 }
