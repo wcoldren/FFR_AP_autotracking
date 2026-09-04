@@ -6,7 +6,7 @@ rules FFR hands Archipelago — and `tools/check_logic.py` compares that with th
 pack's rules as truth tables. This file says which cartridge answers which
 question, and how to rebuild any of them from nothing.
 
-Five cartridges, all 4.9.2, all generated locally with `Spoilers` and
+Seven cartridges, all 4.9.2, all generated locally with `Spoilers` and
 `Archipelago` on so the export is attached.
 
 **All 4.9.2 is a limit as well as a fact.** `ShipDrydock`, `MapAirshipHike` and
@@ -26,6 +26,8 @@ the export drops ToFR.
 | `nov2` | `oracle_nov` | `1D0BE11E` | GameMode 2, ToFRMode 2 (Short) | second seed at identical flags — the ToFR control |
 | `shard` | `oracle_shard` | `5A4D0BAF` | GameMode 0, ShardHunt | `isShardHunt()` against a real export |
 | `notail` | `oracle_notail` | `45057553` | GameMode 0, ToFRMode 0 (Long), NoTail | that `NoTail` reaches no exported rule — see below |
+| `novnolefein` | `oracle_novnolefein` | `F2585541` | the same as `nov`, minus `LefeinSuperStore` | what `LefeinSuperStore` does to a No-Overworld seed, which is nothing a router sees |
+| `novhoard` | `oracle_novhoard` | `F2585541` | the same as `nov`, plus `MapDragonsHoard`, with `IncentivizeCardia` still off | the No-Overworld half of the cardia split, which the six standard hoard cartridges could not answer for |
 
 Modes are quoted as **read back off the cartridge**, never off the filename —
 that trap has bitten more than once.
@@ -34,14 +36,22 @@ that trap has bitten more than once.
 flags, not the seed, which is what makes them a fair control for anything
 seed-driven.
 
-    std    omlInPoZ8aeRURUYlp1dof0D5xNDnrlGj9iV9YttYmO7Dv1Rmi6B0yqiIVR2PBvLS3STrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
-    nov    omlY4TDJ0WBi73FLBF5hW902l51xl72yHm32Rio0v38eGNM0fKy0TT8KJ-a0NWDQIIcxpvj7MlpYDG7gMaaVe-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
-    nov2   (identical to nov)
-    shard  omlInPoZ8aeCvsimCReMV9G4KHYm3TUYASJBGOBHlVOiR1kCNT91VO6GOxnA9GbEBb7YM1kQIzMfs8M3W7C8VP-aE5sJ0h2VYqBCNFMidFYuxFDg.QyWC6OgqMHtZPIrzXE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
-    notail omlInPoZ8aeRURUYe2aUg0I8HZZCUXtPc76esLTcnyl5plsgMDVIQ3lOapR226xybGTTrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
+**`nov` and `novnolefein` are the other kind of pair**, and share the *seed*
+rather than the flags -- the tighter control, and the one the 4.9.7 corpus uses
+throughout. Three cartridges here now carry seed `F2585541`, so name the slug in
+prose for these as well; the paragraph below about `F258553F` says why.
+
+    std          omlInPoZ8aeRURUYlp1dof0D5xNDnrlGj9iV9YttYmO7Dv1Rmi6B0yqiIVR2PBvLS3STrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
+    nov          omlY4TDJ0WBi73FLBF5hW902l51xl72yHm32Rio0v38eGNM0fKy0TT8KJ-a0NWDQIIcxpvj7MlpYDG7gMaaVe-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
+    nov2         (identical to nov)
+    shard        omlInPoZ8aeCvsimCReMV9G4KHYm3TUYASJBGOBHlVOiR1kCNT91VO6GOxnA9GbEBb7YM1kQIzMfs8M3W7C8VP-aE5sJ0h2VYqBCNFMidFYuxFDg.QyWC6OgqMHtZPIrzXE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
+    notail       omlInPoZ8aeRURUYe2aUg0I8HZZCUXtPc76esLTcnyl5plsgMDVIQ3lOapR226xybGTTrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
+    novnolefein  omlY4TDJ0WBi73FLBF5VGzzAxztAsvA1h7hrrqcjdsidtXDK56cD4rAwa.3JnP7xA1eccFbQG-e.47l5WKeeBsCx37sjlvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
+    novhoard     omlY4TDJ0WBi73FLBFbuh.G9jOSOon1ZIuedRm9rW-heEZ4V2WL9-Hw-Gyqnw1rWU7PuPNdGWIaJq5Lgg3-We-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
 
 Each cartridge sits in its own directory with its spoiler `.txt`, its
-Archipelago `.yaml` and, for the two No-Overworld ones, the derived rules JSON.
+Archipelago `.yaml` and, for the four No-Overworld ones, the derived rules
+JSON.
 One cartridge per directory on purpose: `check_logic` globs `*.yaml` beside the
 ROM when `--ap-rules` is not given, and two modes' exports in one directory get
 folded together into a plausible-looking pile of divergences that are not real.
@@ -84,7 +94,10 @@ log line.
 
 ## Measured
 
-Last run 2026-08-30, on freshly rebuilt cartridges.
+Last run 2026-09-03. The header names the freshest row in the table, which is
+`novnolefein`; the rows above it were run 2026-08-30 on freshly rebuilt
+cartridges, and the `nov` and `nov2` derived rows were regraded 2026-09-03
+against regenerated derivations.
 
 | Check | Result |
 |---|---|
@@ -92,10 +105,12 @@ Last run 2026-08-30, on freshly rebuilt cartridges.
 | `shard`, pack rules vs FFR | **229 checked, 229 agree, 0 divergences** |
 | `nov`, pack rules vs FFR | **226 compared, 220 agree, 6 deliberately strict**; of the 226, **215 independently supported** by the sweep, 11 not |
 | `nov2`, pack rules vs FFR | **224 compared, 218 agree, 6 deliberately strict** |
-| `nov`, derived rules vs FFR | **226 compared, 225 agree, 1 divergent** (Lefein) — **5 granted an off-vocabulary item**, so **221** are genuinely comparable; 255 derived, 0 unreachable |
-| `nov2`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein) — **5 granted**, **219** genuinely comparable; 255 derived, 0 unreachable |
+| `nov`, derived rules vs FFR | **226 compared, 225 agree, 1 divergent** (Lefein) — **5 granted an off-vocabulary item**, so **221** are genuinely comparable; 256 derived, 0 unreachable |
+| `nov2`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein) — **5 granted**, **219** genuinely comparable; 256 derived, 0 unreachable |
 | `nov` vs `nov2`, ToFR shuffle | **0 differences** |
 | `notail`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
+| `novnolefein`, derived rules vs FFR | **222 compared, 221 agree, 1 divergent** (Lefein, the same strict row `nov` has) — **5 granted an off-vocabulary item**; 256 derived, 0 unreachable |
+| `novhoard`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein again, the same strict row) — **5 granted an off-vocabulary item**; 256 derived, 0 unreachable. So a No-Overworld seed with the hoard on costs nothing: the `BahamutHoard` alternative being guarded `$standardWorld` is now measured rather than merely untested |
 
 `std`'s 225/225 is the baseline to protect: it validates the harness end to end
 against rules that were written by hand, and it must not move. `shard`'s 229/229
@@ -262,12 +277,23 @@ flag decoder accepts a local build of it unmodified.
 | `hoardbridge497` | `oracle497_hoard` + `MapCardiaLandBridge` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the land bridge |
 | `hoarddockbridge497` | `oracle497_hoard` + both | `3B7E1C8A` | the same three | Bahamut's Cave's requirement with both, which is not the union |
 | `hoardhike497` | `oracle497_hoard` + `MapAirshipHike` | `3B7E1C8A` | the same two | Bahamut's Cave's requirement with the hike |
+| `nonpcitems497` | `oracle497_nonpcitems` | `3B7E1C8A` | `std497` **minus** `NPCItems` | what `NPCItems` governs, which turns out to be the incentive pool and not the rules |
+| `nofetchitems497` | `oracle497_nofetchitems` | `3B7E1C8A` | `std497` **minus** `NPCFetchItems` | the same question for the fetch half, which turns out to be the incentive pool and not the rules either -- and which of the pack's eight fetch rows FFR actually incentivizes |
 | `hoarddockhike497` | `oracle497_hoard` + `MapBahamutCardiaDock` + `MapAirshipHike` | `3B7E1C8A` | the same three | the three Cardia-relevant flags a played seed rolled, carried on `std497`'s baseline rather than that seed's whole flag set, and the combination the pairs above do not cover |
 
-**Every cartridge here shares `std497`'s seed**, so anything that moves between
-an export and `std497`'s is the flag, not the roll -- a tighter control than
+**Every cartridge here shares `std497`'s seed**, a tighter control than
 `nov`/`nov2`, which hold the flags still and vary the seed. `std497` is the
 baseline they are all read against, which is why its row is the one to protect.
+
+**A shared seed holds the rules still, not the pool**, and this page said
+otherwise until 2026-09-03: "anything that moves between an export and
+`std497`'s is the flag, not the roll" is true of the rules, the location ids and
+`priority_locations`, and true of which locations are in the export at all only
+in the sense that nothing there can be attributed by counting. About twenty
+locations change hands either way on every pair. A flag that changes the pool's
+*shape* also moves locations in and out for real, and the two look alike. The
+figures are below, under "Diffing the corpus, and what one flag apart does not
+hold still".
 
 **Most of them are one flag from that baseline; the rest say which pair they
 isolate.** `drydock497`, `extended497`, `airship497`, `landbridge497`,
@@ -295,7 +321,7 @@ rows look harder than `ShipDrydock` was.
 
 ### Measured
 
-Last run 2026-09-01.
+Last run 2026-09-03.
 
 | Check | Result |
 |---|---|
@@ -318,6 +344,16 @@ Last run 2026-09-01.
 | `hoard497`, pack rules vs FFR | **223 checked, 223 agree, 0 divergences** |
 | `hoarddock497`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** — it was 215 agree, 3 divergences over 10 locations before the `BahamutHoard` alternative |
 | `hoardbridge497`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** |
+| `nonpcitems497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** |
+| `std497` vs `nonpcitems497`, exported rules | **206 in both, 0 differ.** `NPCItems` moves no reachability rule at all |
+| `std497` vs `nonpcitems497`, `priority_locations` | **7 gone: King, Princess, Bikke, Sarda, Canoe Sage, CubeBot and Shop Item**, with `IncentivizeFreeNPCs` still on -- the `NPCItems` conjunct of the computed `IncentivizeCaravan`, measured rather than read off `FlagsCompute.cs`. The pack rings all seven; see `docs/ISSUES.md` |
+| `nofetchitems497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
+| `std497` vs `nofetchitems497`, exported rules | **206 in both, 0 differ.** `NPCFetchItems` moves no reachability rule at all, the same as its free-half sibling |
+| `std497` vs `nofetchitems497`, `priority_locations` | **7 gone: Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick and Smith**, with `IncentivizeFetchNPCs` still on -- the `NPCFetchItems` conjunct of the seven computed at `FlagsCompute.cs:220-226`. The pack rings all seven; see `docs/ISSUES.md` |
+| `std497` vs `nofetchitems497`, whether a slot leaves | **no. All seven stay in `rules` and `locations`** -- 227 to 226, and both the removed and the added names are chests, so the net one is pool churn the tool declines to attribute. Unlike the free half there is no caravan-shaped second repair: the fetch fix is the conjunction on seven rows and nothing else |
+| the incentive rings, all 23 exports | **0 wrong**, since 2026-09-03. `tools/tests/test_incentive_conjunction.py` predicts each slot's ring from the export's own flags and compares it to `priority_locations`. Before the conjunctions it was 13 wrong rings and one ghost -- 7 on `nofetchitems497`, 6 plus the caravan slot on `nonpcitems497` -- and before Nerrick's third term, `nov` and `nov2` each rang him. One disagreement is waived by name rather than scoped away: a Sea Shrine chest `notail` does not have. Two others were waived and are not now. `Dr Unne`, who is no seed's location, went when the slot was removed rather than excused; the Cardia ring on the five standard hoard cartridges and on `novhoard` went when the progressive was split, and `hoarddockbridge497`'s Cardia ghost went with it -- that row was only reachable through the ring being wrong, so the finding behind it is open and this corpus can no longer show it. Both 2026-09-03 |
+| `std497` vs `nofetchitems497`, `Dr Unne` | **not among the seven, and not an AP location at all.** FFR has no `IncentivizeUnne`; `SCLogic.cs:555-557` folds Unne into Lefein's reachability. The pack gave `I: Dr Unne` an incentive section on both sheets, `hosted_item: slabTranslated` gated on `fetchQuestsAreIncentive` -- an eighth slot FFR never fills. Removed 2026-09-03 rather than re-gated, with no line cited here because the close took both sections out; `docs/ISSUES.md` has it |
+| `std497` vs `nonpcitems497`, the caravan slot | **`Shop Item` leaves `rules` and `locations` too**, not only the incentive pool: 227 locations to 224, and the six NPCs stay. So six of the seven are un-ringed checks and the seventh is not a check at all -- a different repair, and the one the pool heading hid until 2026-09-03 |
 | `hoarddockbridge497`, pack rules vs FFR | **227 checked, 227 agree, 0 divergences** — it was 216 agree, 3 divergences over 11 locations |
 | `hoardhike497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
 | `hoarddockhike497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — and 95 agree, 13 distinct divergences over 129 locations against the rules as they stood at `2b0ff32`, which is what this row exists to have caught |
@@ -355,9 +391,15 @@ So with the hoard on, each of the thirteen is reachable from its island *or*
 from Bahamut's Cave, and the pack's Cardia nodes carry a `BahamutHoard`
 alternative for the second route. Only the alternative that adds something is
 written: the airship, the hike and the land bridge already reach both places, so
-the dock is the one route that needed spelling out. **The No-Overworld hoard
-case is not measured** -- no such cartridge was built -- so that alternative is
-guarded `$standardWorld` and claims nothing there.
+the dock is the one route that needed spelling out. That alternative is guarded
+`$standardWorld` and claims nothing on a No-Overworld seed.
+
+**The No-Overworld hoard case was not measured until 2026-09-03**, when
+`novhoard` was rolled for the cardia split. The guard costs nothing: the
+cartridge grades 224 compared, 223 agree, 1 divergent, and the divergence is the
+same deliberately strict `Lefein` row `nov` and `novnolefein` carry. So the
+alternative is guarded because a No-Overworld seed does not need it, which is
+now read off a cartridge rather than assumed from the absence of one.
 
 **`objnpc497` is the row that does not mean what the others mean.** Every other
 line above is the pack agreeing with FFR. This one is the pack agreeing with FFR
@@ -424,13 +466,65 @@ the 53 are not an artefact of it.
     O7=<corpus>/oracle-4.9.7
     for s in std drydock extended airship landbridge objnpc gaia gaiahwy \
              dock dockbridge hoard hoarddock hoardbridge hoarddockbridge hoardhike \
-             hoarddockhike; do
+             hoarddockhike nonpcitems; do
         python3 tools/check_logic.py $O7/${s}497/${s}497.nes \
             --ap-rules $O7/${s}497/${s}497.yaml --ff1-world $W
     done
 
 No `--derived` on any of them: the sweep derives No-Overworld rules and all eight
 are standard seeds.
+
+### Diffing the corpus, and what one flag apart does not hold still
+
+`tools/export_diff.py` does by tool what the flag rows above were produced by
+hand: roll two cartridges one flag apart, diff the exports, and the rules that
+moved are that flag's doing.
+
+    O7=<corpus>/oracle-4.9.7
+    python3 tools/export_diff.py $O7/std497 $O7/dock497 --ff1-world $W
+
+Either argument may be the cartridge's directory rather than the export, which
+is what the one-cartridge-per-directory layout is for. Three answers like
+`tofr_diff.py` -- 0 same, 1 differs, 2 incomparable -- and it refuses rather than
+reporting a count when it cannot certify the pair is one seed, or when an export
+cannot be read at all.
+
+**The corpus README's "anything that moves between one of those exports and
+`std497`'s is the flag and not the roll" is true of the rules and true of the
+pool only by count.** FFR exports only the locations holding pool items, and
+changing a flag moves the RNG stream, so which chests hold gold moves whether or
+not the logic does. Measured against `std497` across the fifteen variants that
+predate the tool — seven of them one flag from the baseline, the rest the pairs
+and triples named above:
+
+    variant             pool +   pool -   rules moved
+    hoard497                17       20             0
+    dock497                 21       22             1
+    objnpc497               21       23             1
+    dockbridge497           19       19            40
+    airship497              17       19           124
+
+All fifteen churn 17 to 23 locations in *both* directions, `hoard497` included,
+whose rules do not move at all. So the pool difference is printed under its own
+heading and is not counted: a differ that counted it would have reported a
+finding for every flag in the corpus, including the one that found nothing.
+
+**Not counted is not the same as "it is the roll", and the sixteenth cartridge
+is why.** `nonpcitems497` is the only 4.9.7 export of the eighteen with no
+`Shop Item` in it at all — `NPCItems` off deletes the caravan slot rather than
+reassigning it — and that difference sat on line twenty of an uncounted list of
+chests until it was looked for. Nothing distinguishes a removed location from a
+reassigned one by counting, so the tool crosses the pool difference with
+`priority_locations`, which is stable, and marks a name that left both:
+
+    A only  Shop Item   -- and not in B's pool at all, so not a check on B
+
+A pool-shape flag that moves plain chests — `ChestsKeyItems` is the one to
+expect — is still past what two exports can settle, and the heading says so.
+
+What is stable, and is therefore counted: the location ids, which never moved in
+fifteen pairs and which `LOCATION_MAPPING` is keyed on, and
+`priority_locations` -- the incentive pool -- identical across all fifteen.
 
 ### Rebuilding the 4.9.7 corpus
 
@@ -459,6 +553,128 @@ Generating one of the newer three, for the record:
     dotnet FF1R/bin/Release/net10.0/FF1R.dll generate "<vanilla FF1 ROM>" \
         -j $O7/flags/oracle497_airship.json -s 3B7E1C8A \
         -o $O7/airship497/airship497.nes
+
+`oracle497_nonpcitems` and `oracle497_nofetchitems` are each `oracle497_std`
+with exactly one boolean flipped -- `NPCItems` and `NPCFetchItems` respectively,
+both `true` in the stock preset, and `IncentivizeFreeNPCs` / `IncentivizeFetchNPCs`
+left on, which is what makes each pair isolate a single conjunct.
+
+## What the corpus holds constant, and why that is not "unmeasured"
+
+Measured 2026-09-03. A flag every preset here sets the same way cannot be
+graded by anything in this corpus, however many cartridges it grows. That is a
+different state from a flag nobody has got to, and `LefeinSuperStore` is the
+case that made the difference visible, because its coverage row asserted the
+opposite and a reader following it would have rolled a seed the corpus already
+had.
+
+| question | answer |
+|---|---|
+| `LefeinSuperStore` across the 4.9.2 presets | **`true` in 4 of 4** — `oracle_std`, `oracle_nov`, `oracle_shard`, `oracle_notail` |
+| across the 4.9.7 presets | **`true` in 18 of 18** |
+| so the No-Overworld rules and the 75-link table were derived | **with the flag on**, which `docs/FLAG_COVERAGE.md` said was off |
+| the cartridge's own tiles, `oracle_nov` | **all 10 cells the flag-on branch of `ApplyMapMods` writes hold what it writes; 0 of the 14 that only the flag-off branch touches do** |
+| the three writes both branches share | **all 36 cells match, unflipped** — so `ApplyMapMods` ran and the `(x, y)` reading is right, which is what makes the answer above evidence rather than a miss |
+| why those numbers are not 5, 4 and 3 | those are **statements**, and a `Map.Put` writes a row of cells rather than one. The flag-on branch is 5 statements over 10 cells, the flag-off branch 4 over 18 of which 14 are its alone, and the shared writes 3 over 36 (`MetroidVaniaMap.cs:235-277`). Counting statements understated the evidence by a factor of two to twelve, and left a row whose job is to make the `(x, y)` reading auditable stating a number a reader cannot re-derive from the map |
+| what the flag-off branch would change | **`(x=0,y=2)` and `(x=1,y=2)` become tile `0x0E`, property `0x01`** — a plain wall where the corpus has `0x00` and walkable |
+| where those two cells sit | on the left-edge column. **Not its mouth**, which is the correction below |
+
+The coordinate convention is the trap worth writing down. `Map.Put` takes
+`(x, y)` and the indexer is `[y, x]` (`FF1Lib/StandardMaps/Map.cs:170` and
+`:13`), and `ApplyMapMods` opens by taking `maps.HorizontalFlippedMaps`, so a
+flipped map would put every coordinate at `63-x`. Both readings were checked
+against the three shared writes before any conclusion was drawn from the
+conditional ones; Lefein is not flipped on `oracle_nov`.
+
+The seed owed was **No-Overworld with `LefeinSuperStore` off**. It was rolled
+on 2026-09-03 as `novnolefein`, and the next section is what it answered.
+
+## `LefeinSuperStore` off: what it moves, which is not a link
+
+Measured 2026-09-03 on `novnolefein`, rolled for this and nothing else —
+`oracle_nov`'s preset at `oracle_nov`'s seed with one boolean flipped. The
+cartridge is a clean control: decoding both gives **533 flags each and exactly
+one differing**, and it is `LefeinSuperStore`. `GameMode 2` and `ToFRMode 2` are
+read back off the cartridge, not off the preset.
+
+| question | answer |
+|---|---|
+| does any link move | **no.** `entrance_graph.py` gives 32 doors identical, 157 staircases both, 54 of 61 maps reachable with every item both |
+| does any derived rule move | **no.** Both cartridges derive **256 locations, 0 unreachable**, and the two sets have the same names |
+| the 10 locations whose rule differs | all of them are the **per-seed rolled things `docs/NOVERWORLD.md` already names** — 8 are the Cardia/Bahamut gateway permutation (`Bahamut's Cave Bahamut` trades rules with the seven `Cardia Forest` entries) and 2 are the ToFR bonus chest ids (`ToFR Kary Floor 1` and `ToFR Lute Plate Room 1` trade) |
+| does it grade differently against FFR | **no.** `check_logic --derived` gives **222 compared, 221 agree, 1 divergent**, and the divergence is the same deliberately-strict `Lefein` row `nov` has |
+| why that is 222 where `nov` is 226 | **not four comparisons lost -- the two exports do not cover the same locations.** FFR exports only the locations holding pool items and this pair re-rolls the placement, so 227 joined rules on `nov` and 223 on `novnolefein` share **204 names**: 23 appear only on `nov`, 19 only on `novnolefein`, and 6 shared names carry different rule text, those 6 being the Cardia Forest gateway rows. The "no" is about the divergence's identity, not about the counts |
+| Lefein's own tiles | **72 cells differ, and every one is a cell one of the two code paths writes** — 68 by `EnableLefeinSuperStore` (the 3×24 store blob at `(0x28, 0x01)`, and the tree cleared at `[0x00, 0x34]`), 4 by `ApplyMapMods`' two branches. Nothing else on the map moved. Each path's writes hold on its own cartridge: 36/36 shared and 10/10 flag-on-branch cells plus 70/70 store cells on `nov`, 14/14 off-branch-only cells on `novnolefein`, and **0 of those 14** hold the off value on `nov` |
+| three other maps differ too | Gaia 20 cells, Waterfall 4, Castle Ordeals 2F 14 — **roll churn, not the flag**; see below |
+
+**The flag does not seal the left-edge column; it moves the plug down a row.**
+The premise this measurement was pointed at said `(0,2)` and `(1,2)` are the
+mouth of a walkable column and asked whether sealing them moves a link. Reading
+the column on both cartridges says the mouth is already shut on the flag-**on**
+side:
+
+    x=0..1   y=0    y=1    y=2    y=3..8   y=9
+    nov      walk   WALL   walk   walk     WALL
+    off      walk   walk   WALL   walk     WALL
+
+So each cartridge has exactly one two-cell plug in that column, one row apart,
+and the row between the two plugs changes which pocket it belongs to. Nothing
+opens and nothing closes, which is why no link moves. A reader who took
+"sealing" at face value would have gone looking for a lost connection.
+
+**The roll diverges, and attributing the other three maps to the flag would be
+the diff-shaped-evidence mistake.** The two spoilers differ by 795 lines: item
+placement is re-rolled wholesale, so this pair holds the rules still and not the
+pool, exactly as the 4.9.7 one-flag pairs do. None of the three routines that
+wrote those cells reads `LefeinSuperStore` — Gaia's 20 are one
+`PickRandom(rng)` replacement tile in `MoveGaiaItemShop`
+(`StandardMaps/SMUpdates.cs:286`), Waterfall's 4 and Ordeals' 14 are
+permutations of their own tiles. There is a path by which the flag reaches the
+stream: `ApplyMapMods` runs at `MetroidVaniaMap.cs:58` and
+`CreateTeleporters(..., rng)` at `:60`, and that derives its unused-tile pool
+from what is on the maps (`:462`, `:22-44`). Which rng draw first differs was
+not pinned and is deliberately not claimed here.
+
+**One number in this file was tool drift, not the flag, and the stale file is
+gone now.** The committed `nov/derived_nov.json` held 255 rules where a fresh
+derivation of the same cartridge holds 256; the extra one is `Titan's Tunnel
+Titan`, which the NPC location work added after that file was written.
+Re-deriving `nov` before comparing is what kept that from being read as a
+location the flag creates -- but leaving the stale file in the corpus left the
+trap armed for the next reader, who would run the comparison the way this page
+describes it and get a location only `novnolefein` appears to have. **Both
+No-Overworld derivations were regenerated on 2026-09-03**, `nov` and `nov2`
+alike, each gaining that one rule and changing no other; `nov` regrades
+226 compared / 225 agree / 1 divergent and `nov2` 224 / 223 / 1, unmoved. This
+also matters to `verify.sh` stage 3, which feeds `derived_nov.json` to
+`check_logic` -- it was grading the pack against a derivation the tool no longer
+produces.
+
+### What the flag does on a standard cartridge
+
+Measured 2026-09-03, because the entry above answers for No-Overworld and the
+flag is not a No-Overworld flag. `EnableLefeinSuperStore` is called from
+`Update()`, the general standard-maps pass (`SMUpdates.cs:116` at 4.9.7, `:39`
+at 4.9.2), and only its last two `TownTree` writes sit behind `if (nooverworld)`
+-- so the store blob and the tree clear land on either mode. That is now read
+off cartridges rather than off the call site:
+
+| question | answer |
+|---|---|
+| is the store on a standard cartridge | **yes, 72 of 72 blob cells on both `std` (4.9.2) and `std497` (4.9.7)**, with `[0x00, 0x34]` cleared to `0x00`, walkable, on both |
+| did `ApplyMapMods` run on them | **no** — 3 of its 46 cells match by chance, against 46 of 46 on `nov`. The map edit is `EnableLefeinSuperStore`'s alone there |
+| does it change what a party can reach in Lefein | **no pin's worth.** Walking `std`'s Lefein from the overworld arrival `(19, 23)` against the same map with the 73 written cells restored to their flag-off values, **all 14 objects on the map stay reachable at identical distances**, the Lefein man `$0F` at `(24, 21)` among them |
+| what does change | the 4 shop doors the store adds (`TP_SPEC_DOOR`), and **one** tile outside the 73: `(52, 63)`, an exit tile the cleared tree reaches across the map's vertical wrap. Lefein carries **no `TP_SPEC_TREASURE` tile at all**, so there is no chest for any of this to gate |
+
+The flag-off standard map is a reconstruction rather than a roll -- no cartridge
+in either corpus has the flag off on standard mode -- and it is sound because
+the base map is shared: `std` and `novnolefein` agree on Lefein everywhere
+except the cells one of these two code paths writes, plus `[0x03, 0x00]` and
+`[0x04, 0x00]` (`ApplyMapMods`' unconditional pair) and `(19, 21)`, the
+staircase No-Overworld stamps into the town. None of those is in the store's
+region, so `novnolefein`'s tiles there are what standard mode would hold with
+the flag off.
+
 
 ## Rebuilding
 
@@ -495,7 +711,11 @@ will not accept a path. Each flags preset is a stock 4.9.2 preset from
 `ArchipelagoEquipment`, `ArchipelagoGold`, `ArchipelagoShards`. The pool flags
 are what take FFR's `rules:` from the key items alone up to 225 locations.
 `oracle_std` is `default.json`, `oracle_nov` is `NOverworld.json`, `oracle_shard`
-is `Shard_Hunt.json`.
+is `Shard_Hunt.json`. `oracle_novnolefein` is `oracle_nov.json` with
+`LefeinSuperStore` set `false` and nothing else, and `oracle_novhoard` is the
+same file with `MapDragonsHoard` set `true` -- `IncentivizeCardia` is already
+`false` there, which is the pair that combination was rolled for. Each differs
+from `oracle_nov` on that one line and the `Name`, and on nothing else.
 
 **The rebuild is bit-reproducible.** Regenerating `std` and `nov` from their
 flags JSON at their recorded seeds produced ROMs, spoilers and exports
@@ -509,11 +729,19 @@ touches a map bank.)
     W=<archipelago>/worlds/ff1
     O=<corpus>
 
-    python3 tools/noverworld_rules.py $O/nov/oracle_nov.nes   -o $O/nov/derived_nov.json
-    python3 tools/noverworld_rules.py $O/nov2/oracle_nov2.nes -o $O/nov2/derived_nov2.json
+    python3 tools/noverworld_rules.py $O/nov/oracle_nov.nes                 -o $O/nov/derived_nov.json
+    python3 tools/noverworld_rules.py $O/nov2/oracle_nov2.nes               -o $O/nov2/derived_nov2.json
+    python3 tools/noverworld_rules.py $O/novnolefein/novnolefein.nes -o $O/novnolefein/derived_novnolefein.json
+    python3 tools/noverworld_rules.py $O/novhoard/novhoard.nes       -o $O/novhoard/derived_novhoard.json
 
     python3 tools/check_logic.py $O/nov/oracle_nov.nes \
         --derived $O/nov/derived_nov.json --ap-rules $O/nov/oracle_nov.yaml --ff1-world $W
+    python3 tools/check_logic.py $O/novnolefein/novnolefein.nes \
+        --derived $O/novnolefein/derived_novnolefein.json \
+        --ap-rules $O/novnolefein/novnolefein.yaml --ff1-world $W
+    python3 tools/check_logic.py $O/novhoard/novhoard.nes \
+        --derived $O/novhoard/derived_novhoard.json \
+        --ap-rules $O/novhoard/novhoard.yaml --ff1-world $W
     python3 tools/check_logic.py $O/std/oracle_std.nes \
         --ap-rules $O/std/oracle_std.yaml --ff1-world $W
     python3 tools/check_logic.py $O/shard/oracle_shard.nes \
@@ -523,8 +751,13 @@ touches a map bank.)
 
     python3 tools/tofr_diff.py $O/nov/oracle_nov.nes $O/nov2/oracle_nov2.nes
 
-`--ff1-world` is load-bearing: without it only about 20 checks map and the run
-reports a cheerful zero. `--ap-rules` is load-bearing for the reason above. The
+`--ff1-world` no longer has to be passed, as of 2026-09-03: the default was
+pointing one directory level short of the world and every location came back
+unmapped, so a run without the flag mapped about 20 checks and reported a
+cheerful zero. It resolves on its own now, and a path given explicitly and not
+found refuses rather than reporting that zero. Passing it is still right when
+the Archipelago checkout is somewhere else. `--ap-rules` is load-bearing for
+the reason above. The
 `nov` derivation sweep is about 60 seconds -- 4096 subsets rather than the old
 1024, and faster than the old sweep was, because the floor walk is memoized;
 everything else is fast.

@@ -131,7 +131,8 @@ either. The eleven above them are in both schemas.
 | `EarlySage` | `earlySage` | code |
 | `NoTail` | `noTail` | code — declared in `IVictoryConditionFlags` and never read there; see section A' |
 | `ShuffleObjectiveNPCs` | `objectiveNPCs`, through `$noObjectiveShuffle` | code — deliberately strict. `NPCs.cs:277` permutes Bahamut, Dr Unne and the Elf Doctor across their three homes and the roll reaches no file the pack can read, so with the flag on the two cells that move ask for all three homes at once. See "The permutation is the problem" below |
-| `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto | n/a for reachability; affects which pins are checks. `ChestsKeyItems` is read directly — `maptab.lua:87`'s `cartridgeChestsAreChecks()` asks `ffrFlag` for it, and that answer reaches `chestsAreChecks()` and `logic.lua`'s `showPin()` |
+| `NPCItems`, `ChestsKeyItems` | pool shape → `Overworld Tab` auto; `NPCItems` → `npcItems` | n/a for reachability, confirmed rather than assumed; both affect which pins are checks. `ChestsKeyItems` is read directly — `maptab.lua:87`'s `cartridgeChestsAreChecks()` asks `ffrFlag` for it, and that answer reaches `chestsAreChecks()` and `logic.lua`'s `showPin()`. `NPCItems` has a code since 2026-09-03, because it is the other conjunct of the computed `IncentivizeCaravan` (`FlagsCompute.cs:217`) — FFR's own Incentives tab greys the Main NPCs checkbox out on it (`IncentivesTab.razor:13`, `IsEnabled="@Flags.NPCItems"`). Measured on `nonpcitems497` against `std497`: **zero exported rules move, seven `priority_locations` go, and the caravan slot leaves the export outright** — the six free NPCs stay checks and lose their ring; `Shop Item` stops being a location at all, 227 to 224. So the six carry the conjunction in `access_rules` and the seventh carries `visibility_rules` on its existence. Both are graded by `tools/tests/test_incentive_conjunction.py` |
+| `NPCFetchItems` | `npcFetchItems` | n/a for reachability; it moves the incentive ring and nothing else. `FlagsCompute.cs:220-226` computes the seven fetch NPCs as `NPCFetchItems && IncentivizeFetchNPCs` — FFR's own tab greys Fetch Quest NPCs out on it the same way (`IncentivesTab.razor:14`) — and the pack modelled the second conjunct alone until 2026-09-03. **Measured** on `nofetchitems497`: zero rules move, 226/226 agree, seven priority locations go (Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick, Smith) and all seven stay locations, so the repair is the conjunction and nothing else. `IncentivizeNerrick` ends `&& !NoOverworld` (`:224`), which bites on a No-Overworld roll only and is visible on `nov`: Nerrick is in `locations` and `rules` there but not in `priority_locations`, while his six siblings are. There was an eighth pack row, `Dr Unne`, until 2026-09-03: not among the seven and not an AP location on either corpus, because FFR has no `IncentivizeUnne`. The slot was removed rather than re-gated — the closed entry in `docs/ISSUES.md` |
 | `NPCSwatter` | — | n/a |
 
 ### No-Overworld / entrance shuffle (`MetroidVaniaMap.cs`, `EntrancesFloorsShuffle.cs`)
@@ -141,7 +142,7 @@ either. The eleven above them are in both schemas.
 | `EarlyOrdeals` | `earlyOrdeals` | code |
 | `Entrances`, `Floors`, `Towns`, `EntrancesMixedWithTowns`, `IncludeConeria`, `AllowDeepCastles` | — | unmodellable by toggle; `regen_maps` reads the result off the cartridge |
 | `OwMapExchange`, `OwShuffledAccess` | — | unmodellable; `flag_mapping` already warns |
-| `LefeinSuperStore` | `NOT_MODELLED`, status `unjudged` | **unmeasured** — passed to `ApplyMapMods` (`MetroidVaniaMap.cs:58`), which runs only under `NoOverworld()`, and at `:260` it picks between two sets of tile writes to `MapIndex.Lefein`: different wall edges, plus a blob named `lefeinNonteleport`. Walls and a teleport tile in a town the 75-link table was derived from with the flag off. Filed `noise` until 2026-09-01 on the word *store* in its name |
+| `LefeinSuperStore` | `NOT_MODELLED`, status `decided` | **measured 2026-09-03 on `novnolefein`, and it moves no link and no rule.** No preset in either corpus varied it, so a cartridge was rolled for it: `oracle_nov`'s preset and seed with one boolean flipped, 533 decoded flags and exactly one differing. Both cartridges derive 256 locations and the same names; the 10 rules that differ are the Cardia/Bahamut gateway permutation and the two ToFR bonus chest ids, both of which `docs/NOVERWORLD.md` already lists as rolled per seed. `check_logic --derived` grades it 222 compared, 221 agree, 1 divergent — the same strict `Lefein` row `nov` has. Two call sites, not one: `MetroidVaniaMap.cs:58` passes it to `ApplyMapMods`, No-Overworld only, which picks between two sets of tile writes to `MapIndex.Lefein`; and `SMUpdates.cs:39` at 4.9.2 (`:116` at 4.9.7) calls `EnableLefeinSuperStore` from `Update()`, the general standard-maps pass, so the store is placed on either mode. That site also ANDs in the `ShopKillMode` pair `FlagsCompute.cs:51` calls `LefeinSuperStoreEnabled`. **Standard mode is measured too, and it had to be**, because that second call site is not a No-Overworld one and `decided` is the status that says no further measurement is wanted: the store is on `std` and `std497` (72 of 72 blob cells, the tree at `[0x00, 0x34]` cleared and walkable), and walking `std`'s Lefein against the same map with those 73 cells restored to their flag-off values leaves all 14 objects reachable at identical distances — the town has no treasure tile for any of it to gate. What moves is 4 shop doors and one exit tile across the map's vertical wrap. Filed `noise` until 2026-09-01 on the word *store* in its name, `unmeasured` until 2026-09-03 on a call site cited without being read, and `unmeasurable from this corpus` until the cartridge existed. `docs/ORACLE.md` has the figures for both modes |
 
 ## C. Goal and Temple of Fiends (`TempleOfFiends.cs`)
 
@@ -175,6 +176,28 @@ day they were found would draw exactly the wrong lesson from having found them.
 These decide *what is where*, which the tracker must not know. The `Incentivize*`
 and `TitansTrove` codes the pack does carry drive pin colour (blue/gold) and
 whether Titan's Trove exists as a check — presentation, not reachability.
+
+### One of them is computed, and the shop slot is what it speaks for
+
+`IncentivizeCaravan` has no field in either flag schema, because
+`FlagsCompute.cs:217` derives it: `(NPCItems ?? false) && (IncentivizeFreeNPCs
+?? false)`. `PlacementContext.cs:198` then puts `ItemLocations.CaravanItemShop1`
+into the incentive pool on it, so the caravan slot is an incentive location like
+any other and the `I: Shop Item` pin takes `^$incentiveSlot|npcsAreIncentive`
+alongside the six free NPCs — `IncentivizeFreeNPCs` being what the pack calls
+`npcsAreIncentive`, and what FFR labels "Main NPCs".
+
+This row exists because its absence was read as an answer. Searching a flag
+*schema* for a name containing "shop" or "caravan" returns nothing, and that
+was reported as FFR having no such flag; an absence in a derived index is not an
+absence in the source, and the source was three greps away in a vendored clone.
+
+The slot's **content** is still roll noise, and the two were conflated. The
+incentive status is a flag; what lands in the slot is the roll —
+`ItemPlacement.SelectVendorItem` falls back to a consumable when no eligible
+incentive item is left, which is why roughly half of solo seeds hold nothing
+worth hunting there even with the flag on. Both statements are true and only
+one of them is about a flag.
 
 ## Missing rows, in one place
 
@@ -401,17 +424,62 @@ modelled.
 
 **What the thirty became.** `NOT_MODELLED` in `flag_mapping.lua` carries a
 `status` drawn from the key at the top of this page, so an entry and its row
-here can be checked against each other. The tally below is 31 rather than 30
-because `ExitToFR` was already there — the thirty are the ones this added:
+here can be checked against each other. The tally below is 30 rather than 31
+because `ExitToFR` was already there when the thirty were added, and because
+two of them have since left:
 
-    ram 7   variant 1   noise 8   unmodellable 6   decided 4   unjudged 5
+    ram 7   variant 1   noise 8   unmodellable 6   decided 5   unjudged 3
 
 `unjudged` is the status that keeps the list usable. A list padded to make the
-test pass is the test not existing, so `NPCItems`, `NPCSwatter`, the two
-refight flags above and `LefeinSuperStore` say they are unmeasured and name the
-measurement, rather than borrowing a neighbour's reason. `tests/test_flags.lua`
+test pass is the test not existing, so `NPCSwatter` and the two refight flags
+say why they are unsettled and name the measurement, rather than borrowing a
+neighbour's reason.
+
+**`LefeinSuperStore` was a fourth kind, and left on 2026-09-03.** It was never
+waiting on a cartridge nobody had rolled: every preset in both corpora sets it
+`true`, so no cartridge here could vary it and none ever did. "Unmeasured" and
+"unmeasurable from this corpus" want telling apart, because only the second
+names a cartridge that has to be made rather than found — and once that is
+named, making it is a command. `novnolefein` was rolled the same day and the
+answer is that the flag moves no link and no rule, so the entry is `decided`
+rather than retired to a code. What that cost was one roll, one derivation and
+one graph diff; what it had cost instead was three separate wrong reasons in
+four days.
+
+**Two entries left on 2026-09-03: `NPCItems` and `NPCFetchItems`.** Both were
+measured on a cartridge rolled for them, both turned out to move a gold ring and
+no access rule, and both now carry a code — `npcItems` and `npcFetchItems` —
+which is what their `owed` fields named and what retires an entry. The check
+that removed them is `tests/test_flags.lua`'s "no flag sits unjudged once that
+code exists".
+
+`NPCFetchItems` was in **no** table at all until 2026-09-03, and the reason is
+worth keeping in mind now that it is modelled: `consulted()` greps FFR's
+*reachability* logic, and this flag is read only on the incentive path, so
+`reads` never contained it and its absence from `models` could not show up as a
+miss. A flag that only ever moves a ring is outside what that check can see,
+so what holds these two is a grader of the ring rather than a coverage row:
+`tools/tests/test_incentive_conjunction.py` compares what the pack would ring
+against the `priority_locations` FFR exported, over both corpora.
+
+**All three that remain are unmeasured**, and each names the measurement that
+would settle it, in `measure`, beside the `why` every entry carries. **None of
+the three carries `measured` or `owed`, and that is what those fields are for**
+-- an entry acquires them the day it is measured and loses them by leaving, so
+an empty set of them here means nothing is waiting on a build. The pair that
+left is the argument for having them: the vocabulary had no word for "measured,
+and now waiting on a code" — `noise` and `decided` are both false of a flag that
+demonstrably moves a ring — so `measure` carried the result instead of the
+request and a `measured = true` field carried a distinction the prose had been
+carrying alone. For one commit the only difference between a flag nobody had
+looked at and one waiting on a build was that one `measure` string began
+"done:", which no check could read. `owed` names the code that retires the
+entry, and the check that bites is the third: once that code exists in the
+mapping, an entry still sitting here is stale — which is how these two came out.
+`tests/test_flags.lua`
 holds all of it: a known status, a real reason, a measurement on anything
-`unjudged`, and a `computed = true` exemption for the eight flags
+`unjudged`, `measured`/`owed` agreeing with the prose, no entry outliving its
+code, and a `computed = true` exemption for the eight flags
 `FlagsCompute.cs` derives rather than stores — which have no field in either
 schema, so the existing "every named flag is a real flag" check would otherwise
 have failed on them.

@@ -239,6 +239,85 @@ ok(c.compare(swept, only_key, set(), {}, (), set())[0] == "strict",
    "and still reports strict")
 
 
+# --- the world path: the default, and the two shapes that are not a path ---
+#
+# Nothing exercised the default before. verify.sh always passes --ff1-world, so
+# a default that resolved nowhere returned {}, every location read as unmapped,
+# and the run still exited 0 -- which is how it survived long enough for
+# docs/ORACLE.md to write the symptom up as procedure. A cheerful zero is the
+# one failure this tool cannot afford, so the default gets held down here.
+WORLD = os.path.join(c.PACK, "..", "..", "Archipelago", "worlds", "ff1")
+if os.path.exists(os.path.join(WORLD, "data", "locations.json")):
+    # From a foreign cwd, because the bug was a *relative* path that happened to
+    # resolve from the pack root and nowhere else.
+    cwd = os.getcwd()
+    os.chdir(tempfile.gettempdir())
+    try:
+        byname = c.ap_location_paths()
+        ok(len(byname) > 0, "the default --ff1-world resolves to a real table",
+           len(byname))
+        # "" is what a shell fragment yields when the variable behind it is
+        # unset. Counting it as given made `names` relative and resolved it
+        # against the caller's cwd: a miss on most, the wrong table on one that
+        # happens to hold data/locations.json.
+        ok(c.ap_location_paths(ff1="") == byname,
+           'an empty --ff1-world falls back to the default, not to cwd')
+    finally:
+        os.chdir(cwd)
+else:
+    print("skip  the default --ff1-world -- no vendor/Archipelago/worlds/ff1")
+
+# A `~` is the correct directory spelled the one way os.path.exists cannot see,
+# and the refusal makes that an abort rather than a skip. Fake a HOME so the
+# assertion does not depend on where this machine keeps its clone.
+home = os.environ.get("HOME")
+with tempfile.TemporaryDirectory() as tmp:
+    os.makedirs(os.path.join(tmp, "w", "data"))
+    with open(os.path.join(tmp, "w", "data", "locations.json"), "w") as handle:
+        json.dump({}, handle)
+    os.environ["HOME"] = tmp
+    try:
+        c.ap_location_paths(ff1="~/w")
+        ok(True, "a --ff1-world under ~ is expanded, not refused")
+    except SystemExit as exc:
+        ok(False, "a --ff1-world under ~ is expanded, not refused", str(exc))
+    finally:
+        if home is None:
+            del os.environ["HOME"]
+        else:
+            os.environ["HOME"] = home
+
+# And a path that really names nothing is still a refusal, not a silent {}.
+try:
+    c.ap_location_paths(ff1=os.path.join(tempfile.gettempdir(), "no-such-world"))
+    ok(False, "a --ff1-world naming nothing is refused")
+except SystemExit:
+    ok(True, "a --ff1-world naming nothing is refused")
+
+# --- a rolled flag reads as the board reads it, not as off -----------------
+#
+# `flag_codes` predicts what the flag grid would be showing, and the grid is not
+# a plain reading of the decoded set: applyFFRFlagsToBoard tells two kinds of
+# nil apart. A tristate the generator rolled leaves its cell alone -- the
+# mapping's `default` on a grid nobody has touched -- while a flag the build
+# has never heard of is not in the decoded set at all and is a definite off.
+#
+# Reading both as off is what test_incentive_conjunction's prediction did, and
+# it is a blind spot rather than a failure only because no cartridge in either
+# corpus has rolled one: on a seed whose NPCItems came back nil, the board rings
+# the six free NPC slots and the grader predicted no ring, so a wrong ring on
+# that seed would have been recorded as agreement.
+ok("npcItems" in c.flag_codes({"NPCItems": True}),
+   "a flag the string sets is on")
+ok("npcItems" not in c.flag_codes({"NPCItems": False}),
+   "a flag the string clears is off")
+ok("npcItems" in c.flag_codes({"NPCItems": None}),
+   "a rolled flag defaulting on is on, the way the grid shows it")
+ok("npcItems" not in c.flag_codes({}),
+   "a flag the build does not have is off, default or not")
+ok("noTail" not in c.flag_codes({"NoTail": None}),
+   "and a rolled flag defaulting off stays off")
+
 print()
 if fails:
     print("FAILED: " + ", ".join(fails))

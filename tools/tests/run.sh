@@ -21,7 +21,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 PY=${PYTHON:-python3}
 
 status=0
-for t in docs flag_coverage ffr_pin doormap_walk gate_objects memo_walk talk_items sprites font room_floors crop npc_pins noverworld_rules check_logic tofr_diff toggle_icons pin_visibility overworld_render overworld_pins regen_stamp map_values lane lane_file lane_edit shop_slot regen_branch; do
+for t in docs flag_coverage ffr_pin doormap_walk gate_objects memo_walk talk_items sprites font room_floors crop npc_pins noverworld_rules check_logic tofr_diff export_diff toggle_icons pin_visibility overworld_render overworld_pins regen_stamp map_values lane lane_file lane_edit shop_slot incentive_conjunction regen_branch; do
     echo "== $t"
     "$PY" "$HERE/test_$t.py" || status=1
 done

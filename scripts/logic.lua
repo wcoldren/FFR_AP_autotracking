@@ -240,9 +240,11 @@ end
 -- once it is actually reachable. That is the right way round -- "you cannot
 -- get there yet" outranks "there is probably nothing good here".
 --
--- ProviderCountForCode rather than FindObjectForCode().Active: BahamutHoard is
--- stage 2 of the cardiaIsIncentive progressive, and only the provider walk
--- knows which codes a stage hands out.
+-- ProviderCountForCode rather than FindObjectForCode().Active: the flags this
+-- is asked about are not all toggles -- a progressive's Active says only that
+-- it is off stage 0, and only the provider walk knows which codes its current
+-- stage hands out. BahamutHoard was such a code until the cardia split; the
+-- reason survives it, because nothing stops the next flag being a stage.
 local INCENTIVE_WARNED = {}
 
 function incentiveSlot(code)
@@ -327,14 +329,30 @@ function showPin(kind, ...)
   end
   if kind == "slot" then
     -- A slot this seed did incentivize is not a skipped one, so the toggle has
-    -- no say over it. The flags are the section's own ^$incentiveSlot flags,
+    -- no say over it. The flags are one section's own ^$incentiveSlot flags,
     -- passed in from the location file, so the pairing is not copied here.
+    --
+    -- These are ANDed, and the OR is the rule array's. A section can carry a
+    -- conjunction -- FFR computes IncentivizeCaravan as
+    -- (NPCItems && IncentivizeFreeNPCs) and each fetch incentive the same shape
+    -- one flag along (FlagsCompute.cs:217, :220-226) -- so a slot speaking for
+    -- two flags rings on both or not at all. A node holding several sections
+    -- gets one entry each and PopTracker ORs them (location.cpp:266), which is
+    -- what this docstring has claimed since it was written; the tool that
+    -- writes these joined a node's sections into one entry instead, and folding
+    -- the OR here is what made a conjunction inexpressible.
+    --
     -- An undefined flag counts zero and falls through to the toggle rather than
     -- to a permanent hide; tests/test_pins.lua is what keeps one from existing.
+    local incentivized = select("#", ...) > 0
     for _, flag in ipairs({ ... }) do
-      if Tracker:ProviderCountForCode(flag) > 0 then
-        return 1
+      if Tracker:ProviderCountForCode(flag) <= 0 then
+        incentivized = false
+        break
       end
+    end
+    if incentivized then
+      return 1
     end
     -- Nor is any slot a skipped one on a run where the chests are the checks.
     -- "The seed did not incentivize this" means "there is probably nothing good

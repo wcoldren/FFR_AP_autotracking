@@ -30,12 +30,49 @@
 local function incentiveFlags()
   local seen, out = {}, {}
   for _, slot in ipairs(INCENTIVE_SLOTS or {}) do
-    if not seen[slot.flag] then
-      seen[slot.flag] = true
-      out[#out + 1] = slot.flag
+    -- `or {}` for the same reason INCENTIVE_SLOTS has one: this runs at load
+    -- time and outside any pcall, so a row in the pre-conjunction `flag =`
+    -- shape would abort the script -- no watches registered and no first
+    -- refresh, which is the rings gone rather than degraded.
+    for _, flag in ipairs(slot.flags or {}) do
+      if not seen[flag] then
+        seen[flag] = true
+        out[#out + 1] = flag
+      end
     end
   end
   return out
+end
+
+-- Does this seed's flag set speak for the slot?
+--
+-- `flags` is an AND, because two of FFR's incentive conditions are computed
+-- conjunctions rather than stored flags: IncentivizeCaravan is
+-- (NPCItems && IncentivizeFreeNPCs) and each fetch incentive is
+-- (NPCFetchItems && IncentivizeFetchNPCs) -- FlagsCompute.cs:217, :220-226.
+-- Ringing on either conjunct alone gilded seven slots FFR never incentivized.
+local function slotIsIncentivized(slot)
+  -- FFR's IncentivizeNerrick carries a third term the other six do not:
+  -- (NPCFetchItems && IncentivizeFetchNPCs && !NoOverworld), FlagsCompute.cs:224.
+  -- The No-Overworld incentive sheet answers it by having no Nerrick section,
+  -- but the board tree is one file loaded by both variants, so its row says so
+  -- instead. Measured on nov, where Nerrick is a location and is in `rules` but
+  -- is not in priority_locations while his six siblings are.
+  --
+  -- No watch: standardWorld() reads the variant, which is fixed before the
+  -- first rule is evaluated and never moves. Fails open if logic.lua somehow
+  -- has not loaded, the way wantRings() does -- a missing global must not put
+  -- every ring out.
+  if slot.standardOnly and type(standardWorld) == "function"
+     and standardWorld() <= 0 then
+    return false
+  end
+  for _, flag in ipairs(slot.flags) do
+    if Tracker:ProviderCountForCode(flag) <= 0 then
+      return false
+    end
+  end
+  return true
 end
 
 local highlightWarned = false
@@ -106,7 +143,7 @@ function refreshIncentiveHighlights()
       -- catches a path that resolves in neither.
       local section = Tracker:FindObjectForCode(slot.path)
       if section then
-        if rings and Tracker:ProviderCountForCode(slot.flag) > 0 then
+        if rings and slotIsIncentivized(slot) then
           section.Highlight = Highlight.Priority
           marked = marked + 1
         else

@@ -264,8 +264,20 @@ Nothing here is urgent unless it says so.
   blue, and red outranks blue by design. Nothing to do in the pack; worth knowing
   if that setting is on.
 
-- **`shopItem`** is the one Locations-grid cell with no incentive toggle behind it
-  and no FFR flag mapped to it, so it is never blue and never gold.
+- **`shopItem` had no incentive toggle behind it and no FFR flag mapped to it,
+  so it was never blue and never gold. Closed 2026-09-03**, by the entry below
+  on the `I: Shop Item` pin: the section carries
+  `^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems` now, with
+  `visibility_rules: ["npcItems"]` and a `$showPin` restriction on the pin, so
+  it demotes and hides like every other slot.
+
+  Filed here because it outlived its own fix by a day while still reading as
+  open, which is the failure the header above describes -- an entry that goes
+  quiet sends the next reader after work already done. The close that made it
+  false is the entry named "The `I: Shop Item` pin ignores the flag that
+  governs it", which did not think to come up here. Named rather than pointed
+  at by position, because a positional pointer rots the same way -- this
+  sentence said "two entries down" and was already wrong when it was written.
 
 - **Our trap letters are not DarkmoonEX's**, by design. His are hand-assigned for
   vanilla and do not describe an FFR seed; ours are read per cartridge. Only
@@ -531,8 +543,8 @@ Nothing here is urgent unless it says so.
   surface, and restamping 29 markers against a crop this mode never renders is
   work with nothing to check it against until there is one.
 
-- **The `I: Shop Item` pin ignores the flag that governs it.** Found
-  2026-09-02. Every other incentive slot carries `^$incentiveSlot|<flag>`, so
+- **The `I: Shop Item` pin ignores the flag that governs it. Fixed
+  2026-09-03.** Found 2026-09-02. Every other incentive slot carries `^$incentiveSlot|<flag>`, so
   the board can grey a slot the seed did not incentivize. `shopItem` carries
   none, on the belief that FFR has no flag for it. FFR does:
   `FlagsCompute.cs:217` computes
@@ -558,9 +570,26 @@ Nothing here is urgent unless it says so.
   incentive status is a flag; its content is the roll. Conflating those is what
   produced the wrong close.
 
-  Fix: `^$incentiveSlot|npcsAreIncentive` on the `shopItem` section in both
-  incentive trees, and the matching row in `scripts/incentive_slots.lua`. Not
-  done here.
+  Fixed by `^$incentiveSlot|npcsAreIncentive` on the `shopItem` section in both
+  incentive trees, plus `$showPin|slot|npcsAreIncentive` on the pin —
+  `pin_visibility.py` stamps the same rule, so the pin half is the tool's output
+  rather than a transcription of it. `scripts/incentive_slots.lua` is generated
+  and was re-run rather than edited.
+
+  **It gains one row where every other slot gains two**, and that is this
+  entry's own collision showing up somewhere new: a row's path is
+  `@<node>/<section>`, and the board's node for this slot is itself named
+  `I: Shop Item`, so the sheet path and the board path are the same string and
+  the second is deduped away. The surviving row reaches the board's section, by
+  the same first-match rule recorded below. What the sheet's section loses is
+  only the gold ring; its access rule and its pin rule are evaluated directly
+  and are unaffected.
+
+  Six counters moved, each re-derived: sections reporting Inspect 49 → 51,
+  generated rows 55 → 56, sheet pins with a rule 17 → 18 and 20 → 21, and pins
+  drawn with the flag off 9 → 8 and 8 → 7. The last pair is the demonstration
+  that the rule bites — with `npcsAreIncentive` absent the pin was drawn before
+  and is not drawn now.
 
 - **The `I: Shop Item` pin clears itself now, and is deliberately still green
   until it does.** The pin is `Onrac Continent/I: Shop Item`, with empty
@@ -648,14 +677,267 @@ Nothing here is urgent unless it says so.
   list, so it reproduced the OR answer by construction and could not have
   disagreed. It is evidence of nothing.
 
+- **Seven incentive slots ring gold on a seed FFR did not incentivize them on.
+  Fixed 2026-09-03.** Found the same day, by the first use of
+  `tools/export_diff.py`, on the cartridge rolled for it.
+
+  **What closed it.** `npcItems` and `npcFetchItems` are codes now, ANDed into
+  every alternative of the sections they speak for -- 14 free sections and 15
+  fetch ones across the two sheets. The caravan slot got `visibility_rules`
+  rather than a second conjunct, because its problem was existence. Nerrick got
+  a third term, derived from the sheets rather than listed. And the rings have a
+  grader of their own, `tools/tests/test_incentive_conjunction.py`, which was
+  the actual gap: `check_logic` grades access rules, the rings answer to
+  `priority_locations`, and nothing compared the two. Reverting the conjuncts
+  reddens 13 rings and one ghost; reverting the third term reddens Nerrick on
+  `nov` and `nov2`.
+
+  **Three findings the grader turned up on the way, none of them this defect**,
+  filed below: the Cardia progressive's stage-2 inheritance, a Sea Shrine
+  incentive chest `notail` does not have, and `Dr Unne`, which already had an
+  entry.
+
+  What the defect was: `FlagsCompute.cs:217` makes the incentive status of the six
+  free NPCs and the caravan slot the *conjunction*
+  `(NPCItems ?? false) && (IncentivizeFreeNPCs ?? false)`. The pack models one
+  conjunct: all seven rows in `scripts/incentive_slots.lua` -- King, Sara,
+  Bikke, Sarda, Sages, Robot and Shop Item -- carry `npcsAreIncentive`, which is
+  `IncentivizeFreeNPCs`, and no `npcItems` code exists anywhere in the pack.
+
+  So on `NPCItems` off with `IncentivizeFreeNPCs` on, FFR drops all seven from
+  `priority_locations` and the pack rings all seven gold. Measured on
+  `nonpcitems497` against `std497`: seven priority locations gone, and **zero
+  access rules moved** -- the seven names FFR drops are exactly the seven the
+  pack rings.
+
+  **Six of the seven are a wrong ring. The seventh is a check that does not
+  exist.** `Shop Item` leaves `rules` and `locations` as well as
+  `priority_locations` -- 227 exported locations to 224 -- while the six NPCs
+  stay in both. `PlacementContext.cs:243` forces vanilla placements on the six
+  and on the vendor slot alike when `NPCItems` is off, and `SelectVendorItem`
+  (`ItemPlacement.cs:227`) hands back a Bottle before it looks at anything, so
+  the source alone does not say which of the seven Archipelago still calls a
+  location. The export does, and it says the caravan slot is not one. Reading
+  that off `PlacementContext.cs` would have got it wrong in both directions.
+
+  So the fix is three, not one -- two on the free half, and the fetch half
+  below:
+
+  - **The ring, on six.** An `npcItems` code and the conjunction on the NPC rows
+    of `scripts/incentive_slots.lua` -- thirteen `npcsAreIncentive` rows across
+    the two incentive trees, seven in the `I:` tree and six in the standard one,
+    which has no caravan row -- and on the matching `access_rules` in
+    `locations/incentives.json` and `locations/NOverworld/incentives.json`. This
+    is the shop-slot build one conjunct along.
+  - **The slot, on one.** The caravan slot needs `npcItems` on its *existence*,
+    not its colour, in all four location files. Today
+    `locations/incentives.json` and its `NOverworld` twin gate the section on
+    `^$incentiveSlot|npcsAreIncentive` and the pin on
+    `$showPin|slot|npcsAreIncentive`, and `locations/overworld.json` and its
+    twin gate neither -- the overworld tree shows a shop-item check
+    unconditionally. With `NPCItems` off, all four show a check FFR did not
+    create.
+
+  **The fetch half has the same shape and is not fixed by the above.**
+  Measured 2026-09-03 on `nofetchitems497`, rolled for it: **zero access rules
+  move, 226 of 226 agree, and seven `priority_locations` go** -- Astos, Elf
+  Prince, Fairy, Lefein, Matoya, Nerrick and Smith, with `IncentivizeFetchNPCs`
+  still on. `FlagsCompute.cs:220-226` computes the fetch NPCs as
+  `(NPCFetchItems ?? false) && (IncentivizeFetchNPCs ?? false)`, the same
+  conjunction one flag along, and the pack again models one conjunct: the
+  sixteen fetch rows of `scripts/incentive_slots.lua` -- eight per tree, Smithy,
+  Nerrick, Astos, Matoya, Elf Prince, Dr Unne, Lefein and Fairy; fourteen and
+  seven since Dr Unne's slot was removed on 2026-09-03, so count against that
+  date, not against the file -- carry
+  `fetchQuestsAreIncentive`, which `flag_mapping.lua:54` binds to
+  `IncentivizeFetchNPCs` alone. `NPCFetchItems` was in both shipped schemas and in
+  `tools/doormap.py`, and appeared nowhere in `scripts/`: no code, no
+  `NOT_MODELLED` row and -- until later the same day -- no row in
+  `docs/FLAG_COVERAGE.md` either. So a seed with
+  `NPCFetchItems` off and `IncentivizeFetchNPCs` on rings those slots gold on a
+  seed FFR did not incentivize them on -- the same defect, and the coverage test
+  cannot see it either, because `consulted()` greps FFR's *reachability* logic
+  and this flag is only read on the incentive path.
+
+  **The repair is one thing here, not two.** All seven stay in `rules` and
+  `locations` -- 227 to 226, and both the removed and the added names are
+  chests, so the net one is pool churn the diff declines to attribute. There is
+  no caravan-shaped second half: nothing leaves the export, so the fetch fix is
+  the conjunction on the NPC rows and nothing else.
+
+  **Nerrick is a three-term conjunction**, which does not show on this
+  cartridge. `IncentivizeNerrick` is `(NPCFetchItems ?? false) &&
+  (IncentivizeFetchNPCs ?? false) && !NoOverworld` (`FlagsCompute.cs:224`), and
+  `IncentivizedLocationCountMin` (`:229`) reads the same way -- seven fetch
+  slots, or six under No-Overworld. Nerrick is in the seven above because
+  `nofetchitems497` is a standard seed; the third term only bites on a
+  No-Overworld roll, so the `NOverworld` incentive tree must drop that row
+  rather than gate it.
+
+- **The Cardia ring cannot be switched off on a hoard seed. Fixed 2026-09-03**,
+  by splitting the progressive into two toggles. Found the same day by
+  `tools/tests/test_incentive_conjunction.py`. Six `hoard*497` cartridges roll
+  `MapDragonsHoard` on with `IncentivizeCardia` off; the grader reported five of
+  them as a wrong ring on `Cardia Forest Island - Incentive Major`, where FFR's
+  `priority_locations` names no Cardia location at all, and the sixth,
+  `hoarddockbridge497`, as a ghost instead -- see the entry below.
+
+  The cause was the shape of the model rather than a wrong flag.
+  `cardiaIsIncentive` was a progressive whose stage 2 was Bahamut's Hoard, and a
+  PopTracker progressive provides every code up to its current stage, so
+  reaching stage 2 handed out stage 1's `cardiaIsIncentive` whatever
+  `IncentivizeCardia` said. `flag_mapping.lua`'s own comment said the
+  inheritance "only affects which pins are drawn", which was true, and was
+  measured to be the wrong thing to be relaxed about.
+
+  **The first diagnosis of why it needed two items was wrong, and the
+  correction is the part worth carrying forward.** This entry used to say a
+  progressive *cannot* say "the hoard exists and Cardia is not incentivized".
+  It can: `inherit_codes: false` on stage 2 stops the downward walk after that
+  stage's own codes (`jsonitem.h:188-198`, transcribed at
+  `tests/item_model.lua:12` and implemented at `:51`, `:69-73`), and it would
+  have gone green on this corpus. It would also have been wrong in a way
+  nothing here could catch. A two-stage progressive has three states once
+  `allow_disabled` adds its zero; two independent booleans need four. The state
+  no relabelling reaches is a hoard seed that *does* incentivize Cardia --
+  a flagset FFR rolls freely and no cartridge in either corpus happens to hold.
+  So the grader alone could not have told the two fixes apart, and the argument
+  for the split is representational rather than mechanical.
+
+  What landed: `cardiaIsIncentive` and `BahamutHoard` are two toggles in
+  `items/flags.json` with a mapping row each, `tools/check_logic.py` stopped
+  mirroring the inheritance and now reads both codes out of `TOGGLES` like any
+  other flag, `BahamutHoard` joined `EXISTENCE_FLAGS` in
+  `tools/incentive_slots.py` -- it says the chests are in the cartridge, not
+  that they are incentivized -- and the two incentive sheets' hoard sections
+  gained `^$incentiveSlot|cardiaIsIncentive` beside the visibility rule they
+  already had, so the hoard slot is hidden on existence and demoted on the
+  incentive, the way the shop slot already was. The five wrong rings went and
+  the waiver went with them. `tests/test_incentives.lua` now walks all four
+  combinations of the two flags; the fourth, hoard on and Cardia off, is the one
+  the old shape could not state.
+
+  **One cell resets once on the upgrade, and it is not a bug to chase.**
+  PopTracker keys saved item state by a stable ID built from the item's type and
+  name -- `Type2Str(_type) + ":" + name`, `jsonitem.cpp:184` -- so the toggle
+  does not answer to the `progressive:Cardia Island is Incentive` that a session
+  saved before the split, and `Tracker::loadState` skips a key it cannot match
+  rather than complaining (`tracker.cpp:1404-1411`). A session reopened across
+  the change finds that one hand-set cell off. Nothing else moves: no other
+  item's ID changed, and the match is by ID rather than by position, so
+  inserting `Bahamut's Hoard` mid-list shifts nothing. (A state old enough to
+  carry no `json_item_ids` at all falls back to the positional key and would
+  shift, but every version that writes one writes them for all items.) The next
+  flag send from the bridge sets the cell from the cartridge, so the reset
+  survives one session at most.
+
+  **The No-Overworld half is demonstrated too, on a cartridge rolled for it.**
+  All six existing hoard cartridges are standard seeds, so the first pass could
+  only claim standard-mode evidence. `novhoard` closes that: `oracle_nov`'s
+  preset at `oracle_nov`'s seed with `MapDragonsHoard` flipped on and
+  `IncentivizeCardia` left off, read back off the cartridge as 533 decoded flags
+  against `nov`'s 533 with exactly one differing. Restoring the inheritance in
+  the grader reddens six rows rather than five, `novhoard` among them, and the
+  fix greens all six. It also retired a second standing "not measured" note --
+  `docs/ORACLE.md` had no No-Overworld hoard cartridge to grade the
+  `$standardWorld`-guarded `BahamutHoard` alternative against, and now grades it
+  224 compared, 223 agree, 1 divergent, that one being the same deliberately
+  strict `Lefein` row `nov` carries.
+
+- **A slot can ring for a location the seed does not have, and the caravan was
+  not the only one.** Found 2026-09-03 by the same grader. On `notail` the pack
+  rings `Sea Shrine Mermaids (B1) - Incentive Major`, which is not an
+  Archipelago location on that seed -- its Sea Shrine incentive chests are
+  `Incentive 1` and `Incentive 2`. `hoarddockbridge497` does the same with the
+  Cardia chest.
+
+  Same family as the caravan slot and a different cause. The caravan's existence
+  answers to a flag, so a rule can gate it; these are the seed naming a chest
+  slot differently, which no flag predicts, so the pack's row points at an id
+  the pool does not contain. What that should become is open -- probably a row
+  that can name more than one id, or a check that treats an absent id as no slot
+  rather than as a slot to ring.
+
+  **Only `notail` is waived now, and the other one did not get fixed.** The
+  Cardia half was reachable only because the pack ringed a Cardia slot on a
+  hoard seed at all; with the entry above fixed, the ring is decided by
+  `IncentivizeCardia`, which `hoarddockbridge497` has off, so the comparison
+  ends before the missing id is looked for. The waiver was removed rather than
+  left standing, because a waiver nothing can trigger reads as live evidence of
+  a live finding. The finding is live; this corpus can no longer show it, and a
+  seed that incentivized Cardia *and* rolled the hoard would show it again.
+
+- **The pack has an eighth fetch incentive slot that FFR never fills. Fixed
+  2026-09-03**, by removing the section rather than re-gating it. Found
+  2026-09-03 on `nofetchitems497`, while measuring the flag above. The pack
+  gave `I: Dr Unne` a real incentive section in `locations/incentives.json` and
+  its `NOverworld` twin -- `hosted_item: "slabTranslated"`, gated on
+  `fetchQuestsAreIncentive` -- and `scripts/incentive_slots.lua` listed it in
+  both trees. Described in the past tense, and with no line numbers, because
+  the close below removed both. FFR has no `IncentivizeUnne`. `FlagsCompute.cs:220-226`
+  computes exactly seven fetch conjunctions and Unne is not one of them, and the
+  export agrees from the other side: the seven `priority_locations` that leave
+  are Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick and Smith, and **`Dr
+  Unne` is not an Archipelago location at all** on either cartridge.
+
+  `ItemLocations.cs:277-278` says why: Unne is a *secondary* requirement on
+  Lefein's reward, not a reward slot, and `SCLogic.cs:555-557` resolves an NPC
+  gated on the Unne flag to Unne's own reachability -- which is why
+  `check_logic` waives the Lefein rule rather than diverging on it. So the pack
+  is right to model Unne for *reachability* and wrong to give him an incentive
+  slot: the ring can never be correct there, on any flagset, because there is
+  nothing for FFR to incentivize.
+
+  Not fixed with the conjunction above, and not the same defect: the seven rows
+  ring on the wrong condition, this row rings on no condition FFR has. Both
+  trees need the section reconsidered rather than re-gated. What it should
+  become -- dropped, or kept as reachability with the incentive section removed
+  -- is not settled here, because `slabTranslated` is a real hosted item and
+  removing the section may move more than the ring.
+
+  This is the same mistake the shop slot's close made and caught late, in the
+  opposite direction. That one read a flag's absence from a schema as FFR having
+  no such flag; this one modelled a computed flag by whichever conjunct the pack
+  already had a name for. A conjunction is not modelled by one of its terms --
+  which the review of `flag-coverage` said in almost these words about a
+  coverage row, and it was not carried across to a rule.
+
+  **What closed it.** The `I: Melmond` node -- whose only section was `I: Dr
+  Unne` -- is gone from `locations/incentives.json` and its `NOverworld` twin,
+  and with it the incentives-tab pin. It was dropped rather than kept
+  unincentivized because the incentive sheet is a sheet of incentive slots, and
+  a slot FFR cannot incentivize on any flagset does not belong on it.
+
+  **`slabTranslated` did not move, which is why the cut is this clean.** The
+  board's own `Melmond/Dr Unne` in `locations/overworld.json:2641` is the same
+  section with the two incentive conjuncts stripped from every rule, and it
+  hosts `slabTranslated` already, so reachability, the marker clear and
+  `tests/test_ram.lua`'s Unne cases all read the board copy and are untouched.
+  The sheet copy was hosting a second time, not the only time.
+
+  **The board's ring came off on its own**, which is the generator working:
+  `tools/incentive_slots.py` only makes a board row for a section whose
+  `hosted_item` some *sheet* section registered, so removing the sheet section
+  removed both rows. `INCENTIVE_SLOTS` goes 56 to 54 and nothing in
+  `tools/incentive_slots.py` changed. `@Melmond/Dr Unne` is correspondingly gone
+  from the grader's `NOT_AP_LOCATIONS`: it is not a row to excuse any more.
+
 ## Open questions
 
-- **`canon` has a latent false FAIL in `test_maps.lua` check 7.** It treats a
-  rule as unconstrained only when *every* alternative empties out, but in
-  PopTracker an OR with one unconditional branch is unconditional. No rule
-  reaches it today — every `^$incentiveSlot` term sits either alone in its list
-  or in all of them — so this is a false FAIL waiting on the next incentive
-  rule rather than something being missed now.
+- **Retracted 2026-09-03: `canon` has no latent false FAIL in `test_maps.lua`
+  check 7.** This said `canon` treats a rule as unconstrained only when *every*
+  alternative empties out, where PopTracker makes an OR with one unconditional
+  branch unconditional. `canon` does not: it `return nil`s the whole rule on the
+  first alternative that empties, which is PopTracker's semantics. The guard was
+  already there when this was written, and the entry described the code it
+  replaced.
+
+  Recorded rather than deleted because the retraction is the useful part. This
+  was filed as a prediction — "a false FAIL waiting on the next incentive rule"
+  — and the next incentive rule has now been written, twice: every gated section
+  on both sheets carries a second `^$incentiveSlot` term. Nothing fired, because
+  nothing could have. A prediction about code that is not re-read against the
+  code is the failure mode this page keeps finding in itself.
 
 - **The toggle icons are sized against a filter a third darker than their
   docstring assumed.** `make_toggle_icons.py` draws only the "on" image and lets

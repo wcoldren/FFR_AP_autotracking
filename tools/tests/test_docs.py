@@ -145,7 +145,6 @@ WINDOW = 6
 # rather than one that went missing, so the check would otherwise report the
 # roadmap as rot. Delete the entry when the file lands.
 UNBUILT = {
-    "tools/export_diff.py",          # docs/ROADMAP.md section 5, scoped, unstarted
     "layouts/settings_popup.json",   # docs/IDEAS.md, "Options UI, pass 2"
 }
 
@@ -226,21 +225,53 @@ def in_bounds(src, lo, hi):
 
 
 BULLET = re.compile(r"^\s*[-*] ")
+# A row is required to close with its pipe as well as open with one. The
+# opening pipe alone also matches an indented example block --
+# STATUS.md:617 is `| UNREACHABLE | (free)` inside one -- and collapsing
+# such a line to itself would drop the block's identifiers and fail a
+# citation that is right. Both pipes separate the two across all 223
+# pipe-leading lines in the docs, and the leading one cannot be anchored
+# at column 0 instead: ISSUES.md:344 is a real table indented inside a
+# bullet.
+ROW = re.compile(r"^\s*\|.*\|\s*$")
 
 
 def paragraph(lines, i):
-    """The citing bullet, or the citing paragraph when it is not in a list.
+    """The citing bullet or table row, or the citing paragraph otherwise.
 
     Bounded at both ends by a blank line *or* by the start of another bullet.
     Running across bullet boundaries makes this useless in both directions: it
     swallows a neighbour's identifiers, and any one of them landing near the
     cited line passes a citation that has lost its subject.
+
+    A table row is one context for the same reason, and needs saying
+    separately because neither bound catches it: rows carry no blank line and
+    no bullet between them, so without this the loops below run to both ends
+    of the table and hand back every row at once. That is not a hypothetical
+    -- it is how a stale `locations/incentives.json:403` citation in
+    docs/ORACLE.md passed this check on 2026-09-03, a day after the section it
+    cited was deleted. The identifier pool became the whole 38-row table, and
+    the generic access-rule words other rows carry (`canal`, `ship`, `canoe`,
+    `floater`, `airshipHike`) sit within WINDOW lines of nearly any line in a
+    location file, so the citation had to name nothing and still matched.
+
+    The guard is on both loops as well as on the citing line, because the
+    boundary works in both directions: a citation in the prose immediately
+    above or below a table -- neither of which is separated from it by a
+    blank line in every markdown dialect -- would otherwise walk in and
+    collect the same pool. The early return above is not made redundant by
+    those two: the first row of a table has prose rather than a row on the
+    far side of it, so the backward loop's neighbour test does not stop
+    there, and only the return keeps that row from swallowing its heading.
     """
+    if ROW.match(lines[i]):
+        return lines[i]
     lo = hi = i
-    while lo > 0 and lines[lo - 1].strip() and not BULLET.match(lines[lo]):
+    while (lo > 0 and lines[lo - 1].strip()
+           and not BULLET.match(lines[lo]) and not ROW.match(lines[lo - 1])):
         lo -= 1
     while (hi + 1 < len(lines) and lines[hi + 1].strip()
-           and not BULLET.match(lines[hi + 1])):
+           and not BULLET.match(lines[hi + 1]) and not ROW.match(lines[hi + 1])):
         hi += 1
     return "\n".join(lines[lo:hi + 1])
 
@@ -395,6 +426,128 @@ for doc in DOCS:
                                     len(present)))
 check("every suite count the prose gives matches the suites", bad_count, [])
 
+# The same rot, one clause further along. The count above is the whole runner;
+# this is the subset gated on an environment variable, and it went stale on the
+# commit that made `test_export_diff.py` the second FF1_SEEDS suite while the
+# prose still said one. The count check above cannot see it -- 25 stayed 25 --
+# which is the point: a sentence saying how much of a bare run is real is worth
+# more than the total, and had nothing holding it.
+# Runs to twenty. It stopped at twelve, which was every word the prose then
+# used, and the FF1_ROM count reaching fourteen turned an unreadable word into
+# two failures at once -- the count row, and the floor row, because a word the
+# table cannot read is skipped before it is counted as seen.
+NUMBER_WORD = {"no": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+               "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+               "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
+               "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+               "nineteen": 19, "twenty": 20}
+
+# Two sentence shapes carry a gated count and both are held. Matching runs over
+# the whole document with its newlines flattened to spaces rather than line by
+# line: the FF1_SEEDS clause fitted on one line only by accident of wrapping,
+# its sibling clause is already split across two, and a re-flow would otherwise
+# have stopped the check matching anything while it went on reporting `ok`.
+# Backticks are optional because `FF1_SEEDS` in backticks is the house style for
+# identifiers across these documents.
+GATED = [
+    re.compile(r"(\w+) more unless `?(FF1_[A-Z]+)`?"),
+    re.compile(r"(\w+) of them skip[^.]*? unless `?(FF1_[A-Z]+)`?"),
+]
+RUNNER_AT = re.compile(r"(?:tools/)?tests/run\.sh")
+# runner -> (prefix, suffix, path template for one suite)
+RUNNERS = {
+    "tools/tests/run.sh": ("test_", ".py", "tools/tests/test_%s.py"),
+    "tests/run.sh": ("test_", ".lua", "tests/test_%s.lua"),
+}
+# Hoisted: this used to be re-read inside the innermost match loop.
+SUITES = {r: runner_suites(r, p, s)[1] for r, (p, s, _) in RUNNERS.items()}
+
+
+def said_count(word):
+    """The number a prose count gives, written as a digit or a number word."""
+    return int(word) if word.isdigit() else NUMBER_WORD.get(word.lower())
+
+
+def runner_for(flat, pos):
+    """Which runner the gated sentence at `pos` is about.
+
+    Read rather than hardcoded: these sentences sit in a block that names its
+    runner just above, and hardcoding the Python one meant a future sentence
+    about the 14 Lua suites would have been measured against the wrong set.
+    """
+    seen = RUNNER_AT.findall(flat[:pos])
+    return seen[-1] if seen else None
+
+
+def gates_on(path, var):
+    """Whether one suite gates itself on `var`.
+
+    `os.environ.get`, not a bare mention: this very file names the variables in
+    the comments above, and counting mentions made it count itself and report
+    three. Several spellings count, because a suite gating via `os.environ[...]`
+    or single quotes is gating just as hard and used to read as ungated.
+    """
+    wants = ['environ.get("%s"' % var, "environ.get('%s'" % var,
+             'environ["%s"]' % var, "environ['%s']" % var,
+             'getenv("%s"' % var, "getenv('%s'" % var]
+    text = "\n".join(read(path))
+    return any(w in text for w in wants)
+
+
+bad_gated, gated_seen = [], 0
+for doc in DOCS:
+    lines = read(doc)
+    # Flatten to one line, collapsing every run of whitespace to a single
+    # space: these sentences live in an indented code block, so a wrap leaves
+    # twenty spaces mid-sentence and a pattern written with single spaces never
+    # matches. `at_line` keeps each offset's source line, so a match spanning a
+    # wrap still reports where it starts.
+    flat_chars, at_line, prev_space = [], [], False
+    for i, line in enumerate(lines):
+        for ch in line + " ":
+            if ch.isspace():
+                if prev_space:
+                    continue
+                ch, prev_space = " ", True
+            else:
+                prev_space = False
+            flat_chars.append(ch)
+            at_line.append(i)
+    flat = "".join(flat_chars)
+    for pattern in GATED:
+        for m in pattern.finditer(flat):
+            where = "%s:%d" % (doc, at_line[m.start()] + 1)
+            said = said_count(m.group(1))
+            if said is None:
+                # Not silent: "a dozen more unless FF1_ROM" is a count this
+                # cannot read, and skipping it was a third way to report `ok`.
+                bad_gated.append('%s  "%s" -- count is not a number this reads'
+                                 % (where, m.group(0)))
+                continue
+            runner = runner_for(flat, m.start())
+            if runner is None:
+                bad_gated.append('%s  "%s" -- no runner named above it'
+                                 % (where, m.group(0)))
+                continue
+            real = sum(1 for t in sorted(SUITES[runner])
+                       if gates_on(RUNNERS[runner][2] % t, m.group(2)))
+            gated_seen += 1
+            if said != real:
+                bad_gated.append('%s  "%s" -- %d of %s\'s suite%s name %s'
+                                 % (where, m.group(0), real, runner,
+                                    "" if real == 1 else "s", m.group(2)))
+
+# A check that cannot fail is worthless, and this one had three ways to end in
+# an empty list. The floor guards the one that survives a rewrite of the other
+# two: if the prose is re-flowed or reworded past these patterns, this row goes
+# red instead of reporting a clean nothing. Raise it when a gated sentence is
+# added; lower it, in the same commit as the prose, when one goes.
+GATED_FLOOR = 2
+check("the gated-suite check still matches the prose it holds",
+      gated_seen >= GATED_FLOOR, True)
+check("every gated-suite count the prose gives matches the suites",
+      bad_gated, [])
+
 # ------------------------------------------------------------------------ 4
 # FFR stamps eight uppercase hex characters. Anything shorter is a byte or an
 # address and is not a cartridge. At least one A-F is wanted as well: without
@@ -460,8 +613,9 @@ check("and lists no page that is gone",
 
 # ------------------------------------------------------------------------
 # Each row above has to be able to fail, or this file is the thing it was
-# written to catch. These four exercise the machinery on inputs whose answer
-# is known, so a rewrite that quietly stops looking gets caught here.
+# written to catch. These exercise the machinery on inputs whose answer is
+# known, so a rewrite that quietly stops looking gets caught here. Not counted
+# here, because the count was "four" long after it was twenty.
 _SRC = read("tools/regen_maps.py")
 _RAW = open(os.path.join(PACK, "tools/regen_maps.py"), encoding="utf-8").read()
 check("a trailing newline is not counted as a line",
@@ -483,6 +637,25 @@ check("but does not run into the next bullet",
       paragraph(["- one `Alpha`", "- two `Beta`"], 0), "- one `Alpha`")
 check("nor back into the previous one",
       paragraph(["- one `Alpha`", "- two `Beta`"], 1), "- two `Beta`")
+# The table rows carry no blank line and no bullet, so before 2026-09-03 these
+# two came back as the whole table and every citation in one was answerable for
+# every other row's identifiers.
+check("nor across a table row, which has neither bound",
+      paragraph(["| one `Alpha` |", "| two `Beta` |"], 0), "| one `Alpha` |")
+check("and a row is not joined to the prose above it",
+      paragraph(["intro", "| one `Alpha` |", "| two `Beta` |"], 1),
+      "| one `Alpha` |")
+# The row guard has to hold from outside the table too, or the citing line one
+# line above or below a table still collects every row's identifiers -- which
+# is the whole of what the row case fixes, approached from the other side.
+check("nor prose joined to the table below it",
+      paragraph(["intro", "| one `Alpha` |", "| two `Beta` |"], 0), "intro")
+check("nor prose joined to the table above it",
+      paragraph(["| one `Alpha` |", "| two `Beta` |", "outro"], 2), "outro")
+# And an indented example block is not a table row, however it starts.
+check("an indented pipe with no closing pipe is not a row",
+      paragraph(["    | UNREACHABLE | (free)", "  and `Alpha` explains it"], 0),
+      "    | UNREACHABLE | (free)\n  and `Alpha` explains it")
 check("a quote that wraps in the prose is still read whole",
       QUOTED.findall('x "one two three four\n  five six" y'),
       ["one two three four\n  five six"])

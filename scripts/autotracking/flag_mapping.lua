@@ -50,7 +50,15 @@ local TOGGLES = {
   { ffr = "NoTail",                  code = "noTail" },
   { ffr = "ChaosRush",               code = "chaosRush" },
   { ffr = "ShuffleObjectiveNPCs",    code = "objectiveNPCs" },
+  -- The two conjuncts below are not incentive flags themselves. FFR computes
+  -- IncentivizeCaravan as (NPCItems && IncentivizeFreeNPCs) and each of the
+  -- seven fetch incentives as (NPCFetchItems && IncentivizeFetchNPCs)
+  -- (FlagsCompute.cs:217, :220-226), so each row here is half of a condition
+  -- and neither is read by FFR's reachability logic at all. They carry a code
+  -- for the ring, which is the only thing they move.
+  { ffr = "NPCItems",                code = "npcItems", default = true },
   { ffr = "IncentivizeFreeNPCs",     code = "npcsAreIncentive", default = true },
+  { ffr = "NPCFetchItems",           code = "npcFetchItems", default = true },
   { ffr = "IncentivizeFetchNPCs",    code = "fetchQuestsAreIncentive", default = true },
   { ffr = "IncentivizeIceCave",      code = "iceCaveIsIncentive", default = true },
   { ffr = "IncentivizeOrdeals",      code = "ordealsIsIncentive", default = true },
@@ -62,6 +70,23 @@ local TOGGLES = {
   { ffr = "IncentivizeSkyPalace",    code = "skyIsIncentive", default = true },
   { ffr = "IncentivizeSeaShrine",    code = "seaIsIncentive", default = true },
   { ffr = "IncentivizeConeria",      code = "coneriaLockedIsIncentive", default = true },
+  -- Two facts, two cells, and they were one cell until 2026-09-03.
+  -- IncentivizeCardia is an incentive category; MapDragonsHoard is a map edit
+  -- that duplicates the Cardia chests into Bahamut's Cave (SMUpdates.cs:534).
+  -- They were a progressive whose stage 2 was the hoard, which handed out
+  -- stage 1's code with it, so the pack ringed Cardia Forest on five
+  -- cartridges FFR incentivized nothing on.
+  --
+  -- The reason that had to become two items is a count, not the inheritance:
+  -- `inherit_codes: false` would have stopped stage 2 handing out stage 1's
+  -- code (jsonitem.h:188-198, transcribed in tests/item_model.lua:12) and gone
+  -- green on today's corpus. It would also have been wrong, silently: a
+  -- 2-stage progressive has three states once allow_disabled adds its 0, and
+  -- two independent booleans need four. The state it cannot hold either way is
+  -- a hoard seed that *does* incentivize Cardia, which FFR rolls freely and no
+  -- cartridge here happens to have. docs/ISSUES.md.
+  { ffr = "IncentivizeCardia",       code = "cardiaIsIncentive" },
+  { ffr = "MapDragonsHoard",         code = "BahamutHoard" },
 }
 
 -- Flags FFR's logic consults that carry no code here, each with the reason.
@@ -307,18 +332,6 @@ local NOT_MODELLED = {
       .. "Same shape: it widens a permutation rather than gating anything.",
   },
   {
-    ffr = "NPCItems",
-    status = "unjudged",
-    measure = "roll a 4.9.7 pair one flag apart and diff the exports",
-    why = "decides whether the NPCs hand out shuffled items. It is read in "
-      .. "two places that do different things -- NPCs.cs:236 gives Nerrick "
-      .. "the Canal or a Cabin, MetroidVaniaMap.cs:871 swaps a line of "
-      .. "dialogue -- and FlagsCompute.cs:64, :69 folds it into RequiredRuby "
-      .. "and RequiredTnt. Whether any of that moves a pin on an Archipelago "
-      .. "seed has not been measured, and inventing a reason here would be "
-      .. "the padding this list exists to prevent.",
-  },
-  {
     ffr = "NPCSwatter",
     status = "unjudged",
     measure = "roll a 4.9.7 pair one flag apart and diff the exports",
@@ -353,26 +366,38 @@ local NOT_MODELLED = {
   },
   {
     ffr = "LefeinSuperStore",
-    status = "unjudged",
-    measure = "walk Lefein on a No-Overworld pair one flag apart -- the town "
-      .. "layout is in the decompressed map, so this is a diff of two "
-      .. "cartridges rather than a graded export",
-    why = "not only a shop. Its one use is ApplyMapMods "
-      .. "(MetroidVaniaMap.cs:58), which is called only from NoOverworld() "
-      .. "(:47-58), and at :260 it chooses between two different sets of "
-      .. "tile writes to MapIndex.Lefein -- on, lefeinNorthedge2 at "
-      .. "(0x24,0x02), lefeinSouthedge2 at (0x00,0x01), a blob named "
-      .. "lefeinNonteleport at (0x00,0x02) and 0x0E at [0x01,0x33] and "
-      .. "[0x01,0x3F]; off, lefeinNorthedge at (0x26,0x02), lefeinNorthedge2 "
-      .. "at (0x3C,0x02), lefeinSouthedge2 at (0x00,0x02) and 0x0E at "
-      .. "[0x01,0x39]. Walls and a teleport tile, in a town the "
-      .. "hand-authored 75-link No-Overworld topology was derived from with "
-      .. "the flag off. Held as noise until 2026-09-01 on the strength of "
-      .. "the word 'store' in the name, which is the reading the call site "
-      .. "does not support. Whether the walk still holds with it on is the "
-      .. "open question; the 4.9.2-to-4.9.8 diff moving the whole "
-      .. "No-Overworld surface by exactly this line is a reason to measure "
-      .. "it rather than a reason to pass over it.",
+    status = "decided",
+    why = "walked on a No-Overworld pair one flag apart, 2026-09-03, and it "
+      .. "moves no link and no rule. It does edit the map, on both modes: "
+      .. "EnableLefeinSuperStore places a 3x24 store blob at (0x28,0x01) and "
+      .. "clears the tree at [0x00,0x34] whatever the mode, from Update() in "
+      .. "the general standard-maps pass (StandardMaps/SMUpdates.cs:39 at "
+      .. "4.9.2, :116 at 4.9.7), ANDed with the ShopKillMode pair "
+      .. "FlagsCompute.cs:51 names LefeinSuperStoreEnabled; only its last two "
+      .. "TownTree writes sit behind if (nooverworld). On No-Overworld it also "
+      .. "picks between two sets of tile writes to MapIndex.Lefein in "
+      .. "ApplyMapMods (MetroidVaniaMap.cs:58). Both of those branches leave "
+      .. "exactly one two-cell plug in Lefein's left-edge column, one row "
+      .. "apart -- on, the plug is at y=1 and (0x00,0x02) is walkable; off, "
+      .. "the plug is at y=2 and (0x00,0x01) is walkable -- so nothing opens "
+      .. "and nothing closes. Both cartridges derive 256 locations with the "
+      .. "same names, the link set is identical apart from the gateway "
+      .. "permutation and the ToFR bonus chests that every No-Overworld seed "
+      .. "rolls, and check_logic grades the flag-off cartridge with the same "
+      .. "single strict Lefein divergence as nov. Two teleport coordinates do "
+      .. "move -- Lefein's stair lands at (5,52) in Waterfall rather than "
+      .. "(25,28), and Waterfall's own outbound stair sits at (22,23) rather "
+      .. "than (11,56) -- but they are a SpliceRandom draw off the same rng "
+      .. "(MetroidVaniaMap.cs:470), not a link the flag adds or removes. "
+      .. "Standard mode was measured too, on std and std497 rather than "
+      .. "argued from the call site: the store is on both (72/72 blob cells, "
+      .. "tree cleared), and against the same map with those 73 cells restored "
+      .. "to their flag-off values all 14 objects on Lefein stay reachable at "
+      .. "identical distances, the town holding no treasure tile to gate. "
+      .. "Held as noise until 2026-09-01 on the word 'store' in the name, "
+      .. "then unjudged on a call site cited without being read. "
+      .. "docs/ORACLE.md, 'LefeinSuperStore off: what it moves, which is not "
+      .. "a link', has the figures for both modes.",
   },
 }
 
@@ -437,25 +462,6 @@ local PROGRESSIVES = {
       local airBoat = get("AirBoat")
       if airBoat == nil then return nil, "AirBoat" end
       return airBoat == true and 1 or 0
-    end,
-  },
-  {
-    code = "cardiaIsIncentive",
-    -- Stage 2 is Bahamut's Hoard, which is a map edit rather than an incentive
-    -- category, so it comes from a different flag than stage 1. Stage 2
-    -- inherits stage 1's code, so a hoard seed also reads as Cardia-incentive;
-    -- that only affects which pins are drawn, never what is reachable.
-    --
-    -- The Hoard is asked first and a rolled one is unknown either way: it wins
-    -- outright when it is on, so no value of IncentivizeCardia settles the
-    -- stage without it.
-    stage = function(get)
-      local hoard = get("MapDragonsHoard")
-      if hoard == nil then return nil, "MapDragonsHoard" end
-      if hoard == true then return 2 end
-      local cardia = get("IncentivizeCardia")
-      if cardia == nil then return nil, "IncentivizeCardia" end
-      return cardia == true and 1 or 0
     end,
   },
 }
@@ -582,9 +588,9 @@ end
 -- drydocked the ship.
 --
 -- Both loops make the distinction, toggles and progressives alike. The
--- progressives are the half that was missed: their five source flags are all
--- tristates too, and reading a rolled one as off cleared a cell the player had
--- set by hand.
+-- progressives are the half that was missed: their three tristate source flags
+-- -- MapOpenProgression, its Extended and AirBoat -- are tristates too, and
+-- reading a rolled one as off cleared a cell the player had set by hand.
 --
 -- Telling them apart matters because the toggles survive a cartridge swap --
 -- `resetForNewGame` clears what the RAM feed owns, not the flag grid. Treating
@@ -639,10 +645,11 @@ function applyFFRFlagsToBoard(flags, version)
 
   -- The reader the stage functions take. Same three-way answer, minus the
   -- toggles' bookkeeping: an absent source flag reads as off, and is reported
-  -- on the same line the toggles use. No shipped schema is missing one of these
-  -- five -- 4.9.2 and 4.9.7 both carry all of them -- so that branch is here to
-  -- keep a future schema from reopening what the absent-flag branch just shut,
-  -- not because it fires today.
+  -- on the same line the toggles use. The stage functions read four flags
+  -- between them -- MapOpenProgression, its Extended, ToFRMode and AirBoat --
+  -- and no shipped schema is missing one, 4.9.2 and 4.9.7 carrying all four, so
+  -- that branch is here to keep a future schema from reopening what the
+  -- absent-flag branch just shut, not because it fires today.
   local function get(name)
     local value, why = readFlag(name)
     if why == "absent" then absent[#absent + 1] = name end

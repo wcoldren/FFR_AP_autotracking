@@ -83,21 +83,27 @@ for rel, tree in pairs(trees) do
   eachPin(tree, function(node, marker)
     local rules = marker.restrict_visibility_rules
     if not rules then return end
-    -- One entry per pin. The outer array is OR'd, so a second entry could only
-    -- widen what draws, and pin_visibility.py has no way to write one.
-    if #rules ~= 1 then
-      fails(string.format("%s: %s has %d visibility rules, want 1",
-                          rel, node.name or "?", #rules))
+    -- One entry per section rather than one per pin, because the two carry
+    -- different operators: the flags inside an entry are ANDed by showPin, and
+    -- the entries are ORed by the array (location.cpp:266). A node holding two
+    -- sections on different flags therefore has two entries, which is the same
+    -- OR its one joined entry used to spell -- and a section whose flags are a
+    -- conjunction can now say so, which a joined entry could not.
+    if #rules < 1 then
+      fails(string.format("%s: %s has an empty visibility rule list",
+                          rel, node.name or "?"))
       return
     end
-    local kind, rest = rules[1]:match("^%$showPin|([a-z]+)(.*)$")
-    if not kind then
-      fails(string.format("%s: %s carries a rule that is not a $showPin term: %s",
-                          rel, node.name or "?", rules[1]))
-      return
+    for _, rule in ipairs(rules) do
+      local kind, rest = rule:match("^%$showPin|([a-z]+)(.*)$")
+      if not kind then
+        fails(string.format("%s: %s carries a rule that is not a $showPin term: %s",
+                            rel, node.name or "?", rule))
+      else
+        kindsUsed[kind] = (kindsUsed[kind] or 0) + 1
+        for flag in rest:gmatch("|([^|,]+)") do flagsUsed[flag] = true end
+      end
     end
-    kindsUsed[kind] = (kindsUsed[kind] or 0) + 1
-    for flag in rest:gmatch("|([^|,]+)") do flagsUsed[flag] = true end
     if marker.map == "overworld" then
       fails(string.format("%s: overworld pin %s carries %s -- the overworld "
                           .. "aggregates and must not be switchable off",
@@ -137,11 +143,13 @@ for _, rel in ipairs(DUNGEON_TREES) do
   check(rel .. ": pins with no rule", n.none, 29)
 end
 
--- The sheets. 17 of 26 std slots and 20 of 28 nov ones can be spoken for by an
+-- The sheets. 17 of 25 std slots and 20 of 27 nov ones can be spoken for by an
 -- incentive flag; the rest hold a section no flag covers, so no rule may claim
--- to hide them. Nine and eight: the four with no slot at all -- Temple of
--- Fiends, ToFR, Shop Item, and Ryukahn Desert on the standard sheet -- and the
--- five orb slots.
+-- to hide them. Eight and seven: the three with no slot at all -- Temple of
+-- Fiends, ToFR, and Ryukahn Desert on the standard sheet -- and the five orb
+-- slots. Shop Item used to be a fourth; it has a flag now, because FFR
+-- computes the slot's incentive status out of NPCItems and IncentivizeFreeNPCs
+-- rather than declaring a flag of its own.
 local SHEET_RULED = { ["locations/incentives.json"] = 17,
                       ["locations/NOverworld/incentives.json"] = 20 }
 for _, rel in ipairs(INCENTIVE_TREES) do
@@ -340,17 +348,26 @@ end
 -- one where the toggle is worth most. Then with the NPC flag set, where the
 -- slots it speaks for stop being skipped ones and come back on their own.
 --
--- Five come back on each sheet, and they are the same five nodes: Coneria
--- Castle, Pravoka, Sarda's Cave, Crescent Lake and the Waterfall. The two
--- sheets disagree about how Coneria Castle is drawn -- the standard one puts
--- the locked chest in with the King and Sara, so the node carries both flags in
--- one rule, while the No-Overworld sheet gives the chest a node of its own --
--- and the counts differ by that one pin rather than by which NPCs are on them.
--- showPin ORs the flags in a rule, because a pin stands for every section under
--- it and one live slot is reason enough to draw.
+-- Six come back on each sheet, and they are the same six nodes: Coneria
+-- Castle, Pravoka, Sarda's Cave, Crescent Lake, the Waterfall and the Shop
+-- Item. The two sheets disagree about how Coneria Castle is drawn -- the
+-- standard one puts the locked chest in with the King and Sara, so the node
+-- carries a rule for the chest and a second one for the NPCs, while the
+-- No-Overworld sheet gives the chest a node of its own -- and the counts differ
+-- by that one pin rather than by which NPCs are on them. showPin ANDs the flags
+-- within one rule and the rule array ORs, so a node whose sections answer to
+-- different flags gets an entry apiece rather than one entry naming them all.
+--
+-- `npcs` and `npcsBoth` are the demonstration that the conjunction bites, and
+-- they are stated as two rows because one of them would pass either way.
+-- FFR computes IncentivizeCaravan as (NPCItems && IncentivizeFreeNPCs)
+-- (FlagsCompute.cs:217), so the incentive flag on its own speaks for nothing:
+-- `npcs` equals `off` exactly, no NPC pin comes back, and that equality is the
+-- fix. With both conjuncts set, `npcsBoth` reproduces what `npcs` used to be --
+-- so the repair took the wrong seeds away without costing the right ones.
 local SHEET_DRAWN = {
-  ["locations/incentives.json"] = { on = 26, off = 9, npcs = 14 },
-  ["locations/NOverworld/incentives.json"] = { on = 28, off = 8, npcs = 13 },
+  ["locations/incentives.json"] = { on = 25, off = 8, npcs = 8, npcsBoth = 14 },
+  ["locations/NOverworld/incentives.json"] = { on = 27, off = 7, npcs = 7, npcsBoth = 13 },
 }
 for _, rel in ipairs(INCENTIVE_TREES) do
   local want = SHEET_DRAWN[rel]
@@ -359,7 +376,11 @@ for _, rel in ipairs(INCENTIVE_TREES) do
   provided = {}
   check(rel .. ": drawn, skipped off", drawn(rel), want.off)
   provided = { npcsAreIncentive = 1 }
-  check(rel .. ": drawn, skipped off, NPCs incentivized", drawn(rel), want.npcs)
+  check(rel .. ": drawn, one conjunct only", drawn(rel), want.npcs)
+  check(rel .. ": ...which is the same as no flag at all", want.npcs, want.off)
+  provided = { npcsAreIncentive = 1, npcItems = 1 }
+  check(rel .. ": drawn, skipped off, NPCs incentivized", drawn(rel),
+        want.npcsBoth)
 end
 
 if fail > 0 then

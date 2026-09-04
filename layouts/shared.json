@@ -276,11 +276,13 @@
             "rows": [
                 [
                     "npcsAreIncentive",
+                    "npcItems",
                     "fetchQuestsAreIncentive",
-                    "coneriaLockedIsIncentive",
-                    "marshLockedIsIncentive"
+                    "npcFetchItems",
+                    "coneriaLockedIsIncentive"
                 ],
                 [
+                    "marshLockedIsIncentive",
                     "iceCaveIsIncentive",
                     "ordealsIsIncentive",
                     "marshIsIncentive",
@@ -294,6 +296,7 @@
                 ],
                 [
                     "cardiaIsIncentive",
+                    "BahamutHoard",
                     "loose",
                     "dud",
                     "resync"

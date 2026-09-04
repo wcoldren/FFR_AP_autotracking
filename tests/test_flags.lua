@@ -182,6 +182,74 @@ do
   check("every not-modelled flag has a known status", #badStatus, 0)
   check("every not-modelled flag has a reason", #shortWhy, 0)
   check("every unjudged flag names its measurement", #noMeasure, 0)
+
+  -- And the measurement having *run* is a field, not a turn of phrase. The
+  -- NPCItems row was measured on 2026-09-03 and its `measure` rewritten from a
+  -- request into a result; the check above went on passing either way, because
+  -- a result is also a string longer than ten characters. So an `unjudged` flag
+  -- nobody has looked at and one waiting only on a build became
+  -- indistinguishable, and if the build never lands nothing here notices.
+  -- `measured` separates them, `owed` names the code that retires the entry,
+  -- and the third row is the one with teeth: once that code exists in the
+  -- mapping the flag is modelled, and an entry still sitting here is stale.
+  -- Both halves of the mapping, because an owed code can land in either. The
+  -- toggles-only reading missed exactly the case this row exists for:
+  -- `progressionFlag` hands out `openProgression` and `extendedOpen`, codes of
+  -- the kind these entries owe, and it lives in PROGRESSIVES -- so a code
+  -- retiring into that half would have left the stale entry sitting here with
+  -- the suite green. `cardiaIsIncentive` was the example until the cardia split
+  -- moved it into TOGGLES, which is the argument for not picking an example
+  -- that can quietly change halves.
+  local codes = {}
+  for _, list in ipairs({ cov.toggles or {}, cov.progressives or {} }) do
+    for _, e in ipairs(list) do
+      if e.code then codes[e.code] = true end
+    end
+  end
+  local sayNothing, undated, noOwed, landed = {}, {}, {}, {}
+  for _, e in ipairs(cov.notModelled or {}) do
+    local label = tostring(e.ffr)
+    if e.status == "unjudged" then
+      local measure = type(e.measure) == "string" and e.measure or ""
+      local says = measure:sub(1, 5) == "done:"
+      if says ~= (e.measured == true) then sayNothing[#sayNothing + 1] = label end
+      -- The row above catches the loud direction -- prose rewritten to a
+      -- result, field left false. It cannot catch the quiet one: drop the
+      -- `done:` convention while rewriting and both sides read false, the row
+      -- goes green, and a flag that was measured reads as never looked at,
+      -- which is the confusion these fields were added to remove. A date is
+      -- what a measurement that has run leaves in the prose, so prose carrying
+      -- one has to be spelled the way the field is read from.
+      if measure:match("%d%d%d%d%-%d%d%-%d%d") and not says then
+        undated[#undated + 1] = label
+      end
+      -- Only once measured. A flag nobody has looked at cannot yet know
+      -- whether it wants a code at all, let alone which -- demanding one
+      -- there would be the invented reason the `why` rule already forbids.
+      --
+      -- Shape as well as length, since by definition the name does not exist
+      -- yet and there is nothing to match it against: pack codes are
+      -- lowerCamelCase identifiers, and an `owed` that is not one can never
+      -- fire the row below. A well-formed typo still passes -- that gap closes
+      -- only when the code lands -- but "TBD", a sentence, or a name written
+      -- with a space no longer does.
+      if e.measured and (type(e.owed) ~= "string" or #e.owed < 3
+          or not e.owed:match("^%l[%a%d]*$")) then
+        noOwed[#noOwed + 1] = label
+      end
+      if type(e.owed) == "string" and codes[e.owed] then
+        landed[#landed + 1] = label .. " (" .. e.owed .. ")"
+      end
+    end
+  end
+  check("a measured flag says so in a field, not only in its prose",
+        #sayNothing, 0)
+  check("and a measurement that has run is spelled `done:`", #undated, 0)
+  check("every measured flag names the code that would retire it", #noOwed, 0)
+  check("and no flag sits unjudged once that code exists", #landed, 0)
+  for _, n in ipairs(sayNothing) do print("     measured/prose disagree: " .. n) end
+  for _, n in ipairs(noOwed) do print("     names no owed code: " .. n) end
+  for _, n in ipairs(landed) do print("     code landed, entry stale: " .. n) end
   for _, n in ipairs(badStatus) do print("     bad status: " .. n) end
   for _, n in ipairs(shortWhy) do print("     no reason: " .. n) end
   for _, n in ipairs(noMeasure) do print("     no measurement: " .. n) end
@@ -314,13 +382,15 @@ local DEFAULTS = {
   hwyOrdeals = false, melmondRiver = false, sardasForest = false,
   shipDrydock = false, noTail = false,
   earlyKing = true, earlySarda = true, earlySage = true, earlyOrdeals = true,
-  npcsAreIncentive = true, fetchQuestsAreIncentive = true,
+  npcItems = true, npcsAreIncentive = true,
+  npcFetchItems = true, fetchQuestsAreIncentive = true,
   iceCaveIsIncentive = true, ordealsIsIncentive = true, marshIsIncentive = true,
   marshLockedIsIncentive = false, titansTroveIsIncentive = false,
   earthIsIncentive = true, volcanoIsIncentive = false, skyIsIncentive = true,
   seaIsIncentive = true, coneriaLockedIsIncentive = true,
+  cardiaIsIncentive = false, BahamutHoard = false,
 }
-local STAGE_DEFAULTS = { progressionFlag = 1, airBoat = 0, cardiaIsIncentive = 0 }
+local STAGE_DEFAULTS = { progressionFlag = 1, airBoat = 0 }
 
 -- Every cell moved off its default first, so a reset that does nothing fails.
 for code, want in pairs(DEFAULTS) do byCode[code].Active = not want end
@@ -412,11 +482,12 @@ check("a random flag that was off stays off", byCode["lefeinBridge"].Active, fal
 check("a known flag next to it still applies", byCode["hwyOrdeals"].Active, false)
 
 -- The progressives are the half of this that was missed. Every source flag
--- behind them is a tri-state too -- MapOpenProgression, its Extended, AirBoat,
--- MapDragonsHoard, IncentivizeCardia -- and each stage function tested `== true`
--- and read a rolled flag as off. So a seed with AirBoat left on random cleared
--- the cell the player had set by hand, and the "left as they were" line, which
--- is the only place the pack admits it does not know, never mentioned it.
+-- behind them is a tri-state too -- MapOpenProgression, its Extended and
+-- AirBoat, and MapDragonsHoard and IncentivizeCardia until the cardia split
+-- took them into TOGGLES -- and each stage function tested `== true` and read a
+-- rolled flag as off. So a seed with AirBoat left on random cleared the cell
+-- the player had set by hand, and the "left as they were" line, which is the
+-- only place the pack admits it does not know, never mentioned it.
 byCode["airBoat"].Active = true
 byCode["airBoat"].CurrentStage = 1
 partial.AirBoat = nil
@@ -451,17 +522,22 @@ check("a rolled Open leaves the cell alone", byCode["progressionFlag"].CurrentSt
 check("  and is named in the log",
       rolled:find("MapOpenProgression%f[%A]") ~= nil, true)
 
--- The Hoard is asked before IncentivizeCardia and wins outright when it is on,
--- so a rolled Hoard is unknown whichever way the incentive went.
+-- A rolled Hoard leaves its own cell alone, and that used to cost more than its
+-- own cell. The Hoard was stage 2 of the cardiaIsIncentive progressive and was
+-- asked before IncentivizeCardia, so a rolled Hoard made the whole cell unknown
+-- and threw away an IncentivizeCardia the seed had stated plainly. Two toggles
+-- answer separately: the unknown flag is left as it was, the known one applies.
 local hoard = {}
 for k, v in pairs(flags) do hoard[k] = v end
 hoard.MapDragonsHoard = nil
 hoard.IncentivizeCardia = false
+byCode["BahamutHoard"].Active = true
 byCode["cardiaIsIncentive"].Active = true
-byCode["cardiaIsIncentive"].CurrentStage = 2
 rolled = capture(function() applyFFRFlagsToBoard(hoard, "4-9-7") end)
-check("a rolled Hoard leaves the cell alone", byCode["cardiaIsIncentive"].CurrentStage, 2)
+check("a rolled Hoard leaves the cell alone", byCode["BahamutHoard"].Active, true)
 check("  and is named in the log", rolled:find("MapDragonsHoard", 1, true) ~= nil, true)
+check("  while a stated IncentivizeCardia still applies",
+      byCode["cardiaIsIncentive"].Active, false)
 
 ------------------------------------------------------------------
 print("\n-- the goal, once the seed has been read")

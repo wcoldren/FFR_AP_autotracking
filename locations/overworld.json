@@ -7201,6 +7201,9 @@
                     {
                         "name": "I: Shop Item",
                         "access_rules": [],
+                        "visibility_rules": [
+                            "npcItems"
+                        ],
                         "hosted_item": "shopItem"
                     }
                 ],

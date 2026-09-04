@@ -216,11 +216,18 @@ def find_section(sections, path):
     A ref can match twice, because the same pin is written into both the board
     tree and the incentive poster -- "I: Shop Item/I: Shop Item" matches
     "Onrac Continent/..." and "I: Onrac Continent/..." alike. That is not
-    ambiguous at runtime: Tracker::getLocation returns the first location whose
-    id ends with the ref, and scripts/init.lua loads overworld.json before
-    incentives.json, so the board tree wins. Resolve it the way PopTracker
-    does rather than giving up, which is what left this pin ungraded on every
-    cartridge. Two hits inside the board tree are still a genuine ambiguity.
+    ambiguous at runtime -- but not by the suffix rule this function uses.
+    Tracker::getLocationAndSection splits a ref at its *last* slash, so the
+    location it looks up here is the single segment "I: Shop Item"; with no
+    slash left in it, Tracker::getLocation compares node *names* and never
+    reaches its id-suffix branch at all. scripts/init.lua:41-42 loads
+    overworld.json before incentives.json, so the board tree wins on load
+    order. Suffix and name-equality pick the same node today, and would stop
+    agreeing the moment a board node's id merely ends with a name it is not
+    itself named for -- at which point this function and the tracker disagree
+    about which section a ref reaches. Resolve it board-first rather than
+    giving up, which is what left this pin ungraded on every cartridge. Two
+    hits inside the board tree are still a genuine ambiguity.
     """
     if path in sections:
         return path
@@ -421,15 +428,27 @@ def flag_codes(flags, pack=PACK):
 
     The mapping is read out of scripts/autotracking/flag_mapping.lua rather than
     written out again here, so the harness and the pack cannot drift apart on
-    which FFR flag is which."""
+    which FFR flag is which.
+
+    A decoded flag says None for two different things and the board treats them
+    differently (`applyFFRFlagsToBoard`), so this does too. A key the schema has
+    but the string left None was rolled at generation: the board leaves that
+    cell where it was, which on a grid nobody has touched is the mapping's own
+    `default`. A key the schema does not have at all is a build with no such
+    flag, and reads as off -- which is also what a hand-built table gets for
+    every flag it does not mention.
+    """
     src = open(os.path.join(pack, "scripts/autotracking/flag_mapping.lua")).read()
-    pairs = re.findall(r'\{\s*ffr\s*=\s*"([^"]+)"\s*,\s*code\s*=\s*"([^"]+)"', src)
+    pairs = re.findall(
+        r'\{\s*ffr\s*=\s*"([^"]+)"\s*,\s*code\s*=\s*"([^"]+)"([^}]*)\}', src)
     if not pairs:
         raise SystemExit("could not read the flag mapping out of flag_mapping.lua")
 
     codes = set()
-    for ffr, code in pairs:
-        if flags.get(ffr) is True:
+    for ffr, code, rest in pairs:
+        value = flags.get(ffr)
+        if value is True or (value is None and ffr in flags
+                             and re.search(r'default\s*=\s*true', rest)):
             codes.add(code)
 
     # The progressives, whose stages are spelled out in the same file but as
@@ -447,10 +466,6 @@ def flag_codes(flags, pack=PACK):
     # landed, so it grades strict.
     if flags.get("ToFRMode") == 2:
         codes.add("shortToFR")
-    if flags.get("IncentivizeCardia") is True:
-        codes.add("cardiaIsIncentive")
-    if flags.get("MapDragonsHoard") is True:
-        codes.update(("cardiaIsIncentive", "BahamutHoard"))
 
     for flag, granted in FREE_FLAGS.items():
         if flags.get(flag) is True:
@@ -668,11 +683,41 @@ def alias_noverworld(rules):
 
 def ap_location_paths(pack=PACK, ff1=None):
     """AP location name -> pack section path, via the world's id table and the
-    pack's own LOCATION_MAPPING. Nothing hand-written in between."""
-    if ff1 is None:
-        ff1 = os.path.join(pack, "..", "Archipelago", "worlds", "ff1")
+    pack's own LOCATION_MAPPING. Nothing hand-written in between.
+
+    A path given explicitly and not found is refused rather than skipped. The
+    default not being found is a skip, because a machine with no Archipelago
+    checkout is a normal condition and the caller prints so; but a --ff1-world
+    that names nothing is a typo, and returning {} for it made every location
+    report unmapped and the whole run come back a cheerful zero. That is the
+    failure this tool is least able to afford, since a zero here reads as
+    agreement.
+
+    The default was also simply wrong, and is the reason docs/ORACLE.md calls
+    --ff1-world load-bearing: the pack sits at vendor/ff1/<pack>, so `..` is
+    vendor/ff1 and the world is one level further up at vendor/Archipelago.
+
+    Two shapes are *not* a path and fall back to the default rather than
+    aborting: None, and the empty string a shell fragment produces when the
+    variable behind it is unset. `--ff1-world ""` used to count as given, which
+    made `names` the relative `data/locations.json` and resolved it against the
+    caller's cwd -- a miss on most, and the wrong table on a cwd that happens to
+    have one. And a path is expanded here rather than at the call site, because
+    a `~` reaching this function is the correct directory spelled the one way
+    os.path.exists cannot see, and the refusal above turns that from a skip into
+    an abort.
+    """
+    given = bool(ff1)
+    if given:
+        ff1 = os.path.expanduser(ff1)
+    else:
+        ff1 = os.path.join(pack, "..", "..", "Archipelago", "worlds", "ff1")
     names = os.path.join(ff1, "data", "locations.json")
     if not os.path.exists(names):
+        if given:
+            raise SystemExit("check_logic: no locations.json under %s\n"
+                             "  --ff1-world must name a worlds/ff1 directory"
+                             % ff1)
         return {}
     with open(names) as handle:
         name_to_id = json.load(handle)

@@ -164,10 +164,22 @@
         "codes" : "objectiveNPCs"
     },
     {
+        "name": "Main NPC Items",
+        "type": "toggle",
+        "img": "images/items/lute.png",
+        "codes": "npcItems"
+    },
+    {
         "name": "NPCs are Incentive",
         "type": "toggle",
         "img": "images/locations/king.png",
         "codes": "npcsAreIncentive"
+    },
+    {
+        "name": "Fetch Quest Rewards",
+        "type": "toggle",
+        "img": "images/items/herb.png",
+        "codes": "npcFetchItems"
     },
     {
         "name": "Fetch Quests are Incentive",
@@ -237,19 +249,15 @@
     },
     {
         "name": "Cardia Island is Incentive",
-        "type": "progressive",		
-        "stages" : [
-            {
-                "name" : "Cardia Island is Incentive",
-                "img" : "images/locations/cardiaIncentive.png",
-                "codes" : "cardiaIsIncentive"
-            },
-            {
-                "name" : "Bahamut's Hoard",
-                "img" : "images/flags/BahamutHoard.png",
-                "codes" : "BahamutHoard"
-            }
-        ]
+        "type": "toggle",
+        "img": "images/locations/cardiaIncentive.png",
+        "codes": "cardiaIsIncentive"
+    },
+    {
+        "name": "Bahamut's Hoard",
+        "type": "toggle",
+        "img": "images/flags/BahamutHoard.png",
+        "codes": "BahamutHoard"
     },
 	{
         "name": "Loose Items",

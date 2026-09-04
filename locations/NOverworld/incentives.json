@@ -10,15 +10,15 @@
                     {
                         "name": "I: King",
                         "access_rules": [
-                            "earlyKing,^$incentiveSlot|npcsAreIncentive",
-                            "garland,^$incentiveSlot|npcsAreIncentive"
+                            "earlyKing,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems",
+                            "garland,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "king"
                     },
                     {
                         "name": "I: Sara",
                         "access_rules": [
-                            "garland,^$incentiveSlot|npcsAreIncentive"
+                            "garland,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "sara"
                     }
@@ -29,7 +29,7 @@
                         "x": 1450,
                         "y": 1140,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]
@@ -119,7 +119,7 @@
                     {
                         "name": "I: Smithy McBeardSmith",
                         "access_rules": [
-                            "adamant,^$incentiveSlot|fetchQuestsAreIncentive"
+                            "adamant,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems"
                         ],
                         "hosted_item": "smith"
                     }
@@ -130,7 +130,7 @@
                         "x": 585,
                         "y": 830,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|fetchQuestsAreIncentive"
+                            "$showPin|slot|fetchQuestsAreIncentive|npcFetchItems"
                         ]
                     }
                 ]
@@ -148,7 +148,7 @@
                     {
                         "name": "I: Astos",
                         "access_rules": [
-                            "crown,^$incentiveSlot|fetchQuestsAreIncentive"
+                            "crown,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems"
                         ],
                         "hosted_item": "astos"
                     }
@@ -159,7 +159,7 @@
                         "x": 2030,
                         "y": 1930,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|fetchQuestsAreIncentive"
+                            "$showPin|slot|fetchQuestsAreIncentive|npcFetchItems"
                         ]
                     }
                 ]
@@ -179,7 +179,7 @@
                     {
                         "name": "I: Matoya",
                         "access_rules": [
-                            "crystal,^$incentiveSlot|fetchQuestsAreIncentive"
+                            "crystal,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems"
                         ],
                         "hosted_item": "matoya"
                     }
@@ -190,7 +190,7 @@
                         "x": 1085,
                         "y": 1390,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|fetchQuestsAreIncentive"
+                            "$showPin|slot|fetchQuestsAreIncentive|npcFetchItems"
                         ]
                     }
                 ]
@@ -208,12 +208,12 @@
                     {
                         "name": "I: Elf Prince",
                         "access_rules": [
-                            "herb,$noObjectiveShuffle,^$incentiveSlot|fetchQuestsAreIncentive",
-                            "herb,objectiveNPCs,$standardWorld,airship,^$incentiveSlot|fetchQuestsAreIncentive",
-                            "herb,objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship,^$incentiveSlot|fetchQuestsAreIncentive",
-                            "herb,objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship,^$incentiveSlot|fetchQuestsAreIncentive",
-                            "herb,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal,^$incentiveSlot|fetchQuestsAreIncentive",
-                            "herb,objectiveNPCs,$noOverworld,$hasFloater,^$incentiveSlot|fetchQuestsAreIncentive"
+                            "herb,$noObjectiveShuffle,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,$standardWorld,airship,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,$noOverworld,$hasFloater,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems"
                         ],
                         "hosted_item": "elfprince"
                     }
@@ -224,7 +224,7 @@
                         "x": 1395,
                         "y": 2010,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|fetchQuestsAreIncentive"
+                            "$showPin|slot|fetchQuestsAreIncentive|npcFetchItems"
                         ]
                     }
                 ]
@@ -244,7 +244,7 @@
                     {
                         "name": "I: Bikke",
                         "access_rules": [
-                            "^$incentiveSlot|npcsAreIncentive"
+                            "^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "bikke"
                     }
@@ -255,7 +255,7 @@
                         "x": 920,
                         "y": 1575,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]
@@ -340,8 +340,8 @@
                     {
                         "name": "I: Sarda",
                         "access_rules": [
-                            "earlySarda,^$incentiveSlot|npcsAreIncentive",
-                            "vampire,^$incentiveSlot|npcsAreIncentive"
+                            "earlySarda,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems",
+                            "vampire,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "sarda"
                     }
@@ -352,7 +352,7 @@
                         "x": 200,
                         "y": 920,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]
@@ -420,39 +420,6 @@
                         "y": 805
                     }
                 ]
-            },
-            {
-                "name": "I: Melmond",
-                "access_rules": [
-                    "$standardWorld,$noShipDrydock,ship,canal,slab",
-                    "$standardWorld,airship,slab",
-                    "$standardWorld,melmondRiver,canoe,slab",
-                    "$noOverworld,slab"
-                ],
-                "sections": [
-                    {
-                        "name": "I: Dr Unne",
-                        "access_rules": [
-                            "^$incentiveSlot|fetchQuestsAreIncentive,$noObjectiveShuffle",
-                            "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,$standardWorld,airship",
-                            "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship",
-                            "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
-                            "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
-                            "^$incentiveSlot|fetchQuestsAreIncentive,objectiveNPCs,$noOverworld,$hasFloater"
-                        ],
-                        "hosted_item": "slabTranslated"
-                    }
-                ],
-                "map_locations": [
-                    {
-                        "map": "incentives",
-                        "x": 500,
-                        "y": 1000,
-                        "restrict_visibility_rules": [
-                            "$showPin|slot|fetchQuestsAreIncentive"
-                        ]
-                    }
-                ]
             }
         ]
     },
@@ -477,8 +444,8 @@
                     {
                         "name": "I: Sages",
                         "access_rules": [
-                            "earlySage,^$incentiveSlot|npcsAreIncentive",
-                            "earthorblit,^$incentiveSlot|npcsAreIncentive"
+                            "earlySage,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems",
+                            "earthorblit,^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "sages"
                     }
@@ -489,7 +456,7 @@
                         "x": 790,
                         "y": 1450,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]
@@ -588,7 +555,9 @@
                         "visibility_rules": [
                             "BahamutHoard"
                         ],
-                        "access_rules": [],
+                        "access_rules": [
+                            "^$incentiveSlot|cardiaIsIncentive"
+                        ],
                         "hosted_item": "cardiaIncentive"
                     }
                 ],
@@ -637,7 +606,12 @@
                 "sections": [
                     {
                         "name": "I: Shop Item",
-                        "access_rules": [],
+                        "access_rules": [
+                            "^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
+                        ],
+                        "visibility_rules": [
+                            "npcItems"
+                        ],
                         "hosted_item": "shopItem"
                     }
                 ],
@@ -645,7 +619,10 @@
                     {
                         "map": "incentives",
                         "x": 2225,
-                        "y": 965
+                        "y": 965,
+                        "restrict_visibility_rules": [
+                            "$showPin|slot|npcItems|npcsAreIncentive"
+                        ]
                     }
                 ]
             }
@@ -706,8 +683,8 @@
                     {
                         "name": "I: Incentive",
                         "access_rules": [
-                            "slabTranslated,^$incentiveSlot|fetchQuestsAreIncentive",
-                            "slabDone,^$incentiveSlot|fetchQuestsAreIncentive"
+                            "slabTranslated,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "slabDone,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems"
                         ],
                         "hosted_item": "lefein"
                     }
@@ -718,7 +695,7 @@
                         "x": 1565,
                         "y": 700,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|fetchQuestsAreIncentive"
+                            "$showPin|slot|fetchQuestsAreIncentive|npcFetchItems"
                         ]
                     }
                 ]
@@ -738,7 +715,7 @@
                     {
                         "name": "I: Fairy",
                         "access_rules": [
-                            "bottle,^$incentiveSlot|fetchQuestsAreIncentive"
+                            "bottle,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems"
                         ],
                         "hosted_item": "fairy"
                     }
@@ -749,7 +726,7 @@
                         "x": 2775,
                         "y": 980,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|fetchQuestsAreIncentive"
+                            "$showPin|slot|fetchQuestsAreIncentive|npcFetchItems"
                         ]
                     }
                 ]
@@ -805,7 +782,7 @@
                     {
                         "name": "I: Robot",
                         "access_rules": [
-                            "^$incentiveSlot|npcsAreIncentive"
+                            "^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems"
                         ],
                         "hosted_item": "robot"
                     }
@@ -816,7 +793,7 @@
                         "x": 1395,
                         "y": 965,
                         "restrict_visibility_rules": [
-                            "$showPin|slot|npcsAreIncentive"
+                            "$showPin|slot|npcItems|npcsAreIncentive"
                         ]
                     }
                 ]

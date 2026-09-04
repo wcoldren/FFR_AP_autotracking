@@ -70,7 +70,37 @@ with no code can be told apart from one nobody has got to.
 
   Until then both stay strict, which costs six Cardia Forest locations on a
   No-Overworld seed and the Elf Prince plus Dr Unne on a shuffled one.
+- **Seven incentive slots rang gold on seeds FFR did not incentivize them on,
+  and one of the seven was not a check at all. Closed 2026-09-03**, opened the
+  same day by the first use of the export diff in section 5.
 
+  FFR computes two of its incentive conditions rather than storing them:
+  `IncentivizeCaravan` is `NPCItems && IncentivizeFreeNPCs`, and each of the
+  seven fetch incentives is `NPCFetchItems && IncentivizeFetchNPCs`. The pack
+  modelled the second conjunct of each, so either flag off with its partner on
+  rang seven slots FFR had dropped. Both flags now have a code, both are ANDed
+  into every alternative of the sections they speak for, and `IncentivizeNerrick`'s
+  third term -- `&& !NoOverworld` -- is derived from the two sheets rather than
+  listed. The caravan slot was the odd one and got `visibility_rules` instead: it
+  leaves `rules` and `locations` too, so it is not a check on that seed rather
+  than an unringed one.
+
+  **What was actually missing was a grader, and that is the part worth
+  carrying forward.** `check_logic` grades access rules against FFR's
+  reachability; the rings answer to `priority_locations`, and nothing compared
+  the two. So did the completeness check miss it -- `consulted()` greps FFR's
+  reachability logic, and a flag that only ever moves a ring never appears
+  there. `tools/tests/test_incentive_conjunction.py` closes that: 23 exports,
+  four questions, and reverting each fix reddens exactly its own rows.
+
+  The figures are in `docs/ORACLE.md` and the per-flag rows in
+  `docs/FLAG_COVERAGE.md`; `docs/ISSUES.md` has the entry and the one
+  further finding the grader turned up that is still open, which no conjunction
+  fixes: a chest `notail` names differently. There were three. `Dr Unne`, whom
+  FFR never incentivizes at all, went the same day, the slot removed rather
+  than re-gated. The Cardia progressive's stage-2 inheritance went with the
+  cardia split, also 2026-09-03: two independent facts wanted two items, and
+  three progressive states could not hold four combinations.
 
 ## 2. Boxes that do not exist
 
@@ -111,8 +141,8 @@ actually left.
   already requires `ruby`, and so does Sarda's Cave, so on a seed that
   incentivized the Trove the slot behind him is a key item on either mode. The
   cell belongs in both trees for that reason.
-- **`shopItem` should carry the free-NPC incentive flag and does not. Reopened
-  2026-09-02.** This bullet said FFR has no such flag, and closed on saying so
+- **`shopItem` carries the free-NPC incentive flag now. Done 2026-09-03**, and
+  reopened 2026-09-02 to get there. This bullet said FFR has no such flag, and closed on saying so
   in the Map Key. Both halves were wrong, and the first one wrongly: there is no
   `IncentivizeShopItem` in the flag string because the flag is *computed*
   instead. `FlagsCompute.cs:217` reads
@@ -142,8 +172,18 @@ actually left.
   back to a consumable when no eligible incentive item is left, which is why
   roughly half of solo seeds hold nothing worth hunting even with the flag on.
   The slot's incentive status is a flag; what lands in it is the roll. Those two
-  were conflated, and that is what let the bullet close.
+  were conflated, and that is what let the bullet close the first time.
   See `docs/ISSUES.md`, "The `I: Shop Item` pin ignores the flag that governs it".
+
+  **What building it turned up.** The slot adds one generated row where every
+  other slot adds two: its board node is itself named `I: Shop Item`, the only
+  board node carrying the sheet prefix, so the sheet and board paths are the
+  same string and the surviving row reaches the board. That is the collision
+  `check_logic.find_section` already resolves board-first, met in a second
+  place. Only the gold ring is affected — the sheet section's own access rule
+  and pin rule are evaluated directly. Six counters moved, and the count of
+  them was wrong in advance in both directions, which is the argument for
+  running the generator and the suites rather than reasoning about them.
 - **ToFR floor modelling.** The rules are *not* unwritten, which is what this
   bullet used to claim: `locations/overworld.json:410` carries three
   alternatives on the `ToFR` node and the seven chests inherit them. What is
@@ -262,7 +302,7 @@ actually left.
   (`docs/ISSUES.md`, "The No-Overworld incentive poster is missing one slot,
   not two"). Adding it against the existing JPEG is a hand edit
   plus bumping the nov count 20 → 21 in `SHEET_RULED`,
-  `tests/test_pins.lua:146`.
+  `tests/test_pins.lua:153`.
 - **Boss names in the Map Key**, from the formation ids already in hand.
 - **A traversal lane on the maps with no chest.** `plan()` returns `None` on an
   empty `chest_groups`, which was right when every lane was a loot round and is
@@ -292,20 +332,62 @@ and section 2 is what comes next.
   The counts and the `NOT_MODELLED` status tally are `docs/FLAG_COVERAGE.md`,
   "Keeping this current".
 
-- **Five flags are filed `unjudged`, and that is the open work.** `NPCItems`,
-  `NPCSwatter`, `FiendsRefights`, `ShortToFRFiendsRefights` and
-  `LefeinSuperStore` say they are unmeasured and name the measurement that
-  would settle them, rather than borrowing a neighbour's reason. A list padded
-  to make the test pass is the test not existing. Each is a section-1 candidate
-  if it turns out to move a pin.
+- **Three flags are filed `unjudged`, and that is the open work.**
+  `NPCSwatter`, `FiendsRefights` and `ShortToFRFiendsRefights`. Each says why it
+  is unsettled and names the measurement that would settle it, rather than
+  borrowing a neighbour's reason, and each is waiting on a cartridge nobody has
+  rolled. A list padded to make the test pass is the test not existing. Each is
+  a section-1 candidate if it turns out to move a pin.
 
-  **`LefeinSuperStore` is the live one.** It was filed `noise` — "a shop edit" —
-  on the strength of the word *store* in its name. Its only use is
-  `ApplyMapMods`, reached only from `NoOverworld()`, where it picks between two
-  sets of tile writes to `MapIndex.Lefein`: different wall edges, and a blob
-  called `lefeinNonteleport`. That is walls and a teleport tile in a town the
-  hand-authored 75-link table was derived from with the flag off, and nobody has
-  walked it. The reason cited the call site and did not read it.
+  **The count was six, and this line got both subtractions wrong by editing it
+  instead of re-reading the list.** `NPCItems` and `NPCFetchItems` left
+  `NOT_MODELLED` outright on 2026-09-03 -- each measured on a cartridge rolled
+  for it, each moving a gold ring and no access rule, and each carrying a code
+  now, `npcItems` and `npcFetchItems`, ANDed into every alternative of the
+  sections it speaks for. Nothing is owed on either. `LefeinSuperStore` left the
+  same day, below. Three entries left within hours of each other, this bullet
+  subtracted one of them, and that is how it came to say five while
+  `flag_mapping.lua` held three and `docs/FLAG_COVERAGE.md` printed three. That page carries
+  the tally `tools/tests/test_flag_coverage.py` reads; this one is the copy that
+  drifts, and a count stated in two places with a test on one of them will keep
+  drifting the same way.
+
+  **`LefeinSuperStore` left the list on 2026-09-03**, measured rather than
+  argued about. It was filed `noise` — "a shop edit" — on the strength of the
+  word *store* in its name, refiled `unmeasured` on the strength of a call site
+  cited without being read, and then found to be unmeasurable from a corpus
+  whose every preset sets it on. `novnolefein` was rolled to vary it: the
+  `oracle_nov` preset and seed with one boolean flipped, 533 decoded flags and
+  exactly one differing.
+
+  **It moves no link and no rule.** Both cartridges derive 256 locations with
+  the same names; the 10 rules that differ are the Cardia/Bahamut gateway
+  permutation and the two ToFR bonus chest ids, which every No-Overworld seed
+  rolls. `check_logic --derived` grades it 222 compared, 221 agree, 1 divergent,
+  the same strict `Lefein` row `nov` has. It is `decided`, not retired to a
+  code, because there is nothing for a code to gate.
+
+  **Standard mode was measured as well, and the close would have been half a
+  close without it.** The flag's second call site is not a No-Overworld one --
+  the store lands from the general standard-maps pass -- so a `decided` reached
+  on a No-Overworld pair alone would have been the same shape of mistake as the
+  three that came before it, one call site read and one assumed. It is on `std`
+  and `std497`, and walking Lefein with those cells restored to their flag-off
+  values leaves every object on the map reachable at the same distance.
+
+  The correction worth carrying is that the branch does **not** seal Lefein's
+  left-edge column. Each branch leaves exactly one two-cell plug in it, one row
+  apart — flag on, the plug is at `y=1`; flag off, at `y=2` — so nothing opens
+  and nothing closes. The premise this was measured against described the
+  flag-on side as having an open mouth, and it does not. Reading two rows of the
+  column settled in a minute what three rounds of reasoning about the call site
+  had got wrong twice. `docs/ORACLE.md` has the figures.
+
+  **The general gap is that a coverage row can state a premise about the corpus
+  with nothing holding it to one.** A flag every preset sets the same way is
+  unmeasurable from this corpus by construction, and a row calling such a flag
+  "unmeasured" reads as "nobody got to it" when it means "no cartridge can
+  answer it". `docs/IDEAS.md` has the check that would tell those apart.
 
   The two refight flags are the argument for building the test above, and were
   the first thing it produced — `FLAG_COVERAGE.md` had never listed either,
@@ -322,26 +404,66 @@ and section 2 is what comes next.
   neither conjunct.
 
 
-- **An export-vs-export diff, `tools/export_diff.py`.** Roll two cartridges one
-  flag apart, diff the exports, attribute the moved rules to the flag — which is
-  how every flag row in `docs/ORACLE.md` was produced, about fifteen times, by
-  hand and with no committed tool. `check_logic.parse_ap_rules` already reads
-  both export shapes and all 227 of `std497`'s export rules resolve to a pack
-  section path, so the address book is complete and tested; the differ is small
-  on top of it.
+- **An export-vs-export diff, `tools/export_diff.py`. Built 2026-09-03.** Roll
+  two cartridges one flag apart, diff the exports, attribute the moved rules to
+  the flag — which is how every flag row in `docs/ORACLE.md` was produced, about
+  fifteen times, by hand. It compiles nothing, so it costs none of the
+  independence the bullet below would.
 
-  It is also the honest half of the bullet below, available without deciding
-  it: attributing a rule change to a flag **compiles nothing**, so it costs none
-  of the independence that compiling would.
-- **`check_logic`'s default `--ff1-world` is wrong and fails silently.**
-  `ap_location_paths` (`tools/check_logic.py:656`) defaults to
-  `<pack>/../Archipelago/worlds/ff1`, which resolves to
-  `vendor/ff1/Archipelago/worlds/ff1` and does not exist; the world is two
-  levels up at `vendor/Archipelago/worlds/ff1`. The missing path hits
-  `return {}`, so every location reports unmapped and the run gives a cheerful
-  zero. `docs/ORACLE.md` records the workaround — "`--ff1-world` is
-  load-bearing" — and this is the cause it works around. It should refuse
-  rather than return an empty dict.
+  **The scope was one assumption short, and the corpus said so.** "One flag
+  apart holds everything but the flag still" is true of the rules and true of
+  the pool only by count: FFR exports only the locations holding pool items, and
+  a flag moves the RNG stream, so all fifteen 4.9.7 variants churn 17 to 23
+  locations in both directions against `std497` — `hoard497` among them, whose
+  rules do not move at all. A differ that counted that churn would have found
+  something for every flag in the corpus including the one that found nothing,
+  which is the shape of a tool that looks like it works. The pool difference is
+  printed under its own heading and not counted; the rules, the location ids and
+  `priority_locations` are. Figures and the invocation: `docs/ORACLE.md`,
+  "Diffing the corpus, and what one flag apart does not hold still".
+
+  **Not counting it is right; calling it the roll was not, and the fix landed
+  the same day the review asked for it.** A flag that changes the pool's *shape*
+  removes locations for real, and `NPCItems` off deletes the caravan slot —
+  `nonpcitems497` is the only 4.9.7 export of the seventeen with no `Shop Item`
+  in it. That difference sat on line twenty of an uncounted list of chests, and
+  the heading told the reader it was gold moving between them. Counting cannot
+  separate a removed location from a reassigned one, so the tool crosses the
+  pool difference with `priority_locations` — stable across the fifteen — and
+  marks a name that left both. A pool-shape flag that moves plain chests
+  (`ChestsKeyItems`) is still past what two exports settle, and the heading now
+  says that instead of implying the opposite.
+
+  Three answers rather than two, like `tofr_diff.py`: a pair it cannot certify
+  as one seed, and an export it cannot read at all, both exit 2 rather than
+  reporting a difference count. The second is the `parse_ap_rules` half of the
+  `ap_location_paths` bug closed the same day — inheriting that empty dict would
+  have reported "no changes" for a file it never read.
+
+  **First use was the `NPCItems` pair, 2026-09-03, and it found a defect --
+  then, once the pool heading stopped hiding it, a second one.** One cartridge
+  rather than two: `std497` already carries `NPCItems` on, so it is the control
+  and only `nonpcitems497` had to be rolled. Zero rules moved and seven priority
+  locations did, which is the answer that flag's coverage row asked for -- and
+  the seven the pack rings on `npcsAreIncentive` alone. Six of those are a wrong
+  ring; the seventh, the caravan slot, is a check the pack shows on a seed where
+  FFR did not create it. Both closed as section 1 items the same day, and
+  `NPCItems` left `NOT_MODELLED` when they did: measuring it was what its
+  coverage row asked for, and the code the measurement named is `npcItems`. A
+  sentence stood here saying the flag stays `unjudged` -- true when it was
+  written, left alone when the code landed hours later, and the same drift the
+  section 5 count above records.
+- **`check_logic`'s default `--ff1-world` was wrong and failed silently.
+  Closed 2026-09-03.** `ap_location_paths` (`tools/check_logic.py:669`)
+  defaulted to `<pack>/../Archipelago/worlds/ff1`, which resolves to
+  `vendor/ff1/Archipelago/worlds/ff1` and does not exist; the world is one
+  level further up at `vendor/Archipelago/worlds/ff1`. The missing path hit
+  `return {}`, so every location reported unmapped and the run gave a cheerful
+  zero — which is the failure this tool can least afford, a zero here reading
+  as agreement. The default now resolves 255 locations where it resolved none,
+  and a `--ff1-world` given explicitly and not found refuses instead of
+  skipping. The default still being absent is still a skip, because a machine
+  with no Archipelago checkout is an ordinary condition.
 - **Port from the export.** A script that reads FFR's Archipelago export and
   emits the `$`-guarded `access_rules`, replacing hand transcription. One export
   per FFR version, not per seed.
@@ -405,6 +527,15 @@ local count a lie.
 
 What stays is the record of what each merged branch was for, dated on the day it
 merged. That is a fact about the past and cannot go stale.
+
+**This list is not every branch, and does not try to be.** It holds the two that
+closed a whole section, and `export-diff`. The seven between them --
+`spring-cleanup`, `hoard-pin-0831`, `regen-branch-guard`, `titan-cell`,
+`incentive-marker-shapes`, `shop-slot-incentive` and `shop-slot-flag`,
+2026-09-01 to 09-03 -- are recorded where their conclusions live, in the
+`STATUS` log and the docs page that owns each, and `git log --merges` lists them
+in order. Seven entries here would each duplicate a page, and a duplicate is the
+copy that goes stale.
 - **`flag-coverage` merged 2026-09-01**, and was the whole of section 5's
   first two bullets: `test_flag_coverage.py`, which fails when FFR grows a flag
   nothing here models, and `test_ffr_pin.py`, which holds the schemas to the
@@ -416,7 +547,8 @@ merged. That is a fact about the past and cannot go stale.
   conjunction of ancestry and the stamp, and only the stamp ever fired. Same
   lesson as the gate rows, and the two terms are separate rows now.
 
-  **What it leaves behind is five flags filed `unjudged`**, in section 5.
+  **What it left behind is five flags filed `unjudged`**, in section 5, which
+  is six of them now.
 
 - **`flags-real-seeds` merged 2026-09-01**, and was the whole of section 1: the
   `ChaosRush` and `ToFRMode` codes and the `ExitToFR` decision, then
@@ -439,3 +571,21 @@ merged. That is a fact about the past and cannot go stale.
   re-reads a line once it is written. Say the gate ran on the day it runs, and
   say a branch merged on the day it merges — this line went stale twice in two
   days, in both directions.
+
+- **`export-diff` merged 2026-09-03**, and was section 5's export-vs-export
+  diff plus the two section-1 findings it immediately produced.
+  `tools/export_diff.py` attributes what moves between two exports one flag
+  apart to the flag, and declines to count the location pool, which churns 17 to
+  23 names either way on every 4.9.7 variant. Thirteen commits,
+  `d91a984..d641366`.
+
+  **The review gate ran twice**, on the branch and again on `e03f87e..b74445d`:
+  six findings, then nine. The first pass found the pool heading hiding this
+  branch's own second finding -- `NPCItems` off deletes the caravan slot, and
+  the tool was calling that gold moving between chests. Eight of the second
+  pass's nine are fixed; the ninth is `FLAG_COVERAGE.md`'s 31-versus-30 reading
+  of the named half, verified as counting something else and left deliberately,
+  with the reasoning in `4febe4c`.
+
+  **What it leaves behind is the section-1 incentive conjunction**, with both
+  gate cartridges rolled before the fix: `nonpcitems497` and `nofetchitems497`.

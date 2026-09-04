@@ -128,10 +128,16 @@ took a real check off the board, and on a shard hunt that was nearly every check
 
 "Slot" means one of the sections `scripts/incentive_slots.lua` names and nothing
 else. `^$incentiveSlot|<flag>` is ANDed only onto those, and only on the two
-incentive sheets -- `grep -c incentiveSlot locations/*.json` gives 25 and 29 on
-the sheets and **zero** on either dungeon tree -- so an ordinary chest cannot
-come out blue. The 26 dungeon-tree rows in that table are there so
+incentive sheets -- 26 gated sections on the standard sheet and 25 on the
+No-Overworld one, and **zero** on either dungeon tree -- so an ordinary chest
+cannot come out blue. The 26 dungeon-tree rows in that table are there so
 `scripts/incentives.lua` can ring them gold, not to demote them.
+
+A section can carry the term twice, because two of FFR's incentive conditions
+are conjunctions rather than flags, so counting terms and counting gated
+sections are different questions and the second is the one that means anything.
+`tests/test_incentives.lua` holds both, and holds every alternative of a section
+to naming the same set.
 
 Blue is a statement about what the seed promised, not about what is in the slot.
 FFR places a key item it did not pick as an incentive into the pool of locations
@@ -161,7 +167,7 @@ rules, and the toggles would go quiet on exactly the seeds an override exists
 for. Stamping rather than preserving is also what gives the pins a cartridge
 newly places their rule on arrival.
 
-`rule_for()` dispatches on the map name, and where it stops is the design:
+`rules_for()` dispatches on the map name, and where it stops is the design:
 
     a drawn map      the pin's kind -- $showPin|chest or $showPin|npc
     incentives       $showPin|slot|<flag>... , the section's own flags
@@ -174,8 +180,15 @@ player able to switch it off could empty the tab.
 A node whose sections do not *all* carry an incentive flag gets no slot rule,
 because the outer rule array is OR'd (`location.cpp:266`): an unflagged section
 is visible whatever the flags say, so an entry for it would be always true. That
-is what keeps the five orb slots on the sheet. For the same reason a rule ORs
-the flags it names -- one live slot under a pin is reason enough to draw it.
+is what keeps the five orb slots on the sheet.
+
+Within one entry the flags are ANDed, which is what lets a section spell out a
+condition FFR computes rather than stores: the caravan's entry names both
+`npcItems` and `npcsAreIncentive`, and a fetch NPC's is the same shape. The OR
+a pin wants -- one live slot under it is reason enough to draw it -- is the
+array's, so a node whose sections answer to different flags gets an entry
+apiece. Naming them all in one entry instead asks for every slot at once, and
+takes the pin away as soon as any one of them goes dark.
 
 `showPin` fails open. An undefined code counts zero exactly as a switched-off
 toggle does, so a typo would empty a tab in silence; an unknown kind or an
@@ -422,10 +435,10 @@ calling anything done; what follows is what it runs.
 ```
 tests/run.sh         14 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   26 Python suites for the cartridge-reading tools. Twelve
-                     skip, wholly or in part, unless FF1_ROM points at a
-                     cartridge, and one more unless FF1_SEEDS points at the seed
-                     tree — so a bare run passes and checks a good deal
+tools/tests/run.sh   28 Python suites for the cartridge-reading tools. Fourteen
+                     of them skip, wholly or in part, unless FF1_ROM points at
+                     a cartridge, and three more unless FF1_SEEDS points at the
+                     seed tree — so a bare run passes and checks a good deal
                      less than the count suggests. One slow guard opts in
                      separately with FF1_SLOW=1 and wants a No-Overworld
                      cartridge as well. One asks git rather than a cartridge —
