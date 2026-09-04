@@ -131,7 +131,43 @@ def main():
             for m in n.get("map_locations") or []
             if m.get("restrict_visibility_rules")), want_ruled)
     check("kinds that carry a rule",
-          sorted(pin_visibility.ENABLED_KINDS), ["chest", "npc", "slot"])
+          sorted(pin_visibility.ENABLED_KINDS),
+          ["chest", "entrance", "npc", "slot"])
+
+    # 3b. The entrance kind, which is classified by where a node sits rather
+    # than by what it holds.
+    #
+    # Nothing in the committed trees carries it -- the counts above are the
+    # assertion that it stays that way -- because a door is the cartridge's and
+    # regen_maps injects it. So the gate is exercised on a synthetic tree, and
+    # in both directions: the group gets the rule, an identical node outside it
+    # does not, and the rule reaches a door on `overworld`, which is the one map
+    # every other kind is told to leave alone.
+    def marked(name, map_name):
+        return {"name": name,
+                "sections": [{"name": name}],
+                "map_locations": [{"map": map_name, "x": 8, "y": 8}]}
+
+    synthetic = [
+        {"name": pin_visibility.ENTRANCES_GROUP,
+         "children": [marked("Entrance: Coneria", "overworld"),
+                      marked("Entrance: ConeriaCastle1F 7,20", "con_castle")]},
+        {"name": "Somewhere Else",
+         "children": [marked("Entrance: Coneria", "overworld"),
+                      marked("Not An Entrance", "con_castle")]},
+    ]
+    pin_visibility.stamp(synthetic)
+    inside = [m
+              for n in synthetic[0]["children"]
+              for m in n["map_locations"]]
+    outside = [m
+               for n in synthetic[1]["children"]
+               for m in n["map_locations"]]
+    check("entrance pins under the group carry the rule",
+          [m.get("restrict_visibility_rules") for m in inside],
+          [[pin_visibility.ENTRANCE_RULE], [pin_visibility.ENTRANCE_RULE]])
+    check("the same nodes outside it carry none",
+          [m.get("restrict_visibility_rules") for m in outside], [None, None])
 
     # 4. stamp() deletes as well as sets.
     #

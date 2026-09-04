@@ -19,6 +19,7 @@ What gets which rule:
     a dungeon or town map      the pin's kind -- $showPin|chest or $showPin|npc
     the `incentives` sheet     $showPin|slot|<flag>... , the section's own flags
     `overworld`                nothing
+    under the Entrances group  $showPin|entrance, on whichever map it sits
 
 The overworld pins are left alone on purpose. They are aggregates -- a town pin
 stands for its chests, its NPC and its shop at once -- so no one kind describes
@@ -70,7 +71,19 @@ TREES = (
 # output through the same function: a gate the tool honoured and the regen did
 # not would show up as a committed tree and an override that disagree, which is
 # the whole thing this arrangement exists to make impossible.
-ENABLED_KINDS = frozenset({"chest", "npc", "slot"})
+ENABLED_KINDS = frozenset({"chest", "npc", "slot", "entrance"})
+
+# Entrance pins are the one kind that is not classified from the node. A door
+# and a staircase are the cartridge's, not the committed tree's, so regen_maps
+# injects them under a single group and this reads the group rather than the
+# marker: keying on `shape == "trapezoid"` instead would make the shape the
+# source of truth for what a pin means, which is the reading docs/ISSUES.md,
+# "What a diamond means", just closed.
+#
+# The rule string lives here rather than being spelled again at the injection
+# site, so this file goes on owning every rule the trees carry.
+ENTRANCES_GROUP = "Entrances"
+ENTRANCE_RULE = "$showPin|entrance"
 
 FIELD = "restrict_visibility_rules"
 
@@ -144,11 +157,20 @@ def flags_of(node):
     return sorted({tuple(flags) for flags in out})
 
 
-def rules_for(map_name, node):
+def rules_for(map_name, node, in_entrances=False):
     """The rule strings a pin on `map_name` gets, or None.
 
     A list because one entry per section is what the OR above wants.
+
+    `in_entrances` is set for every node under the injected Entrances group, and
+    is asked first because those pins sit on both kinds of map: a door on
+    `overworld`, which gets no rule otherwise, and a staircase on a drawn map,
+    where kind_of would read the node as neither chest nor NPC and return None.
     """
+    if in_entrances:
+        if "entrance" not in ENABLED_KINDS:
+            return None
+        return [ENTRANCE_RULE]
     if map_name in DRAWN_MAPS:
         kind = kind_of(node)
         if kind in ENABLED_KINDS:
@@ -166,10 +188,11 @@ def stamp(doc):
     """Set or delete every pin's rule in place. Returns a {rule: count} tally."""
     tally = {}
 
-    def walk(nodes):
+    def walk(nodes, in_entrances=False):
         for node in nodes:
+            here = in_entrances or node.get("name") == ENTRANCES_GROUP
             for marker in node.get("map_locations") or []:
-                rules = rules_for(marker.get("map"), node)
+                rules = rules_for(marker.get("map"), node, here)
                 if rules:
                     marker[FIELD] = rules
                     # Tallied by the whole rule list, so a marker carrying two
@@ -179,7 +202,7 @@ def stamp(doc):
                 else:
                     marker.pop(FIELD, None)
                     tally[None] = tally.get(None, 0) + 1
-            walk(node.get("children") or [])
+            walk(node.get("children") or [], here)
 
     walk(doc)
     return tally
