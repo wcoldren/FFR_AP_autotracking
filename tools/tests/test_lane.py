@@ -245,6 +245,41 @@ def main():
             seen.add(run.start)
     check("every lane starts at an arrival the game can put you down on",
           strays, [])
+
+    # An arrival is where the game can *put you down*, and a teleport table can
+    # name a tile that is not that. Walkability catches the wall case; this is
+    # the other one, where the tile walks perfectly well because it is the
+    # filler outside the drawn floor. The raw table set is read again here
+    # rather than asked of arrivals(), because a check that asks the thing it
+    # is checking would pass however the rule is written.
+    outside, dropped_any, emptied = [], 0, []
+    for map_id in sorted(rm.MAP_FILES):
+        f = L.Floor(rom, graph, map_id)
+        raw_at = {(eg.coord(graph.norm_x[i]), eg.coord(graph.norm_y[i]))
+                  for i in range(eg.NORM_COUNT_EXT) if graph.norm_map[i] == map_id}
+        raw_at |= {(eg.coord(graph.entr_x[i]), eg.coord(graph.entr_y[i]))
+                   for i in range(eg.ENTR_COUNT) if graph.entr_map[i] == map_id}
+        walkable_at = sorted(a for a in raw_at if f.walkable(a))
+        kept = L.arrivals(f)
+        dropped_any += len(walkable_at) - len(kept)
+        content = f.content()
+        outside += [(eg.MAP_NAMES[map_id], a) for a in kept if a not in content]
+        if walkable_at and not kept:
+            emptied.append(eg.MAP_NAMES[map_id])
+    print(f"     ({dropped_any} walkable table row(s) dropped as outside the "
+          f"drawn floor)")
+    check("no arrival is a tile outside the floor as it is drawn", outside, [])
+    check("and no map is left with no arrival at all", emptied, [])
+    check("and the rule bites somewhere on this cartridge",
+          dropped_any > 0, True)
+
+    # And the filter must not have cost a drawing: a map whose chests are
+    # reachable from an arrival still has to get its lane. Dropping the last
+    # arrival of a real region would take one away in silence, since plan()
+    # simply has nothing to iterate.
+    bare = [eg.MAP_NAMES[m] for m in sorted(rm.MAP_FILES)
+            if L.chest_groups(rom, m, chests) and m not in plans]
+    check("and every map carrying a chest still draws a lane", bare, [])
     check("and no two route lanes on a map start in the same place",
           shared_starts, [])
 

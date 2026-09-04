@@ -996,6 +996,36 @@ Nothing here is urgent unless it says so.
   `KEY_SWATCH` shrink with the scale, which recovers 12px and is not enough
   alone.
 
+- **A lane file's `region` is an index the digest does not guard.** A stop is
+  typed so it can outlive the seed it was drawn on, and the layout digest
+  refuses a floor the stops could not survive -- but `region` is neither. It is
+  a position in `lane.regions()`, and that list is built from the arrivals,
+  which come off the NORM and ENTR teleport tables. The digest covers the
+  map's tiles, its tileset id and that tileset's property block, and objects
+  and tables are deliberately outside it. So two cartridges can lay a floor
+  identically, match the digest, and still disagree about which region is index
+  2 -- a shuffle that repoints a door into the other half of MarshCaveB2 is
+  enough.
+
+  What it costs is bounded and worth stating, because it is smaller than it
+  sounds: the index only decides which route lane a loot lane subtracts its
+  edges from. Getting it wrong draws the loot lane in full down a corridor that
+  is already the route lane's, which is the parallel line `SCALE` exists to
+  remove. It cannot produce a walk the game refuses -- every leg is re-walked
+  against the cartridge in hand.
+
+  Not fixed, and the reason is that the honest fix is to stop storing it.
+  `lane.authored` already derives the region from the cartridge when a lane
+  states none, via `region_of()`, and that derivation cannot go stale the way
+  a stored index can -- so the *more* portable file today is the one that omits
+  the field the editor writes. Making that the only behaviour means either
+  deriving on load and ignoring what is stored, which makes a written field a
+  lie, or dropping it from the format, which loses the author's ability to say
+  "these two lanes are one region" on a floor whose halves the router reads as
+  joined. Neither is obviously right, and no lane has been authored yet, so
+  there is nothing to migrate and no cost to waiting. Raised 2026-09-03, out of
+  the same measurement that filtered the phantom arrivals.
+
 - **The agreement figures used to grant away most of what they appeared to
   compare. Largely closed 2026-08-30.** `check_logic --derived` hands every
   off-vocabulary item to both sides before comparing (`offvocab_items()`), so a

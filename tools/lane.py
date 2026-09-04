@@ -163,8 +163,21 @@ class Floor:
              else self.encounter).add(cell)
         self._searched = {}
         self._dist = {}
+        self._content = None
 
     # ------------------------------------------------------------- the walk
+
+    def content(self):
+        """The cells the edge flood cannot reach: this floor as it is drawn.
+
+        Cached per Floor because arrivals() asks for it on every call and the
+        flood is not free. It is render_maps' own set rather than a second
+        reading of it, which is the point: content_crop measures the drawn box
+        off exactly this, so "on the map" has to mean one thing in both places.
+        """
+        if self._content is None:
+            self._content = render_maps.content_cells(self.tiles)
+        return self._content
 
     def walkable(self, c):
         return (c not in self.blocked
@@ -417,11 +430,27 @@ def arrivals(f):
            for i in range(eg.NORM_COUNT_EXT) if g.norm_map[i] == f.mid}
     out |= {(eg.coord(g.entr_x[i]), eg.coord(g.entr_y[i]))
             for i in range(eg.ENTR_COUNT) if g.entr_map[i] == f.mid}
-    # A row of the table can name a tile that is a plain wall -- MatoyasCave
-    # (15, 0) is TP_NOMOVE with no special on both duck cartridges. That is a
-    # table entry the seed does not use, and a lane starting on it begins
-    # inside the rock.
-    return sorted(a for a in out if f.walkable(a))
+    # A row of the table can name a tile the seed does not use, and there are
+    # two ways it does. Walkability catches the first: MatoyasCave (15, 0) is
+    # TP_NOMOVE with no special on both duck cartridges, and a lane starting on
+    # it begins inside the rock.
+    #
+    # The content flood catches the second, which the first misses because the
+    # tile is perfectly walkable -- it is the filler *outside* the drawn floor.
+    # BahamutCaveB1 is the clearest: NORM rows 186-190 and 215 land on (0,27),
+    # (8,0) and (25,0), all tile id 60, none of them a content cell, and each
+    # reaching 3908 of the 4096 tiles because the surround wraps the whole
+    # torus. The cave itself is 188 content cells in a corridor six columns
+    # wide. Kept, those three make a second "region" that is not a place, and
+    # the editor offers it in a dropdown as somewhere to author a lane. Coneria
+    # Town reports 56 regions on this rule and 55 of them are that.
+    #
+    # Measured before it was applied, on a duck cartridge and both oracle ones:
+    # no map loses every arrival, no map loses a lane, and the only maps that
+    # move are tof, cardia and marshB2, whose runs are identical but for a
+    # region index that shifts down as the phantom region stops being counted.
+    content = f.content()
+    return sorted(a for a in out if f.walkable(a) and a in content)
 
 
 def exits(f, not_at=()):
