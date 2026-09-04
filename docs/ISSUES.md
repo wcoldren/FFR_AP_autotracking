@@ -922,6 +922,45 @@ Nothing here is urgent unless it says so.
   `tools/incentive_slots.py` changed. `@Melmond/Dr Unne` is correspondingly gone
   from the grader's `NOT_AP_LOCATIONS`: it is not a row to excuse any more.
 
+- **The layout digest refuses a floor over which enemies a trap tile spawns.**
+  `lane_file.digest` hashes the map's tiles, its tileset id and that tileset's
+  whole 256-byte property block, and the block is two bytes per tile: `b0`, the
+  walkability and special class, and `b1`, the special's argument -- for a
+  `TP_SPEC_BATTLE` tile, the formation id. FFR rolls formation ids per seed, so
+  `b1` churns on every reroll while nothing the router reads has moved.
+
+  **Measured 2026-09-04 across five cartridges.** Between any two standard ones
+  `b0` is byte-identical on all eight tilesets -- 0 bytes differing -- and only
+  `b1` moves, 33 to 34 bytes of it. `duck-102` and `duck-103` lay 56 of the 57
+  lane-bearing floors identically and the digest accepts **10**. So a lane is
+  refused on 47 floors that are the same floor, and the format's stated purpose
+  -- outliving the seed it was drawn on -- is delivered by the typed stops and
+  then taken away by the digest.
+
+  **It is not as simple as dropping `b1`**, which is why this is an entry rather
+  than a patch: `render_maps.fixed_formations` reads `b1`'s top bit to sort
+  fixed trap tiles from random encounters, and that sorting changes `Floor.enter`'s
+  cost, so it can move a drawn lane. What is pure seed noise is the *formation
+  id* underneath that bit.
+
+  **The narrow digest was tested and hits the ceiling exactly.** Hashing `b0`
+  plus the derived fixed/random bit, for the tile ids the map actually lays,
+  accepts precisely the floors whose tile grids agree: 51, 51, 51, 52, 52 and 56
+  against tile-grid ceilings of the same numbers. On the No-Overworld cartridge
+  it accepts 15 of the 18 floors that are tile-identical, declining three whose
+  used tiles genuinely changed class. Restricting to *laid* tiles is the second
+  half: a tileset entry the map never places cannot decide whether a lane drawn
+  on that map still holds.
+
+  **What it costs today is the whole No-Overworld half of the drawn art.** None
+  of the 57 authored lanes resolves on `duck-104`, so that mode renders with no
+  route on any floor. 47 of the 57 port to it verbatim and walk, and on the 18
+  floors whose tiles are identical the ported lane draws a byte-identical path
+  -- they are already correct there and only the digest refuses them.
+
+  Changing the digest rewrites the key every authored file is stored under, so
+  it wants the review gate and a regen per mode, not a quiet edit.
+
 ## Open questions
 
 - **Retracted 2026-09-03: `canon` has no latent false FAIL in `test_maps.lua`
