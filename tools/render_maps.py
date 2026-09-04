@@ -936,7 +936,18 @@ LANE_LOOT = 0x34              # purple -- what the loot costs on top
 LANE_FORCED = 0x16            # red    -- a trap tile with no way round
 LANE_LINK = 0x10              # silver -- two tiles that are one check
 LANE_START = 0x30             # white  -- where the lane begins
-LANE_PX = 5                   # the drawn width of a lane, in pixels
+# The drawn width of a lane, in pixels. Three rather than five: on a 16px tile
+# five is wide enough that the lane stops being a line over the floor and
+# starts being a thing the floor is behind, and the arrowheads -- eleven pixels
+# across the base -- lose most of their contrast against it. Three keeps the
+# map legible under the lane and leaves the heads reading as heads.
+#
+# Odd, and it has to be. draw_lanes spreads `range(-half, half + 1)` about the
+# tile centre, which can only ever draw an odd number of pixels, so LANE_PX 4
+# renders identically to 5 while the Map Key's swatch -- which hands LANE_PX
+# straight to _bar -- would draw the 4 it was asked for. An even width here
+# makes the key advertise a line the map does not contain.
+LANE_PX = 3
 ARROW_PX = 6                  # the drawn length of a direction arrow
 
 # Far enough apart that a corridor is not a row of arrowheads, close enough
