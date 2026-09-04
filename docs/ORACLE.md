@@ -6,7 +6,7 @@ rules FFR hands Archipelago — and `tools/check_logic.py` compares that with th
 pack's rules as truth tables. This file says which cartridge answers which
 question, and how to rebuild any of them from nothing.
 
-Six cartridges, all 4.9.2, all generated locally with `Spoilers` and
+Seven cartridges, all 4.9.2, all generated locally with `Spoilers` and
 `Archipelago` on so the export is attached.
 
 **All 4.9.2 is a limit as well as a fact.** `ShipDrydock`, `MapAirshipHike` and
@@ -38,18 +38,20 @@ seed-driven.
 
 **`nov` and `novnolefein` are the other kind of pair**, and share the *seed*
 rather than the flags -- the tighter control, and the one the 4.9.7 corpus uses
-throughout. Two cartridges here now carry seed `F2585541`, so name the slug in
+throughout. Three cartridges here now carry seed `F2585541`, so name the slug in
 prose for these as well; the paragraph below about `F258553F` says why.
 
-    std    omlInPoZ8aeRURUYlp1dof0D5xNDnrlGj9iV9YttYmO7Dv1Rmi6B0yqiIVR2PBvLS3STrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
-    nov    omlY4TDJ0WBi73FLBF5hW902l51xl72yHm32Rio0v38eGNM0fKy0TT8KJ-a0NWDQIIcxpvj7MlpYDG7gMaaVe-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
-    nov2   (identical to nov)
-    shard  omlInPoZ8aeCvsimCReMV9G4KHYm3TUYASJBGOBHlVOiR1kCNT91VO6GOxnA9GbEBb7YM1kQIzMfs8M3W7C8VP-aE5sJ0h2VYqBCNFMidFYuxFDg.QyWC6OgqMHtZPIrzXE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
-    notail omlInPoZ8aeRURUYe2aUg0I8HZZCUXtPc76esLTcnyl5plsgMDVIQ3lOapR226xybGTTrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
-    novnol omlY4TDJ0WBi73FLBF5VGzzAxztAsvA1h7hrrqcjdsidtXDK56cD4rAwa.3JnP7xA1eccFbQG-e.47l5WKeeBsCx37sjlvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
+    std          omlInPoZ8aeRURUYlp1dof0D5xNDnrlGj9iV9YttYmO7Dv1Rmi6B0yqiIVR2PBvLS3STrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
+    nov          omlY4TDJ0WBi73FLBF5hW902l51xl72yHm32Rio0v38eGNM0fKy0TT8KJ-a0NWDQIIcxpvj7MlpYDG7gMaaVe-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
+    nov2         (identical to nov)
+    shard        omlInPoZ8aeCvsimCReMV9G4KHYm3TUYASJBGOBHlVOiR1kCNT91VO6GOxnA9GbEBb7YM1kQIzMfs8M3W7C8VP-aE5sJ0h2VYqBCNFMidFYuxFDg.QyWC6OgqMHtZPIrzXE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
+    notail       omlInPoZ8aeRURUYe2aUg0I8HZZCUXtPc76esLTcnyl5plsgMDVIQ3lOapR226xybGTTrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
+    novnolefein  omlY4TDJ0WBi73FLBF5VGzzAxztAsvA1h7hrrqcjdsidtXDK56cD4rAwa.3JnP7xA1eccFbQG-e.47l5WKeeBsCx37sjlvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
+    novhoard     omlY4TDJ0WBi73FLBFbuh.G9jOSOon1ZIuedRm9rW-heEZ4V2WL9-Hw-Gyqnw1rWU7PuPNdGWIaJq5Lgg3-We-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
 
 Each cartridge sits in its own directory with its spoiler `.txt`, its
-Archipelago `.yaml` and, for the two No-Overworld ones, the derived rules JSON.
+Archipelago `.yaml` and, for the four No-Overworld ones, the derived rules
+JSON.
 One cartridge per directory on purpose: `check_logic` globs `*.yaml` beside the
 ROM when `--ap-rules` is not given, and two modes' exports in one directory get
 folded together into a plausible-looking pile of divergences that are not real.
@@ -727,11 +729,19 @@ touches a map bank.)
     W=<archipelago>/worlds/ff1
     O=<corpus>
 
-    python3 tools/noverworld_rules.py $O/nov/oracle_nov.nes   -o $O/nov/derived_nov.json
-    python3 tools/noverworld_rules.py $O/nov2/oracle_nov2.nes -o $O/nov2/derived_nov2.json
+    python3 tools/noverworld_rules.py $O/nov/oracle_nov.nes                 -o $O/nov/derived_nov.json
+    python3 tools/noverworld_rules.py $O/nov2/oracle_nov2.nes               -o $O/nov2/derived_nov2.json
+    python3 tools/noverworld_rules.py $O/novnolefein/novnolefein.nes -o $O/novnolefein/derived_novnolefein.json
+    python3 tools/noverworld_rules.py $O/novhoard/novhoard.nes       -o $O/novhoard/derived_novhoard.json
 
     python3 tools/check_logic.py $O/nov/oracle_nov.nes \
         --derived $O/nov/derived_nov.json --ap-rules $O/nov/oracle_nov.yaml --ff1-world $W
+    python3 tools/check_logic.py $O/novnolefein/novnolefein.nes \
+        --derived $O/novnolefein/derived_novnolefein.json \
+        --ap-rules $O/novnolefein/novnolefein.yaml --ff1-world $W
+    python3 tools/check_logic.py $O/novhoard/novhoard.nes \
+        --derived $O/novhoard/derived_novhoard.json \
+        --ap-rules $O/novhoard/novhoard.yaml --ff1-world $W
     python3 tools/check_logic.py $O/std/oracle_std.nes \
         --ap-rules $O/std/oracle_std.yaml --ff1-world $W
     python3 tools/check_logic.py $O/shard/oracle_shard.nes \

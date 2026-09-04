@@ -817,6 +817,20 @@ Nothing here is urgent unless it says so.
   combinations of the two flags; the fourth, hoard on and Cardia off, is the one
   the old shape could not state.
 
+  **One cell resets once on the upgrade, and it is not a bug to chase.**
+  PopTracker keys saved item state by a stable ID built from the item's type and
+  name -- `Type2Str(_type) + ":" + name`, `jsonitem.cpp:184` -- so the toggle
+  does not answer to the `progressive:Cardia Island is Incentive` that a session
+  saved before the split, and `Tracker::loadState` skips a key it cannot match
+  rather than complaining (`tracker.cpp:1404-1411`). A session reopened across
+  the change finds that one hand-set cell off. Nothing else moves: no other
+  item's ID changed, and the match is by ID rather than by position, so
+  inserting `Bahamut's Hoard` mid-list shifts nothing. (A state old enough to
+  carry no `json_item_ids` at all falls back to the positional key and would
+  shift, but every version that writes one writes them for all items.) The next
+  flag send from the bridge sets the cell from the cartridge, so the reset
+  survives one session at most.
+
   **The No-Overworld half is demonstrated too, on a cartridge rolled for it.**
   All six existing hoard cartridges are standard seeds, so the first pass could
   only claim standard-mode evidence. `novhoard` closes that: `oracle_nov`'s

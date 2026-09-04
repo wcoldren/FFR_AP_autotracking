@@ -101,7 +101,7 @@ for _, one in ipairs(hidden) do
   end
   if not named then
     fails("a surviving visibility rule is " .. one.text
-      .. ", which is neither BahamutHoard nor an existence flag")
+      .. ", which names none of " .. table.concat(HIDDEN_BY, ", "))
   end
 end
 -- One of each per sheet, which is the half the total cannot say.
