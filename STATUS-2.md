@@ -621,8 +621,29 @@ growing prefer set invalidates `Floor.search`'s memo, which is one Dijkstra per
 leg instead of per lane. The judgement is about the baked art and the baked
 preview is where it gets made.
 
-**Nothing has been judged yet.** No lane file carries the key. The pass is 24
-floors and a person, and it wants its own commit -- the 57 authored files are
-the irreplaceable part of this branch and a mechanism commit should not be
-carrying data edits.
+**Nothing has been judged yet** at the commit that carries the mechanism. The
+pass is 24 floors and a person, and it wants its own commit -- the 57 authored
+files are the irreplaceable part of this branch and a mechanism commit should
+not be carrying data edits.
+
+
+## Seventeen of the twenty-four collapse, and the towns are the seven that do not
+
+The judgement pass, made floor by floor on the A/B flip. 17 of the 24 redrawn
+floors carry `retrace: true`; the loop count across the set as it now bakes is
+30, against 72 unretraced and the 23 it would be with every floor forced on.
+
+The seven left alone are not a gap, and five of them are one answer: `elfland`,
+`elf_castle`, `melmond`, `onrac` and `pravoka` are towns, and a town is where
+"there is a way round" is the true thing to draw. Collapsing those would have
+the map say walk this twice about the one kind of floor a player circles
+freely. That is the case docs/ISSUES.md described in the abstract, met in the
+particular.
+
+The other two are `marshB3` and `seaB1`, of the three floors whose drawing
+changes without the loop count moving. `coneria_town` is the third and it *was*
+marked -- so the class got looked at rather than read past, which is the whole
+reason the rail marks a floor by its edges and not by its numbers. Had it shown
+counts, all three would have read as unaffected and none of these three
+decisions would have been made at all.
 
