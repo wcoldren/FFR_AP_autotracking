@@ -1547,11 +1547,24 @@ def main():
         # It terminates because spread() always works from the unspread
         # placement, so each pass is decided by its step alone and nothing
         # compounds; a box that stops growing is the fixed point.
-        ow_box = overworld_pins.content_box(list(ow_placed.values()))
+        #
+        # The doors are anchors too, and claimed before anything is stacked. A
+        # trapezoid is the same size box as a place pin, so the two on one tile
+        # is one of them invisible; the door keeps its tile and what is behind
+        # it goes above, which is the reading an entrance-rando board wants. And
+        # they widen the crop: five doors carry no place pin at all, two of them
+        # well away from the nearest one, and a door outside the box is a fatal
+        # ow_stray rather than a marker quietly off the edge.
+        ow_doors = overworld_pins.entrance_door_pins(ow_reader)
+        door_taken = {cell: name for name, cell in ow_doors.items()}
+        ow_box = overworld_pins.content_box(
+            list(ow_placed.values()) + list(ow_doors.values()))
         for _ in range(8):
             stacked_ = overworld_pins.spread(
-                ow_placed, overworld_pins.marker_tiles(max(ow_box[2], ow_box[3])))
-            box_ = overworld_pins.content_box(list(stacked_.values()))
+                ow_placed, overworld_pins.marker_tiles(max(ow_box[2], ow_box[3])),
+                taken=door_taken)
+            box_ = overworld_pins.content_box(
+                list(stacked_.values()) + list(ow_doors.values()))
             if box_ == ow_box:
                 ow_placed = stacked_
                 break
@@ -1568,6 +1581,7 @@ def main():
         # "could not be placed on the overworld" -- for placements that were
         # never going to be attempted.
         ow_placed, ow_unplaced, ow_anchors = {}, [], {}
+        ow_doors = {}
         ow_box = (0, 0, render_overworld.OW_DIM, render_overworld.OW_DIM)
     ow_mirror = overworld_pins.mirror_of(board_doc, ow_placed)
     ow_moved, ow_dropped = 0, []
@@ -1664,6 +1678,18 @@ def main():
                                               origin=ow_box[:2])
         ow_moved += moved
         ow_dropped += drops
+        # The doors, onto the board tree only. The incentive sheet is a poster
+        # of slots and a door is not a slot.
+        #
+        # After restamp, which drops any marker on an overworld map whose node
+        # it was not handed a placement for -- these are placed here, not
+        # resolved, so it would take every one of them straight back out. And
+        # before the stamp, so the rule is pin_visibility's to write: it knows
+        # the group by name, and spelling the rule at a second site is what its
+        # docstring exists to prevent.
+        if rel is dungeon_locations and ow_doors:
+            doc.append(overworld_pins.entrance_group(ow_doors,
+                                                     origin=ow_box[:2]))
         pin_visibility.stamp(doc)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
         placed += pl

@@ -12,9 +12,10 @@ worst, Mirage Tower and Ordeals next -- so the drawing is not a scaled map and
 there is no transform to invert. Every pin here is derived instead.
 
 **One rule does almost all of it: a pin stands on the door you go through to
-reach the thing it names.** For each pin the pack draws, take every chest under
-it, ask which maps those chests are on, and ask entrance_graph for the door that
-reaches them. That handles the ordinary case (Ice Cave's pin on Ice Cave's
+reach the thing it names** -- or, where the door already carries an entrance
+pin, on the first free tile above it. For each pin the pack draws, take every
+chest under it, ask which maps those chests are on, and ask entrance_graph for
+the door that reaches them. That handles the ordinary case (Ice Cave's pin on Ice Cave's
 door), the five-doors-one-map case (Cardia is one map with five entrances; the
 door whose arrival tile is nearest the pack's own chests for that name is the
 one), and the no-door case (Sky Palace, Sea Shrine and ToFR have no overworld
@@ -50,6 +51,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import entrance_graph  # noqa: E402
+import pin_visibility  # noqa: E402  -- ENTRANCES_GROUP, the group stamp() reads
 import render_overworld  # noqa: E402
 
 OWTP_SPEC_FLOATER = 0xC0
@@ -119,6 +121,64 @@ def door_cells(reader):
     """
     return {d: cells[0] for d, cells in
             entrance_graph.door_positions(reader).items() if cells}
+
+
+# The prefix every entrance node's name carries. Namespaced because
+# tiles_by_name, mirror_of and restamp are all keyed on a bare node name, and a
+# door named "Coneria" would collide with the town pin of the same name.
+ENTRANCE_PREFIX = "Entrance: "
+
+
+def entrance_door_pins(reader):
+    """{node name: (x, y)} -- one trapezoid pin per overworld door.
+
+    A door's *position* is not part of the shuffle. Entrances rewrites where a
+    door leads, not where it is, so this is the same answer on every seed and
+    marking it gives nothing away. Where it now goes is the connection half, and
+    is not this.
+
+    One pin per door rather than one per tile: door_cells takes the north-west
+    corner of a town's blob, which is where a single marker belongs.
+    """
+    return {ENTRANCE_PREFIX + entrance_graph.DOOR_NAMES[door]: cell
+            for door, cell in sorted(door_cells(reader).items())}
+
+
+def entrance_group(doors, origin=(0, 0), map_name="overworld", tile_px=16):
+    """The tree node the door pins are injected as.
+
+    One group, named so tools/pin_visibility.py can find it: entrance pins are
+    the kind classified by where a node sits rather than by what it holds, and
+    the group is what says so. The rule itself is stamp()'s to write.
+
+    Each door is its own location with its own section. Both halves are
+    required rather than tidy -- CalculateLocationState walks only a node's own
+    sections and does not aggregate from children, so a parent carrying markers
+    and no sections is hidden; and a section with item_count below 1 and no
+    hosted item is skipped, which leaves a marker that draws nothing and reports
+    no error. The default item_count is 1 (locationsection.cpp:67), so the way
+    to get that right is to leave it alone.
+
+    A section also gives a door a state, which is the point: until the bridge
+    watches the party walk through one, "I have been in here" is a click.
+
+    `origin` is the crop box's top-left tile, the same measurement restamp
+    takes, because the pixel is measured from the image actually written.
+    """
+    ox, oy = origin
+    half = tile_px // 2
+    return {
+        "name": pin_visibility.ENTRANCES_GROUP,
+        "children": [
+            {"name": name,
+             "sections": [{"name": name[len(ENTRANCE_PREFIX):]}],
+             "map_locations": [{"map": map_name,
+                                "x": (cell[0] - ox) * tile_px + half,
+                                "y": (cell[1] - oy) * tile_px + half,
+                                "shape": "trapezoid"}]}
+            for name, cell in sorted(doors.items())
+        ],
+    }
 
 
 # Every key item, for the route walk. The question is where a door *is*, not
@@ -277,11 +337,17 @@ def resolve(rom, reader, graph, doc, tiles_by_name, mirror=None, report=None):
     return placed, unplaced, anchors
 
 
-def spread(placed, step, dim=256):
+def spread(placed, step, dim=256, taken=None):
     """Move pins off each other, `step` tiles at a time. -> a new dict.
 
     Two pins on one tile is one pin: ToFR shares the Temple of Fiends' door and
     Sky Palace shares Mirage Tower's, because that is the door you go through.
+
+    `taken` seeds the occupied tiles before any pin is laid out, and is how the
+    entrance pins keep their doors. A trapezoid is the same size box as a place
+    pin, so the two coincident is one of them invisible and which one depends on
+    tree order; claiming the door first makes the answer "the door is marked,
+    and what is behind it is stacked above" rather than a coin toss.
 
     The step is a marker's height rather than a tile, and that is the whole
     point of taking it as an argument. A tile was the smallest move that
@@ -291,7 +357,7 @@ def spread(placed, step, dim=256):
     be stacked, and how big one is depends on a crop this cannot see.
     """
     step = max(1, int(step))
-    out, taken = {}, {}
+    out, taken = {}, dict(taken or {})
     for name, where in placed.items():
         moved = where
         # North first: there is most room above a door on this art, and the

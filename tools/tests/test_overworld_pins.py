@@ -19,7 +19,9 @@ are worth anything are these:
     floater digs the airship out of. Neither has a chest to ask about; both are
     a tile property.
   * two pins never share a tile once stacked, and no two boxes in a column
-    overlap. A pin under a pin is one pin, and at a marker of six tiles a
+    overlap -- nor does one share a door tile, which the entrance pins now
+    claim before anything is laid out (tools/tests/test_entrance_pins.py has
+    that half). A pin under a pin is one pin, and at a marker of six tiles a
     one-tile nudge does not separate them -- which is why the step is a
     marker's height and why the same fraction is computed two ways, here in
     tiles and in regen_maps in pixels, with a check that they agree.

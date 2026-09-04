@@ -196,6 +196,7 @@ different ones, they come from `colors.json` in your PopTracker config directory
     square       an ordinary check
     diamond      a sprite check or an incentive slot -- something here is
                  worth a look
+    trapezoid    a door -- a way in or out
 
 A diamond does *not* mean "there is a sprite here". It started out that way, for
 a rendering reason rather than a meaning one: a square pin is opaque and exactly
@@ -204,9 +205,13 @@ leaves the tile's four corners unpainted and the sprite reads through. Incentive
 chests are diamonds as well, so the shape reads forwards only -- every pin
 standing on a sprite is a diamond, and not every diamond is standing on one.
 
-Which half you are looking at depends on how the art was drawn. Render the maps
-without sprites and nothing is left for a pin to collide with, so every diamond
-on the board is an incentive slot.
+Which half of the diamond you are looking at depends on how the art was drawn.
+Render the maps without sprites and nothing is left for a pin to collide with,
+so every diamond on the board is an incentive slot. The trapezoid is not like
+that: doors come off the cartridge's own teleport tables and are the same under
+every render setting. It says where a door is, not where it now goes -- on a
+shuffled seed those are different questions, and only the first one can be
+answered without watching you walk through it.
 
 Shape and colour are separate channels: the shape says what kind of thing a pin
 is, the colour says how it stands. PopTracker has three shapes and no more, so
