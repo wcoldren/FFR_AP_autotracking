@@ -34,6 +34,38 @@
      ]
     }
    ]
+  },
+  {
+   "digest": "c874258199066d9d",
+   "seen": [
+    "4-9-2|F258553F|omlYghLSCpMDOY6nFl8h87em55jYglFZwycq9xB0KCtgsU3gTvgEXRVptkqTcPIULXXHa-yFf5-W0VP075pArz6AN9VI7XjPULF8Pw338-OCxZrw-ygCE5PnzQY98VC7Ebs1dtjAgOsud9hK9X0RcTpyAlTK2luY8YZ7JQyzAEWHH4FmWj"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        27,
+        15
+       ],
+       "in": [
+        27,
+        15
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        12,
+        8
+       ]
+      }
+     ]
+    }
+   ]
   }
  ]
 }

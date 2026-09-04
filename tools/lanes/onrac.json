@@ -86,6 +86,90 @@
      ]
     }
    ]
+  },
+  {
+   "digest": "4466179595fac730",
+   "seen": [
+    "4-9-2|F258553F|omlYghLSCpMDOY6nFl8h87em55jYglFZwycq9xB0KCtgsU3gTvgEXRVptkqTcPIULXXHa-yFf5-W0VP075pArz6AN9VI7XjPULF8Pw338-OCxZrw-ygCE5PnzQY98VC7Ebs1dtjAgOsud9hK9X0RcTpyAlTK2luY8YZ7JQyzAEWHH4FmWj"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        1,
+        12
+       ],
+       "in": [
+        1,
+        12
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        46,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        1,
+        12
+       ],
+       "in": [
+        1,
+        12
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        6,
+        6
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        20,
+        20
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        26,
+        20
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        6,
+        20
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        46,
+        30
+       ]
+      }
+     ]
+    }
+   ]
   }
  ]
 }

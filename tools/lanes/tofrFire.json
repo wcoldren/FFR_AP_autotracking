@@ -68,6 +68,72 @@
     }
    ],
    "retrace": true
+  },
+  {
+   "digest": "a90a2f4036724da1",
+   "seen": [
+    "4-9-2|F258553F|omlYghLSCpMDOY6nFl8h87em55jYglFZwycq9xB0KCtgsU3gTvgEXRVptkqTcPIULXXHa-yFf5-W0VP075pArz6AN9VI7XjPULF8Pw338-OCxZrw-ygCE5PnzQY98VC7Ebs1dtjAgOsud9hK9X0RcTpyAlTK2luY8YZ7JQyzAEWHH4FmWj"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        13,
+        21
+       ],
+       "in": [
+        13,
+        21
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        16,
+        21
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        13,
+        21
+       ],
+       "in": [
+        13,
+        21
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 249,
+       "at": [
+        54,
+        34
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 250,
+       "at": [
+        24,
+        52
+       ]
+      }
+     ]
+    }
+   ],
+   "retrace": true
   }
  ]
 }

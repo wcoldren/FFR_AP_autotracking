@@ -107,6 +107,111 @@
     }
    ],
    "retrace": true
+  },
+  {
+   "digest": "1822be339b87cfd7",
+   "seen": [
+    "4-9-2|F258553F|omlYghLSCpMDOY6nFl8h87em55jYglFZwycq9xB0KCtgsU3gTvgEXRVptkqTcPIULXXHa-yFf5-W0VP075pArz6AN9VI7XjPULF8Pw338-OCxZrw-ygCE5PnzQY98VC7Ebs1dtjAgOsud9hK9X0RcTpyAlTK2luY8YZ7JQyzAEWHH4FmWj"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        20,
+        30
+       ],
+       "in": [
+        20,
+        30
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 9,
+       "at": [
+        2,
+        32
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 7,
+       "at": [
+        2,
+        3
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 8,
+       "at": [
+        3,
+        3
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        20,
+        21
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        20,
+        30
+       ],
+       "in": [
+        20,
+        30
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 11,
+       "at": [
+        38,
+        3
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 12,
+       "at": [
+        39,
+        3
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 10,
+       "at": [
+        39,
+        32
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        20,
+        29
+       ]
+      }
+     ]
+    }
+   ],
+   "retrace": true
   }
  ]
 }

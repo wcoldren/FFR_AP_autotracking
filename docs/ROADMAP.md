@@ -51,7 +51,7 @@ work it is, not how much it matters.
 | §3 | Room-level zoom, after the towns |
 | §3 | The regen's execution half, after the detection half |
 | §4 | Entrance markers |
-| §4 | The lanes still to draw: the No-Overworld port, the by-eye pass, the run-wide order |
+| §4 | The lanes still to draw: ten No-Overworld floors, 32 ported drafts, the by-eye pass, the run-wide order |
 | §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
 | §4 | Boss names in the Map Key |
@@ -207,20 +207,27 @@ Things a bridge-only player checks that the board has no cell for.
 - **The lanes still to draw.** Three things, in the order they cost a player
   something:
 
-  **No-Overworld has 15 of 57.** Narrowing the layout digest on 2026-09-04
-  handed back the floors that are tile-identical to their standard twins, where
-  the authored lane draws the same path and only the digest had been refusing it
-  (`docs/ISSUES.md`, "The layout digest refuses a floor over which enemies a
-  trap tile spawns"). The other 42 are the port: copy the standard entry's lanes
-  under the No-Overworld digest, **verbatim** — dropping the `at` hints from
-  `arrival` and `exit` collapses a route lane to the cheapest pair of ends, on
-  23 of them. Measured 2026-09-04 against `duck-104` (`docs/ORACLE.md`, "The
-  play cartridges"): **32 walk**, and a port that walks is a draft to review in
-  `tools/lane_edit.py`, not a finished lane. **Ten refuse and are authoring
-  rather than copying** — six towns plus `tofr1F` lose the arrival outright,
-  `elf_castle` and `nw_castle` keep an arrival they cannot walk from, and
-  `bahamutB2` fails on a chest index. The arrivals are No-Overworld sealing and
-  re-stamping town entrances.
+  **No-Overworld has 47 of 57, and the ten left are authoring rather than
+  copying.** Narrowing the layout digest on 2026-09-04 handed back the 15 floors
+  tile-identical to their standard twins, and `tools/port_lanes.py` carried the
+  other 32 across the same day (`docs/ISSUES.md`, "The layout digest refuses a
+  floor over which enemies a trap tile spawns"). The carry is **verbatim** and
+  has to stay that way: dropping the `at` hints from `arrival` and `exit` stops
+  collapses a route lane to the cheapest pair of ends the floor offers, on 23 of
+  them.
+
+  **The 32 are drafts, not finished lanes.** Each is the standard route replayed
+  on a floor whose walls have moved, so it is legal and may still be silly — a
+  corridor that was the short way round on one cartridge can be the long way on
+  another. Reviewing them in `tools/lane_edit.py` is the open work, and it is
+  looking rather than drawing.
+
+  **The ten that refuse are the authoring pass.** Six towns plus `tofr1F` lose
+  the arrival outright; `elf_castle` and `nw_castle` keep an arrival they cannot
+  walk from; `bahamutB2` fails on a chest index. The arrivals are No-Overworld
+  sealing and re-stamping town entrances, so they want a cartridge in front of
+  you rather than a copy. The same ten refuse on the nov oracle, which is the
+  pairing `tools/tests/test_port_lanes.py` walks.
 
   **The by-eye pass against DarkmoonEX's 58 drawn images has not started.** The
   reference is the acceptance test, not the input: his lanes are drawn on

@@ -66,6 +66,70 @@
      ]
     }
    ]
+  },
+  {
+   "digest": "3ace45d21db3bd91",
+   "seen": [
+    "4-9-2|F258553F|omlYghLSCpMDOY6nFl8h87em55jYglFZwycq9xB0KCtgsU3gTvgEXRVptkqTcPIULXXHa-yFf5-W0VP075pArz6AN9VI7XjPULF8Pw338-OCxZrw-ygCE5PnzQY98VC7Ebs1dtjAgOsud9hK9X0RcTpyAlTK2luY8YZ7JQyzAEWHH4FmWj"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        32,
+        31
+       ],
+       "in": [
+        32,
+        31
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        7,
+        56
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        32,
+        31
+       ],
+       "in": [
+        32,
+        31
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 106,
+       "at": [
+        9,
+        36
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        7,
+        56
+       ]
+      }
+     ]
+    }
+   ]
   }
  ]
 }

@@ -90,13 +90,14 @@ lay differently, which is why the count was never going to be 57. **Under the
 narrowed digest it is 51**, and that is the measurement to quote: the ten was a
 property of the digest, not of the cartridge.
 
-**15 of the 57 authored lanes resolve on `duck-104`**, since the layout digest
-narrowed on 2026-09-04: those are the floors laid tile-for-tile as their
+**47 of the 57 authored lanes resolve on `duck-104`.** 15 came back when the
+layout digest narrowed on 2026-09-04 -- the floors laid tile-for-tile as their
 standard twins, where the authored lane draws the same path and only the digest
-had refused it. The other 42 draw nothing yet. 32 of them accept the standard
-lanes ported verbatim and want reviewing in `tools/lane_edit.py` against this
-cartridge; the last 10 are an authoring pass there (`docs/ROADMAP.md` section
-4).
+had refused it -- and `tools/port_lanes.py` carried 32 more across the same day,
+verbatim, as drafts to review in `tools/lane_edit.py` against this cartridge.
+The last 10 draw nothing and are an authoring pass there (`docs/ROADMAP.md`
+section 4): the arrival is gone or unreachable on nine of them, and `bahamutB2`
+fails on a chest index.
 
 **`F258553F` and `F2585541` are different cartridges.** Both are FFR 4.9.2,
 both GameMode 2, both ToFRMode 2 (Short), and they differ in the last two

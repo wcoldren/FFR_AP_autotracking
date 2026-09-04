@@ -1095,8 +1095,19 @@ Nothing here is urgent unless it says so.
   the entire point of the change -- and every extra match is another chance for
   the disagreement above. The new population has a name: the 15 `duck-104`
   floors that resolve under the new digest and did not under the old one are
-  exactly the floors whose stored region indices have never been read on that
+  exactly the floors whose stored region indices had never been read on that
   cartridge.
+
+  **The port widened it again, and by more.** `tools/port_lanes.py` carried 32
+  standard entries onto the No-Overworld digest on 2026-09-04, `region` included
+  and unchanged, so 47 of the 57 floors now hand a stored index to a cartridge
+  whose arrivals came off a different teleport table. The port is verbatim on
+  purpose and the index travels with everything else -- but this is the entry
+  that says what that costs, and the answer is now 47 floors rather than 15. It
+  stays bounded for the same reason as before: a wrong index draws a loot lane
+  in full down a corridor the route lane already owns, and cannot produce a walk
+  the game refuses. The review pass over the 32 drafts is where it would be
+  noticed.
 
   What it costs is bounded and worth stating, because it is smaller than it
   sounds: the index only decides which route lane a loot lane subtracts its

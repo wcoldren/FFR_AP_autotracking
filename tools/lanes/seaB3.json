@@ -177,6 +177,181 @@
     }
    ],
    "retrace": true
+  },
+  {
+   "digest": "6f4a0366b0863954",
+   "seen": [
+    "4-9-2|F258553F|omlYghLSCpMDOY6nFl8h87em55jYglFZwycq9xB0KCtgsU3gTvgEXRVptkqTcPIULXXHa-yFf5-W0VP075pArz6AN9VI7XjPULF8Pw338-OCxZrw-ygCE5PnzQY98VC7Ebs1dtjAgOsud9hK9X0RcTpyAlTK2luY8YZ7JQyzAEWHH4FmWj"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        21,
+        42
+       ],
+       "in": [
+        21,
+        42
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        30,
+        7
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        3,
+        2
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        21,
+        42
+       ],
+       "in": [
+        21,
+        42
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 160,
+       "at": [
+        36,
+        25
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 159,
+       "at": [
+        7,
+        14
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        30,
+        7
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        3,
+        2
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "route",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        47,
+        39
+       ],
+       "in": [
+        47,
+        39
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        49,
+        37
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "route",
+     "region": 2,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        48,
+        10
+       ],
+       "in": [
+        48,
+        10
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        47,
+        29
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 2,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        48,
+        10
+       ],
+       "in": [
+        48,
+        10
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 162,
+       "at": [
+        51,
+        5
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 161,
+       "at": [
+        48,
+        13
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        47,
+        29
+       ]
+      }
+     ]
+    }
+   ],
+   "retrace": true
   }
  ]
 }

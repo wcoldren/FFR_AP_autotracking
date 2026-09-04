@@ -138,6 +138,142 @@
      ]
     }
    ]
+  },
+  {
+   "digest": "c1e2a5815a560754",
+   "seen": [
+    "4-9-2|F258553F|omlYghLSCpMDOY6nFl8h87em55jYglFZwycq9xB0KCtgsU3gTvgEXRVptkqTcPIULXXHa-yFf5-W0VP075pArz6AN9VI7XjPULF8Pw338-OCxZrw-ygCE5PnzQY98VC7Ebs1dtjAgOsud9hK9X0RcTpyAlTK2luY8YZ7JQyzAEWHH4FmWj"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        5,
+        6
+       ],
+       "in": [
+        5,
+        6
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 28,
+       "at": [
+        23,
+        39
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        5,
+        6
+       ],
+       "in": [
+        5,
+        6
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 21,
+       "at": [
+        10,
+        25
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 22,
+       "at": [
+        23,
+        23
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 29,
+       "at": [
+        25,
+        25
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 28,
+       "at": [
+        23,
+        39
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        12,
+        53
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 31,
+       "at": [
+        27,
+        53
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 23,
+       "at": [
+        38,
+        40
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 32,
+       "at": [
+        52,
+        53
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 29,
+       "at": [
+        53,
+        38
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 20,
+       "at": [
+        52,
+        8
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        5,
+        7
+       ]
+      }
+     ]
+    }
+   ]
   }
  ]
 }

@@ -708,3 +708,46 @@ directory matches the installed override's 68 files exactly. The narrowing
 accepts strictly more cartridges and draws the same lane on the ones it already
 accepted, so the only visible movement is the 15 floors the No-Overworld half
 gains.
+
+
+## Carrying 32 lanes to the other cartridge, and what would have eaten them
+
+The narrowing handed No-Overworld 15 floors and left 42. Those 42 were never an
+authoring problem: the standard route already walks on 32 of them, and what was
+missing was the key, not the judgement. `tools/port_lanes.py` mints it — for
+each floor it takes the entry matching the cartridge the lane was drawn on,
+re-keys a copy to the target's digest, and accepts it only if `lane.authored`
+walks it.
+
+**The acceptance test is the drawing code, deliberately.** The one failure worth
+designing against is a port the tool accepts and `regen_maps` then refuses, so
+the check is the same call the art makes rather than a second opinion about what
+a walkable lane is.
+
+**The verbatim rule is the whole tool.** Every stop keeps its `kind`, its `at`
+hint and its `region`; the entry keeps its `retrace`. It is tempting to drop the
+hints and let `lane.anchors` re-resolve each stop from what it means — the typed
+kinds exist precisely so a stop can survive a cartridge that moved it. That is
+wrong here and measurably so: with both ends free to move, a route lane
+collapses to the cheapest arrival/exit pair the floor offers, on 23 of the 42,
+sometimes to a single step. The typed kind is the fallback for a hint that no
+longer holds, not an improvement on one that does.
+
+**The tally reproduced a measurement taken before the tool existed**, which is
+the reason to trust it: 15 already drawn, 32 carried, 10 refused, and the ten
+are the ones `docs/ROADMAP.md` had already named — six towns plus `tofr1F`
+losing the arrival outright, `elf_castle` and `nw_castle` keeping one they
+cannot walk from, `bahamutB2` on a chest index. The nov oracle refuses the same
+ten, which is what the test walks, so the refusal is a property of No-Overworld
+sealing rather than of one seed.
+
+**A port that walks is a draft.** It is the drawn route replayed on a floor
+whose walls have moved: legal, and possibly silly, because a corridor that was
+the short way round on one cartridge can be the long way on another. The 32 want
+an eye in `tools/lane_edit.py` before they are believed. The exception is the 15
+that share a layout outright, where the path is byte-identical and there is
+nothing to look at.
+
+**The art moved this time.** `regen_maps.py` on `duck-104` drew 47 and wrote 32
+of 67 files — exactly the ported floors, which is the tally agreeing with itself
+from the other end.
