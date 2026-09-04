@@ -28,10 +28,13 @@ that does.
 **A port that walks is a draft, not a finished lane.** It is the drawn route
 replayed on a floor whose walls have moved, so it is legal and it may well be
 silly -- a corridor that was the short way round on one cartridge can be the
-long way on another. Review it in `tools/lane_edit.py` before believing it. The
-exception is a floor laid tile-for-tile the same, where the ported lane draws a
-byte-identical path and there is nothing to review; those share a digest
-already and this tool reports them as needing nothing.
+long way on another. Review it in `tools/lane_edit.py` before believing it, and
+the entry says so itself: a carried entry is written with `"ported": true`,
+which `lane_edit` clears on save, so what is left to review is readable off the
+files rather than out of a note. The exception is a floor laid tile-for-tile
+the same, where the ported lane draws a byte-identical path and there is
+nothing to review; those share a digest already and this tool reports them as
+needing nothing.
 
 **`--apply` is all of them or none.** Every ported document is built and
 validated first, and the writes only happen if all of them pass -- a carry is
@@ -118,6 +121,11 @@ def port(src, dst, name, map_id):
     entry = dict(was)
     entry["digest"] = dst_dig
     entry["seen"] = [dst.stamp]
+    # And a port is a draft until somebody opens it. `seen` cannot say that --
+    # this tool has just filled it in -- so without a key of its own a floor
+    # reviewed and left alone is byte-identical to one nobody has looked at.
+    # `lane_edit` clears it on save. See lane_file's docstring.
+    entry["ported"] = True
     try:
         lane.authored(dst.rom, dst.graph, map_id, entry, dst.chests,
                       retrace=lane_file.wants_retrace(entry))

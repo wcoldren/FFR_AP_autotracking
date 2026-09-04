@@ -53,6 +53,14 @@ standard one does not. `wants_retrace` is where it and the caller's override
 meet; `docs/ISSUES.md`, "Is a loop worth collapsing?", is why the answer is not
 one setting for the whole set.
 
+**`ported`** is the other, and it is bookkeeping rather than drawing: true on an
+entry `tools/port_lanes.py` carried from another cartridge and never reviewed.
+Nothing else on disk separates a floor somebody opened and left alone from one
+nobody has looked at -- saving in `lane_edit` appends to `seen`, which a port
+already filled in -- so without it the remaining review work is readable only
+from prose. `lane_edit` clears the key on save, which is what makes opening a
+floor and leaving it alone mean something.
+
 Map objects are deliberately *outside* the digest. A gate NPC standing in a
 doorway changes the walk, but the loader re-walks every leg against the
 cartridge in hand, so the walking is always legal for that cartridge and a
@@ -257,6 +265,13 @@ def validate(doc):
         if "retrace" in entry and not isinstance(entry["retrace"], bool):
             out.append("%s: retrace %r is not true or false"
                        % (where, entry["retrace"]))
+        # Same rule, same reason: absent is the ordinary case and means "not a
+        # port". `port_lanes` writes it true and `lane_edit` clears it on save,
+        # so a misspelt value read for its truthiness would leave a reviewed
+        # floor permanently claiming to be an unreviewed draft.
+        if "ported" in entry and not isinstance(entry["ported"], bool):
+            out.append("%s: ported %r is not true or false"
+                       % (where, entry["ported"]))
         lanes_ = entry.get("lanes")
         if not isinstance(lanes_, list) or not lanes_:
             out.append("%s: no lanes" % where)

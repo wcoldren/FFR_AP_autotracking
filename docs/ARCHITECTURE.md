@@ -282,6 +282,14 @@ one line. Per layout for the same reason the stops are, and absent by default.
 than switching the feature; `docs/ISSUES.md`, "Is a loop worth collapsing?",
 has why the answer cannot be one setting for the whole set.
 
+It carries one piece of bookkeeping too: **`ported`**, true on an entry
+`tools/port_lanes.py` carried from another cartridge and nobody has reviewed
+yet. A carried lane is legal and may still be silly, so the distinction is real
+work; without a key for it, a floor somebody opened and left alone looks exactly
+like one nobody has opened, since a port has already written the cartridge into
+`seen`. `lane_edit` clears it on save, so what is left to review is a query
+against the files rather than a note in a doc.
+
 Four things to know before trusting any tool that reads maps:
 
 - **Maps live in bank `$14`, not `$04`.** Every FFR seed relocates all 61 standard

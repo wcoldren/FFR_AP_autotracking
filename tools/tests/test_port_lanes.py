@@ -183,13 +183,15 @@ try:
               bool(refused), True)
 
     # --- verbatim, on every floor that carried
-    moved, lost_hint, rekeyed = [], [], []
+    moved, lost_hint, rekeyed, undrafted = [], [], [], []
     for name, map_id, entry in carried:
         was = LF.pick(LF.read(name), src.digest(map_id))
         if entry["lanes"] != was["lanes"]:
             moved.append(name)
         if was.get("retrace") != entry.get("retrace"):
             moved.append(name + " (retrace)")
+        if entry.get("ported") is not True:
+            undrafted.append(name)
         for a, b in zip(was["lanes"], entry["lanes"]):
             if a.get("region") != b.get("region"):
                 lost_hint.append(name + " (region)")
@@ -205,6 +207,7 @@ try:
     check("and says which cartridge it was carried to",
           sorted({tuple(e["seen"]) == (dst.stamp,) for _, _, e in carried}),
           [True])
+    check("and marks itself a draft nobody has reviewed", undrafted, [])
 
     # --- and carries a key the copy was never told about
     # `note` is the live case: lane_edit writes it, no committed entry has one

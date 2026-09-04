@@ -220,7 +220,9 @@ Things a bridge-only player checks that the board has no cell for.
   on a floor whose walls have moved, so it is legal and may still be silly — a
   corridor that was the short way round on one cartridge can be the long way on
   another. Reviewing them in `tools/lane_edit.py` is the open work, and it is
-  looking rather than drawing.
+  looking rather than drawing. Each carries `"ported": true` and `lane_edit`
+  clears it on save, so how many are left is a question for the files rather
+  than for this paragraph.
 
   **The ten that refuse are the authoring pass.** Six towns plus `tofr1F` lose
   the arrival outright; `elf_castle` and `nw_castle` keep an arrival they cannot

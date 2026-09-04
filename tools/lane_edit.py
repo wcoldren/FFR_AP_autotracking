@@ -516,6 +516,13 @@ def make_handler(session):
                     entry["retrace"] = True
                 else:
                     entry.pop("retrace", None)
+                # Saving is the review. `port_lanes` marks what it carried as a
+                # draft nobody has opened, and this is the only place that can
+                # honestly clear it -- unconditionally, because a floor looked
+                # at and left exactly as ported is reviewed just as much as one
+                # that got redrawn, and `seen` cannot tell the two apart since
+                # the port already wrote this cartridge into it.
+                entry.pop("ported", None)
                 if session.stamp not in entry.setdefault("seen", []):
                     entry["seen"].append(session.stamp)
                 bad = lane_file.validate(doc)

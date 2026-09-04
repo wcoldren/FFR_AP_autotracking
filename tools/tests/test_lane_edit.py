@@ -421,6 +421,25 @@ try:
     check("and unticking it takes the key back out rather than writing false",
           (code, "retrace" in entry), (200, False))
 
+    # Saving is what clears a port's draft mark, and it has to clear on a save
+    # that changed nothing: a floor opened, looked at and left exactly as
+    # `port_lanes` carried it is reviewed just as much as one that got redrawn,
+    # and `seen` cannot tell the two apart because the port already wrote this
+    # cartridge into it. Planted rather than ported here -- what the key means
+    # is this module's business, and where it comes from is test_port_lanes's.
+    doc = LF.read(name)
+    LF.write(name, dict(doc, layouts=[
+        dict(e, ported=True) if e.get("digest") == LF.digest(session.rom, mid)
+        else e for e in doc["layouts"]]))
+    check("a floor carried by port_lanes says it is an unreviewed draft",
+          LF.pick(LF.read(name), LF.digest(session.rom, mid)).get("ported"),
+          True)
+    code, body = post("/save", {"map": name, "lanes": [
+        {"flavour": run.label, "region": run.region, "stops": stops}]})
+    entry = LF.pick(LF.read(name), LF.digest(session.rom, mid))
+    check("and saving it -- unchanged -- is what stops it saying so",
+          (code, "ported" in entry), (200, False))
+
     # A save changes a file the triage table was read off, so the row for that
     # map has to be measured again. Left alone the rail keeps reporting the
     # floor's pre-edit figure, and a floor first authored in this session never
