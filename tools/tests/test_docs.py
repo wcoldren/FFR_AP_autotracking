@@ -432,9 +432,15 @@ check("every suite count the prose gives matches the suites", bad_count, [])
 # prose still said one. The count check above cannot see it -- 25 stayed 25 --
 # which is the point: a sentence saying how much of a bare run is real is worth
 # more than the total, and had nothing holding it.
+# Runs to twenty. It stopped at twelve, which was every word the prose then
+# used, and the FF1_ROM count reaching fourteen turned an unreadable word into
+# two failures at once -- the count row, and the floor row, because a word the
+# table cannot read is skipped before it is counted as seen.
 NUMBER_WORD = {"no": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
                "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-               "eleven": 11, "twelve": 12}
+               "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
+               "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+               "nineteen": 19, "twenty": 20}
 
 # Two sentence shapes carry a gated count and both are held. Matching runs over
 # the whole document with its newlines flattened to spaces rather than line by

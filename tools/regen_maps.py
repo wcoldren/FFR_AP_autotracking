@@ -81,6 +81,7 @@ import entrance_graph
 import extract_chests
 import extract_npcs
 import lane
+import lane_file
 import overworld_pins
 import pin_visibility
 import pngio
@@ -348,6 +349,23 @@ def inputs_fingerprint():
 
 # ---------------------------------------------------------------- calibration
 
+def npc_cells_of(rom):
+    """{map id: [(what, col, row)]} -- every cell an NPC stands on.
+
+    What the crop must not lose. Lifted out of main() because the editor needs
+    the same set: content_crop drops a speck only when nothing here stands on
+    it, so a caller that leaves this out crops a few cells tighter than the
+    bake does, and a tool that authors on that box is authoring on a different
+    grid from the one the art is drawn on.
+    """
+    out = {}
+    for name, places in extract_npcs.extract(rom).items():
+        for q in places:
+            out.setdefault(q["map_id"], []).append(
+                (f"npc {name}", q["tile_col"], q["tile_row"]))
+    return out
+
+
 def crops(rom, graph, npc_cells=None):
     """{map name: render_maps.Crop} -- what each rendered image covers.
 
@@ -389,6 +407,119 @@ def route_lanes(rom, graph):
         if got is not None:
             out[name] = got
     return out
+
+
+def authored_lanes(rom, graph, retrace="auto"):
+    """({map name: Lanes}, unmatched, refused) -- the hand-drawn routes.
+
+    Three outcomes per map and they are not the same event, which is why this
+    returns three things rather than one dict and a bool.
+
+    No file is an ordinary absence: most maps have never been authored. A file
+    with no entry for this cartridge's layout is also ordinary -- it is this
+    seed having re-laid a floor the lanes were drawn on, and a No-Overworld
+    cartridge re-lays a great many. Only a layout that *does* match, whose
+    stops will not resolve or whose legs cannot be walked, is a defect, and
+    that one stops the run: a lane through rock is a claim the art would make
+    in the player's face.
+
+    `retrace` is one of lane_file.RETRACE and is passed through whole: "auto"
+    lets each layout entry decide, which is the default and the reason this
+    takes a string rather than the bool it used to.
+
+    There is deliberately no fallback to route_lanes for a map with no
+    authored lane. Mixed art cannot say which kind you are looking at and the
+    Map Key has no room to explain, so an unauthored map gets no lane and the
+    tally below says how many that was.
+    """
+    out, unmatched, refused = {}, [], []
+    chests = extract_chests.extract(rom)[0]
+    for map_id, name in render_maps.MAP_FILES.items():
+        lanes, why = lane_file.load(rom, graph, map_id, chests, name=name,
+                                    retrace=retrace)
+        if why is None:
+            out[name] = lanes
+        elif why == "no file":
+            pass
+        elif why.startswith("no layout for this cartridge"):
+            unmatched.append((name, why))
+        else:
+            refused.append((name, why))
+    return out, unmatched, refused
+
+
+def retrace_slot(was):
+    """The `retrace` a cache slot means, in today's vocabulary.
+
+    The slot held a bool before the setting became per-layout, so a slot
+    written then has to be read rather than compared. True meant "every map
+    on", which is "on". False meant "every map off" -- but no committed lane
+    file carried a `retrace` key while such a slot could be written, so "off"
+    and "auto" drew the identical art and reading it as "auto" avoids a redraw
+    that would change nothing. An absent key is a slot from before the flag
+    existed, and reads the same way for the same reason.
+
+    Marking a floor needs no key of its own here: lane_files_sha() hashes the
+    files' contents, so an entry gaining `retrace: true` invalidates the art by
+    itself.
+    """
+    v = was.get("retrace", "auto")
+    if isinstance(v, bool):
+        return "on" if v else "auto"
+    return v if v in lane_file.RETRACE else "auto"
+
+
+def lane_files_sha():
+    """One hash over every committed lane file's contents.
+
+    Its own cache key rather than a line in INPUT_FILES. INPUT_FILES is a fixed
+    list and its fingerprint is compared for every run, so globbing the lane
+    files into it would redraw art on cartridges rendered with --lanes none,
+    which these files have no bearing on. Without a key of some kind, editing a
+    lane and re-running prints "nothing to do" over art drawn from the old
+    stops -- the failure the comment on the cache comparison already names.
+    """
+    h = hashlib.sha256()
+    if os.path.isdir(lane_file.LANES):
+        for f in sorted(os.listdir(lane_file.LANES)):
+            if not f.endswith(".json"):
+                continue
+            h.update(f.encode())
+            with open(os.path.join(lane_file.LANES, f), "rb") as fh:
+                h.update(fh.read())
+    return h.hexdigest()
+
+
+def flag_change(was, args):
+    """The first flag the art was not drawn with, as a sentence, or None.
+
+    Read twice -- once to decide whether to redraw and once to say why -- and
+    the two readings used to be two copies of the same chain. They drifted:
+    `--retrace` sat outside the `--lanes authored` gate in both, so
+    `--lanes none --retrace off` after a default run redrew every file and
+    named --retrace as the cause, on art that carries no lane at all.
+
+    `--retrace` and the lane files are inside that gate for the same reason:
+    neither changes a pixel of a run that draws no authored lanes. Every other
+    flag that changes what is drawn belongs here, or switching it prints
+    "nothing to do" over art drawn the other way -- inputs_fingerprint hashes
+    pack files, not the command line.
+    """
+    if was.get("npcs", "none") != args.npcs:
+        return (f"--npcs changed from {was.get('npcs', 'none')} to "
+                f"{args.npcs} since the last run")
+    # Reads as "none" when the slot predates the flag, so art from before the
+    # lane pass redraws rather than being trusted -- the safe direction.
+    if was.get("lanes", "none") != args.lanes:
+        return (f"--lanes changed from {was.get('lanes', 'none')} to "
+                f"{args.lanes} since the last run")
+    if args.lanes == "authored":
+        if retrace_slot(was) != args.retrace:
+            return (f"--retrace changed from {retrace_slot(was)} to "
+                    f"{args.retrace} since the last run")
+        if was.get("lane_files") != lane_files_sha():
+            return "a lane file changed since the last run"
+    return None
 
 
 def legend_rows(rom, lanes=None):
@@ -1174,14 +1305,31 @@ def main():
                          "townspeople, orbs and bats are what make a town read "
                          "as a town; --npcs none suppresses them, and --npcs "
                          "gates keeps only the NPCs that stand in a doorway")
-    ap.add_argument("--lanes", choices=("none", "loot"), default="none",
-                    help="draw the route to walk on each map that carries a "
-                         "chest: --lanes loot gives the with-loot lane and, "
-                         "where the floor gates on something, the walk holding "
-                         "it. Off by default: a solver cannot know which "
-                         "chests are worth the detour, and a map with no chest "
-                         "gets no lane at all. Adds about 35 seconds to a "
-                         "regen -- the visit order is an exact tour")
+    ap.add_argument("--lanes", choices=("none", "solved", "authored"),
+                    default="none",
+                    help="draw the route to walk on each map: --lanes solved "
+                         "derives it, a traversal lane and a loot lane per "
+                         "region, and adds about 35 seconds because the loot "
+                         "visit order is an exact tour; --lanes authored draws "
+                         "what tools/lane_edit.py wrote into tools/lanes/ and "
+                         "nothing on a map that has none. Off by default: a "
+                         "solver cannot know which chests are worth the detour "
+                         "on a given seed, which is what the editor is for")
+    ap.add_argument("--retrace", nargs="?", const="on", default="auto",
+                    choices=lane_file.RETRACE,
+                    help="with --lanes authored, whether a lane may prefer "
+                         "its own edges as it accumulates them, so a return "
+                         "leg retraces the outbound wherever retracing is "
+                         "free. That collapses a loop into one line where the "
+                         "two legs cost the same; it costs about half again "
+                         "in time and changes no walk -- see lane.walk(). "
+                         "Whether a loop is worth collapsing is a per-floor "
+                         "judgement, so the default 'auto' lets each layout "
+                         "entry in tools/lanes/ say. A bare --retrace means "
+                         "'on', which forces every map and is what the flag "
+                         "meant before the entries could; 'off' forces every "
+                         "map the other way, which is how both sides get "
+                         "rendered for comparison once the entries disagree")
     ap.add_argument("--force", action="store_true",
                     help="regenerate even if nothing changed")
     ap.add_argument("--dry-run", action="store_true",
@@ -1239,17 +1387,15 @@ def main():
     # cache written before this has no per-mode fingerprint, so it reads as
     # stale and that mode redraws once -- which is the right answer for it.
     #
-    # Every flag that changes what gets drawn belongs in this key, or switching
-    # it prints "nothing to do" over art drawn the other way: inputs_fingerprint
-    # hashes pack files, not the command line. `lanes` reads as "none" when the
-    # slot predates it, so art from before the lane pass redraws rather than
-    # being trusted -- the safe direction.
+    # The flags that change what gets drawn are compared by flag_change, which
+    # says why as well as whether -- the guard and the message were two copies
+    # of the same chain and had drifted apart on --retrace.
     was = (cache or {}).get("modes", {}).get(mode, {})
+    changed_flag = flag_change(was, args) if was else None
     if (not args.force and cache
             and was.get("rom") == rom_sha
             and was.get("inputs") == inputs_sha
-            and was.get("npcs", "none") == args.npcs
-            and was.get("lanes", "none") == args.lanes
+            and not changed_flag
             and was.get("marker") == [args.marker_size, args.marker_border]
             and outputs_intact(out_dir, cache)):
         print(f"up to date: {len(cache['outputs'])} files in {out_dir}")
@@ -1291,12 +1437,8 @@ def main():
     elif was and was.get("inputs") != inputs_sha:
         print(f"the pack or these tools changed since the {MODE_DIRS[mode]} "
               "art was last drawn")
-    elif was and was.get("npcs", "none") != args.npcs:
-        print(f"--npcs changed from {was.get('npcs', 'none')} to {args.npcs} "
-              "since the last run")
-    elif was and was.get("lanes", "none") != args.lanes:
-        print(f"--lanes changed from {was.get('lanes', 'none')} to "
-              f"{args.lanes} since the last run")
+    elif changed_flag:
+        print(changed_flag)
 
     bank = extract_chests.standard_map_bank(rom)
     print(f"reading standard maps from bank ${bank:02X}")
@@ -1321,11 +1463,7 @@ def main():
     # What the crop must not lose. Built before the crop rather than after it,
     # because the crop now reads it too: content_crop drops a speck only when
     # nothing here stands on it. The guard below re-reads the same set.
-    npc_cells = {}
-    for name, places in extract_npcs.extract(rom).items():
-        for q in places:
-            npc_cells.setdefault(q["map_id"], []).append(
-                (f"npc {name}", q["tile_col"], q["tile_row"]))
+    npc_cells = npc_cells_of(rom)
     box_graph = graph or entrance_graph.Graph(entrance_graph.Rom.of(rom, args.rom))
 
     # The crop box is the one number both halves of this depend on: the art is
@@ -1333,7 +1471,21 @@ def main():
     # here, and handed to both -- two calls that could drift apart is the shape
     # of bug that puts a box next to its chest instead of on it.
     crops_ = crops(rom, box_graph, npc_cells)
-    lanes = route_lanes(rom, box_graph) if args.lanes == "loot" else {}
+    lanes, unmatched, refused_lanes = {}, [], []
+    if args.lanes == "solved":
+        lanes = route_lanes(rom, box_graph)
+    elif args.lanes == "authored":
+        lanes, unmatched, refused_lanes = authored_lanes(rom, box_graph,
+                                                         retrace=args.retrace)
+        for name, why in unmatched:
+            print(f"  {name}: {why}")
+        for name, why in refused_lanes:
+            print(f"  {name}: REFUSED {why}")
+        print("  authored lanes: %d map(s) drawn, %d for another layout, "
+              "%d refused, %d with no file"
+              % (len(lanes), len(unmatched), len(refused_lanes),
+                 len(render_maps.MAP_FILES) - len(lanes) - len(unmatched)
+                 - len(refused_lanes)))
     rows = legend_rows(rom, lanes)
 
     # Which trees this mode's pins live in, and the tiles the cartridge puts
@@ -1645,7 +1797,17 @@ def main():
             print(f"  {name} at {x},{y}")
         if len(outside) > 10:
             print(f"  ... and {len(outside) - 10} more")
-    if unplaceable or voided or cut or stray:
+    if refused_lanes:
+        # Its own printer: report() above formats a marker as "name on map at
+        # x,y" and these are (map, why) pairs. Handing them to it crashes, and
+        # a crash here exits 1 and looks exactly like the refusal working.
+        print(f"\nFAILED: {len(refused_lanes)} authored lane(s) whose layout "
+              "matches this cartridge but whose stops do not resolve on it:")
+        for name, why in refused_lanes[:10]:
+            print(f"  {name}: {why}")
+        if len(refused_lanes) > 10:
+            print(f"  ... and {len(refused_lanes) - 10} more")
+    if unplaceable or voided or cut or stray or refused_lanes:
         print("\nnothing was written.")
         return 1
 
@@ -1669,6 +1831,8 @@ def main():
         modes = dict((cache or {}).get("modes", {}))
         modes[mode] = {"rom": rom_sha, "npcs": args.npcs,
                        "lanes": args.lanes,
+                       "retrace": args.retrace,
+                       "lane_files": lane_files_sha(),
                        "inputs": inputs_sha,
                        "marker": [args.marker_size, args.marker_border],
                        **ident, **checkout_id()}

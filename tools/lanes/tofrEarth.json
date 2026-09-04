@@ -1,0 +1,39 @@
+{
+ "version": 1,
+ "map": "tofrEarth",
+ "map_id": 55,
+ "layouts": [
+  {
+   "digest": "b2680d30c50beeb7",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        3,
+        32
+       ],
+       "in": [
+        3,
+        32
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        36,
+        31
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

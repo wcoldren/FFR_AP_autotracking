@@ -931,12 +931,23 @@ KEY_PAD = 4
 # about this -- his cyan and purple swap roles between the optimised route and
 # the with-loot one from map to map -- so fixing one colour per lane across all
 # 61 is the thing to improve on rather than copy.
-LANE_PLAIN = 0x2C             # cyan   -- the walk you can always do
-LANE_KEY = 0x34               # purple -- only the steps a key buys
+LANE_ROUTE = 0x2C             # cyan   -- arrival to the nearest exit
+LANE_LOOT = 0x34              # purple -- what the loot costs on top
 LANE_FORCED = 0x16            # red    -- a trap tile with no way round
 LANE_LINK = 0x10              # silver -- two tiles that are one check
 LANE_START = 0x30             # white  -- where the lane begins
-LANE_PX = 5                   # the drawn width of a lane, in pixels
+# The drawn width of a lane, in pixels. Three rather than five: on a 16px tile
+# five is wide enough that the lane stops being a line over the floor and
+# starts being a thing the floor is behind, and the arrowheads -- eleven pixels
+# across the base -- lose most of their contrast against it. Three keeps the
+# map legible under the lane and leaves the heads reading as heads.
+#
+# Odd, and it has to be. draw_lanes spreads `range(-half, half + 1)` about the
+# tile centre, which can only ever draw an odd number of pixels, so LANE_PX 4
+# renders identically to 5 while the Map Key's swatch -- which hands LANE_PX
+# straight to _bar -- would draw the 4 it was asked for. An even width here
+# makes the key advertise a line the map does not contain.
+LANE_PX = 3
 ARROW_PX = 6                  # the drawn length of a direction arrow
 
 # Far enough apart that a corridor is not a row of arrowheads, close enough
@@ -945,11 +956,19 @@ ARROW_PX = 6                  # the drawn length of a direction arrow
 # that is most of the information.
 ARROW_EVERY = 7
 
+# How far along the lane a head may slide to get off a tile that already holds
+# one pointing the other way. Two is not a tuning knob so much as the smallest
+# number that does the job twice over: a collision is one tile, and the tile
+# next to it is free unless two heads from two runs land side by side, which
+# needs the third. Wider would start moving heads far enough that the every-
+# seventh spacing stops being what the eye reads.
+ARROW_NUDGE = 2
+
 # The key's own wording. No punctuation anywhere: font.CHARS is digits and
 # letters only, so a slash in "Optimal w/Key" draws as a gap.
 LANE_KEY_TEXT = {
-    "plain": "Optimal Route",
-    "key": "Optimal w Key",
+    "route": "Optimal Route",
+    "loot": "Optimal Route for Loot",
     "forced": "Forced Fight",
     "link": "Linked Chest",
 }
@@ -991,10 +1010,10 @@ def lane_key_entries(lanes):
     if lanes is None:
         return []
     out = []
-    if any(r.label == "plain" for r in lanes.runs):
-        out.append((LANE_PLAIN, LANE_KEY_TEXT["plain"]))
-    if any(r.label == "key" for r in lanes.runs):
-        out.append((LANE_KEY, LANE_KEY_TEXT["key"]))
+    if any(r.label == "route" for r in lanes.runs):
+        out.append((LANE_ROUTE, LANE_KEY_TEXT["route"]))
+    if any(r.label == "loot" for r in lanes.runs):
+        out.append((LANE_LOOT, LANE_KEY_TEXT["loot"]))
     if any(c in r.traps for r in lanes.runs for c in r.path):
         out.append((LANE_FORCED, LANE_KEY_TEXT["forced"]))
     if lanes.links:
@@ -1066,6 +1085,34 @@ def _bar(out, w, h, x0, y0, x1, thick, rgb):
             out[i], out[i + 1], out[i + 2] = rgb
 
 
+def route_edges(runs):
+    """Each region's route-lane edges, indexed by region.
+
+    What a loot lane subtracts before anything is drawn: where both use the
+    same corridor there is one line, so a loot lane's own contribution is what
+    is left once this comes out. Lifted out of draw_lanes because the count has
+    to be taken over the same set -- lane.loops_of measures the drawing through
+    this function, and a second copy of the rule is a copy that drifts.
+
+    By region and not by what precedes it in the list. Position cannot say
+    which route run is a loot run's own -- a region whose only way out is the
+    way it came in has no route run at all, so the run before a loot run may
+    belong to the previous region, and subtracting its edges erases the middle
+    of a line drawn as continuous. Nor can order: plan() emits route before
+    loot, but a Lanes read off a file need not, and a loot run that finds no
+    route run drawn yet is drawn in full -- a second line down a corridor that
+    already has one, which is the "two ways through here" the subtraction
+    exists to avoid. Indexed up front, so neither can be wrong.
+    """
+    out = {}
+    for run in runs:
+        if run.label == "route":
+            out.setdefault(run.region, set()).update(
+                frozenset((a, b))
+                for a, b in zip(run.path, run.path[1:]) if a != b)
+    return out
+
+
 def draw_lanes(out, w, h, crop, lanes):
     """Draw one map's route lanes onto an already-rendered frame.
 
@@ -1076,7 +1123,7 @@ def draw_lanes(out, w, h, crop, lanes):
        orthogonal and goes through walls where the two tiles are in different
        rooms, which is the point -- the claim is "these two are one check", not
        "you can walk between them".
-    2. the plain lane, then the key lane *as an extension of it*. Where both
+    2. the route lane, then the loot lane *as an extension of it*. Where both
        use the same corridor there is one line, in the colour of the walk you
        can always do; purple appears only on the steps the key actually buys.
        Drawing both in full -- even offset by a pixel -- puts two parallel
@@ -1110,27 +1157,21 @@ def draw_lanes(out, w, h, crop, lanes):
             dot(x2, y, silver)
 
     def steps(run, shared):
-        """The pairs this run draws: for a key lane, only what it adds."""
+        """The pairs this run draws: for a loot lane, only what it adds."""
         return [(a, b) for a, b in zip(run.path, run.path[1:])
-                if a != b and not (run.label == "key"
+                if a != b and not (run.label == "loot"
                                    and frozenset((a, b)) in shared)]
 
-    shared = set()
+    # A loot run subtracts its own region's route run and no other; route_edges
+    # says why that is by region rather than by position, and is shared with
+    # lane.loops_of so the count and the picture are taken over one set.
+    shared_by_region = route_edges(lanes.runs)
+
     drawn = []
-    prev_label = None
     for run in lanes.runs:
-        # plan() emits [plain?, key?] per region, and drops the plain run for a
-        # region that collects nothing keyless. So a key run belongs to the
-        # plain run immediately before it and to no other: carrying the last
-        # region's edges into the next one subtracts steps this lane genuinely
-        # walks, leaving a gap in a line that is supposed to be continuous.
-        if run.label == "plain":
-            shared = {frozenset((a, b))
-                      for a, b in zip(run.path, run.path[1:]) if a != b}
-        elif prev_label != "plain":
-            shared = set()
-        prev_label = run.label
-        base = NES_PALETTE[LANE_KEY if run.label == "key" else LANE_PLAIN]
+        shared = (shared_by_region.get(run.region, set())
+                  if run.label == "loot" else set())
+        base = NES_PALETTE[LANE_LOOT if run.label == "loot" else LANE_ROUTE]
         forced = NES_PALETTE[LANE_FORCED]
         mine = steps(run, shared)
         drawn.append((run, base, mine))
@@ -1160,16 +1201,50 @@ def draw_lanes(out, w, h, crop, lanes):
                     dot(x + (o if x1 == x2 else 0),
                         y + (o if y1 == y2 else 0), col)
 
+    # Where a head has already been drawn, and pointing which way. An arrow is
+    # a triangle whose tip is the tile centre, so two of them on one tile
+    # pointing opposite ways meet tip to tip and draw a bowtie -- a shape that
+    # says "both ways" only to someone who already knows, and reads as a blot
+    # to everyone else. A corridor walked out and back is exactly where that
+    # happens: the two passes are separate stretches of `mine`, so the every-
+    # seventh rule can land on the same tile from either end.
+    #
+    # It is deliberately keyed on the *image* and not on the run. Nine of the
+    # twenty-seven collisions on the duck cartridge are between two different
+    # runs -- six of them down one BahamutCave corridor that two regions' route
+    # lanes both walk, cyan over cyan -- and those draw the same bowtie as the
+    # eighteen within a single run. A per-run set would leave them.
+    heads = {}
+
+    def opposed(tile, d):
+        return any(o == (-d[0], -d[1]) for o in heads.get(tile, ()))
+
     for run, base, mine in drawn:
         for n, (a, b) in enumerate(mine):
             # By index, not by value. Comparing the pair fires on every crossing
-            # of that ordered edge, not just the last -- which costs no pixels,
-            # since a repeated edge ends at the same tile and _arrow is a pure
-            # function of it, so the extra call redraws the same arrowhead. It
-            # is still the wrong question to ask, and it stops being free the
-            # moment an arrow depends on anything but (a, b).
-            if n % ARROW_EVERY == ARROW_EVERY - 1 or n == len(mine) - 1:
-                _arrow(dot, cell, a, b, base)
+            # of that ordered edge, not just the last, and an arrow now depends
+            # on more than (a, b) -- on what is already drawn -- so a repeat is
+            # no longer the free redraw it was when _arrow was pure.
+            if n % ARROW_EVERY != ARROW_EVERY - 1 and n != len(mine) - 1:
+                continue
+            # Nudged along the lane rather than dropped. The head still has to
+            # be somewhere: skipping it on a doubled-back corridor takes away
+            # the one mark that says the return leg exists, which is the
+            # information the arrows are there for. One tile of offset is
+            # enough to separate them -- a head reaches ARROW_PX back from a
+            # centre and tiles are TILE_PX apart, so adjacent heads clear each
+            # other by four pixels even nose to nose.
+            #
+            # Backward first -- _nudge says why, and it is the whole of
+            # whether this reads as two arrows or as a lump.
+            for j in _nudge(n, mine):
+                c, d = mine[j]
+                step = _heading(c, d)
+                if opposed(d, step):
+                    continue
+                if _arrow(dot, cell, c, d, base):
+                    heads.setdefault(d, set()).add(step)
+                break
 
     # The start box, on a black ring. Marsh Cave's floor is light grey and a
     # bare white square on it is invisible -- the same reason the trap letters
@@ -1190,19 +1265,79 @@ def draw_lanes(out, w, h, crop, lanes):
                 dot(at[0] + hi, at[1] + d, rgb)
 
 
+def _heading(a, b):
+    """The step `a -> b` as a unit direction, the way the image draws it.
+
+    Normalised onto the 64-tile torus, because the raw delta is not the
+    direction. A step from column 63 to column 0 is -63 as tiles and +1 on a
+    frame whose crop shift puts the two next to each other, and `_arrow` takes
+    its direction from the pixels. Left raw, such a head is filed under a
+    direction no other head can be the opposite of, and `opposed` lets the
+    bowtie through on exactly the maps the shift makes contiguous.
+    """
+    return (((b[0] - a[0] + 32) % 64) - 32, ((b[1] - a[1] + 32) % 64) - 32)
+
+
+def _nudge(n, mine):
+    """The edge indices to try for the head the rule scheduled at `n`.
+
+    `n` first, then **backward**, then forward, each within ARROW_NUDGE and
+    along an unbroken stretch of `mine`. Which way round is not a taste: it is
+    the difference between the fix working and the fix drawing a different
+    blot.
+
+    `mine` is the *filtered* edge list -- a loot lane has its route lane's
+    shared corridors taken out of it -- so consecutive indices are not always
+    consecutive tiles, and sixteen runs on the duck cartridge have such a gap.
+    Stepping over one puts the head on an unrelated stretch of the same lane
+    instead of one tile back, which is the argument below with its premise
+    removed. So each direction stops at the first index that does not join.
+
+    A head is a triangle with its tip on the tile centre and its base
+    ARROW_PX - 1 behind. So of two heads that oppose each other, the one that
+    moves has to end up on the far side of the one that stays -- tips facing,
+    bases pointing away -- and going *backward* along its own path is what puts
+    it there, because its own path runs against the other's. That leaves a
+    clear tile of lane between the two tips: they read as two arrowheads.
+
+    Forward lands it on the near side instead, and the two bases finish six
+    pixels apart facing each other, which draws a rhombus. Measured on
+    BahamutCave's corridor, that is no more readable than the bowtie it
+    replaced -- a symmetric lump on the line, saying no direction at all.
+    Forward stays as the fallback only because the first edge of a lane has
+    nothing behind it.
+    """
+    yield n
+    for k in range(1, ARROW_NUDGE + 1):
+        j = n - k
+        if j < 0 or mine[j][1] != mine[j + 1][0]:
+            break
+        yield j
+    for k in range(1, ARROW_NUDGE + 1):
+        j = n + k
+        if j >= len(mine) or mine[j][0] != mine[j - 1][1]:
+            break
+        yield j
+
+
 def _arrow(dot, cell, a, b, rgb):
-    """A triangle at `b`, pointing the way the step went.
+    """A triangle at `b`, pointing the way the step went. True if it drew one.
 
     Drawn by stepping back along the line and spreading across it. The spread
     goes on the *perpendicular* axis -- putting it on the axis of travel draws
     a smear down the lane that reads as nothing at all.
+
+    The return value is what lets the caller record where a head went. It has
+    to be what was actually drawn and not what was asked for: a step off the
+    crop or across the torus join draws nothing, and remembering a head there
+    would make the next lane dodge a tile that has no arrow on it.
     """
     pa, pb = cell(*a), cell(*b)
     if pa is None or pb is None:
-        return
+        return False
     (x1, y1), (x2, y2) = pa, pb
     if abs(x1 - x2) > TILE_PX or abs(y1 - y2) > TILE_PX:
-        return
+        return False
     dx, dy = (x2 - x1) // TILE_PX, (y2 - y1) // TILE_PX
     cx, cy = x2 + TILE_PX // 2, y2 + TILE_PX // 2
     for k in range(ARROW_PX):
@@ -1211,6 +1346,7 @@ def _arrow(dot, cell, a, b, rgb):
                 dot(cx - dx * k, cy + spread, rgb)
             else:
                 dot(cx + spread, cy - dy * k, rgb)
+    return True
 
 
 def render(rom, map_id, inside=False, unroof=False, graph=None, only=None,

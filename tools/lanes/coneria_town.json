@@ -1,0 +1,75 @@
+{
+ "version": 1,
+ "map": "coneria_town",
+ "map_id": 0,
+ "layouts": [
+  {
+   "digest": "bca99540bca26e03",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        16,
+        23
+       ],
+       "in": [
+        16,
+        23
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        7,
+        4
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        3,
+        4
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        6,
+        10
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        11,
+        10
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        27,
+        10
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        31,
+        12
+       ]
+      }
+     ]
+    }
+   ],
+   "retrace": true
+  }
+ ]
+}

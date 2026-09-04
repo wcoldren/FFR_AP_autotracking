@@ -1,0 +1,151 @@
+{
+ "version": 1,
+ "map": "dwarves",
+ "map_id": 19,
+ "layouts": [
+  {
+   "digest": "3cb5871a86acde4e",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        22,
+        11
+       ],
+       "in": [
+        22,
+        11
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        7,
+        2
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        16,
+        45
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        22,
+        11
+       ],
+       "in": [
+        22,
+        11
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 34,
+       "at": [
+        22,
+        4
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 33,
+       "at": [
+        22,
+        3
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 35,
+       "at": [
+        3,
+        38
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 36,
+       "at": [
+        4,
+        38
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 38,
+       "at": [
+        8,
+        41
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 39,
+       "at": [
+        9,
+        41
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 37,
+       "at": [
+        10,
+        41
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 40,
+       "at": [
+        14,
+        41
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 41,
+       "at": [
+        15,
+        41
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 42,
+       "at": [
+        16,
+        41
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        21,
+        11
+       ]
+      }
+     ]
+    }
+   ],
+   "retrace": true
+  }
+ ]
+}

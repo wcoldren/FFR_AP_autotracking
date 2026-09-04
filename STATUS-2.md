@@ -479,3 +479,171 @@ rows now run against the corpus and skip without it, on `test_shop_slot.py`'s
 drop the caravan cross-check and the row that names it fails; restore the
 schema-only suppression and two fail; weaken the scope test and the two-scope
 row fails.
+
+
+## The route lanes are named for what they are, and a person draws them now
+
+Landed 2026-09-03. `--lanes` was off by default and `ROADMAP.md` said why: a
+solver cannot know which chests are worth the detour on a given seed. What
+shipped was also named wrong, which mattered more than it sounds, because an
+editor authoring into the wrong vocabulary would have had to be re-authored.
+Both went in together.
+
+**The naming was one loot round drawn in two halves.** Cyan was the keyless
+walk, purple what the key bought. The reference's pair is a traversal route and
+a loot route, and "for loot" already implies the key -- so the genuinely useful
+lane, the walk through a floor opening nothing, did not exist anywhere. The fix
+was not a rename: `plan()` now builds one `Floor` holding the floor's items and
+routes the first lane arrival-to-nearest-exit with no errand at all, one
+`path()` call rather than a tour. The keyless `Floor` is gone; it only ever
+existed to derive the second lane by difference.
+
+The one-inventory consequence is worth stating because it looks like a lost
+check. The route lane may now walk through a door the floor's own key opens.
+That is deliberate: holding an item only widens the walkable set, so the
+traversal is never longer or less safe for it, and `arrivals()` already filtered
+on the full inventory -- which is why the old code needed a keyless-walkability
+guard on the start tile that has now simply gone away, along with the
+No-Overworld ConeriaCastle1F `(2, 8)` case it was written for.
+
+**What it cost, measured rather than expected.** A loot lane appears wherever
+there is loot rather than only on a gated floor, so 29 of the 39 lanes on the
+duck cartridge became a pair and 28 maps grew a legend row -- the first regen
+after this redraws every image, which is the change working and not a bug. And
+`ISSUES.md` gained a font-scale entry: three maps per cartridge now draw their
+Map Key at half size because the longest row is 22 characters.
+
+**The editor is a layered shortest path, not a tour, and that is the whole
+reason it is cheap.** The author supplies the order, so `lane.walk` runs one
+layer per stop over the candidate tiles each stop could be satisfied at --
+one Dijkstra per distinct candidate where `Floor.lane` costs `2**n`. It is
+still exact: taking the nearest candidate at each step commits to a standing
+tile the next leg pays for, which is the defect nearest-neighbour had in the
+tour, one dimension down.
+
+**A stop says what it is, not where it is**, so an authored lane can outlive
+the cartridge it was drawn on. The hint the editor recorded is used where it
+still holds -- so redrawing on the seed it was drawn for gives back exactly the
+lane that was drawn -- and falls back to the stop's meaning where it does not.
+Arrivals need that most: the tiles the game can put you down on are the
+destinations of whatever teleports point at the floor, and a shuffle repoints
+them even when the floor is untouched. Exits are teleport tiles of the map
+itself, so they are as stable as the digest.
+
+**Three outcomes, not two, and that is the thing this got right by writing it
+down first.** No lane file is ordinary. A file whose layout this cartridge does
+not have is also ordinary -- it is a seed having re-laid a floor. Only a layout
+that does match, whose stops will not resolve, is a defect, and that one stops
+the run and writes nothing. Collapsing the first two into "failed" would have
+made a No-Overworld regen a wall of red; collapsing the last into "skipped"
+would have drawn a lane through rock.
+
+**Two things were got wrong first.** The refusal was handed to `report()`,
+which formats a marker as "name on map at x,y" and raised `ValueError` on a
+`(map, why)` pair -- a crash that exits 1 and prints a traceback, which from
+the outside is indistinguishable from the refusal working. And the lane files
+needed a cache key of their own: `inputs_fingerprint` hashes `INPUT_FILES`, so
+without one, editing a lane and re-running printed "nothing to do" over art
+drawn from the old stops. Globbing them into `INPUT_FILES` would have been
+worse -- it moves the fingerprint for every cartridge including `--lanes none`
+runs, which these files have no bearing on.
+
+**A latent drawing bug came out with it.** `draw_lanes` subtracts a region's
+route lane from its loot lane so a shared corridor draws one line, and it found
+the pair by position. Position cannot tell `[routeA, lootB]` from
+`[routeA, lootA]`, and the first became reachable here, because a region whose
+only way out is the way it came in gets no route run at all. On that shape the
+second region's whole lane is erased. Not on either duck cartridge today, but
+both halves of the shape are, so `Run` gained a region index.
+
+**No lane has been authored yet.** The tool is the deliverable; which chests are
+worth the detour is a judgement pass that wants a person and a seed in front of
+them, and `tools/lanes/` is empty on purpose rather than seeded with the
+solver's answer wearing an author's hat.
+
+
+## Whether a floor should retrace is 24 questions, and the numbers hid three
+
+`--retrace` landed as one switch over 57 files, off, with the reason recorded
+as a judgement rather than a defect: on a floor that genuinely loops, one line
+with arrows both ways reads as "walk this twice" when what is true is "there is
+a way round". A switch cannot hold that answer, because the answer is different
+per floor. So it moved onto the layout entry -- `retrace` beside `digest` and
+`lanes` in `tools/lanes/<map>.json` -- and the flag became the override:
+`--retrace {auto,on,off}`, `auto` by default, a bare `--retrace` still meaning
+`on` so that every figure ever measured against it still means what it said.
+
+**Written only when true.** `false` on every entry would be 57 lines of no
+information, and worse, it would make a floor nobody has looked at
+indistinguishable from one that was looked at and left alone -- which is
+exactly the distinction the pass ahead produces.
+
+**The triage measurement is what changed the design, and it did it twice.** The
+first pass counted loops: 72 over the whole set, 23 retraced, on 21 maps. The
+note being worked from said 24. Both are right. ConeriaTown, MarshCaveB3 and
+SeaShrineB1 are *redrawn* without their loop count moving, and a map rail built
+on the counts would have marked those three as untouched and sent the pass
+straight past them. So the rail asks whether the drawn *edges* differ and shows
+the count only as a label. A full regen either way confirms it: exactly 24 of
+the 61 images change, and `--retrace auto` with nothing marked is byte-identical
+to `--retrace off`.
+
+**A checkbox that re-bakes is the wrong instrument for this.** The difference on
+most of the 24 is one corridor, and a bake takes about a second -- long enough
+to lose what you were comparing against. `Preview A/B` fetches both renders,
+holds them as object URLs, and swaps `img.src` between two images the browser
+has already decoded, so the change happens in front of you. A is always retrace
+off and B always on, fixed and independent of the checkbox, because a caption
+that could not name what was on screen would be worse than no caption.
+
+**And the flip must not be a keypress alone, which is how it was built first.**
+Space was the only way to swap, and space is the one key that cannot work when
+it is wanted: clicking `retrace this floor` leaves focus in the checkbox, where
+space is the browser's own toggle. So the first thing a person does on a floor
+disarmed the flip *and* silently unticked the box they had just ticked -- which
+presents as "I click the box and A/B and see no difference", with nothing on
+the page suggesting otherwise. There are now three ways in and none of them is
+required to be the keyboard: an A|B control in the caption, a click anywhere on
+the map, and the key. The checkbox hands focus back on change so the key keeps
+working. Each path has its own test row, named rather than counted -- the first
+version of that test counted flip call sites and stayed green when the
+map-click path was deleted.
+
+**`loops()` folds the components term away, which is an argument and not an
+identity.** The circuit rank is `|E| - |V| + |components|`, and a walk is
+consecutive, so its line is one piece and that term is always 1. A repeated
+tile drops an edge without breaking the chain. `test_lane.py` runs the
+long-hand version -- components actually walked -- over every drawn lane on the
+corpus against the folded one, so the argument is checked rather than trusted.
+
+**The live canvas deliberately does not retrace.** `/path` runs per drag and a
+growing prefer set invalidates `Floor.search`'s memo, which is one Dijkstra per
+leg instead of per lane. The judgement is about the baked art and the baked
+preview is where it gets made.
+
+**Nothing has been judged yet** at the commit that carries the mechanism. The
+pass is 24 floors and a person, and it wants its own commit -- the 57 authored
+files are the irreplaceable part of this branch and a mechanism commit should
+not be carrying data edits.
+
+
+## Seventeen of the twenty-four collapse, and the towns are the seven that do not
+
+The judgement pass, made floor by floor on the A/B flip. 17 of the 24 redrawn
+floors carry `retrace: true`; the loop count across the set as it now bakes is
+30, against 72 unretraced and the 23 it would be with every floor forced on.
+
+The seven left alone are not a gap, and five of them are one answer: `elfland`,
+`elf_castle`, `melmond`, `onrac` and `pravoka` are towns, and a town is where
+"there is a way round" is the true thing to draw. Collapsing those would have
+the map say walk this twice about the one kind of floor a player circles
+freely. That is the case docs/ISSUES.md described in the abstract, met in the
+particular.
+
+The other two are `marshB3` and `seaB1`, of the three floors whose drawing
+changes without the loop count moving. `coneria_town` is the third and it *was*
+marked -- so the class got looked at rather than read past, which is the whole
+reason the rail marks a floor by its edges and not by its numbers. Had it shown
+counts, all three would have read as unaffected and none of these three
+decisions would have been made at all.
+

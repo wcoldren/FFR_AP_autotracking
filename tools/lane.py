@@ -104,17 +104,22 @@ MAX_ENTRIES = 32 * 1024 * 1024
 
 class Run(NamedTuple):
     """One drawn lane: where it starts, the tiles it walks, what it collects."""
-    label: str            # "plain" or "key"
+    label: str            # "route" or "loot"
     start: tuple
     path: list            # [(col, row)], consecutive and 4-adjacent mod 64
     traps: frozenset      # the fixed-formation tiles on this floor
     got: list             # chest indices collected, in visit order
     missed: list          # chest indices this region cannot reach
+    # Which region of the floor this run belongs to. The drawing pairs a loot
+    # run with its own region's route run to know what to subtract, and
+    # position cannot say: a region whose only way out is the way in has no
+    # route run, so the run before a loot run is not always its own.
+    region: int = 0
 
 
 class Lanes(NamedTuple):
     """Everything one map's art needs drawn on it."""
-    runs: list            # [Run], plain before key, one pair per region
+    runs: list            # [Run], route before loot, one pair per region
     links: list           # [(a, b)] tile pairs, the silver connectors
 
 
@@ -158,8 +163,21 @@ class Floor:
              else self.encounter).add(cell)
         self._searched = {}
         self._dist = {}
+        self._content = None
 
     # ------------------------------------------------------------- the walk
+
+    def content(self):
+        """The cells the edge flood cannot reach: this floor as it is drawn.
+
+        Cached per Floor because arrivals() asks for it on every call and the
+        flood is not free. It is render_maps' own set rather than a second
+        reading of it, which is the point: content_crop measures the drawn box
+        off exactly this, so "on the map" has to mean one thing in both places.
+        """
+        if self._content is None:
+            self._content = render_maps.content_cells(self.tiles)
+        return self._content
 
     def walkable(self, c):
         return (c not in self.blocked
@@ -250,6 +268,21 @@ class Floor:
 
     def cost_to(self, start, tile):
         return self.dist(start).get(tile, FAR)
+
+    def retrace(self, edges):
+        """Add `edges` to the prefer set, dropping the memo they invalidate.
+
+        Both caches are keyed on a start tile alone, which is only sound while
+        the prefer set stands still -- every cost in them was computed with the
+        tie-break as it was. So this is not a cheap call, and the caller is
+        walk()'s second loop, once per leg, deliberately: see the note there
+        for why it must not run any earlier than that.
+        """
+        before = len(self.prefer)
+        self.prefer.update(frozenset(e) for e in edges)
+        if len(self.prefer) != before:
+            self._searched.clear()
+            self._dist.clear()
 
     def path(self, start, goal):
         cost, prev = self.search(start)
@@ -412,11 +445,27 @@ def arrivals(f):
            for i in range(eg.NORM_COUNT_EXT) if g.norm_map[i] == f.mid}
     out |= {(eg.coord(g.entr_x[i]), eg.coord(g.entr_y[i]))
             for i in range(eg.ENTR_COUNT) if g.entr_map[i] == f.mid}
-    # A row of the table can name a tile that is a plain wall -- MatoyasCave
-    # (15, 0) is TP_NOMOVE with no special on both duck cartridges. That is a
-    # table entry the seed does not use, and a lane starting on it begins
-    # inside the rock.
-    return sorted(a for a in out if f.walkable(a))
+    # A row of the table can name a tile the seed does not use, and there are
+    # two ways it does. Walkability catches the first: MatoyasCave (15, 0) is
+    # TP_NOMOVE with no special on both duck cartridges, and a lane starting on
+    # it begins inside the rock.
+    #
+    # The content flood catches the second, which the first misses because the
+    # tile is perfectly walkable -- it is the filler *outside* the drawn floor.
+    # BahamutCaveB1 is the clearest: NORM rows 186-190 and 215 land on (0,27),
+    # (8,0) and (25,0), all tile id 60, none of them a content cell, and each
+    # reaching 3908 of the 4096 tiles because the surround wraps the whole
+    # torus. The cave itself is 188 content cells in a corridor six columns
+    # wide. Kept, those three make a second "region" that is not a place, and
+    # the editor offers it in a dropdown as somewhere to author a lane. Coneria
+    # Town reports 56 regions on this rule and 55 of them are that.
+    #
+    # Measured before it was applied, on a duck cartridge and both oracle ones:
+    # no map loses every arrival, no map loses a lane, and the only maps that
+    # move are tof, cardia and marshB2, whose runs are identical but for a
+    # region index that shifts down as the phantom region stops being counted.
+    content = f.content()
+    return sorted(a for a in out if f.walkable(a) and a in content)
 
 
 def exits(f, not_at=()):
@@ -452,7 +501,7 @@ def regions(f):
     Read holding what the floor gates on. A locked door is not a region
     boundary, it is the reason for the second lane, and reading regions keyless
     files the gated checks under "not on this floor" -- which is how
-    MarshCaveB3 lost its with-key lane entirely.
+    MarshCaveB3 lost its loot lane entirely.
 
     Mutually, and against every member rather than the first one. Reachability
     here is not symmetric: search() reaches a teleport tile but will not expand
@@ -487,74 +536,438 @@ def links(groups):
     return out
 
 
+def nearest_exit(f, start):
+    """The tile this region leaves by: the cheapest exit to reach from `start`.
+
+    The rule Floor.lane already applies to its `finish` set, lifted out so the
+    route lane can use it with no errand at all. Which staircase it lands on
+    is a proximity statement and not a spoiler of the permutation; exits() has
+    the counts that settle that.
+    """
+    best = min(((f.cost_to(start, t), t) for t in exits(f, not_at={start})),
+               default=(FAR, None))
+    return None if best[0] == FAR else best[1]
+
+
+def edges(walk):
+    """The steps a walk draws, as unordered pairs.
+
+    What "this lane adds nothing" has to be measured over. The same steps in a
+    different order draw the same line, so comparing paths calls two identical
+    drawings different.
+    """
+    return {frozenset((a, b)) for a, b in zip(walk, walk[1:]) if a != b}
+
+
 def plan(rom, graph, map_id, chests=None):
     """-> Lanes for one map, or None where there is nothing to draw.
 
-    One pair of runs per region: the walk you can always do, and -- only where
-    Graph.floor_items() says the floor gates on something -- the walk holding
-    it. That is where DarkmoonEX draws his second "Optimal w/Key" line and
-    where he does not, so the two-lane treatment needs no rule about which
-    maps get it: the cartridge already says.
+    One pair of runs per region, and the pair is the one the reference draws:
+
+    * **route** -- the arrival to the nearest exit, opening nothing. The safest
+      walk for someone passing through the floor. This is a thing worth drawing
+      on every floor, and not only on a floor that gates on something.
+    * **loot** -- the same arrival, every check the region can reach, then out.
+      "For loot" already implies the key, so the floor's items are held from
+      the start rather than a keyless variant being derived to diff against.
+
+    Both Floors hold graph.floor_items(map_id). Holding an item only ever
+    widens the walkable set, so a traversal route that holds the floor's key is
+    never longer or less safe than one that does not -- and the keyless Floor
+    this used to build existed only to derive the second lane by difference,
+    which is the framing IDEAS.md corrects. What each colour is routed for is
+    the change; the two-colour drawing mechanism is untouched.
     """
     groups = chest_groups(rom, map_id, chests)
     if not groups:
         return None
-    probe = Floor(rom, graph, map_id)
+    f = Floor(rom, graph, map_id)
     runs = []
-    for region in regions(probe):
-        reach = probe.reached(region[0])
-        here = {i: [c for c in ts if any(x in reach for x in probe.stand(c))]
+    for rn, region in enumerate(regions(f)):
+        reach = f.reached(region[0])
+        here = {i: [c for c in ts if any(x in reach for x in f.stand(c))]
                 for i, ts in groups.items()}
         here = {i: v for i, v in here.items() if v}
         if not here:
             continue
-        bare = Floor(rom, graph, map_id, have=set())
-        # This region's own door. A linked chest with a tile in each half
-        # belongs to both, so leaving the arrival open lets the half with fewer
-        # checks be "served" by the other half's door -- which draws a second
-        # lane on top of the first and leaves the other half bare, exactly the
-        # bug the second lane exists to fix.
-        # Walkable keyless first, then check count. arrivals() filters on the
-        # full inventory and search() seeds its start without asking, so a door
-        # the gate NPC stands in is a legal arrival that the plain lane cannot
-        # legally begin on -- No-Overworld ConeriaCastle1F (2, 8) below. The
-        # `if got:` guard catches that only when the region collects nothing
-        # keyless; a region that collects something still rooted its lane there.
-        start = max(region, key=lambda a: (bare.walkable(a), sum(
+        # This region's own door, and the one that reaches most of its checks.
+        # A linked chest with a tile in each half belongs to both, so leaving
+        # the arrival open lets the half with fewer checks be "served" by the
+        # other half's door -- drawing a second lane on top of the first and
+        # leaving the other half bare, which looks exactly like the bug the
+        # second lane exists to fix.
+        #
+        # The keyless-walkability half of this key went with the keyless Floor.
+        # It was here because arrivals() filters on the full inventory while
+        # the old plain lane walked with none, so a door a gate NPC stands in
+        # was a legal arrival that lane could not legally begin on --
+        # No-Overworld ConeriaCastle1F (2, 8). On one inventory there is no
+        # such tile.
+        start = max(region, key=lambda a: sum(
             1 for ts in here.values()
-            if any(x in bare.reached(a) for c in ts for x in bare.stand(c)))))
-        walk, got, miss = bare.lane(here, start,
-                                    finish=exits(bare, not_at={start}))
-        # A run that collects nothing is not a route. It happens wherever the
-        # floor's checks all sit behind the gate -- ConeriaCastle1F,
-        # ElflandCastle and TitansTunnel on the duck cartridges -- and what it
-        # draws is a start box on a tile the key lane is about to draw a start
-        # box on anyway. Worse on a No-Overworld ConeriaCastle1F, where the
-        # arrival (2, 8) is the tile the gate NPC stands on: keyless you cannot
-        # be there at all, so the one-tile "lane" is a walk the game refuses.
-        # Hence the walkable(start) half: a region whose every arrival is a
-        # gate tile gets no plain lane even when it collects something, because
-        # there is no keyless walk out of a door you cannot keylessly stand in.
-        # The key lane still draws, rooted at the same arrival, which holding
-        # the key is a legal place to be.
-        if got and bare.walkable(start):
-            runs.append(Run("plain", start, walk, frozenset(bare.trap),
-                            got, miss))
-        # The second lane prefers the first one's tiles, so the two coincide
-        # wherever that is free and the key colour only ever means "here they
-        # part" rather than "here the search happened to pick another corridor".
-        full = Floor(rom, graph, map_id,
-                     prefer=zip(walk, walk[1:]))
-        if full.have == bare.have:
-            continue
-        kwalk, kgot, kmiss = full.lane(
-            here, start, finish=exits(full, not_at={start}))
-        if kgot and kwalk != walk:
-            runs.append(Run("key", start, kwalk, frozenset(full.trap),
-                            kgot, kmiss))
+            if any(x in f.reached(a) for c in ts for x in f.stand(c))))
+        # The route lane has no errand, so it is one path() call and not a
+        # tour. A region whose only way out is the way you came in gets no
+        # route lane -- there is no traversal to draw -- and its loot lane
+        # still draws.
+        out_at = nearest_exit(f, start)
+        route = (f.path(start, out_at) or []) if out_at is not None else []
+        if len(route) > 1:
+            runs.append(Run("route", start, route, frozenset(f.trap),
+                            [], [], rn))
+        # The loot lane prefers the route lane's edges, so the two coincide
+        # wherever that is free and purple only ever means "here the loot takes
+        # you somewhere the walk through would not".
+        loot = Floor(rom, graph, map_id, prefer=zip(route, route[1:]))
+        walk, got, miss = loot.lane(here, start,
+                                    finish=exits(loot, not_at={start}))
+        # A loot lane that draws nothing the route lane does not is a purple
+        # key row with no purple under it.
+        if got and edges(walk) - edges(route):
+            runs.append(Run("loot", start, walk, frozenset(loot.trap),
+                            got, miss, rn))
     if not runs:
         return None
     return Lanes(runs, links(groups))
+
+
+# ------------------------------------------------------ the authored lane
+#
+# A solver cannot know which chests are worth taking on a given seed, so the
+# route wants a person in the loop (ROADMAP.md, "an editor rather than a better
+# solver"). What the person supplies is an *order*: a short list of stops. The
+# walking between them is still this module's, and the cost model below is
+# untouched -- Floor becomes the pathing primitive instead of the whole feature.
+#
+# A stop says what it is, not where it is, because the thing being authored has
+# to outlive the cartridge it was drawn on. `at` is a hint the editor redraws;
+# only a bare tile stop is authoritative about its own coordinates.
+
+STOP_KINDS = ("arrival", "chest", "exit", "tile")
+
+
+def anchors(f, stop, groups, start=None):
+    """[(col, row)] -- every tile this stop could be satisfied at.
+
+    Where the authored hint still holds on this cartridge it is the whole
+    answer, so a lane redrawn on the seed it was drawn for is the lane that was
+    drawn. Where it does not, the stop falls back to what it *means*, and only
+    then does the router get a choice:
+
+    * `arrival` moves between cartridges even when the floor does not. The
+      tiles the game can put you down on are the destinations of whatever
+      teleports point here, and a shuffle repoints them -- so this resolves to
+      the arrivals that reach the stop's own region anchor. Without the anchor
+      a two-region floor serves both halves from one door, which is the bug
+      plan() carries its own comment about.
+    * `chest` resolves to every tile you could stand on to open any tile of
+      that index, because an index can sit on more than one tile and opening
+      any clears the lot. Which one to use is part of the problem: the tile
+      nearest the door is not always the one the rest of the round wants.
+    * `exit` is a teleport tile of this map, so it is as stable as the digest
+      that guards the layout; the fallback is every other way off the floor,
+      which is exits()' own spoiler-safe rule.
+    * `tile` is the author pointing at a tile. There is nothing to resolve and
+      nothing to fall back to -- an unwalkable one is a refusal, not a nudge to
+      the nearest floor.
+    """
+    kind = stop.get("kind")
+    if kind == "tile":
+        at = tuple(stop["at"])
+        return [at] if f.walkable(at) else []
+    if kind == "chest":
+        out = []
+        for c in groups.get(stop["index"], ()):
+            for a in f.stand(c):
+                if a not in out:
+                    out.append(a)
+        return out
+    if kind == "arrival":
+        want = tuple(stop["in"])
+        out = [a for a in arrivals(f) if want in f.reached(a)]
+    elif kind == "exit":
+        out = exits(f, not_at=() if start is None else {start})
+    else:
+        raise ValueError("unknown stop kind %r" % (kind,))
+    at = tuple(stop["at"]) if stop.get("at") is not None else None
+    return [at] if at in out else out
+
+
+def walk(f, stops, groups, start=None, retrace=False):
+    """(path, got, gaps) -- the walking between authored stops, in their order.
+
+    The order is the author's, so this is not a tour. It is a layered shortest
+    path over the candidate sets, one layer per stop, and it is exact: taking
+    the nearest candidate at each step commits to a tile the next leg then pays
+    for, which is the defect nearest-neighbour had in Floor.lane one dimension
+    down. The layers are small -- tens of tiles, not thousands -- so the whole
+    thing costs one Dijkstra per distinct candidate, where the tour costs 2**n.
+
+    `gaps` is [(i, j)], the consecutive stops with no walk between them. A gap
+    is returned rather than bridged. A straight line between two tiles the game
+    will not let you walk between is the one thing a drawn lane must never say,
+    and a lane with a hole in it is not a lane -- so the caller refuses rather
+    than drawing either.
+
+    `retrace` points the prefer tie-break at the lane's own edges as it
+    accumulates them, so a return leg retraces the outbound wherever retracing
+    is free. Off by default; what it changes is the picture and not the walk,
+    and the reasoning for both halves of that is at the second loop below.
+    """
+    if not stops:
+        return [], [], []
+    sets = []
+    last = len(stops) - 1
+    for i, stop in enumerate(stops):
+        # `start` is the tile the lane came in by, and it is told to anchors()
+        # so an `exit` stop means a way off the floor *other* than that one.
+        # Stop 0 is that tile, so passing it its own start excludes it from its
+        # own candidate set: the lane is then drawn from a staircase nobody
+        # clicked, or -- on a floor with one exit -- from nowhere at all, which
+        # refuses the whole bake.
+        cand = anchors(f, stop, groups, start=None if i == 0 else start)
+        if 0 < i < last:
+            # Stepping on a teleport takes you off the floor, so a lane may end
+            # on one and may not pass through one. Floor.search and Floor.stand
+            # already hold that rule; anchors() cannot, because an `exit`
+            # resolves to teleports by definition and a `tile` stop can name a
+            # staircase. Walking on through it is the IceCaveB2 drawing
+            # Floor.stand carries its comment about -- so a middle stop with
+            # nowhere else to be is a gap, not a nudge to the nearest floor.
+            cand = [t for t in cand if t not in f.teleports]
+        if not cand:
+            return [], [], [(i, i)]
+        sets.append(cand)
+
+    # best[t] = (cost so far, the tile of the previous layer it came from).
+    best = {t: (0, None) for t in sets[0]}
+    trail = [best]
+    for k in range(1, len(sets)):
+        step, gap = {}, True
+        for t in sets[k]:
+            pick = None
+            for u, (c, _) in trail[k - 1].items():
+                d = f.cost_to(u, t)
+                if d == FAR:
+                    continue
+                if pick is None or c + d < pick[0]:
+                    pick = (c + d, u)
+            if pick is not None:
+                step[t] = pick
+                gap = False
+        if gap:
+            return [], [], [(k - 1, k)]
+        trail.append(step)
+
+    at = min(trail[-1], key=lambda t: trail[-1][t][0])
+    chosen = [at]
+    for k in range(len(sets) - 1, 0, -1):
+        at = trail[k][at][1]
+        chosen.append(at)
+    chosen.reverse()
+
+    # The anchors are fixed by here, and that is the whole reason `retrace` is
+    # applied in this loop and not in the layered search above. The layers pick
+    # their tiles with cost_to(), so a prefer set that grew while they ran would
+    # move those costs and the chosen anchors with them -- a different lane, not
+    # a differently drawn one. Applied once the anchors are settled, it only
+    # ever re-picks among paths that already cost the same, and SCALE leaves the
+    # tie-break a whole order of magnitude below one step, so it cannot outrank
+    # a real one. Traps crossed, encounter tiles, steps and turns come out
+    # identical; the edges chosen between two equally cheap routes do not.
+    path, got = [chosen[0]], []
+    for k, (a, b) in enumerate(zip(chosen, chosen[1:]), start=1):
+        seg = f.path(a, b)
+        if seg is None:
+            return [], [], [(k - 1, k)]
+        path += seg[1:]
+        # After the leg, never before it: preferring a leg's own edges while
+        # it is being searched would let it retrace itself mid-flight.
+        if retrace:
+            f.retrace(zip(seg, seg[1:]))
+        if stops[k].get("kind") == "chest":
+            got.append(stops[k]["index"])
+    if stops[0].get("kind") == "chest":
+        got.insert(0, stops[0]["index"])
+    return path, got, []
+
+
+def region_of(f, tile, regs=None):
+    """Which half of the floor a tile is on: the index plan() would give it.
+
+    A lane's region is what pairs a loot lane with the route lane whose edges
+    it subtracts, so a lane file that does not say gets the answer read off the
+    cartridge rather than a lane number standing in for one. Reachability here
+    is the asymmetric thing regions() documents, so the question asked is
+    whether an arrival of the region reaches the tile.
+    """
+    for i, r in enumerate(regions(f) if regs is None else regs):
+        if any(tile in f.reached(a) for a in r):
+            return i
+    return 0
+
+
+def authored(rom, graph, map_id, entry, chests=None, retrace=False):
+    """-> Lanes for one map from a lane file's layout entry, or None.
+
+    Takes the parsed entry and never a path: this module is the router and does
+    not open files, so the file, the digest and the refusal are lane_file's.
+
+    Raises ValueError naming the stops where a leg cannot be walked. The
+    alternative is drawing the lane with the leg missing, which reads as a
+    shorter route rather than as a broken one -- so a lane that cannot be
+    walked is not a lane to draw badly, it is a lane to refuse.
+
+    Two things the file is not allowed to decide, because a person writing one
+    should not have to think about either: the **order** its lanes appear in --
+    a loot lane pairs with its region's route lane wherever that lane sits in
+    the list -- and, where a lane states no `region`, which region it belongs
+    to, which is read off the cartridge instead. The runs come back in plan()'s
+    own order: one region at a time, route before loot.
+    """
+    groups = chest_groups(rom, map_id, chests)
+    specs = list(enumerate(entry.get("lanes", ())))
+    for rn, spec in specs:
+        if spec.get("flavour") not in ("route", "loot"):
+            raise ValueError("map %d lane %d: unknown flavour %r"
+                             % (map_id, rn, spec.get("flavour")))
+        if len(spec.get("stops", [])) < 2:
+            raise ValueError("map %d lane %d: a lane needs at least two stops"
+                             % (map_id, rn))
+    # A loot lane prefers the route lane of its own region, and can only do
+    # that if the route lane is already drawn -- so the order the file happens
+    # to be written in is not allowed to decide it. The editor can write
+    # [loot, route]: it seeds an empty route lane, appends a lane the moment
+    # you switch flavour, and drops the ones with fewer than two stops on save.
+    # Route first, stable otherwise; the finished runs are re-ordered below.
+    specs.sort(key=lambda p: p[1]["flavour"] != "route")
+    plain, regs = None, None
+    runs = []
+    for rn, spec in specs:
+        flavour, stops = spec["flavour"], spec["stops"]
+        region = spec.get("region")
+        if region is None:
+            # Read off the cartridge, and emphatically not the lane's index in
+            # the file: that hands a two-lane entry's route lane region 0 and
+            # its loot lane region 1, which unpairs them in silence -- no
+            # prefer, no subtracted edges, and a purple line drawn in full down
+            # a corridor that is already cyan.
+            if plain is None:
+                plain = Floor(rom, graph, map_id)
+                regs = regions(plain)
+            here = anchors(plain, stops[0], groups)
+            region = region_of(plain, here[0], regs) if here else 0
+        # The loot lane prefers the route lane already drawn for this region,
+        # exactly as plan() does, so the two coincide where that is free.
+        prefer = ()
+        if flavour == "loot":
+            for r in runs:
+                if r.label == "route" and r.region == region:
+                    prefer = zip(r.path, r.path[1:])
+                    break
+        f = Floor(rom, graph, map_id, prefer=prefer)
+        first = anchors(f, stops[0], groups)
+        got_path, got, gaps = walk(f, stops, groups,
+                                   start=first[0] if first else None,
+                                   retrace=retrace)
+        if gaps:
+            i, j = gaps[0]
+            raise ValueError(
+                "map %d lane %d: no walk from stop %d (%s) to stop %d (%s)"
+                % (map_id, rn, i, stops[i].get("kind"), j, stops[j].get("kind"))
+                if i != j else
+                "map %d lane %d: stop %d (%s) resolves to no tile on this "
+                "cartridge" % (map_id, rn, i, stops[i].get("kind")))
+        reach = f.reached(got_path[0])
+        missed = sorted(i for i, ts in groups.items() if i not in got and any(
+            x in reach for c in ts for x in f.stand(c)))
+        runs.append(Run(flavour, got_path[0], got_path, frozenset(f.trap),
+                        got, missed, region))
+    if not runs:
+        return None
+    # Back into the shape plan() emits and Lanes documents: one region at a
+    # time, its route lane before its loot lane.
+    runs.sort(key=lambda r: (r.region, r.label != "route"))
+    return Lanes(runs, links(groups))
+
+
+def rank(es):
+    """The circuit rank of an edge set: `|E| - |V| + |components|`.
+
+    Components walked rather than assumed. The term is 1 for anything `edges()`
+    reads off a single walk -- a walk is consecutive, and a repeated tile drops
+    an edge without breaking the chain, because the walk goes on from the tile
+    it stood still on. It is not 1 for what `loops_of` measures: a loot lane
+    with its route lane's corridors taken out is whatever fragments are left,
+    and folding the term away there would score every gap between them as a
+    circuit that is not on the image.
+    """
+    if not es:
+        return 0
+    adj = {}
+    for e in es:
+        x, y = tuple(e)
+        adj.setdefault(x, set()).add(y)
+        adj.setdefault(y, set()).add(x)
+    seen, comps = set(), 0
+    for v in adj:
+        if v in seen:
+            continue
+        comps += 1
+        stack = [v]
+        seen.add(v)
+        while stack:
+            u = stack.pop()
+            for w in adj[u] - seen:
+                seen.add(w)
+                stack.append(w)
+    return len(es) - len(adj) + comps
+
+
+def loops(path):
+    """How many independent loops this walk draws.
+
+    The circuit rank of the drawn line read as an undirected graph. A walk that
+    goes out and comes back the same way draws each edge once and scores 0; a
+    return that picks different tiles closes a circuit and scores 1 per
+    independent one.
+
+    Over `edges()` rather than the path, for that function's reason: the same
+    steps in a different order draw the same line, and a walk that revisits a
+    tile is not thereby a loop. Which is the whole measurement -- 22.3% of the
+    drawn edges on the 57 authored files are walked in both directions and none
+    twice in the same direction, so a retraced out-and-back is already one line
+    and counting repeats would report loops that nobody can see.
+
+    This is what `retrace` is judged on. `docs/ISSUES.md`, "Is a loop worth
+    collapsing?", holds the judgement itself, which is not a number.
+    """
+    return rank(edges(path))
+
+
+def loops_of(runs):
+    """The loops a map's whole drawing carries, summed over its runs.
+
+    Over what the drawing puts down and not over what the walk covered. A loot
+    lane is drawn as an extension of its region's route lane -- where both use
+    the same corridor there is one line -- so a loot lane's circuit that lies
+    inside the route corridor is a circuit nobody can see, and counting it
+    overstates the floor. Measured on the duck cartridge, seven map/mode pairs
+    disagreed while this summed `loops(r.path)`: sky2F and mirage1F each
+    reported loops on a drawing that has none. The count feeds `--check`, the
+    editor's triage badge and the totals in `docs/ISSUES.md`, so a floor that
+    reads as worth collapsing has to be one that looks it.
+
+    render_maps.route_edges is the subtraction draw_lanes itself makes, called
+    rather than repeated. Per run and not over the runs joined, because two
+    runs are two lines: joining them would read every corridor the pair shares
+    as a circuit, which is the same error from the other end.
+    """
+    shared = render_maps.route_edges(runs)
+    return sum(rank(edges(r.path)
+                    - (shared.get(r.region, set())
+                       if r.label == "loot" else set()))
+               for r in runs)
 
 
 def turns(path):

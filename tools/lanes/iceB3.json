@@ -1,0 +1,160 @@
+{
+ "version": 1,
+ "map": "iceB3",
+ "map_id": 38,
+ "layouts": [
+  {
+   "digest": "fc4bc959f13f4068",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        3,
+        2
+       ],
+       "in": [
+        3,
+        2
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        5,
+        4
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "route",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        39,
+        6
+       ],
+       "in": [
+        39,
+        6
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        59,
+        33
+       ],
+       "in": [
+        39,
+        6
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        39,
+        6
+       ],
+       "in": [
+        39,
+        6
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 121,
+       "at": [
+        29,
+        10
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 122,
+       "at": [
+        30,
+        10
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 115,
+       "at": [
+        39,
+        41
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 116,
+       "at": [
+        40,
+        41
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 119,
+       "at": [
+        41,
+        41
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 120,
+       "at": [
+        41,
+        43
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 118,
+       "at": [
+        40,
+        43
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 117,
+       "at": [
+        39,
+        43
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        59,
+        33
+       ],
+       "in": [
+        39,
+        6
+       ]
+      }
+     ]
+    }
+   ],
+   "retrace": true
+  }
+ ]
+}

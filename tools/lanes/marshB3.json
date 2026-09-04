@@ -1,0 +1,143 @@
+{
+ "version": 1,
+ "map": "marshB3",
+ "map_id": 28,
+ "layouts": [
+  {
+   "digest": "f0b529399b9894d0",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        5,
+        6
+       ],
+       "in": [
+        5,
+        6
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 28,
+       "at": [
+        23,
+        39
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        5,
+        6
+       ],
+       "in": [
+        5,
+        6
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 21,
+       "at": [
+        10,
+        25
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 22,
+       "at": [
+        23,
+        23
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 29,
+       "at": [
+        25,
+        25
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 28,
+       "at": [
+        23,
+        39
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        12,
+        53
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 31,
+       "at": [
+        27,
+        53
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 23,
+       "at": [
+        38,
+        40
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 32,
+       "at": [
+        52,
+        53
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 29,
+       "at": [
+        53,
+        38
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 20,
+       "at": [
+        52,
+        8
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        5,
+        7
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

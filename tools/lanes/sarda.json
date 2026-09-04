@@ -1,0 +1,39 @@
+{
+ "version": 1,
+ "map": "sarda",
+ "map_id": 21,
+ "layouts": [
+  {
+   "digest": "968a6c5d677669cc",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        18,
+        13
+       ],
+       "in": [
+        18,
+        13
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        2,
+        2
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

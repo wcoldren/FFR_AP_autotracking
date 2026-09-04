@@ -970,6 +970,62 @@ Nothing here is urgent unless it says so.
   the visit order is the author's and the free re-orientation is correct.
   Raised by review 2026-08-31.
 
+  **The editor landed 2026-09-03 and does not settle this.** It strengthens the
+  case for leaving it and weakens nothing: an authored lane chains its legs
+  with `path()` from stops a person clicked, so the free re-orientation now
+  happens at *every* stop rather than only at a chest -- and a clicked waypoint
+  is a stop by definition, which is exactly the argument above about opening a
+  chest. The solved tour is still there behind `--lanes solved`, so the
+  mismatch between the DP's price and `turns()`' count is unchanged for it.
+
+- **The Map Key drops a font scale on the narrowest maps that carry a lane.**
+  `draw_map_key` picks one scale for the whole band, so the longest row decides
+  the size of every row including `Trap Tile G`. `KEY_TEXT_X` is 32 and
+  `font.text_px` is `len(text) * GLYPH_PX * scale`, so "Optimal Route for Loot"
+  at 22 characters needs 32 + 352 = 384px at scale 2 and gets scale 1 below
+  that. Measured 2026-09-03 on both duck cartridges: three maps each --
+  `matoya` (288px), `titans` (304px) and `bahamutB2` (208px) on the standard
+  one, `sky5F` (256px) in place of `bahamutB2` on the No-Overworld one.
+  `bahamutB2` fits at scale 1 with nothing to spare, since the row is exactly
+  208px.
+
+  Taken rather than worked around. The name is the reference's own, and
+  inventing a shorter one to protect a font size is this page's "Our trap
+  letters are not DarkmoonEX's" in a new place. The fallback exists precisely
+  for this and a small key still reads. What would actually buy room is letting
+  `KEY_SWATCH` shrink with the scale, which recovers 12px and is not enough
+  alone.
+
+- **A lane file's `region` is an index the digest does not guard.** A stop is
+  typed so it can outlive the seed it was drawn on, and the layout digest
+  refuses a floor the stops could not survive -- but `region` is neither. It is
+  a position in `lane.regions()`, and that list is built from the arrivals,
+  which come off the NORM and ENTR teleport tables. The digest covers the
+  map's tiles, its tileset id and that tileset's property block, and objects
+  and tables are deliberately outside it. So two cartridges can lay a floor
+  identically, match the digest, and still disagree about which region is index
+  2 -- a shuffle that repoints a door into the other half of MarshCaveB2 is
+  enough.
+
+  What it costs is bounded and worth stating, because it is smaller than it
+  sounds: the index only decides which route lane a loot lane subtracts its
+  edges from. Getting it wrong draws the loot lane in full down a corridor that
+  is already the route lane's, which is the parallel line `SCALE` exists to
+  remove. It cannot produce a walk the game refuses -- every leg is re-walked
+  against the cartridge in hand.
+
+  Not fixed, and the reason is that the honest fix is to stop storing it.
+  `lane.authored` already derives the region from the cartridge when a lane
+  states none, via `region_of()`, and that derivation cannot go stale the way
+  a stored index can -- so the *more* portable file today is the one that omits
+  the field the editor writes. Making that the only behaviour means either
+  deriving on load and ignoring what is stored, which makes a written field a
+  lie, or dropping it from the format, which loses the author's ability to say
+  "these two lanes are one region" on a floor whose halves the router reads as
+  joined. Neither is obviously right, and no lane has been authored yet, so
+  there is nothing to migrate and no cost to waiting. Raised 2026-09-03, out of
+  the same measurement that filtered the phantom arrivals.
+
 - **The agreement figures used to grant away most of what they appeared to
   compare. Largely closed 2026-08-30.** `check_logic --derived` hands every
   off-vocabulary item to both sides before comparing (`offvocab_items()`), so a
@@ -1126,3 +1182,58 @@ Nothing here is urgent unless it says so.
 
 - **Does anyone outside this repo use the pack?** It decides the four `NoMap`
   variants question in `docs/IDEAS.md`, and nothing else can settle it.
+
+- **Is a loop worth collapsing?** Retracing points the prefer tie-break at a
+  lane's own edges as it accumulates them, so a return leg retraces the
+  outbound wherever retracing is free. **Whether it should is a per-floor
+  judgement, and as of 2026-09-04 the answer is recorded per floor**: a
+  `retrace` key on the layout entry in `tools/lanes/<map>.json`, absent meaning
+  no. `regen_maps.py --retrace` is the override rather than the switch —
+  `auto` (the default) lets each entry say, `on` and `off` force the whole set,
+  and a bare `--retrace` still means `on`, which is what every figure below was
+  measured with.
+
+  What it does is measured. Across the 57 authored files on a duck cartridge:
+  7007 drawn edges, 22.3% of them walked both ways and **none** twice in the
+  same direction, so a retraced out-and-back is already one line. What is not
+  collapsed is the return picking *different* tiles, which draws a loop — 67 of
+  them over 27 of the 102 lanes. Retraced, the loop count over the whole set
+  falls from 67 to 19, SeaShrineB2 from 8 to 0 and VolcanoB4 from 7 to 1, and
+  the walk does not move: every one of 378 legs runs between the same two tiles
+  for the same cost, which `tools/tests/test_lane.py` checks rather than
+  asserts.
+
+  (Those totals read 72 and 23 until 2026-09-04, when the count was corrected
+  to be taken over the drawing rather than over the walks. A loot lane is drawn
+  as an extension of its region's route lane, so a circuit of its own lying
+  inside the route corridor was being counted and never rendered — seven
+  map/mode pairs overstated, SkyPalace2F and MirageTower1F each reporting loops
+  on a drawing that has none. The per-map figures here were always over the
+  drawing and are unchanged.)
+
+  The bill is time — one Dijkstra per leg rather than per lane, since a growing
+  prefer set invalidates `Floor.search`'s memo — about half again on a regen,
+  and more than that on `/path` during authoring, which is why the editor's
+  live canvas does not retrace and its baked preview does.
+
+  **The judgement itself is still open, and it is now 24 separate judgements.**
+  On a floor that genuinely loops, one line with arrows both ways can read as
+  "walk this twice" when what is true is "there is a way round" — and there the
+  loop is the more honest drawing. So the maps get looked at one at a time,
+  with `tools/lane_edit.py`'s A/B flip: `Preview A/B` bakes the floor both ways
+  and space swaps between two images the browser already holds, because the
+  difference on most of them is one corridor and a re-bake loses it.
+
+  **24 of the 57 draw differently, and 21 is the wrong number to work from.**
+  ConeriaTown, MarshCaveB3 and SeaShrineB1 are redrawn without their loop count
+  moving, so the editor's map rail marks a floor by whether its *drawn edges*
+  differ and shows the count only as the label. `lane_edit.py --check` prints
+  the same table for planning the pass from a terminal.
+
+  One thing it corrects on the way past: the invariant is *same anchors, same
+  per-leg cost*, and not "steps and turns come out identical". `STEP` and `TURN`
+  are the same weight, so a leg trades two of one for two of the other for free
+  — ConeriaTown does, 84 steps and 24 turns becoming 86 and 22. And `turns()`
+  over a whole run counts corners at the leg joins that no search ever charged,
+  which is the entire "extra turn" on MarshCaveB3. Counting either reports a
+  change that has not happened.

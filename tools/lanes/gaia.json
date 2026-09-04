@@ -1,0 +1,74 @@
+{
+ "version": 1,
+ "map": "gaia",
+ "map_id": 5,
+ "layouts": [
+  {
+   "digest": "2eb318f89d6cad78",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        61,
+        61
+       ],
+       "in": [
+        61,
+        61
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        56,
+        52
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        47,
+        52
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        44,
+        46
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        39,
+        40
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        37,
+        40
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        49,
+        20
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

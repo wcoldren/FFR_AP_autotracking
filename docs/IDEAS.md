@@ -57,7 +57,23 @@ is real map content and still not worth framing — so a size threshold here is 
 decision to be defended, not tuned.
 
 **The two lanes are named wrong, and one of them is the wrong lane. Raised
-2026-08-31, from play judgement, after the first build.** What shipped is two
+2026-08-31, from play judgement, after the first build; fixed 2026-09-03.**
+The analysis below is what the fix implements, so it is kept as written. What
+the build added to it: both lanes now hold `graph.floor_items(map_id)` and the
+keyless `Floor` is gone entirely -- it existed only to derive the second lane
+by difference. Holding an item only widens the walkable set, so a traversal
+route holding the floor's key is never longer or less safe than one without.
+The `prefer=` direction is unchanged and reads better for it: the loot lane
+prefers the route lane's edges, so cyan is the walk you would make anyway and
+purple is what the loot costs you on top.
+
+Two measured consequences. A loot lane now appears wherever there is loot
+rather than only on a gated floor, so 29 of the 39 lanes on the duck cartridge
+are a pair where most were a single line, and 28 maps grow a legend row. And
+"Optimal Route for Loot" is 22 characters, which needs 384px at scale 2, so the
+Map Key halves its letters on three maps per cartridge; `ISSUES.md` has that
+one, and shortening the name to protect a font size would be the trap this page
+already names for the trap letters. What shipped is two
 *loot* lanes that differ by whether you hold the floor's key: cyan "Optimal
 Route" collects what it can keyless, purple "Optimal w Key" collects the rest.
 That is not what the pair means. The reference's two flavours are:
@@ -500,7 +516,7 @@ reason rather than a semantic one. PopTracker's rect pin is opaque -- `drawRect`
 fills its interior with a solid state colour and `StateColors` carry no alpha --
 so a square pin on a tile with an NPC sprite drawn under it hides the sprite
 completely. `place_locations` emits a diamond exactly there, leaving the tile's
-four corners unpainted so the sprite reads through (`tools/regen_maps.py:796`).
+four corners unpainted so the sprite reads through (`tools/regen_maps.py:928`).
 Titan's new pin came out a diamond for that reason and not because he is a gate.
 So this cannot simply adopt the shape: it has to say what a pin does when it is
 both an incentive and standing on a sprite. That is the question `ROADMAP.md`

@@ -13,12 +13,17 @@ false while the picture still looked plausible:
     Graph.floor_walk() enforces and the router's own cost search has to enforce
     separately. They are not decoration: on the standard duck cartridge they
     change the lane on 8 of 38 chest maps, and TitansTunnel is the clearest --
-    without the NPC rule its plain lane strolls past the Titan and collects all
+    without the NPC rule its route lane strolls past the Titan and collects all
     four chests;
-  * **a key lane appears where and only where the floor gates on something**,
+  * **each colour is routed for its own errand** -- a route lane opens
+    nothing and ends on a way off the floor, a loot lane opens something --
     which is Graph.floor_items()'s answer and not a list here;
   * **the Map Key fits the map it is drawn on.** The band is the map's own
-    width and the narrowest map carrying a chest is sixteen tiles across.
+    width and the narrowest map carrying a chest is sixteen tiles across;
+  * **an authored lane walks the same floor the solver does.** The stops are a
+    person's, but the walking between them is the router's, so handing back the
+    order a solved lane already found has to reproduce that lane -- and a stop
+    that resolves to nowhere has to be refused rather than stepped over.
 
 Set FF1_ROM to a cartridge; without one this skips. A real FFR seed is
 strictly stronger than the vanilla image here -- vanilla has no shuffled
@@ -32,6 +37,7 @@ import entrance_graph as eg                                    # noqa: E402
 import extract_chests as ec                                    # noqa: E402
 import font                                                    # noqa: E402
 import lane as L                                               # noqa: E402
+import lane_file as LF                                         # noqa: E402
 import render_maps as rm                                       # noqa: E402
 
 
@@ -55,15 +61,21 @@ def shape(lanes):
 
 
 def regions_do_not_share_edges():
-    """A key lane in one region must not subtract another region's plain lane.
+    """A loot lane in one region must not subtract another region's route lane.
 
-    plan() emits [plain?, key?] per region and drops the plain run wherever a
-    region collects nothing keyless, so a second region can arrive at
-    draw_lanes as a bare key run. Regions overlap in tiles -- search()
-    reachability is asymmetric across staircase arrivals -- so the edges the
-    two share are real steps of both, and subtracting the first region's set
-    from the second's lane erases the middle of a line that is drawn as
-    continuous.
+    plan() emits [route?, loot?] per region, and a region whose only way out
+    is the way it came in gets no route run at all -- MatoyasCave, Waterfall,
+    Cardia's islands. So the run before a loot run is not always its own
+    region's. Regions overlap in tiles -- search() reachability is asymmetric
+    across staircase arrivals -- so the edges the two share are real steps of
+    both, and subtracting the first region's set from the second's lane erases
+    the middle of a line that is drawn as continuous.
+
+    The third case below is the one position cannot get right: a bare route
+    run for one region followed by a bare loot run for another. It is not on
+    either duck cartridge today, but both of the shapes it is made of are --
+    `route,loot,route,loot` and four bare loot runs on one map -- so it is a
+    seed away, and Run.region is what tells them apart.
 
     Needs no cartridge: draw_lanes takes a frame, a crop and the runs, and the
     colours it writes are the whole answer. Runs both ways round, because a
@@ -73,17 +85,17 @@ def regions_do_not_share_edges():
     fails = []
     crop = rm.Crop(box=(0, 9, 0, 9))
     w, h = 10 * rm.TILE_PX, 10 * rm.TILE_PX
-    plain = rm.NES_PALETTE[rm.LANE_PLAIN]
-    purple = rm.NES_PALETTE[rm.LANE_KEY]
+    route = rm.NES_PALETTE[rm.LANE_ROUTE]
+    purple = rm.NES_PALETTE[rm.LANE_LOOT]
 
-    def run(label, path):
-        return L.Run(label, path[0], list(path), frozenset(), [1], [])
+    def run(label, path, region=0):
+        return L.Run(label, path[0], list(path), frozenset(), [1], [], region)
 
-    # Region A walks the corridor keyless and its key lane extends it by one
+    # Region A walks the corridor keyless and its loot lane extends it by one
     # tile. Region B is key-only and walks the same corridor.
-    a_plain = run("plain", [(1, 1), (2, 1), (3, 1), (4, 1)])
-    a_key = run("key", [(1, 1), (2, 1), (3, 1), (4, 1), (4, 2)])
-    b_key = run("key", [(1, 1), (2, 1), (3, 1)])
+    a_route = run("route", [(1, 1), (2, 1), (3, 1), (4, 1)])
+    a_loot = run("loot", [(1, 1), (2, 1), (3, 1), (4, 1), (4, 2)])
+    b_loot = run("loot", [(1, 1), (2, 1), (3, 1)], region=1)
 
     def corridor_colour(runs):
         out = bytearray(w * h * 3)
@@ -99,16 +111,258 @@ def regions_do_not_share_edges():
         print(f"{'ok  ' if got == want else 'FAIL'} {label}")
 
     # The shared corridor stays the colour of the walk you can always do.
-    check("a key lane adds nothing where it follows its own plain lane",
-          corridor_colour([a_plain, a_key]), plain)
-    # And a second region's key lane still draws over it.
-    check("a second region's key lane is not subtracted by the first's",
-          corridor_colour([a_plain, a_key, b_key]), purple)
+    check("a loot lane adds nothing where it follows its own route lane",
+          corridor_colour([a_route, a_loot]), route)
+    # And a second region's loot lane still draws over it.
+    check("a second region's loot lane is not subtracted by the first's",
+          corridor_colour([a_route, a_loot, b_loot]), purple)
+    # The same, with region A's loot run dropped so that region B's is the run
+    # immediately after region A's route. Position says these two are a pair
+    # and they are not.
+    check("nor by the route lane it merely follows",
+          corridor_colour([a_route, b_loot]), purple)
+    return fails
+
+
+def arrowheads_do_not_meet_nose_to_nose():
+    """No tile carries two heads pointing opposite ways.
+
+    An arrowhead is a triangle whose tip is the tile centre, so two of them on
+    one tile pointing opposite ways touch at the tip and draw a bowtie. It is
+    not a near-miss: on the duck cartridge it happened on 27 tiles across 9
+    maps, six of them down one BahamutCave corridor that two regions' route
+    lanes both walk. The arrows exist to say which way round a doubled-back
+    lane goes, and a bowtie is the one shape that says neither way.
+
+    Needs no cartridge. draw_lanes takes a frame, a crop and the runs, and an
+    arrowhead is findable in the pixels: the triangle's base sits ARROW_PX - 1
+    back from the tile centre and spreads that far across, so the corner of the
+    base is a pixel only a head pointing that way ever writes -- the lane line
+    itself is LANE_PX wide and never reaches it.
+
+    Three cases, and the first and third are what has to survive the second.
+    A head must still be drawn where nothing is in its way, and two heads that
+    merely turn a corner on one tile are a corner and read fine -- moving those
+    would be the fix overreaching.
+    """
+    fails = []
+    crop = rm.Crop(box=(0, 15, 0, 9))
+    w, h = 16 * rm.TILE_PX, 10 * rm.TILE_PX
+    k = rm.ARROW_PX - 1
+
+    def run(label, path, region=0):
+        return L.Run(label, path[0], list(path), frozenset(), [], [], region)
+
+    def frame(runs):
+        out = bytearray(w * h * 3)
+        rm.draw_lanes(out, w, h, crop, L.Lanes(list(runs), []))
+        return out
+
+    def head(out, tile, d):
+        """Is there a head at `tile` pointing `d`? Read off its base corner."""
+        cx = tile[0] * rm.TILE_PX + rm.TILE_PX // 2
+        cy = tile[1] * rm.TILE_PX + rm.TILE_PX // 2
+        x, y = ((cx - d[0] * k, cy + k) if d[0] else (cx + k, cy - d[1] * k))
+        i = (y * w + x) * 3
+        return tuple(out[i:i + 3]) != (0, 0, 0)
+
+    def check(label, got, want):
+        if got != want:
+            fails.append(f"{label}: got {got!r}, want {want!r}")
+        print(f"{'ok  ' if got == want else 'FAIL'} {label}")
+
+    # One run, nothing in its way: the head lands on the tile the rule picked,
+    # which is the last edge's. Without this the two below would also pass on a
+    # draw_lanes that had stopped drawing arrows at all.
+    east = run("route", [(1, 1), (2, 1), (3, 1)])
+    one = frame([east])
+    check("a lane's last step still gets its head", head(one, (3, 1), (1, 0)), True)
+
+    # Two runs walking into the same tile from opposite ends -- BahamutCave's
+    # corridor, in miniature. Long enough westward that the every-seventh rule
+    # rather than the last edge schedules the collision, which is what leaves
+    # the head somewhere to go in *both* directions and makes the case below
+    # about which one it picks.
+    west = run("route", [(c, 1) for c in range(10, 0, -1)], region=1)
+    two = frame([east, west])
+    check("the head that was there first stays",
+          head(two, (3, 1), (1, 0)), True)
+    check("the opposing head is not drawn on top of it",
+          head(two, (3, 1), (-1, 0)), False)
+    # Which side it moves to is the whole of whether the fix worked. Backward
+    # along its own lane puts it past the head that stayed, tips facing across
+    # a clear tile: two arrowheads. Forward would put it in front, where the
+    # two bases finish six pixels apart and draw a rhombus -- a lump on the
+    # line as directionless as the bowtie, which is why (2, 1) is checked and
+    # not merely left unstated.
+    check("it is nudged along its own lane, not dropped",
+          head(two, (4, 1), (-1, 0)), True)
+    check("and past the head that stayed, not up against it",
+          head(two, (2, 1), (-1, 0)), False)
+
+    # A corner is two heads on one tile at right angles. They do not overlap
+    # and they read as what they are, so nothing moves.
+    south = run("route", [(3, 3), (3, 2), (3, 1)], region=1)
+    corner = frame([east, south])
+    check("two heads that turn a corner are both left where they are",
+          (head(corner, (3, 1), (1, 0)), head(corner, (3, 1), (0, -1))),
+          (True, True))
+    return fails
+
+
+def arrowheads_meet_across_the_torus_join():
+    """The join is a place two heads can collide, and it was the one place
+    `opposed()` could not see them do it.
+
+    A head is filed under the step that drew it, and the step used to be the
+    raw tile delta. Crossing the join that is +-63, while `_arrow` takes the
+    direction it actually draws from the pixels -- so on a map whose crop shift
+    puts column 63 next to column 0 in the image, the two heads on one tile are
+    filed under directions that are not opposites and the bowtie is drawn.
+
+    Latent on the duck cartridge: the one wrapping step in the corpus is on
+    seaB1, whose shift is (0, 0), so `_arrow` bails on the pixel-distance check
+    and files no head at all. Five maps there do have a shift that makes the
+    join contiguous -- con_castle, sky4F, melmond, crescent_lake, elf_castle --
+    and a lane authored across one is a seed away. Hand-built for that reason.
+    """
+    fails = []
+    # Shifted two columns, so image column 0 is tile column 62 and the step
+    # from 63 to 0 is one pixel step east on the page.
+    crop = rm.Crop(box=(0, 15, 0, 9), shift=(2, 0))
+    w, h = 16 * rm.TILE_PX, 10 * rm.TILE_PX
+    k = rm.ARROW_PX - 1
+
+    def run(label, path, region=0):
+        return L.Run(label, path[0], list(path), frozenset(), [], [], region)
+
+    def head(out, tile, d):
+        at = crop.place(*tile)
+        cx = at[0] * rm.TILE_PX + rm.TILE_PX // 2
+        cy = at[1] * rm.TILE_PX + rm.TILE_PX // 2
+        x, y = ((cx - d[0] * k, cy + k) if d[0] else (cx + k, cy - d[1] * k))
+        i = (y * w + x) * 3
+        return tuple(out[i:i + 3]) != (0, 0, 0)
+
+    def check(label, got, want):
+        if got != want:
+            fails.append(f"{label}: got {got!r}, want {want!r}")
+        print(f"{'ok  ' if got == want else 'FAIL'} {label}")
+
+    # East over the join, ending on (0, 1); then west along the same row into
+    # the same tile. The same collision as BahamutCave's corridor, with the
+    # arriving step wrapping.
+    east = run("route", [(62, 1), (63, 1), (0, 1)])
+    west = run("route", [(c, 1) for c in range(10, -1, -1)], region=1)
+    out = bytearray(w * h * 3)
+    rm.draw_lanes(out, w, h, crop, L.Lanes([east, west], []))
+    check("a head drawn across the join is still a head",
+          head(out, (0, 1), (1, 0)), True)
+    check("and the head opposing it is not drawn on top of it",
+          head(out, (0, 1), (-1, 0)), False)
+    check("it is nudged along its own lane, as anywhere else",
+          head(out, (1, 1), (-1, 0)), True)
+
+    # The normalisation on its own, both ways round and off the join too.
+    check("a wrapping step reads as the one tile it moves",
+          (rm._heading((63, 4), (0, 4)), rm._heading((0, 4), (63, 4)),
+           rm._heading((4, 63), (4, 0)), rm._heading((3, 2), (4, 2))),
+          ((1, 0), (-1, 0), (0, 1), (1, 0)))
+
+    # _nudge may only walk an unbroken stretch. `mine` is the filtered edge
+    # list, so a loot lane's consecutive indices are not always consecutive
+    # tiles -- sixteen runs on the duck cartridge have such a gap -- and
+    # stepping over one puts the head on an unrelated part of the lane.
+    gapped = [((0, 0), (1, 0)), ((5, 0), (6, 0)), ((6, 0), (7, 0))]
+    whole = [((c, 0), (c + 1, 0)) for c in range(5)]
+    check("the nudge stops at a gap in the filtered edge list",
+          list(rm._nudge(2, gapped)), [2, 1])
+    check("and offers nowhere to go when it is fenced in on both sides",
+          list(rm._nudge(0, gapped)), [0])
+    check("and still walks backward first where the lane is unbroken",
+          list(rm._nudge(2, whole)), [2, 1, 0, 3, 4])
+    return fails
+
+
+def loops_counts_circuits_not_repeats():
+    """loops() is the circuit rank of the drawn line, and nothing else.
+
+    The measurement it rests on: of the drawn edges across the authored files,
+    22.3% are walked in both directions and none twice in the same direction.
+    So a retraced out-and-back is *already* one line, and a counter that scored
+    revisits would report loops on every lane that comes back the way it went
+    -- which is most of them, and none of which anyone can see on the art.
+
+    Hand-built, because a definition checked only against the corpus is a
+    definition that says whatever the corpus says.
+    """
+    fails = []
+
+    def check(label, got, want):
+        if got != want:
+            fails.append(f"{label}: got {got!r}, want {want!r}")
+        print(f"{'ok  ' if got == want else 'FAIL'} {label}")
+
+    line = [(0, 0), (1, 0), (2, 0), (3, 0)]
+    check("a straight walk draws no loop", L.loops(line), 0)
+    check("and coming back the same way still draws none",
+          L.loops(line + line[-2::-1]), 0)
+    check("a walk that stands still draws none either",
+          L.loops([(0, 0), (0, 0), (1, 0)]), 0)
+    check("an empty walk is nothing to count", L.loops([]), 0)
+
+    # Out along the top, back along the bottom: one circuit, and the shape
+    # `--retrace` exists to collapse.
+    box = [(0, 0), (1, 0), (2, 0), (2, 1), (1, 1), (0, 1), (0, 0)]
+    check("a return down a different corridor draws one loop", L.loops(box), 1)
+    check("and it is one loop however long the tail on it",
+          L.loops(box + [(0, 0), (0, 2), (0, 3)]), 1)
+
+    # Two circuits are two, not one: the count is over *independent* loops,
+    # which is what "how much does this floor loop" means. The second is walked
+    # back out over edges the first already drew, so it adds three not five.
+    twin = box + [(1, 0), (2, 0), (3, 0), (3, 1), (2, 1)]
+    check("two circuits off one walk count two", L.loops(twin), 2)
+
+    # A walk is consecutive, so the line it draws is one piece and rank()'s
+    # components term comes out 1 on anything loops() is handed. Worth one row
+    # because that is the reading the term used to be folded away on: a
+    # repeated tile drops an edge and must not break the chain.
+    stalled = [(0, 0), (1, 0), (1, 0), (2, 0), (2, 1), (1, 1), (1, 0)]
+    check("a walk that stands still mid-loop still draws one",
+          L.loops(stalled), 1)
+
+    # loops_of() is over the drawing and not over the walks. A loot lane is
+    # drawn as an extension of its region's route lane, so a circuit of its
+    # that lies inside the route corridor is a circuit nobody can see -- and
+    # summing loops(r.path) counted it. Hand-built because the corpus row below
+    # can only say the two agree, not which of them is right.
+    def run(label, path, region=0):
+        return L.Run(label, path[0], list(path), frozenset(), [], [], region)
+
+    route = run("route", box)
+    check("a route lane's own circuit counts", L.loops_of([route]), 1)
+    check("and the loot lane that only re-walks it adds nothing",
+          L.loops_of([route, run("loot", box)]), 1)
+    check("but one in another region has nothing taken out of it",
+          L.loops_of([route, run("loot", box, region=1)]), 2)
+
+    # Subtracting the shared set can leave a loot lane in pieces, which is what
+    # rank() walks the components for: a stub off either end of a corridor the
+    # route lane already drew is two lines and no circuit. Folding the term
+    # away scores that pair at -1, which is not a count of anything.
+    spur = run("loot", [(0, 2), (0, 1), (0, 0), (1, 0), (2, 0), (2, 1),
+                        (3, 1)])
+    check("a loot lane left in two pieces draws no circuit between them",
+          L.loops_of([route, spur]), 1)
     return fails
 
 
 def main():
     fails = regions_do_not_share_edges()
+    fails += arrowheads_do_not_meet_nose_to_nose()
+    fails += arrowheads_meet_across_the_torus_join()
+    fails += loops_counts_circuits_not_repeats()
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):
         print("SKIP  set FF1_ROM to a Final Fantasy cartridge for the rest")
@@ -140,11 +394,11 @@ def main():
     unwalkable, jumps, through_npc, through_stair = [], [], [], []
     for map_id, lanes in plans.items():
         for run in lanes.runs:
-            # A run's own inventory: the plain lane holds nothing, the key lane
-            # holds what the floor gates on. Checking both against the empty
-            # inventory would fail the key lane for doing its job.
-            floor = L.Floor(rom, graph, map_id,
-                            have=None if run.label == "key" else set())
+            # Both lanes hold what the floor gates on, so there is no
+            # per-run inventory any more. Checking either against the empty
+            # one would fail it for walking through a door the floor's own key
+            # opens -- which is a walk the game allows and the drawing claims.
+            floor = L.Floor(rom, graph, map_id)
             for i, cell in enumerate(run.path):
                 if not floor.walkable(cell):
                     unwalkable.append((eg.MAP_NAMES[map_id], run.label, cell))
@@ -181,18 +435,38 @@ def main():
     check("turning those two rules off changes a lane somewhere",
           bool(moved), True)
 
-    # ------------------------------------------------- the second lane's rule
+    # ------------------------------------------ what each lane is routed for
+    # The pair is a traversal and a loot round, not two loot rounds that differ
+    # by an inventory. A route run that collects something is the old errand
+    # back under a new name; a loot run that collects nothing is a purple key
+    # row with nothing under it.
     wrong = []
     for map_id, lanes in plans.items():
-        gated = bool(graph.floor_items(map_id))
-        if any(r.label == "key" for r in lanes.runs) and not gated:
-            wrong.append((eg.MAP_NAMES[map_id], "key lane on an ungated floor"))
-    check("a key lane only appears on a floor that gates on something",
+        for run in lanes.runs:
+            if run.label == "route" and run.got:
+                wrong.append((eg.MAP_NAMES[map_id], "route lane collects",
+                              run.got))
+            if run.label == "loot" and not run.got:
+                wrong.append((eg.MAP_NAMES[map_id], "loot lane collects nothing"))
+    check("a route lane opens nothing and a loot lane opens something",
           wrong, [])
+
+    # And a traversal lane is arrival *to an exit*, so its last tile is a way
+    # off the floor. Without this the label is only a colour: a route that
+    # stopped anywhere else would still be drawn and still be called the walk
+    # through. A floor whose only way out is the way in gets no route lane at
+    # all rather than one that ends in the middle -- MatoyasCave, Waterfall.
+    not_out = []
+    for map_id, lanes in plans.items():
+        outs = set(L.exits(L.Floor(rom, graph, map_id)))
+        for run in lanes.runs:
+            if run.label == "route" and run.path[-1] not in outs:
+                not_out.append((eg.MAP_NAMES[map_id], run.path[-1]))
+    check("a route lane ends on a way off the floor", not_out, [])
 
     # --------------------------------------------------- one lane per region
     # Every region that holds a check gets a lane starting at one of its own
-    # arrivals, and no two plain lanes share a start. Serving one region from
+    # arrivals, and no two route lanes share a start. Serving one region from
     # another's door is the bug that drew a second lane on top of the first.
     strays, shared_starts = [], []
     for map_id, lanes in plans.items():
@@ -200,7 +474,7 @@ def main():
         rs = L.regions(probe)
         seen = set()
         for run in lanes.runs:
-            if run.label != "plain":
+            if run.label != "route":
                 continue
             if not any(run.start in r for r in rs):
                 strays.append((eg.MAP_NAMES[map_id], run.start))
@@ -209,11 +483,380 @@ def main():
             seen.add(run.start)
     check("every lane starts at an arrival the game can put you down on",
           strays, [])
-    check("and no two plain lanes on a map start in the same place",
+
+    # An arrival is where the game can *put you down*, and a teleport table can
+    # name a tile that is not that. Walkability catches the wall case; this is
+    # the other one, where the tile walks perfectly well because it is the
+    # filler outside the drawn floor. The raw table set is read again here
+    # rather than asked of arrivals(), because a check that asks the thing it
+    # is checking would pass however the rule is written.
+    outside, dropped_any, emptied = [], 0, []
+    for map_id in sorted(rm.MAP_FILES):
+        f = L.Floor(rom, graph, map_id)
+        raw_at = {(eg.coord(graph.norm_x[i]), eg.coord(graph.norm_y[i]))
+                  for i in range(eg.NORM_COUNT_EXT) if graph.norm_map[i] == map_id}
+        raw_at |= {(eg.coord(graph.entr_x[i]), eg.coord(graph.entr_y[i]))
+                   for i in range(eg.ENTR_COUNT) if graph.entr_map[i] == map_id}
+        walkable_at = sorted(a for a in raw_at if f.walkable(a))
+        kept = L.arrivals(f)
+        dropped_any += len(walkable_at) - len(kept)
+        content = f.content()
+        outside += [(eg.MAP_NAMES[map_id], a) for a in kept if a not in content]
+        if walkable_at and not kept:
+            emptied.append(eg.MAP_NAMES[map_id])
+    print(f"     ({dropped_any} walkable table row(s) dropped as outside the "
+          f"drawn floor)")
+    check("no arrival is a tile outside the floor as it is drawn", outside, [])
+    check("and no map is left with no arrival at all", emptied, [])
+    check("and the rule bites somewhere on this cartridge",
+          dropped_any > 0, True)
+
+    # And the filter must not have cost a drawing: a map whose chests are
+    # reachable from an arrival still has to get its lane. Dropping the last
+    # arrival of a real region would take one away in silence, since plan()
+    # simply has nothing to iterate.
+    bare = [eg.MAP_NAMES[m] for m in sorted(rm.MAP_FILES)
+            if L.chest_groups(rom, m, chests) and m not in plans]
+    check("and every map carrying a chest still draws a lane", bare, [])
+    check("and no two route lanes on a map start in the same place",
           shared_starts, [])
 
+    # ------------------------------------------------- the authored lane
+    def drawn_as(rom_, graph_, mid_, spec_, chests_):
+        """One entry's runs, flattened to what the drawing actually depends on."""
+        got_ = L.authored(rom_, graph_, mid_, {"lanes": spec_}, chests_)
+        return [(r.label, r.region, r.path) for r in got_.runs]
+
+    def stops_of(r, outs):
+        """One solved run as the stops that would have authored it."""
+        st = [{"kind": "arrival", "at": list(r.start), "in": list(r.start)}]
+        st += [{"kind": "chest", "index": i} for i in r.got]
+        if r.path[-1] in outs:
+            st.append({"kind": "exit", "at": list(r.path[-1])})
+        return st
+
+    # The order is the author's and the walking is still the router's, so a
+    # solved lane handed back as its own stops must come out the same lane.
+    # This is the whole claim of "the router becomes the pathing primitive":
+    # if the two disagree, the editor would draw something the solver never
+    # would and neither would be wrong about the cartridge.
+    diverged, illegal = [], []
+    for map_id, lanes in plans.items():
+        f = L.Floor(rom, graph, map_id)
+        outs = set(L.exits(f))
+        spec = []
+        for r in lanes.runs:
+            stops = [{"kind": "arrival", "at": list(r.start),
+                      "in": list(r.start)}]
+            stops += [{"kind": "chest", "index": i} for i in r.got]
+            if r.path[-1] in outs:
+                stops.append({"kind": "exit", "at": list(r.path[-1])})
+            spec.append({"flavour": r.label, "stops": stops,
+                         "region": r.region})
+        back = L.authored(rom, graph, map_id, {"lanes": spec}, chests)
+        for r, a in zip(lanes.runs, back.runs):
+            if len(a.path) != len(r.path) or sorted(a.got) != sorted(r.got):
+                diverged.append((eg.MAP_NAMES[map_id], r.label,
+                                 len(a.path), len(r.path)))
+            for i, cell in enumerate(a.path):
+                if not f.walkable(cell):
+                    illegal.append((eg.MAP_NAMES[map_id], r.label, cell))
+            for x, y in zip(a.path, a.path[1:]):
+                dx = min((x[0] - y[0]) % 64, (y[0] - x[0]) % 64)
+                dy = min((x[1] - y[1]) % 64, (y[1] - x[1]) % 64)
+                if dx + dy != 1:
+                    illegal.append((eg.MAP_NAMES[map_id], r.label, x, y))
+    check("an authored lane reproduces the solved one it came from",
+          diverged, [])
+    check("and every step of it is a step the game allows", illegal, [])
+
+    # ------------------------------------------- retracing costs nothing
+    # walk(retrace=True) points the prefer tie-break at the lane's own edges
+    # as it accumulates them, and the whole safety of that rests on *where* it
+    # is applied: after the layered search has fixed the anchors, so it can
+    # only re-pick among paths that already cost the same. Applied any earlier
+    # it would move the anchors, which is a different lane and not a
+    # differently drawn one.
+    #
+    # So the thing to check is not that the drawing is identical -- it is not,
+    # that is the point -- but that every leg still runs between the same two
+    # tiles for the same real cost. Priced here rather than counted: steps and
+    # turns carry the same weight, so a leg is free to trade two of one for two
+    # of the other, and turns(path) over the whole run counts corners at the
+    # leg joins that no search ever charged. Counting either would report a
+    # change that is not one; ConeriaTown and MarshCaveB3 are where it does.
+    def price(floor, seg):
+        """A path's real cost: the charges search() itself makes, no tie-break."""
+        total, head = 0, None
+        for x, y in zip(seg, seg[1:]):
+            d = ((y[0] - x[0]) % 64, (y[1] - x[1]) % 64)
+            d = (d[0] if d[0] < 32 else d[0] - 64,
+                 d[1] if d[1] < 32 else d[1] - 64)
+            total += floor.enter(y)
+            if head is not None and d != head:
+                total += L.TURN * L.SCALE
+            head = d
+        return total
+
+    real_walk, real_path = L.walk, L.Floor.path
+    legs = []
+
+    def walk_spy(f_, stops_, groups_, start=None, retrace=False):
+        seen = []
+
+        def path_spy(self, a_, b_):
+            seg = real_path(self, a_, b_)
+            seen.append((a_, b_, seg))
+            return seg
+
+        L.Floor.path = path_spy
+        try:
+            out = real_walk(f_, stops_, groups_, start=start, retrace=retrace)
+        finally:
+            L.Floor.path = real_path
+        legs.append((f_.mid, seen))
+        return out
+
+    def legs_for(retrace):
+        L.walk = walk_spy
+        legs.clear()
+        try:
+            for map_id, lanes in plans.items():
+                fl = L.Floor(rom, graph, map_id)
+                outs_ = set(L.exits(fl))
+                spec = []
+                for r in lanes.runs:
+                    st = [{"kind": "arrival", "at": list(r.start),
+                           "in": list(r.start)}]
+                    st += [{"kind": "chest", "index": i} for i in r.got]
+                    if r.path[-1] in outs_:
+                        st.append({"kind": "exit", "at": list(r.path[-1])})
+                    # A route run that neither collects nor leaves is one stop,
+                    # which authored() refuses -- and rightly, it is not a lane.
+                    if len(st) > 1:
+                        spec.append({"flavour": r.label, "stops": st,
+                                     "region": r.region})
+                if spec:
+                    L.authored(rom, graph, map_id, {"lanes": spec}, chests,
+                               retrace=retrace)
+        finally:
+            L.walk = real_walk
+        return list(legs)
+
+    off, on = legs_for(False), legs_for(True)
+    dearer, elsewhere, counted = [], [], 0
+    for (mid_a, ca), (mid_b, cb) in zip(off, on):
+        floor = L.Floor(rom, graph, mid_a)
+        if mid_a != mid_b or len(ca) != len(cb):
+            elsewhere.append((eg.MAP_NAMES[mid_a], len(ca), len(cb)))
+            continue
+        for (a1, b1, s1), (a2, b2, s2) in zip(ca, cb):
+            counted += 1
+            if (a1, b1) != (a2, b2):
+                elsewhere.append((eg.MAP_NAMES[mid_a], (a1, b1), (a2, b2)))
+            elif price(floor, s1) != price(floor, s2):
+                dearer.append((eg.MAP_NAMES[mid_a], a1, b1,
+                               price(floor, s1), price(floor, s2)))
+    check("retracing leaves every leg running between the same two tiles",
+          elsewhere, [])
+    check("and costs it exactly what the un-retraced leg cost",
+          dearer, [])
+    check("on more than a handful of legs, or the two above prove nothing",
+          counted > 100, True)
+
+    # loops() over the committed files, both ways. The figures themselves are a
+    # fact about one cartridge and belong in the docs; what is checked here is
+    # what has to hold on any of them.
+    table = {}
+    for map_id, name in rm.MAP_FILES.items():
+        a, why = LF.load(rom, graph, map_id, chests, name=name, retrace="off")
+        if why is not None:
+            continue
+        b, why = LF.load(rom, graph, map_id, chests, name=name, retrace="on")
+        if why is not None:
+            continue
+        table[name] = (a, b)
+
+    def rank(runs):
+        """Circuit rank the long way: the subtraction and the walk, by hand.
+
+        loops_of() asks render_maps.route_edges what a loot lane's own
+        contribution is, so a bug in that one index would agree with itself.
+        This builds the index inline and walks the components inline, which is
+        the corpus disagreeing with the pair of them if either is wrong.
+        """
+        route = {}
+        for r in runs:
+            if r.label == "route":
+                route.setdefault(r.region, set()).update(L.edges(r.path))
+        total = 0
+        for r in runs:
+            es = L.edges(r.path)
+            if r.label == "loot":
+                es = es - route.get(r.region, set())
+            if not es:
+                continue
+            adj = {}
+            for e in es:
+                x, y = tuple(e)
+                adj.setdefault(x, set()).add(y)
+                adj.setdefault(y, set()).add(x)
+            seen, comps = set(), 0
+            for v in adj:
+                if v in seen:
+                    continue
+                comps += 1
+                stack = [v]
+                seen.add(v)
+                while stack:
+                    u = stack.pop()
+                    for w in adj[u] - seen:
+                        seen.add(w)
+                        stack.append(w)
+            total += len(es) - len(adj) + comps
+        return total
+
+    if table:
+        wrong = [n for n, (a, b) in table.items()
+                 if L.loops_of(a.runs) != rank(a.runs)
+                 or L.loops_of(b.runs) != rank(b.runs)]
+        check("loops_of() matches the subtraction and walk done by hand",
+              wrong, [])
+        off_n = sum(L.loops_of(a.runs) for a, _ in table.values())
+        on_n = sum(L.loops_of(b.runs) for _, b in table.values())
+        check("retracing does not add loops anywhere in the set",
+              on_n <= off_n, True)
+        check("and takes some away, or the flag draws nothing",
+              on_n < off_n, True)
+        # The count is not the same question as the drawing, and a triage list
+        # keyed on the count would send you past the maps where they differ.
+        redrawn = [n for n, (a, b) in table.items()
+                   if [L.edges(r.path) for r in a.runs]
+                   != [L.edges(r.path) for r in b.runs]]
+        quiet = [n for n in redrawn
+                 if L.loops_of(table[n][0].runs)
+                 == L.loops_of(table[n][1].runs)]
+        check("some floor is redrawn without its loop count moving",
+              bool(quiet), True)
+        print("     (%d of %d authored map(s) redrawn, %d of them silently; "
+              "loops %d -> %d)"
+              % (len(redrawn), len(table), len(quiet), off_n, on_n))
+
+    # A stop that resolves to nowhere is a refusal, not a leg to step over.
+    # Drawing the lane without it reads as a shorter route rather than as a
+    # broken one, which is the failure that would never be noticed.
+    one = sorted(plans)[0]
+    wall = None
+    probe = L.Floor(rom, graph, one)
+    for c in ((x, y) for y in range(64) for x in range(64)):
+        if not probe.walkable(c):
+            wall = c
+            break
+    refused = []
+    for stops in ([{"kind": "arrival", "at": list(plans[one].runs[0].start),
+                    "in": list(plans[one].runs[0].start)},
+                   {"kind": "tile", "at": list(wall)}],
+                  [{"kind": "chest", "index": 9999},
+                   {"kind": "tile", "at": list(plans[one].runs[0].start)}]):
+        try:
+            L.authored(rom, graph, one,
+                       {"lanes": [{"flavour": "route", "stops": stops}]},
+                       chests)
+            refused.append(("drew it anyway", stops[-1]))
+        except ValueError:
+            pass
+    check("a stop that resolves to no tile is refused", refused, [])
+
+    # The first stop is the lane's own start, so it is the one stop that must
+    # not be resolved against a start. An `exit` stop falls back to exits(),
+    # which drops the tile you came in by -- so telling stop 0 that it came in
+    # by itself excludes it from its own candidates, and the lane is drawn from
+    # a staircase nobody clicked, or from nothing at all where the floor has
+    # only one.
+    elsewhere, posed = [], 0
+    for map_id in sorted(plans):
+        f = L.Floor(rom, graph, map_id)
+        outs = L.exits(f)
+        if not outs:
+            continue
+        door = outs[0]
+        onward = sorted(t for t in f.reached(door)
+                        if t != door and t not in f.teleports)
+        if not onward:
+            continue
+        posed += 1
+        stops = [{"kind": "exit", "at": list(door)},
+                 {"kind": "tile", "at": list(onward[len(onward) // 2])}]
+        try:
+            at = L.authored(rom, graph, map_id,
+                            {"lanes": [{"flavour": "route", "stops": stops}]},
+                            chests).runs[0].path[0]
+        except ValueError as e:                # a one-exit floor refused it
+            at = str(e)
+        if at != door:
+            elsewhere.append((eg.MAP_NAMES[map_id], door, at))
+    print(f"     ({posed} map(s) can pose the exit-as-first-stop question)")
+    check("a lane whose first stop is an exit starts at that staircase",
+          elsewhere, [])
+    check("and some map on this cartridge poses that question", posed > 0, True)
+
+    # Stepping on a teleport takes you off the floor, so a lane may end on one
+    # and may not pass through one. The solved lane is held to that above; an
+    # authored one can click a staircase in the middle of its order, and the
+    # walk it would draw is one the game refuses.
+    through, asked = [], 0
+    for map_id in sorted(plans):
+        f = L.Floor(rom, graph, map_id)
+        home = plans[map_id].runs[0].start
+        stair = next((t for t in L.exits(f)
+                      if t != home and t in f.reached(home)), None)
+        if stair is None:
+            continue
+        asked += 1
+        stops = [{"kind": "arrival", "at": list(home), "in": list(home)},
+                 {"kind": "exit", "at": list(stair)},
+                 {"kind": "tile", "at": list(home)}]
+        try:
+            drew = L.authored(rom, graph, map_id,
+                              {"lanes": [{"flavour": "route", "stops": stops}]},
+                              chests)
+            through.append((eg.MAP_NAMES[map_id], stair,
+                            len(drew.runs[0].path)))
+        except ValueError:
+            pass
+    print(f"     ({asked} map(s) have a staircase to click mid-order)")
+    check("a staircase clicked as a middle stop is refused, not walked through",
+          through, [])
+    check("and some map on this cartridge has one to click", asked > 0, True)
+
+    # A file that does not say which region a lane belongs to, in the order the
+    # editor can save it. Neither may change the drawing: a region defaulting
+    # to the lane's index hands a two-lane entry regions 0 and 1 and unpairs
+    # them, and a route lane arriving second leaves the loot lane nothing to
+    # prefer -- both of which draw purple down a corridor that is already cyan.
+    unpaired, pairs = [], 0
+    for map_id in sorted(plans):
+        by = {r.label: r for r in plans[map_id].runs if r.region == 0}
+        if len(by) < 2:
+            continue
+        pairs += 1
+        outs = set(L.exits(L.Floor(rom, graph, map_id)))
+        stated = [{"flavour": "route", "region": 0,
+                   "stops": stops_of(by["route"], outs)},
+                  {"flavour": "loot", "region": 0,
+                   "stops": stops_of(by["loot"], outs)}]
+        bare = [{"flavour": "loot", "stops": stops_of(by["loot"], outs)},
+                {"flavour": "route", "stops": stops_of(by["route"], outs)}]
+        if (drawn_as(rom, graph, map_id, stated, chests)
+                != drawn_as(rom, graph, map_id, bare, chests)):
+            unpaired.append(eg.MAP_NAMES[map_id])
+    print(f"     ({pairs} map(s) carry both lanes in one region)")
+    check("a file that states no region, written loot first, draws the lane "
+          "it would have stated", unpaired, [])
+    check("and some map on this cartridge carries both lanes", pairs > 0, True)
+
     # ------------------------------------------------ the drawing's own rules
-    # A key lane is drawn as the *extension* of the plain one, so purple should
+    # A loot lane is drawn as the *extension* of the route one, so purple should
     # mean "here the key buys you something" rather than "here the search
     # picked the other corridor". That "extra segments only" is true by
     # construction -- draw_lanes subtracts the shared set -- so asserting it
@@ -221,27 +864,27 @@ def main():
     # makes the two lanes coincide in the first place: turn it off and the
     # purple has to grow. A preference that changes no drawing is dead weight.
     #
-    # It cannot go to zero, and should not: SeaShrineB2's key lane steps
-    # straight from (14,22) to (15,22), two tiles the plain lane reaches by
+    # It cannot go to zero, and should not: SeaShrineB2's loot lane steps
+    # straight from (14,22) to (15,22), two tiles the route lane reaches by
     # separate routes and never walks between. One purple step there is a real
     # shortcut, not a duplicate.
     def extras(rom_, mid_, prefer_edges):
         runs_ = {r.label: r for r in plans[mid_].runs}
         # Both, or there is no coincidence to measure: a floor whose checks all
-        # sit behind the gate draws the key lane on its own.
-        if "key" not in runs_ or "plain" not in runs_:
+        # sit behind the gate draws the loot lane on its own.
+        if "loot" not in runs_ or "route" not in runs_:
             return None
         groups = {i: v for i, v in L.chest_groups(rom_, mid_, chests).items()}
         probe = L.Floor(rom_, graph, mid_)
-        reach = probe.reached(runs_["plain"].start)
+        reach = probe.reached(runs_["route"].start)
         here = {i: [c for c in v if any(x in reach for x in probe.stand(c))]
                 for i, v in groups.items()}
         here = {i: v for i, v in here.items() if v}
-        walk = runs_["plain"].path
+        walk = runs_["route"].path
         f = L.Floor(rom_, graph, mid_,
                     prefer=zip(walk, walk[1:]) if prefer_edges else ())
-        k = f.lane(here, runs_["plain"].start,
-                   finish=L.exits(f, not_at={runs_["plain"].start}))[0]
+        k = f.lane(here, runs_["route"].start,
+                   finish=L.exits(f, not_at={runs_["route"].start}))[0]
         seg = lambda p: {frozenset((a, b))                        # noqa: E731
                          for a, b in zip(p, p[1:]) if a != b}
         return len(seg(k) - seg(walk))

@@ -248,6 +248,9 @@ library — no Pillow, no .NET.
 | `entrance_graph.py` | Reads the entrance/floor shuffle; routes; self-checks |
 | `noverworld_rules.py` | Derives a No-Overworld seed's access rules from the walk |
 | `doormap.py` | A clickable HTML page of the shuffle |
+| `lane.py` | Routes one floor: the cost model and the pathing primitive |
+| `lane_edit.py` | A loopback page for drawing a floor's route by hand |
+| `lane_file.py` | The authored lane's format, digest and refusal |
 | `overworld_reach.py` | Walks the overworld for reachability |
 | `check_logic.py` | Diffs the pack's access rules against FFR's own spoiler |
 | `ffr_flags/` | The offline flag decoder and schema generator |
@@ -262,6 +265,22 @@ some map details are rolled per seed. The rule is about whole maps, not about
 everything a cartridge can yield -- single sprites pulled by `sprites.py` or
 `font.py` may ship as tracker icons; see the README. `--clean` puts the shipped
 art back.
+
+**`tools/lanes/*.json` is the stated exception, and it is one because those
+files are an input rather than an output.** Everything else the rule covers is
+derived from a cartridge, so throwing it away costs a regen; an authored lane
+is a judgement about which chests are worth the detour, and nothing can
+re-derive it. What keeps the exception honest is that the file carries a digest
+of the floor it was drawn on and refuses to draw on a floor that does not match
+-- so a committed lane can be wrong about a seed, but it cannot be quietly
+wrong about one.
+
+A layout entry carries one judgement besides the stops: **`retrace`**, whether
+that floor's lanes should prefer their own edges and so collapse a loop into
+one line. Per layout for the same reason the stops are, and absent by default.
+`regen_maps.py --retrace {auto,on,off}` overrides every entry at once rather
+than switching the feature; `docs/ISSUES.md`, "Is a loop worth collapsing?",
+has why the answer cannot be one setting for the whole set.
 
 Four things to know before trusting any tool that reads maps:
 
@@ -423,7 +442,7 @@ calling anything done; what follows is what it runs.
 ```
 tests/run.sh         14 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   26 Python suites for the cartridge-reading tools. Twelve
+tools/tests/run.sh   28 Python suites for the cartridge-reading tools. Fourteen
                      of them skip, wholly or in part, unless FF1_ROM points at
                      a cartridge, and three more unless FF1_SEEDS points at the
                      seed tree — so a bare run passes and checks a good deal

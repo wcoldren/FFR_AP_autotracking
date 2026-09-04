@@ -1,0 +1,143 @@
+{
+ "version": 1,
+ "map": "mirage2F",
+ "map_id": 40,
+ "layouts": [
+  {
+   "digest": "da9edff1d45b1821",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        16,
+        31
+       ],
+       "in": [
+        16,
+        31
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        16,
+        3
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        16,
+        31
+       ],
+       "in": [
+        16,
+        31
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 209,
+       "at": [
+        14,
+        17
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 210,
+       "at": [
+        13,
+        16
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 211,
+       "at": [
+        12,
+        15
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 212,
+       "at": [
+        13,
+        14
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 213,
+       "at": [
+        14,
+        13
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 204,
+       "at": [
+        17,
+        13
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 205,
+       "at": [
+        18,
+        14
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 206,
+       "at": [
+        19,
+        15
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 207,
+       "at": [
+        18,
+        16
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 208,
+       "at": [
+        17,
+        17
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        16,
+        3
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

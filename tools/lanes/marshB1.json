@@ -1,0 +1,63 @@
+{
+ "version": 1,
+ "map": "marshB1",
+ "map_id": 22,
+ "layouts": [
+  {
+   "digest": "9d1cb91e7f1749fc",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        21,
+        27
+       ],
+       "in": [
+        21,
+        27
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        32,
+        52
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        21,
+        27
+       ],
+       "in": [
+        21,
+        27
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        1,
+        7
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
