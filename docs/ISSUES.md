@@ -1182,3 +1182,36 @@ Nothing here is urgent unless it says so.
 
 - **Does anyone outside this repo use the pack?** It decides the four `NoMap`
   variants question in `docs/IDEAS.md`, and nothing else can settle it.
+
+- **Is a loop worth collapsing?** `regen_maps.py --retrace` points the prefer
+  tie-break at a lane's own edges as it accumulates them, so a return leg
+  retraces the outbound wherever retracing is free. It is off by default and
+  the reason is a judgement, not a defect.
+
+  What it does is measured. Across the 57 authored files on a duck cartridge:
+  7007 drawn edges, 22.3% of them walked both ways and **none** twice in the
+  same direction, so a retraced out-and-back is already one line. What is not
+  collapsed is the return picking *different* tiles, which draws a loop — 67 of
+  them over 27 of the 102 lanes. With `--retrace` the loop count over the whole
+  set falls from 72 to 23, SeaShrineB2 from 8 to 0 and VolcanoB4 from 7 to 1,
+  and the walk does not move: every one of 378 legs runs between the same two
+  tiles for the same cost, which `tools/tests/test_lane.py` checks rather than
+  asserts. The bill is time — one Dijkstra per leg rather than per lane, since
+  a growing prefer set invalidates `Floor.search`'s memo — about half again on
+  a regen, and more than that on `/path` during authoring, where the editor
+  pays it per drag.
+
+  The unsettled part is whether every loop should go. On a floor that genuinely
+  loops, one line with arrows both ways can read as "walk this twice" when what
+  is true is "there is a way round" — and there the loop is the more honest
+  drawing. Deciding that needs the by-eye pass against DarkmoonEX's images that
+  `docs/ROADMAP.md` section 4 already wants, on the maps the flag changes, not
+  on the two it was demonstrated with.
+
+  One thing it corrects on the way past: the invariant is *same anchors, same
+  per-leg cost*, and not "steps and turns come out identical". `STEP` and `TURN`
+  are the same weight, so a leg trades two of one for two of the other for free
+  — ConeriaTown does, 84 steps and 24 turns becoming 86 and 22. And `turns()`
+  over a whole run counts corners at the leg joins that no search ever charged,
+  which is the entire "extra turn" on MarshCaveB3. Counting either reports a
+  change that has not happened.

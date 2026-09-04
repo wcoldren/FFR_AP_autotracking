@@ -209,7 +209,7 @@ def stamp(rom, path):
     return regen_maps.cartridge_id(rom, path)["ffr"]
 
 
-def load(rom, graph, map_id, chests=None, name=None):
+def load(rom, graph, map_id, chests=None, name=None, retrace=False):
     """(Lanes|None, why) for one map, on this cartridge.
 
     `why` is None when a lane was drawn, and otherwise says which of the three
@@ -234,6 +234,7 @@ def load(rom, graph, map_id, chests=None, name=None):
     if entry is None:
         return None, "no layout for this cartridge (digest %s)" % dig
     try:
-        return lane.authored(rom, graph, map_id, entry, chests), None
+        return lane.authored(rom, graph, map_id, entry, chests,
+                             retrace=retrace), None
     except ValueError as e:
         return None, str(e)

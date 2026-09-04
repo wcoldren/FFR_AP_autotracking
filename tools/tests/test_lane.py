@@ -419,6 +419,100 @@ def main():
           diverged, [])
     check("and every step of it is a step the game allows", illegal, [])
 
+    # ------------------------------------------- retracing costs nothing
+    # walk(retrace=True) points the prefer tie-break at the lane's own edges
+    # as it accumulates them, and the whole safety of that rests on *where* it
+    # is applied: after the layered search has fixed the anchors, so it can
+    # only re-pick among paths that already cost the same. Applied any earlier
+    # it would move the anchors, which is a different lane and not a
+    # differently drawn one.
+    #
+    # So the thing to check is not that the drawing is identical -- it is not,
+    # that is the point -- but that every leg still runs between the same two
+    # tiles for the same real cost. Priced here rather than counted: steps and
+    # turns carry the same weight, so a leg is free to trade two of one for two
+    # of the other, and turns(path) over the whole run counts corners at the
+    # leg joins that no search ever charged. Counting either would report a
+    # change that is not one; ConeriaTown and MarshCaveB3 are where it does.
+    def price(floor, seg):
+        """A path's real cost: the charges search() itself makes, no tie-break."""
+        total, head = 0, None
+        for x, y in zip(seg, seg[1:]):
+            d = ((y[0] - x[0]) % 64, (y[1] - x[1]) % 64)
+            d = (d[0] if d[0] < 32 else d[0] - 64,
+                 d[1] if d[1] < 32 else d[1] - 64)
+            total += floor.enter(y)
+            if head is not None and d != head:
+                total += L.TURN * L.SCALE
+            head = d
+        return total
+
+    real_walk, real_path = L.walk, L.Floor.path
+    legs = []
+
+    def walk_spy(f_, stops_, groups_, start=None, retrace=False):
+        seen = []
+
+        def path_spy(self, a_, b_):
+            seg = real_path(self, a_, b_)
+            seen.append((a_, b_, seg))
+            return seg
+
+        L.Floor.path = path_spy
+        try:
+            out = real_walk(f_, stops_, groups_, start=start, retrace=retrace)
+        finally:
+            L.Floor.path = real_path
+        legs.append((f_.mid, seen))
+        return out
+
+    def legs_for(retrace):
+        L.walk = walk_spy
+        legs.clear()
+        try:
+            for map_id, lanes in plans.items():
+                fl = L.Floor(rom, graph, map_id)
+                outs_ = set(L.exits(fl))
+                spec = []
+                for r in lanes.runs:
+                    st = [{"kind": "arrival", "at": list(r.start),
+                           "in": list(r.start)}]
+                    st += [{"kind": "chest", "index": i} for i in r.got]
+                    if r.path[-1] in outs_:
+                        st.append({"kind": "exit", "at": list(r.path[-1])})
+                    # A route run that neither collects nor leaves is one stop,
+                    # which authored() refuses -- and rightly, it is not a lane.
+                    if len(st) > 1:
+                        spec.append({"flavour": r.label, "stops": st,
+                                     "region": r.region})
+                if spec:
+                    L.authored(rom, graph, map_id, {"lanes": spec}, chests,
+                               retrace=retrace)
+        finally:
+            L.walk = real_walk
+        return list(legs)
+
+    off, on = legs_for(False), legs_for(True)
+    dearer, elsewhere, counted = [], [], 0
+    for (mid_a, ca), (mid_b, cb) in zip(off, on):
+        floor = L.Floor(rom, graph, mid_a)
+        if mid_a != mid_b or len(ca) != len(cb):
+            elsewhere.append((eg.MAP_NAMES[mid_a], len(ca), len(cb)))
+            continue
+        for (a1, b1, s1), (a2, b2, s2) in zip(ca, cb):
+            counted += 1
+            if (a1, b1) != (a2, b2):
+                elsewhere.append((eg.MAP_NAMES[mid_a], (a1, b1), (a2, b2)))
+            elif price(floor, s1) != price(floor, s2):
+                dearer.append((eg.MAP_NAMES[mid_a], a1, b1,
+                               price(floor, s1), price(floor, s2)))
+    check("retracing leaves every leg running between the same two tiles",
+          elsewhere, [])
+    check("and costs it exactly what the un-retraced leg cost",
+          dearer, [])
+    check("on more than a handful of legs, or the two above prove nothing",
+          counted > 100, True)
+
     # A stop that resolves to nowhere is a refusal, not a leg to step over.
     # Drawing the lane without it reads as a shorter route rather than as a
     # broken one, which is the failure that would never be noticed.

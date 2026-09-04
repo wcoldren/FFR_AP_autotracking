@@ -269,6 +269,21 @@ class Floor:
     def cost_to(self, start, tile):
         return self.dist(start).get(tile, FAR)
 
+    def retrace(self, edges):
+        """Add `edges` to the prefer set, dropping the memo they invalidate.
+
+        Both caches are keyed on a start tile alone, which is only sound while
+        the prefer set stands still -- every cost in them was computed with the
+        tie-break as it was. So this is not a cheap call, and the caller is
+        walk()'s second loop, once per leg, deliberately: see the note there
+        for why it must not run any earlier than that.
+        """
+        before = len(self.prefer)
+        self.prefer.update(frozenset(e) for e in edges)
+        if len(self.prefer) != before:
+            self._searched.clear()
+            self._dist.clear()
+
     def path(self, start, goal):
         cost, prev = self.search(start)
         c, state = self.best_state(cost, goal)
@@ -678,7 +693,7 @@ def anchors(f, stop, groups, start=None):
     return [at] if at in out else out
 
 
-def walk(f, stops, groups, start=None):
+def walk(f, stops, groups, start=None, retrace=False):
     """(path, got, gaps) -- the walking between authored stops, in their order.
 
     The order is the author's, so this is not a tour. It is a layered shortest
@@ -693,6 +708,11 @@ def walk(f, stops, groups, start=None):
     will not let you walk between is the one thing a drawn lane must never say,
     and a lane with a hole in it is not a lane -- so the caller refuses rather
     than drawing either.
+
+    `retrace` points the prefer tie-break at the lane's own edges as it
+    accumulates them, so a return leg retraces the outbound wherever retracing
+    is free. Off by default; what it changes is the picture and not the walk,
+    and the reasoning for both halves of that is at the second loop below.
     """
     if not stops:
         return [], [], []
@@ -746,12 +766,25 @@ def walk(f, stops, groups, start=None):
         chosen.append(at)
     chosen.reverse()
 
+    # The anchors are fixed by here, and that is the whole reason `retrace` is
+    # applied in this loop and not in the layered search above. The layers pick
+    # their tiles with cost_to(), so a prefer set that grew while they ran would
+    # move those costs and the chosen anchors with them -- a different lane, not
+    # a differently drawn one. Applied once the anchors are settled, it only
+    # ever re-picks among paths that already cost the same, and SCALE leaves the
+    # tie-break a whole order of magnitude below one step, so it cannot outrank
+    # a real one. Traps crossed, encounter tiles, steps and turns come out
+    # identical; the edges chosen between two equally cheap routes do not.
     path, got = [chosen[0]], []
     for k, (a, b) in enumerate(zip(chosen, chosen[1:]), start=1):
         seg = f.path(a, b)
         if seg is None:
             return [], [], [(k - 1, k)]
         path += seg[1:]
+        # After the leg, never before it: preferring a leg's own edges while
+        # it is being searched would let it retrace itself mid-flight.
+        if retrace:
+            f.retrace(zip(seg, seg[1:]))
         if stops[k].get("kind") == "chest":
             got.append(stops[k]["index"])
     if stops[0].get("kind") == "chest":
@@ -774,7 +807,7 @@ def region_of(f, tile, regs=None):
     return 0
 
 
-def authored(rom, graph, map_id, entry, chests=None):
+def authored(rom, graph, map_id, entry, chests=None, retrace=False):
     """-> Lanes for one map from a lane file's layout entry, or None.
 
     Takes the parsed entry and never a path: this module is the router and does
@@ -835,7 +868,8 @@ def authored(rom, graph, map_id, entry, chests=None):
         f = Floor(rom, graph, map_id, prefer=prefer)
         first = anchors(f, stops[0], groups)
         got_path, got, gaps = walk(f, stops, groups,
-                                   start=first[0] if first else None)
+                                   start=first[0] if first else None,
+                                   retrace=retrace)
         if gaps:
             i, j = gaps[0]
             raise ValueError(

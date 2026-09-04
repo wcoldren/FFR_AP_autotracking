@@ -409,7 +409,7 @@ def route_lanes(rom, graph):
     return out
 
 
-def authored_lanes(rom, graph):
+def authored_lanes(rom, graph, retrace=False):
     """({map name: Lanes}, unmatched, refused) -- the hand-drawn routes.
 
     Three outcomes per map and they are not the same event, which is why this
@@ -431,7 +431,8 @@ def authored_lanes(rom, graph):
     out, unmatched, refused = {}, [], []
     chests = extract_chests.extract(rom)[0]
     for map_id, name in render_maps.MAP_FILES.items():
-        lanes, why = lane_file.load(rom, graph, map_id, chests, name=name)
+        lanes, why = lane_file.load(rom, graph, map_id, chests, name=name,
+                                    retrace=retrace)
         if why is None:
             out[name] = lanes
         elif why == "no file":
@@ -1257,6 +1258,13 @@ def main():
                          "nothing on a map that has none. Off by default: a "
                          "solver cannot know which chests are worth the detour "
                          "on a given seed, which is what the editor is for")
+    ap.add_argument("--retrace", action="store_true",
+                    help="with --lanes authored, let a lane prefer its own "
+                         "edges as it accumulates them, so a return leg "
+                         "retraces the outbound wherever retracing is free. "
+                         "Collapses a loop into one line where the two legs "
+                         "cost the same; costs about half again in time, and "
+                         "changes no walk -- see lane.walk()")
     ap.add_argument("--force", action="store_true",
                     help="regenerate even if nothing changed")
     ap.add_argument("--dry-run", action="store_true",
@@ -1325,6 +1333,7 @@ def main():
             and was.get("inputs") == inputs_sha
             and was.get("npcs", "none") == args.npcs
             and was.get("lanes", "none") == args.lanes
+            and was.get("retrace", False) == args.retrace
             and (args.lanes != "authored"
                  or was.get("lane_files") == lane_files_sha())
             and was.get("marker") == [args.marker_size, args.marker_border]
@@ -1374,6 +1383,9 @@ def main():
     elif was and was.get("lanes", "none") != args.lanes:
         print(f"--lanes changed from {was.get('lanes', 'none')} to "
               f"{args.lanes} since the last run")
+    elif was and was.get("retrace", False) != args.retrace:
+        print(f"--retrace changed from {was.get('retrace', False)} to "
+              f"{args.retrace} since the last run")
     elif (was and args.lanes == "authored"
             and was.get("lane_files") != lane_files_sha()):
         print("a lane file changed since the last run")
@@ -1413,7 +1425,8 @@ def main():
     if args.lanes == "solved":
         lanes = route_lanes(rom, box_graph)
     elif args.lanes == "authored":
-        lanes, unmatched, refused_lanes = authored_lanes(rom, box_graph)
+        lanes, unmatched, refused_lanes = authored_lanes(rom, box_graph,
+                                                         retrace=args.retrace)
         for name, why in unmatched:
             print(f"  {name}: {why}")
         for name, why in refused_lanes:
@@ -1768,6 +1781,7 @@ def main():
         modes = dict((cache or {}).get("modes", {}))
         modes[mode] = {"rom": rom_sha, "npcs": args.npcs,
                        "lanes": args.lanes,
+                       "retrace": args.retrace,
                        "lane_files": lane_files_sha(),
                        "inputs": inputs_sha,
                        "marker": [args.marker_size, args.marker_border],
