@@ -1,0 +1,80 @@
+{
+ "version": 1,
+ "map": "waterfall",
+ "map_id": 18,
+ "layouts": [
+  {
+   "digest": "c1aec71cd57f56de",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        57,
+        56
+       ],
+       "in": [
+        57,
+        56
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 181,
+       "at": [
+        15,
+        52
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 182,
+       "at": [
+        16,
+        52
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 183,
+       "at": [
+        17,
+        52
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 184,
+       "at": [
+        18,
+        52
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 185,
+       "at": [
+        19,
+        52
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 186,
+       "at": [
+        20,
+        52
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

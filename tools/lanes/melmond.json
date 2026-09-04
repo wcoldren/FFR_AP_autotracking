@@ -1,0 +1,60 @@
+{
+ "version": 1,
+ "map": "melmond",
+ "map_id": 3,
+ "layouts": [
+  {
+   "digest": "38132c7c8cb8e843",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        1,
+        16
+       ],
+       "in": [
+        1,
+        16
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        15,
+        19
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        20,
+        24
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        22,
+        3
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        2,
+        16
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

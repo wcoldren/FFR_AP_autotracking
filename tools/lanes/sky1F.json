@@ -1,0 +1,143 @@
+{
+ "version": 1,
+ "map": "sky1F",
+ "map_id": 47,
+ "layouts": [
+  {
+   "digest": "3fc1523d43c554f1",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        19,
+        21
+       ],
+       "in": [
+        19,
+        21
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        19,
+        4
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        19,
+        21
+       ],
+       "in": [
+        19,
+        21
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 223,
+       "at": [
+        19,
+        38
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 217,
+       "at": [
+        5,
+        21
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 216,
+       "at": [
+        4,
+        19
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 215,
+       "at": [
+        3,
+        18
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 214,
+       "at": [
+        2,
+        19
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 218,
+       "at": [
+        33,
+        21
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 219,
+       "at": [
+        34,
+        20
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 220,
+       "at": [
+        35,
+        19
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 221,
+       "at": [
+        36,
+        19
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 222,
+       "at": [
+        37,
+        22
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        19,
+        4
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

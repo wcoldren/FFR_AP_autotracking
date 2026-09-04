@@ -1,0 +1,92 @@
+{
+ "version": 1,
+ "map": "titans",
+ "map_id": 60,
+ "layouts": [
+  {
+   "digest": "76e9418a86dfd7c3",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        11,
+        14
+       ],
+       "in": [
+        5,
+        3
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        5,
+        3
+       ],
+       "in": [
+        5,
+        3
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        11,
+        14
+       ],
+       "in": [
+        5,
+        3
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 70,
+       "at": [
+        5,
+        19
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 71,
+       "at": [
+        6,
+        19
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 72,
+       "at": [
+        7,
+        19
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 73,
+       "at": [
+        8,
+        19
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,76 @@
+{
+ "version": 1,
+ "map": "con_castle",
+ "map_id": 8,
+ "layouts": [
+  {
+   "digest": "0546a4af48cb822b",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "tile",
+       "at": [
+        12,
+        34
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 1,
+       "at": [
+        11,
+        11
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 2,
+       "at": [
+        12,
+        11
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 3,
+       "at": [
+        13,
+        11
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 4,
+       "at": [
+        16,
+        11
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 5,
+       "at": [
+        17,
+        11
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 6,
+       "at": [
+        18,
+        11
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

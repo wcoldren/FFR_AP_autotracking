@@ -1,0 +1,71 @@
+{
+ "version": 1,
+ "map": "volcB5",
+ "map_id": 36,
+ "layouts": [
+  {
+   "digest": "57f5fe710cec383f",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        32,
+        31
+       ],
+       "in": [
+        32,
+        31
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        7,
+        56
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        32,
+        31
+       ],
+       "in": [
+        32,
+        31
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 106,
+       "at": [
+        9,
+        36
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        7,
+        56
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

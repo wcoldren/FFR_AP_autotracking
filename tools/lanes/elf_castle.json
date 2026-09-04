@@ -1,0 +1,116 @@
+{
+ "version": 1,
+ "map": "elf_castle",
+ "map_id": 9,
+ "layouts": [
+  {
+   "digest": "be6f13127282a73b",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        16,
+        31
+       ],
+       "in": [
+        0,
+        18
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        9,
+        7
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        9,
+        6
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        16,
+        31
+       ],
+       "in": [
+        0,
+        18
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 13,
+       "at": [
+        21,
+        1
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 14,
+       "at": [
+        22,
+        1
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 15,
+       "at": [
+        23,
+        1
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 16,
+       "at": [
+        24,
+        1
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        8,
+        7
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        9,
+        7
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        9,
+        6
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

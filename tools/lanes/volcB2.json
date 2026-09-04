@@ -1,0 +1,199 @@
+{
+ "version": 1,
+ "map": "volcB2",
+ "map_id": 33,
+ "layouts": [
+  {
+   "digest": "9e0118911ad246cc",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        30,
+        32
+       ],
+       "in": [
+        30,
+        32
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        1,
+        32
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        30,
+        32
+       ],
+       "in": [
+        30,
+        32
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 90,
+       "at": [
+        26,
+        29
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 91,
+       "at": [
+        25,
+        19
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 89,
+       "at": [
+        30,
+        13
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 88,
+       "at": [
+        18,
+        13
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 87,
+       "at": [
+        11,
+        4
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 86,
+       "at": [
+        10,
+        4
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 83,
+       "at": [
+        7,
+        26
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 82,
+       "at": [
+        6,
+        27
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 74,
+       "at": [
+        5,
+        29
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 75,
+       "at": [
+        6,
+        29
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 76,
+       "at": [
+        8,
+        29
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 77,
+       "at": [
+        9,
+        29
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 78,
+       "at": [
+        10,
+        29
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 79,
+       "at": [
+        10,
+        28
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 85,
+       "at": [
+        11,
+        28
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 80,
+       "at": [
+        10,
+        27
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 84,
+       "at": [
+        10,
+        26
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        1,
+        32
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

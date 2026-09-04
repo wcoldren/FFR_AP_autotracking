@@ -1,0 +1,127 @@
+{
+ "version": 1,
+ "map": "earthB4",
+ "map_id": 31,
+ "layouts": [
+  {
+   "digest": "4cd848e161cca932",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        61,
+        33
+       ],
+       "in": [
+        61,
+        33
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        9,
+        9
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        61,
+        33
+       ],
+       "in": [
+        61,
+        33
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 68,
+       "at": [
+        44,
+        12
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 67,
+       "at": [
+        42,
+        12
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 66,
+       "at": [
+        38,
+        12
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 65,
+       "at": [
+        37,
+        12
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 69,
+       "at": [
+        37,
+        14
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 64,
+       "at": [
+        16,
+        40
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 63,
+       "at": [
+        19,
+        38
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 62,
+       "at": [
+        17,
+        37
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        9,
+        9
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

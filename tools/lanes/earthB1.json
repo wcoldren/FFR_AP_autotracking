@@ -1,0 +1,92 @@
+{
+ "version": 1,
+ "map": "earthB1",
+ "map_id": 13,
+ "layouts": [
+  {
+   "digest": "b78be98744e93c53",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        23,
+        24
+       ],
+       "in": [
+        23,
+        24
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        46,
+        36
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        23,
+        24
+       ],
+       "in": [
+        23,
+        24
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 50,
+       "at": [
+        33,
+        16
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        23,
+        23
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        28,
+        54
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        30,
+        53
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        39,
+        47
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

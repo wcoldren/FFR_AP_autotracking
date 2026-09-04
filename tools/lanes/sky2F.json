@@ -1,0 +1,151 @@
+{
+ "version": 1,
+ "map": "sky2F",
+ "map_id": 48,
+ "layouts": [
+  {
+   "digest": "07c1025cb0b3c5bb",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        19,
+        4
+       ],
+       "in": [
+        19,
+        4
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 233,
+       "at": [
+        10,
+        33
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        19,
+        38
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        19,
+        4
+       ],
+       "in": [
+        19,
+        4
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 230,
+       "at": [
+        11,
+        9
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 229,
+       "at": [
+        8,
+        9
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 232,
+       "at": [
+        4,
+        19
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 231,
+       "at": [
+        1,
+        21
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 233,
+       "at": [
+        10,
+        33
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 227,
+       "at": [
+        27,
+        9
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 226,
+       "at": [
+        35,
+        18
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 228,
+       "at": [
+        36,
+        20
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 225,
+       "at": [
+        28,
+        33
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 224,
+       "at": [
+        27,
+        33
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        19,
+        38
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

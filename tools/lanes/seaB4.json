@@ -1,0 +1,174 @@
+{
+ "version": 1,
+ "map": "seaB4",
+ "map_id": 43,
+ "layouts": [
+  {
+   "digest": "572082a0f378b44e",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        45,
+        20
+       ],
+       "in": [
+        45,
+        20
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        18,
+        3
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        45,
+        20
+       ],
+       "in": [
+        45,
+        20
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 153,
+       "at": [
+        41,
+        25
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 154,
+       "at": [
+        44,
+        25
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        35,
+        20
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 152,
+       "at": [
+        36,
+        9
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 151,
+       "at": [
+        36,
+        7
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 150,
+       "at": [
+        34,
+        7
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 149,
+       "at": [
+        33,
+        7
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 156,
+       "at": [
+        9,
+        25
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 157,
+       "at": [
+        10,
+        24
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 155,
+       "at": [
+        6,
+        24
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 158,
+       "at": [
+        16,
+        10
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        18,
+        3
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "route",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "exit",
+       "at": [
+        63,
+        6
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        61,
+        49
+       ],
+       "in": [
+        61,
+        49
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

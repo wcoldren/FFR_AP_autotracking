@@ -1,0 +1,72 @@
+{
+ "version": 1,
+ "map": "tofrFire",
+ "map_id": 56,
+ "layouts": [
+  {
+   "digest": "ead8858bd161cb39",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        13,
+        21
+       ],
+       "in": [
+        13,
+        21
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        16,
+        21
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        13,
+        21
+       ],
+       "in": [
+        13,
+        21
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 249,
+       "at": [
+        54,
+        34
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 250,
+       "at": [
+        24,
+        52
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

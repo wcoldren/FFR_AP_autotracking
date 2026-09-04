@@ -1,0 +1,87 @@
+{
+ "version": 1,
+ "map": "matoya",
+ "map_id": 20,
+ "layouts": [
+  {
+   "digest": "3f4d6892e642a807",
+   "seen": [
+    "4-9-7|05436F8E|M9mXUx3.h8U6LG9PiosZULqpCOovZLkVExz1f90aMgiawy-F2nLhsXT7B9CpsXgfPHKdwWElL0XIVmTxPxpJcwc12nN6s1f5FwH0bmO-P7DzHozU8Q2NuR.iEfnBy5Sm.Dg7PmNCcvzVr.039N7TPvTmvr.l40ZNNQXXya9ADfroYijyz2Vslh9NTELrdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        15,
+        11
+       ],
+       "in": [
+        15,
+        11
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        8,
+        1
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        15,
+        11
+       ],
+       "in": [
+        15,
+        11
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 44,
+       "at": [
+        1,
+        7
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 45,
+       "at": [
+        1,
+        5
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 43,
+       "at": [
+        1,
+        4
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        8,
+        1
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
