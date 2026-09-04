@@ -137,6 +137,23 @@ def read(name):
         return json.load(f)
 
 
+def normalize(doc):
+    """The document as `write` will store it: stable key order, today's
+    VERSION.
+
+    Split out of `write` so a caller can validate what will land rather than
+    what it is holding. The two differ in exactly one place and it matters: the
+    version written is always VERSION, never the one that was read, so
+    validating the read document refuses a file restored from history for a
+    number the write would have corrected. A pre-write check built on the
+    wrong one of these reports a fault the write does not have.
+    """
+    return {"version": VERSION,
+            "map": doc["map"],
+            "map_id": doc["map_id"],
+            "layouts": doc.get("layouts", [])}
+
+
 def write(name, doc):
     """Write one map's lane file, whole, atomically.
 
@@ -151,14 +168,12 @@ def write(name, doc):
     whatever the loaded one said -- and carrying the old number forward would
     leave a file restored from history or carried on a branch permanently
     unopenable, since `validate` refuses it and saving it again would not fix
-    it.
+    it. `normalize` is that rule, and is public so a pre-write validate can
+    read it too.
     """
     if not os.path.isdir(LANES):
         os.makedirs(LANES)
-    ordered = {"version": VERSION,
-               "map": doc["map"],
-               "map_id": doc["map_id"],
-               "layouts": doc.get("layouts", [])}
+    ordered = normalize(doc)
     p = path_for(name)
     tmp = p + ".tmp"
     with open(tmp, "w") as f:

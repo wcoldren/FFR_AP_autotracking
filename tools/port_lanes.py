@@ -33,6 +33,14 @@ exception is a floor laid tile-for-tile the same, where the ported lane draws a
 byte-identical path and there is nothing to review; those share a digest
 already and this tool reports them as needing nothing.
 
+**`--apply` is all of them or none.** Every ported document is built and
+validated first, and the writes only happen if all of them pass -- a carry is
+one act across a set of floors, and a half-carried tree is a state nothing on
+disk explains. Each individual write is atomic already (`lane_file.write`), so
+the failure this guards is the run, not the file. A refusal to validate exits
+1 and writes nothing; the tally is printed either way, and is the same tally
+the dry run prints.
+
 Refusal is `lane.authored`'s, unchanged and deliberately so: the same call
 `lane_file.load` makes when the art is drawn. A port this tool accepted and
 `regen_maps` then refused would be the one failure worth designing against, so
@@ -54,6 +62,7 @@ import entrance_graph as eg  # noqa: E402
 import extract_chests  # noqa: E402
 import lane  # noqa: E402
 import lane_file  # noqa: E402
+import regen_maps  # noqa: E402
 import render_maps  # noqa: E402
 
 
@@ -97,13 +106,18 @@ def port(src, dst, name, map_id):
     if was is None:
         return "no source", src_dig, None
 
-    entry = {"digest": dst_dig, "seen": [dst.stamp], "lanes": was["lanes"]}
-    # Carried, not defaulted: whether a loop is worth collapsing is a judgement
-    # about the drawing, and the drawing is what is being carried. A floor that
-    # loops on one cartridge and not the other is exactly the case the key is
-    # per-layout for, so the review pass can still change it.
-    if "retrace" in was:
-        entry["retrace"] = was["retrace"]
+    # Everything the source entry says travels, and only the key is minted.
+    # Copying a listed set of keys instead was narrower than "verbatim" claims
+    # and silently so: it dropped `note`, which `lane_edit` writes and which is
+    # the author's own word about the drawing, and it would drop the next key
+    # the format grows without anything failing. `retrace` rides along here for
+    # the reason it would have been listed for -- whether a loop is worth
+    # collapsing is a judgement about the drawing, and the drawing is what is
+    # being carried; a floor that loops on one cartridge and not the other is
+    # exactly the case the key is per-layout for, so review can still change it.
+    entry = dict(was)
+    entry["digest"] = dst_dig
+    entry["seen"] = [dst.stamp]
     try:
         lane.authored(dst.rom, dst.graph, map_id, entry, dst.chests,
                       retrace=lane_file.wants_retrace(entry))
@@ -127,6 +141,19 @@ def main():
     args = ap.parse_args()
 
     src, dst = Side(args.src), Side(args.dst)
+    # Both stamps have to be readable before anything is walked. `seen` is the
+    # only record on disk of which cartridge a lane was carried to, so an
+    # unreadable one writes 32 entries that say nothing about where they came
+    # from -- and the same-cartridge refusal below cannot be made out of two
+    # "unknown"s, which is what `cartridge_id` yields for any image whose
+    # FFRInfo block does not parse. Two such images used to compare equal here
+    # and report as the same cartridge.
+    for flag, side in (("--from", src), ("--to", dst)):
+        if side.stamp == regen_maps.STAMP_UNKNOWN:
+            print(f"{flag} {os.path.basename(side.path)} carries no readable "
+                  "FFRInfo record, so there is nothing to name in `seen` and "
+                  "no way to tell it apart from the other side")
+            return 2
     if src.stamp == dst.stamp:
         print("both --from and --to are the same cartridge; nothing to port")
         return 2
@@ -141,15 +168,26 @@ def main():
             refused.append((name, detail))
         elif state == "ported":
             ported.append((name, entry))
-            if args.apply:
-                doc = lane_file.read(name)
-                doc["layouts"] = list(doc.get("layouts", [])) + [entry]
-                bad = lane_file.validate(doc)
-                if bad:
-                    print(f"  {name}: the ported document does not validate, "
-                          f"so nothing was written: {'; '.join(bad)}")
-                    continue
-                lane_file.write(name, doc)
+
+    # Every document is built and validated before a byte of any of them is
+    # written, and they are written only if all of them pass. Validating inside
+    # the loop above meant a floor that failed at 20 of 32 left nineteen files
+    # carried, thirteen not, and nothing in the tree saying which run they came
+    # from; a carry is one act across a set of floors and should land or not
+    # land. It also counted the failure as written -- `ported` was appended to
+    # before the check -- so a run that wrote 31 of 32 reported 32 and exited 0.
+    docs, invalid = [], []
+    for name, entry in ported:
+        doc = lane_file.read(name)
+        doc["layouts"] = list(doc.get("layouts", ())) + [entry]
+        # Against the document as `write` will store it rather than as it was
+        # read; see lane_file.normalize for the one field that differs and why
+        # checking the wrong one reports a fault the write does not have.
+        doc = lane_file.normalize(doc)
+        why = lane_file.validate(doc)
+        if why:
+            invalid.append((name, why))
+        docs.append((name, doc))
 
     print(f"from {os.path.basename(src.path)}  ({src.stamp.split('|')[1]})")
     print(f"to   {os.path.basename(dst.path)}  ({dst.stamp.split('|')[1]})")
@@ -168,10 +206,19 @@ def main():
         for name, why in refused:
             print(f"  {name}: {why}")
 
+    if invalid:
+        print(f"\nnothing was written: {len(invalid)} ported document(s) do "
+              "not validate, and the carry is all of them or none:")
+        for name, why in invalid:
+            print(f"  {name}: {'; '.join(why)}")
+        return 1
+
     if ported and not args.apply:
         print("\nnothing was written. Re-run with --apply to keep the ports.")
     elif ported:
-        print(f"\nwrote {len(ported)} file(s). Re-run regen_maps.py for the "
+        for name, doc in docs:
+            lane_file.write(name, doc)
+        print(f"\nwrote {len(docs)} file(s). Re-run regen_maps.py for the "
               "mode this cartridge draws.")
     return 0
 
