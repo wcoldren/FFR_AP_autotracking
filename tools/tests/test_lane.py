@@ -210,6 +210,80 @@ def arrowheads_do_not_meet_nose_to_nose():
     return fails
 
 
+def arrowheads_meet_across_the_torus_join():
+    """The join is a place two heads can collide, and it was the one place
+    `opposed()` could not see them do it.
+
+    A head is filed under the step that drew it, and the step used to be the
+    raw tile delta. Crossing the join that is +-63, while `_arrow` takes the
+    direction it actually draws from the pixels -- so on a map whose crop shift
+    puts column 63 next to column 0 in the image, the two heads on one tile are
+    filed under directions that are not opposites and the bowtie is drawn.
+
+    Latent on the duck cartridge: the one wrapping step in the corpus is on
+    seaB1, whose shift is (0, 0), so `_arrow` bails on the pixel-distance check
+    and files no head at all. Five maps there do have a shift that makes the
+    join contiguous -- con_castle, sky4F, melmond, crescent_lake, elf_castle --
+    and a lane authored across one is a seed away. Hand-built for that reason.
+    """
+    fails = []
+    # Shifted two columns, so image column 0 is tile column 62 and the step
+    # from 63 to 0 is one pixel step east on the page.
+    crop = rm.Crop(box=(0, 15, 0, 9), shift=(2, 0))
+    w, h = 16 * rm.TILE_PX, 10 * rm.TILE_PX
+    k = rm.ARROW_PX - 1
+
+    def run(label, path, region=0):
+        return L.Run(label, path[0], list(path), frozenset(), [], [], region)
+
+    def head(out, tile, d):
+        at = crop.place(*tile)
+        cx = at[0] * rm.TILE_PX + rm.TILE_PX // 2
+        cy = at[1] * rm.TILE_PX + rm.TILE_PX // 2
+        x, y = ((cx - d[0] * k, cy + k) if d[0] else (cx + k, cy - d[1] * k))
+        i = (y * w + x) * 3
+        return tuple(out[i:i + 3]) != (0, 0, 0)
+
+    def check(label, got, want):
+        if got != want:
+            fails.append(f"{label}: got {got!r}, want {want!r}")
+        print(f"{'ok  ' if got == want else 'FAIL'} {label}")
+
+    # East over the join, ending on (0, 1); then west along the same row into
+    # the same tile. The same collision as BahamutCave's corridor, with the
+    # arriving step wrapping.
+    east = run("route", [(62, 1), (63, 1), (0, 1)])
+    west = run("route", [(c, 1) for c in range(10, -1, -1)], region=1)
+    out = bytearray(w * h * 3)
+    rm.draw_lanes(out, w, h, crop, L.Lanes([east, west], []))
+    check("a head drawn across the join is still a head",
+          head(out, (0, 1), (1, 0)), True)
+    check("and the head opposing it is not drawn on top of it",
+          head(out, (0, 1), (-1, 0)), False)
+    check("it is nudged along its own lane, as anywhere else",
+          head(out, (1, 1), (-1, 0)), True)
+
+    # The normalisation on its own, both ways round and off the join too.
+    check("a wrapping step reads as the one tile it moves",
+          (rm._heading((63, 4), (0, 4)), rm._heading((0, 4), (63, 4)),
+           rm._heading((4, 63), (4, 0)), rm._heading((3, 2), (4, 2))),
+          ((1, 0), (-1, 0), (0, 1), (1, 0)))
+
+    # _nudge may only walk an unbroken stretch. `mine` is the filtered edge
+    # list, so a loot lane's consecutive indices are not always consecutive
+    # tiles -- sixteen runs on the duck cartridge have such a gap -- and
+    # stepping over one puts the head on an unrelated part of the lane.
+    gapped = [((0, 0), (1, 0)), ((5, 0), (6, 0)), ((6, 0), (7, 0))]
+    whole = [((c, 0), (c + 1, 0)) for c in range(5)]
+    check("the nudge stops at a gap in the filtered edge list",
+          list(rm._nudge(2, gapped)), [2, 1])
+    check("and offers nowhere to go when it is fenced in on both sides",
+          list(rm._nudge(0, gapped)), [0])
+    check("and still walks backward first where the lane is unbroken",
+          list(rm._nudge(2, whole)), [2, 1, 0, 3, 4])
+    return fails
+
+
 def loops_counts_circuits_not_repeats():
     """loops() is the circuit rank of the drawn line, and nothing else.
 
@@ -250,19 +324,44 @@ def loops_counts_circuits_not_repeats():
     twin = box + [(1, 0), (2, 0), (3, 0), (3, 1), (2, 1)]
     check("two circuits off one walk count two", L.loops(twin), 2)
 
-    # loops() drops the components term because a walk is consecutive and the
-    # line it draws is one piece. That is the assumption the arithmetic rests
-    # on, so it is worth one row: a repeated tile drops an edge and must not
-    # break the chain.
+    # A walk is consecutive, so the line it draws is one piece and rank()'s
+    # components term comes out 1 on anything loops() is handed. Worth one row
+    # because that is the reading the term used to be folded away on: a
+    # repeated tile drops an edge and must not break the chain.
     stalled = [(0, 0), (1, 0), (1, 0), (2, 0), (2, 1), (1, 1), (1, 0)]
     check("a walk that stands still mid-loop still draws one",
           L.loops(stalled), 1)
+
+    # loops_of() is over the drawing and not over the walks. A loot lane is
+    # drawn as an extension of its region's route lane, so a circuit of its
+    # that lies inside the route corridor is a circuit nobody can see -- and
+    # summing loops(r.path) counted it. Hand-built because the corpus row below
+    # can only say the two agree, not which of them is right.
+    def run(label, path, region=0):
+        return L.Run(label, path[0], list(path), frozenset(), [], [], region)
+
+    route = run("route", box)
+    check("a route lane's own circuit counts", L.loops_of([route]), 1)
+    check("and the loot lane that only re-walks it adds nothing",
+          L.loops_of([route, run("loot", box)]), 1)
+    check("but one in another region has nothing taken out of it",
+          L.loops_of([route, run("loot", box, region=1)]), 2)
+
+    # Subtracting the shared set can leave a loot lane in pieces, which is what
+    # rank() walks the components for: a stub off either end of a corridor the
+    # route lane already drew is two lines and no circuit. Folding the term
+    # away scores that pair at -1, which is not a count of anything.
+    spur = run("loot", [(0, 2), (0, 1), (0, 0), (1, 0), (2, 0), (2, 1),
+                        (3, 1)])
+    check("a loot lane left in two pieces draws no circuit between them",
+          L.loops_of([route, spur]), 1)
     return fails
 
 
 def main():
     fails = regions_do_not_share_edges()
     fails += arrowheads_do_not_meet_nose_to_nose()
+    fails += arrowheads_meet_across_the_torus_join()
     fails += loops_counts_circuits_not_repeats()
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):
@@ -579,15 +678,22 @@ def main():
         table[name] = (a, b)
 
     def rank(runs):
-        """Circuit rank the long way, components walked rather than assumed.
+        """Circuit rank the long way: the subtraction and the walk, by hand.
 
-        loops() folds the components term away on the grounds that a walk is
-        consecutive and so draws one piece. That is an argument, and this is
-        the corpus disagreeing with it if it is wrong.
+        loops_of() asks render_maps.route_edges what a loot lane's own
+        contribution is, so a bug in that one index would agree with itself.
+        This builds the index inline and walks the components inline, which is
+        the corpus disagreeing with the pair of them if either is wrong.
         """
+        route = {}
+        for r in runs:
+            if r.label == "route":
+                route.setdefault(r.region, set()).update(L.edges(r.path))
         total = 0
         for r in runs:
             es = L.edges(r.path)
+            if r.label == "loot":
+                es = es - route.get(r.region, set())
             if not es:
                 continue
             adj = {}
@@ -614,7 +720,7 @@ def main():
         wrong = [n for n, (a, b) in table.items()
                  if L.loops_of(a.runs) != rank(a.runs)
                  or L.loops_of(b.runs) != rank(b.runs)]
-        check("loops() matches the components walk on every drawn lane",
+        check("loops_of() matches the subtraction and walk done by hand",
               wrong, [])
         off_n = sum(L.loops_of(a.runs) for a, _ in table.values())
         on_n = sum(L.loops_of(b.runs) for _, b in table.values())

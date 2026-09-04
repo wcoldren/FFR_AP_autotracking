@@ -490,6 +490,38 @@ def lane_files_sha():
     return h.hexdigest()
 
 
+def flag_change(was, args):
+    """The first flag the art was not drawn with, as a sentence, or None.
+
+    Read twice -- once to decide whether to redraw and once to say why -- and
+    the two readings used to be two copies of the same chain. They drifted:
+    `--retrace` sat outside the `--lanes authored` gate in both, so
+    `--lanes none --retrace off` after a default run redrew every file and
+    named --retrace as the cause, on art that carries no lane at all.
+
+    `--retrace` and the lane files are inside that gate for the same reason:
+    neither changes a pixel of a run that draws no authored lanes. Every other
+    flag that changes what is drawn belongs here, or switching it prints
+    "nothing to do" over art drawn the other way -- inputs_fingerprint hashes
+    pack files, not the command line.
+    """
+    if was.get("npcs", "none") != args.npcs:
+        return (f"--npcs changed from {was.get('npcs', 'none')} to "
+                f"{args.npcs} since the last run")
+    # Reads as "none" when the slot predates the flag, so art from before the
+    # lane pass redraws rather than being trusted -- the safe direction.
+    if was.get("lanes", "none") != args.lanes:
+        return (f"--lanes changed from {was.get('lanes', 'none')} to "
+                f"{args.lanes} since the last run")
+    if args.lanes == "authored":
+        if retrace_slot(was) != args.retrace:
+            return (f"--retrace changed from {retrace_slot(was)} to "
+                    f"{args.retrace} since the last run")
+        if was.get("lane_files") != lane_files_sha():
+            return "a lane file changed since the last run"
+    return None
+
+
 def legend_rows(rom, lanes=None):
     """{map name: rows of backdrop reserved below it for a Map Key}.
 
@@ -1355,20 +1387,15 @@ def main():
     # cache written before this has no per-mode fingerprint, so it reads as
     # stale and that mode redraws once -- which is the right answer for it.
     #
-    # Every flag that changes what gets drawn belongs in this key, or switching
-    # it prints "nothing to do" over art drawn the other way: inputs_fingerprint
-    # hashes pack files, not the command line. `lanes` reads as "none" when the
-    # slot predates it, so art from before the lane pass redraws rather than
-    # being trusted -- the safe direction.
+    # The flags that change what gets drawn are compared by flag_change, which
+    # says why as well as whether -- the guard and the message were two copies
+    # of the same chain and had drifted apart on --retrace.
     was = (cache or {}).get("modes", {}).get(mode, {})
+    changed_flag = flag_change(was, args) if was else None
     if (not args.force and cache
             and was.get("rom") == rom_sha
             and was.get("inputs") == inputs_sha
-            and was.get("npcs", "none") == args.npcs
-            and was.get("lanes", "none") == args.lanes
-            and retrace_slot(was) == args.retrace
-            and (args.lanes != "authored"
-                 or was.get("lane_files") == lane_files_sha())
+            and not changed_flag
             and was.get("marker") == [args.marker_size, args.marker_border]
             and outputs_intact(out_dir, cache)):
         print(f"up to date: {len(cache['outputs'])} files in {out_dir}")
@@ -1410,18 +1437,8 @@ def main():
     elif was and was.get("inputs") != inputs_sha:
         print(f"the pack or these tools changed since the {MODE_DIRS[mode]} "
               "art was last drawn")
-    elif was and was.get("npcs", "none") != args.npcs:
-        print(f"--npcs changed from {was.get('npcs', 'none')} to {args.npcs} "
-              "since the last run")
-    elif was and was.get("lanes", "none") != args.lanes:
-        print(f"--lanes changed from {was.get('lanes', 'none')} to "
-              f"{args.lanes} since the last run")
-    elif was and retrace_slot(was) != args.retrace:
-        print(f"--retrace changed from {retrace_slot(was)} to "
-              f"{args.retrace} since the last run")
-    elif (was and args.lanes == "authored"
-            and was.get("lane_files") != lane_files_sha()):
-        print("a lane file changed since the last run")
+    elif changed_flag:
+        print(changed_flag)
 
     bank = extract_chests.standard_map_bank(rom)
     print(f"reading standard maps from bank ${bank:02X}")

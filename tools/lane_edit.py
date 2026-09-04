@@ -118,6 +118,8 @@ class Session:
         self.lock = threading.Lock()
         # The retrace triage table, filled in off-thread: see loops().
         self._loops = None
+        self._loops_why = None
+        self._loops_gen = 0
         self._loops_lock = threading.Lock()
 
     def _mode(self):
@@ -229,29 +231,76 @@ class Session:
         return out
 
     def loops(self):
-        """loops_table() for this cartridge, or None until it has been built.
+        """(table, complaint) for this cartridge. Both None while it builds.
 
         `None` is a state and not an error: the pass behind it walks every
         authored map both ways and takes about eight seconds, which is too long
         for the page's first paint and too short to be worth writing down. So
         the rail asks, gets null, and asks again.
+
+        Which is why the failure needs a channel of its own. A pass that dies
+        -- a lane file that is not JSON raises out of lane_file.read, past the
+        ValueError lane_file.load catches -- leaves the table at None forever,
+        and a rail that cannot tell that from "still working" polls every three
+        seconds for the life of the session with a blank triage line.
         """
         with self._loops_lock:
-            return self._loops
+            return self._loops, self._loops_why
 
-    def start_loops(self):
-        """Fill the triage table on a daemon thread. Returns immediately."""
-        def run():
-            # Its own Graph, deliberately. Graph memoises floor items, walks
-            # and teleports into plain dicts, and this pass would be writing
-            # into them for eight seconds while the page reads them for every
-            # drag. Building a second one is free next to the ROM read already
-            # done, and makes the sharing question not arise.
+    def _measure(self, only, gen):
+        """The body both passes run: measure, then store if still the newest.
+
+        Anything at all is caught. The pass is a background thread with no
+        caller to raise into, so an exception it does not handle is a table
+        that stays `None` for the life of the session -- and a lane file that
+        is not JSON raises out of lane_file.read, past the ValueError
+        lane_file.load catches, which is not a hypothetical shape.
+        """
+        # Its own Graph, deliberately. Graph memoises floor items, walks and
+        # teleports into plain dicts, and this pass would be writing into them
+        # for eight seconds while the page reads them for every drag. Building
+        # a second one is free next to the ROM read already done, and makes the
+        # sharing question not arise.
+        try:
             graph = eg.Graph(eg.Rom.of(self.rom, self.path))
-            out = loops_table(self.rom, graph, self.chests)
+            out = loops_table(self.rom, graph, self.chests, only=only)
+        except Exception as e:
             with self._loops_lock:
-                self._loops = out
-        threading.Thread(target=run, daemon=True).start()
+                if gen == self._loops_gen:
+                    self._loops_why = f"{type(e).__name__}: {e}"
+            return
+        with self._loops_lock:
+            if gen != self._loops_gen:
+                return
+            if only is None:
+                self._loops, self._loops_why = out, None
+            elif self._loops is not None:
+                table = dict(self._loops)
+                table.pop(only, None)
+                table.update(out)
+                self._loops = table
+
+    def start_loops(self, only=None):
+        """Measure the triage table on a daemon thread. Returns immediately.
+
+        `only` names one map, which is what a save wants: the whole pass is
+        eight seconds of the same core the page drags on, and a save changed
+        exactly one file. Where the first pass has not landed there is no table
+        to merge a row into, so a save that early asks for the whole thing
+        instead -- rare, and cheaper than a row that never appears.
+
+        The generation counter is for the overlap either creates: two saves
+        inside one pass leave two threads running, and the one that finishes
+        last is not always the one started last.
+        """
+        with self._loops_lock:
+            self._loops_gen += 1
+            gen = self._loops_gen
+            if only is None or self._loops is None:
+                only = None
+                self._loops = self._loops_why = None
+        threading.Thread(target=self._measure, args=(only, gen),
+                         daemon=True).start()
 
     def index(self):
         pal = render_maps.NES_PALETTE
@@ -277,8 +326,10 @@ class Session:
                 "maps": maps}
 
 
-def loops_table(rom, graph, chests):
+def loops_table(rom, graph, chests, only=None):
     """{name: [off, on, changed]} for every map with an authored lane.
+
+    `only` narrows it to one map, for the row a save has just invalidated.
 
     Both halves of the retrace triage. The counts say how much a floor's
     drawing loops each way; `changed` says whether the drawing differs at all,
@@ -290,6 +341,8 @@ def loops_table(rom, graph, chests):
     """
     out = {}
     for mid, name in render_maps.MAP_FILES.items():
+        if only is not None and name != only:
+            continue
         off, why = lane_file.load(rom, graph, mid, chests, name=name,
                                   retrace="off")
         if why is not None:
@@ -338,10 +391,12 @@ def make_handler(session):
             # should be a record of what the session changed and nothing else.
             pass
 
-        def _send(self, code, body, ctype):
+        def _send(self, code, body, ctype, extra=None):
             self.send_response(code)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
+            for k, v in (extra or {}).items():
+                self.send_header(k, v)
             self.end_headers()
             self.wfile.write(body)
 
@@ -371,14 +426,25 @@ def make_handler(session):
                         lanes, why = lanes_from(session, name, spec, retrace)
                         if why:
                             return self._json({"ok": False, "why": why}, 400)
+                        # The count for *this* frame, on the frame. The triage
+                        # table is a fact about the committed files and the
+                        # caption sits under a bake of whatever is on screen,
+                        # so reading the caption out of the table labels an
+                        # unsaved edit with the figure it had before the edit.
+                        # `lanes` is None for a spec that draws nothing, which
+                        # renders a bare frame rather than failing -- so the
+                        # header says nothing rather than the count crashing.
+                        head = ({"X-Lane-Loops": str(lane.loops_of(lanes.runs))}
+                                if lanes else None)
                         return self._send(200, session.preview(name, lanes),
-                                          "image/png")
+                                          "image/png", head)
                 if u.path == "/loops":
                     # Not under session.lock: the table is built off-thread
                     # against its own Graph and guarded by its own lock, and
                     # taking the big one here would make the page's polling
                     # contend with the drag it is polling during.
-                    return self._json({"loops": session.loops()})
+                    table, why = session.loops()
+                    return self._json({"loops": table, "why": why})
             except (KeyError, IndexError, ValueError) as e:
                 return self._json({"ok": False, "why": str(e)}, 400)
             self._json({"ok": False, "why": "no such route"}, 404)
@@ -419,8 +485,13 @@ def make_handler(session):
                 dig = lane_file.digest(session.rom, mid)
                 # Re-resolve and re-walk from scratch. Whatever the browser
                 # drew is a picture; this is the claim, and it is the same call
-                # regen_maps will make.
-                lanes, why = lanes_from(session, name, spec)
+                # regen_maps will make -- which means the same `retrace` as the
+                # entry written below. Walking it without the flag validated a
+                # lane that is not the one --lanes authored will draw, and the
+                # guarantee this whole re-walk exists for is that the editor
+                # cannot author a file regen_maps then refuses.
+                lanes, why = lanes_from(session, name, spec,
+                                        bool(body.get("retrace")))
                 if why:
                     return self._json({"ok": False, "why": why}, 400)
                 doc = lane_file.read(name) or {
@@ -450,6 +521,11 @@ def make_handler(session):
                     return self._json({"ok": False, "why": "; ".join(bad)}, 400)
                 where = lane_file.write(name, doc)
                 session._data.pop(name, None)
+            # The triage table was read off the committed files, and this call
+            # just changed one of them. Left alone it goes on reporting the
+            # floor's pre-edit figure -- and a floor authored in this session
+            # is absent from it entirely, so it never gets a badge at all.
+            session.start_loops(only=name)
             # Relative to the pack where that reads as a path in it, absolute
             # where it does not -- a save into a temp tree printed as
             # ../../../../var/... says less than the path itself.
@@ -582,6 +658,11 @@ TEMPLATE = r'''<meta charset="utf-8">
   }
 }
 *{box-sizing:border-box}
+/* The UA sheet's [hidden] rule is user-agent origin, so any author `display`
+   wins over it however low its specificity -- which left #flip's A/B bar on
+   the page from the first paint, with every handler on it guarded by `if (ab)`
+   and doing nothing. */
+[hidden]{display:none !important}
 body{background:var(--ground); color:var(--ink); margin:0;
   font-family:Chivo,'Helvetica Neue',Arial,sans-serif; font-size:14px}
 .mono{font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;
@@ -1018,14 +1099,17 @@ for (const b of document.querySelectorAll('#zoom button')) b.onclick = () => {
   for (const o of document.querySelectorAll('#zoom button')) o.classList.toggle('on', o === b);
   el('wrap').style.transform = 'scale(' + zoom + ')';
 };
-for (const id of ['tWalk', 'tTrap', 'tDoor', 'tChest']) el(id).onchange = paint;
-/* Not with those four. They are view state and are not persisted; this one is
-   the judgement the pass exists to record, and it goes into the lane file. */
+/* Every checkbox on the page hands focus back, not just the retrace one. The
+   keydown handler bails on INPUT, so focus left in any of these makes space
+   the browser's own toggle and the flip never sees the key -- the same silent
+   nothing, from the same cause, whichever box was clicked last. */
+for (const id of ['tWalk', 'tTrap', 'tDoor', 'tChest'])
+  el(id).onchange = () => { el(id).blur(); paint(); };
+/* Not with those four in what it *records*. They are view state and are not
+   persisted; this one is the judgement the pass exists to record, and it goes
+   into the lane file. */
 el('tRetrace').onchange = () => {
   dirty = true;
-  /* Hand focus back to the page. Left in the checkbox, space is the browser's
-     toggle and the flip never sees the key -- see the comment on the A/B
-     buttons below. */
   el('tRetrace').blur();
   say(el('tRetrace').checked
     ? 'this floor will be drawn retraced -- Save to record it'
@@ -1041,7 +1125,12 @@ el('save').onclick = async () => {
                           retrace: el('tRetrace').checked }) })).json();
   if (r.ok) { dirty = false; say('saved ' + r.path, 'good');
     const m = document.querySelector('.m[data-n="' + name + '"]');
-    if (m) { m.classList.add('has'); m.classList.remove('stale'); } }
+    if (m) { m.classList.add('has'); m.classList.remove('stale'); }
+    /* /save restarts the triage pass, because the file it read has just
+       changed. Go back and ask, or the badges keep the pre-edit figures and a
+       floor authored in this session never gets one. */
+    el('triage').textContent = 'retrace triage: rebuilding...';
+    pollLoops(); }
   else say(r.why, 'bad');
 };
 /* The A/B flip. Both bakes are fetched, decoded and held as object URLs, and
@@ -1053,7 +1142,7 @@ el('save').onclick = async () => {
    A is always retrace off and B always on, fixed and independent of the
    checkbox, so the caption can name what is on screen without ambiguity. The
    checkbox is the decision being recorded, not the thing being looked at. */
-let ab = null;   /* {urls: [offURL, onURL], side: 0|1} while flipping */
+let ab = null;   /* {urls, loops, side: 0|1} while flipping, index 0 = off */
 
 function endFlip() {
   if (!ab) return;
@@ -1069,9 +1158,13 @@ function showSide(i) {
   el('img').src = ab.urls[i];
   el('abA').classList.toggle('on', i === 0);
   el('abB').classList.toggle('on', i === 1);
-  const lp = LOOPS && LOOPS[name];
+  /* Off the bake and not off the triage table. The table is a fact about the
+     committed files; these two frames are whatever is on screen, unsaved edits
+     and all, and labelling them from the table captions them with the figure
+     the floor had before the edit. */
+  const n = ab.loops[i];
   el('flipSide').textContent = (i ? 'retrace on' : 'retrace off') +
-    (lp ? '  --  ' + lp[i] + ' loop' + (lp[i] === 1 ? '' : 's') : '');
+    (n === null ? '' : '  --  ' + n + ' loop' + (n === 1 ? '' : 's'));
 }
 
 async function bake(retrace, spec) {
@@ -1079,7 +1172,9 @@ async function bake(retrace, spec) {
     '&retrace=' + (retrace ? '1' : '0') +
     '&spec=' + encodeURIComponent(JSON.stringify(spec)));
   if (!r.ok) throw new Error(((await r.json()) || {}).why || 'bake failed');
-  return URL.createObjectURL(await r.blob());
+  const n = r.headers.get('X-Lane-Loops');
+  return { url: URL.createObjectURL(await r.blob()),
+           loops: n === null ? null : +n };
 }
 
 el('prev').onclick = async () => {
@@ -1087,9 +1182,10 @@ el('prev').onclick = async () => {
   if (!keep.length) { say('nothing to bake: a lane needs at least two stops', 'bad'); return; }
   const at = name;
   say('baking both ways...', '');
-  let urls;
-  try { urls = await Promise.all([bake(false, keep), bake(true, keep)]); }
+  let baked;
+  try { baked = await Promise.all([bake(false, keep), bake(true, keep)]); }
   catch (e) { say(String(e.message || e), 'bad'); return; }
+  const urls = baked.map(b => b.url);
   /* The map may have been swapped while those were baking. */
   if (at !== name) { for (const u of urls) URL.revokeObjectURL(u); return; }
   endFlip();
@@ -1102,7 +1198,7 @@ el('prev').onclick = async () => {
   el('ov').hidden = true;
   el('flip').hidden = false;
   el('wrap').classList.add('ab');
-  ab = { urls: urls, side: 0 };
+  ab = { urls: urls, loops: baked.map(b => b.loops), side: 0 };
   showSide(0);
   say('baked both ways. Space flips A/B; pick the map again to go back.', '');
 };
@@ -1135,13 +1231,26 @@ for (const m of document.querySelectorAll('.m')) m.onclick = () => load(m.datase
    the flag redraws come out with the same number of loops both ways, and a
    badge reading the numbers alone would send you straight past them. */
 let LOOPS = null;
+let pollGen = 0;
 async function pollLoops() {
+  /* One chain at a time. A save starts a poll of its own, and without this the
+     chain already running keeps going beside it and both ask every 3s. */
+  const mine = ++pollGen;
   try {
     const r = await (await fetch('/loops')).json();
+    if (mine !== pollGen) return;
+    /* Three states, not two. A pass that died leaves the table null forever,
+       and without a reason to read the rail polls every three seconds for the
+       life of the session behind a blank line. */
+    if (r.why) { el('triage').textContent = 'retrace triage failed: ' + r.why;
+                 return; }
     if (!r.loops) { setTimeout(pollLoops, 3000); return; }
     LOOPS = r.loops;
-  } catch (e) { setTimeout(pollLoops, 5000); return; }
+  } catch (e) { if (mine === pollGen) setTimeout(pollLoops, 5000); return; }
   let n = 0;
+  for (const s of document.querySelectorAll('.lp')) {
+    s.className = 'lp'; s.textContent = ''; s.title = '';
+  }
   for (const [nm, v] of Object.entries(LOOPS)) {
     const s = document.querySelector('.lp[data-lp="' + nm + '"]');
     if (!s) continue;
@@ -1156,7 +1265,6 @@ async function pollLoops() {
   }
   el('triage').textContent = n + ' of ' + Object.keys(LOOPS).length +
     ' draw differently with retrace';
-  if (ab) showSide(ab.side);
 }
 pollLoops();
 load((location.hash || '').slice(1) || INDEX.maps[0].name);

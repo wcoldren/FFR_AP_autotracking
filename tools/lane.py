@@ -891,6 +891,39 @@ def authored(rom, graph, map_id, entry, chests=None, retrace=False):
     return Lanes(runs, links(groups))
 
 
+def rank(es):
+    """The circuit rank of an edge set: `|E| - |V| + |components|`.
+
+    Components walked rather than assumed. The term is 1 for anything `edges()`
+    reads off a single walk -- a walk is consecutive, and a repeated tile drops
+    an edge without breaking the chain, because the walk goes on from the tile
+    it stood still on. It is not 1 for what `loops_of` measures: a loot lane
+    with its route lane's corridors taken out is whatever fragments are left,
+    and folding the term away there would score every gap between them as a
+    circuit that is not on the image.
+    """
+    if not es:
+        return 0
+    adj = {}
+    for e in es:
+        x, y = tuple(e)
+        adj.setdefault(x, set()).add(y)
+        adj.setdefault(y, set()).add(x)
+    seen, comps = set(), 0
+    for v in adj:
+        if v in seen:
+            continue
+        comps += 1
+        stack = [v]
+        seen.add(v)
+        while stack:
+            u = stack.pop()
+            for w in adj[u] - seen:
+                seen.add(w)
+                stack.append(w)
+    return len(es) - len(adj) + comps
+
+
 def loops(path):
     """How many independent loops this walk draws.
 
@@ -909,25 +942,32 @@ def loops(path):
     This is what `retrace` is judged on. `docs/ISSUES.md`, "Is a loop worth
     collapsing?", holds the judgement itself, which is not a number.
     """
-    es = edges(path)
-    if not es:
-        return 0
-    # `|E| - |V| + |components|`, with the last term folded away: a walk is
-    # consecutive, so the line it draws is one piece and the count is always 1.
-    # (A repeated tile drops an edge and does not break the chain -- the walk
-    # goes on from the tile it stood still on.)
-    return len(es) - len({t for e in es for t in e}) + 1
+    return rank(edges(path))
 
 
 def loops_of(runs):
-    """The loops a map's whole drawing carries: loops() summed over its runs.
+    """The loops a map's whole drawing carries, summed over its runs.
 
-    Per run and not over the runs joined, because two runs are two lines. A
-    route lane and its region's loot lane share most of their edges by design
-    -- that is what the coincidence tie-break is for -- and counting them as
-    one graph would read every one of those shared corridors as a circuit.
+    Over what the drawing puts down and not over what the walk covered. A loot
+    lane is drawn as an extension of its region's route lane -- where both use
+    the same corridor there is one line -- so a loot lane's circuit that lies
+    inside the route corridor is a circuit nobody can see, and counting it
+    overstates the floor. Measured on the duck cartridge, seven map/mode pairs
+    disagreed while this summed `loops(r.path)`: sky2F and mirage1F each
+    reported loops on a drawing that has none. The count feeds `--check`, the
+    editor's triage badge and the totals in `docs/ISSUES.md`, so a floor that
+    reads as worth collapsing has to be one that looks it.
+
+    render_maps.route_edges is the subtraction draw_lanes itself makes, called
+    rather than repeated. Per run and not over the runs joined, because two
+    runs are two lines: joining them would read every corridor the pair shares
+    as a circuit, which is the same error from the other end.
     """
-    return sum(loops(r.path) for r in runs)
+    shared = render_maps.route_edges(runs)
+    return sum(rank(edges(r.path)
+                    - (shared.get(r.region, set())
+                       if r.label == "loot" else set()))
+               for r in runs)
 
 
 def turns(path):

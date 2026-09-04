@@ -1085,6 +1085,34 @@ def _bar(out, w, h, x0, y0, x1, thick, rgb):
             out[i], out[i + 1], out[i + 2] = rgb
 
 
+def route_edges(runs):
+    """Each region's route-lane edges, indexed by region.
+
+    What a loot lane subtracts before anything is drawn: where both use the
+    same corridor there is one line, so a loot lane's own contribution is what
+    is left once this comes out. Lifted out of draw_lanes because the count has
+    to be taken over the same set -- lane.loops_of measures the drawing through
+    this function, and a second copy of the rule is a copy that drifts.
+
+    By region and not by what precedes it in the list. Position cannot say
+    which route run is a loot run's own -- a region whose only way out is the
+    way it came in has no route run at all, so the run before a loot run may
+    belong to the previous region, and subtracting its edges erases the middle
+    of a line drawn as continuous. Nor can order: plan() emits route before
+    loot, but a Lanes read off a file need not, and a loot run that finds no
+    route run drawn yet is drawn in full -- a second line down a corridor that
+    already has one, which is the "two ways through here" the subtraction
+    exists to avoid. Indexed up front, so neither can be wrong.
+    """
+    out = {}
+    for run in runs:
+        if run.label == "route":
+            out.setdefault(run.region, set()).update(
+                frozenset((a, b))
+                for a, b in zip(run.path, run.path[1:]) if a != b)
+    return out
+
+
 def draw_lanes(out, w, h, crop, lanes):
     """Draw one map's route lanes onto an already-rendered frame.
 
@@ -1134,26 +1162,14 @@ def draw_lanes(out, w, h, crop, lanes):
                 if a != b and not (run.label == "loot"
                                    and frozenset((a, b)) in shared)]
 
-    # A loot run subtracts its own region's route run and no other, found by
-    # region and not by what precedes it in the list. Position cannot say which
-    # that is -- a region whose only way out is the way it came in has no route
-    # run at all, so the run before a loot run may belong to the previous
-    # region, and subtracting its edges erases the middle of a line drawn as
-    # continuous. Nor can order: plan() emits route before loot, but a Lanes
-    # read off a file need not, and a loot run that finds no route run drawn
-    # yet is drawn in full -- a second line down a corridor that already has
-    # one, which is the "two ways through here" this whole pass exists to
-    # avoid. Indexed up front, so neither can be wrong.
-    route_edges = {}
-    for run in lanes.runs:
-        if run.label == "route":
-            route_edges.setdefault(run.region, set()).update(
-                frozenset((a, b))
-                for a, b in zip(run.path, run.path[1:]) if a != b)
+    # A loot run subtracts its own region's route run and no other; route_edges
+    # says why that is by region rather than by position, and is shared with
+    # lane.loops_of so the count and the picture are taken over one set.
+    shared_by_region = route_edges(lanes.runs)
 
     drawn = []
     for run in lanes.runs:
-        shared = (route_edges.get(run.region, set())
+        shared = (shared_by_region.get(run.region, set())
                   if run.label == "loot" else set())
         base = NES_PALETTE[LANE_LOOT if run.label == "loot" else LANE_ROUTE]
         forced = NES_PALETTE[LANE_FORCED]
@@ -1221,9 +1237,9 @@ def draw_lanes(out, w, h, crop, lanes):
             #
             # Backward first -- _nudge says why, and it is the whole of
             # whether this reads as two arrows or as a lump.
-            for j in _nudge(n, len(mine)):
+            for j in _nudge(n, mine):
                 c, d = mine[j]
-                step = (d[0] - c[0], d[1] - c[1])
+                step = _heading(c, d)
                 if opposed(d, step):
                     continue
                 if _arrow(dot, cell, c, d, base):
@@ -1249,12 +1265,33 @@ def draw_lanes(out, w, h, crop, lanes):
                 dot(at[0] + hi, at[1] + d, rgb)
 
 
-def _nudge(n, count):
+def _heading(a, b):
+    """The step `a -> b` as a unit direction, the way the image draws it.
+
+    Normalised onto the 64-tile torus, because the raw delta is not the
+    direction. A step from column 63 to column 0 is -63 as tiles and +1 on a
+    frame whose crop shift puts the two next to each other, and `_arrow` takes
+    its direction from the pixels. Left raw, such a head is filed under a
+    direction no other head can be the opposite of, and `opposed` lets the
+    bowtie through on exactly the maps the shift makes contiguous.
+    """
+    return (((b[0] - a[0] + 32) % 64) - 32, ((b[1] - a[1] + 32) % 64) - 32)
+
+
+def _nudge(n, mine):
     """The edge indices to try for the head the rule scheduled at `n`.
 
     `n` first, then **backward**, then forward, each within ARROW_NUDGE and
-    inside the path. Which way round is not a taste: it is the difference
-    between the fix working and the fix drawing a different blot.
+    along an unbroken stretch of `mine`. Which way round is not a taste: it is
+    the difference between the fix working and the fix drawing a different
+    blot.
+
+    `mine` is the *filtered* edge list -- a loot lane has its route lane's
+    shared corridors taken out of it -- so consecutive indices are not always
+    consecutive tiles, and sixteen runs on the duck cartridge have such a gap.
+    Stepping over one puts the head on an unrelated stretch of the same lane
+    instead of one tile back, which is the argument below with its premise
+    removed. So each direction stops at the first index that does not join.
 
     A head is a triangle with its tip on the tile centre and its base
     ARROW_PX - 1 behind. So of two heads that oppose each other, the one that
@@ -1272,11 +1309,15 @@ def _nudge(n, count):
     """
     yield n
     for k in range(1, ARROW_NUDGE + 1):
-        if n - k >= 0:
-            yield n - k
+        j = n - k
+        if j < 0 or mine[j][1] != mine[j + 1][0]:
+            break
+        yield j
     for k in range(1, ARROW_NUDGE + 1):
-        if n + k < count:
-            yield n + k
+        j = n + k
+        if j >= len(mine) or mine[j][0] != mine[j - 1][1]:
+            break
+        yield j
 
 
 def _arrow(dot, cell, a, b, rgb):

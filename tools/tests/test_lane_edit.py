@@ -39,6 +39,7 @@ import shutil
 import sys
 import tempfile
 import threading
+import time
 import urllib.error
 import urllib.request
 
@@ -84,6 +85,23 @@ check("and the control is on the page to be clicked",
       'id="abA"' in LE.TEMPLATE and 'id="abB"' in LE.TEMPLATE, True)
 check("and ticking the retrace box hands focus back, so space still flips",
       "el('tRetrace').blur();" in LE.TEMPLATE, True)
+# The other four checkboxes trap focus the same way and were left out of the
+# first fix. Clicking `walkable` and then pressing space is the same silent
+# nothing that made the flip look broken, from the same cause.
+check("and so do the four view toggles, which hold focus identically",
+      "el(id).onchange = () => { el(id).blur(); paint(); };" in LE.TEMPLATE,
+      True)
+# `hidden` on the A/B bar is a UA-origin rule and #flip sets display:flex in
+# the author sheet, which wins whatever the specificity. Without this the bar
+# is on the page from the first paint, with every handler on it guarded by
+# `if (ab)` and doing nothing.
+check("and the hidden attribute beats the author display rules",
+      "[hidden]{display:none !important}" in LE.TEMPLATE, True)
+# The caption sits under two frames baked from what is on screen, unsaved
+# edits and all; the triage table is a fact about the committed files.
+check("and the A/B caption is read off the bake, not off the triage table",
+      "const n = ab.loops[i];" in LE.TEMPLATE and "LOOPS[name]" not in script,
+      True)
 check("and the page asks for more than nothing", bool(asked), True)
 check("__DATA__ appears exactly once", LE.TEMPLATE.count("__DATA__"), 1)
 page = LE.TEMPLATE.replace("__DATA__", "{}")
@@ -250,12 +268,14 @@ threading.Thread(target=httpd.serve_forever, daemon=True).start()
 base = "http://%s:%d" % httpd.server_address
 
 
-def get(p):
+def get(p, header=None):
+    """(status, body), or (status, header value) when one is named."""
     try:
         with urllib.request.urlopen(base + p) as r:
-            return r.status, r.read()
+            return r.status, (r.read() if header is None
+                              else r.headers.get(header))
     except urllib.error.HTTPError as e:
-        return e.code, e.read()
+        return e.code, (e.read() if header is None else None)
 
 
 def post(p, obj):
@@ -337,6 +357,16 @@ try:
         check("the baked preview draws %s differently with retrace on" % nm,
               (ca, cb, ba == bb), (200, 200, False))
         print("     (%s loops %d -> %d)" % (nm, off_n, on_n))
+        # The A/B caption is read off this header and not off the triage
+        # table. The table is a fact about the committed files, and the two
+        # frames under the caption are whatever is on screen -- so captioning
+        # them from the table labels an unsaved edit with its pre-edit figure.
+        counts = tuple(get("/preview.png?name=%s&retrace=%d&spec=%s"
+                           % (nm, i, urllib.parse.quote(json.dumps(spec))),
+                           "X-Lane-Loops")
+                       for i in (0, 1))
+        check("and each bake carries its own loop count, for the caption",
+              counts, ((200, str(off_n)), (200, str(on_n))))
     check("and one it leaves alone", unchanged is not None, True)
     if unchanged:
         nm, spec = unchanged
@@ -349,13 +379,31 @@ try:
     # The page polls this until it is filled, so `null` is a state and not an
     # error. A route that 500'd or 404'd before the pass landed would leave the
     # rail empty for the life of the session with nothing said.
+    #
+    # Set through the generation counter rather than by assignment: a save
+    # above restarted the pass, and a thread still in flight would otherwise
+    # land on top of whatever is planted here.
+    def plant(table, why=None):
+        with session._loops_lock:
+            session._loops_gen += 1
+            session._loops, session._loops_why = table, why
+
+    plant(None)
     code, body = get("/loops")
     check("the triage table reads as null until the pass behind it lands",
-          (code, json.loads(body)), (200, {"loops": None}))
-    session._loops = {"marshB3": [3, 3, True]}
+          (code, json.loads(body)), (200, {"loops": None, "why": None}))
+    plant({"marshB3": [3, 3, True]})
     code, body = get("/loops")
     check("and is served as it stands once it has",
           (code, json.loads(body)["loops"]), (200, {"marshB3": [3, 3, True]}))
+    # A pass that died has to be tellable from one still working. Without a
+    # channel of its own the table stays null forever and the rail polls every
+    # three seconds for the life of the session behind a blank line.
+    plant(None, "ValueError: con_castle.json is not JSON")
+    code, body = get("/loops")
+    check("and a pass that died says so rather than reading as unfinished",
+          (code, json.loads(body)["why"]),
+          (200, "ValueError: con_castle.json is not JSON"))
 
     # The judgement the pass exists to record. It is written only when true:
     # `false` on every entry would be 57 lines of no information and would make
@@ -372,6 +420,32 @@ try:
     entry = LF.pick(LF.read(name), LF.digest(session.rom, mid))
     check("and unticking it takes the key back out rather than writing false",
           (code, "retrace" in entry), (200, False))
+
+    # A save changes a file the triage table was read off, so the row for that
+    # map has to be measured again. Left alone the rail keeps reporting the
+    # floor's pre-edit figure, and a floor first authored in this session never
+    # appears in the table at all.
+    #
+    # A row and not the table: the whole pass is eight seconds of the same core
+    # the page drags on. The other entry is planted to say so -- if it came
+    # back measured, the save was costing a full sweep.
+    plant({name: [99, 99, True], "not this map": [9, 9, True]})
+    post("/save", {"map": name, "lanes": [
+        {"flavour": run.label, "region": run.region, "stops": stops}]})
+    fresh = None
+    for _ in range(300):
+        table, why = session.loops()
+        if why is not None:
+            fresh = why
+            break
+        if table is not None and table.get(name) != [99, 99, True]:
+            fresh = table
+            break
+        time.sleep(0.1)
+    check("a save has the map it wrote measured again",
+          isinstance(fresh, dict) and fresh.get(name) != [99, 99, True], True)
+    check("and leaves every other row alone rather than sweeping the set",
+          isinstance(fresh, dict) and fresh.get("not this map"), [9, 9, True])
 
     code, body = get("/nosuchroute")
     check("an unknown route is a 404 and not a page", code, 404)

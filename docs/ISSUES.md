@@ -1198,13 +1198,23 @@ Nothing here is urgent unless it says so.
   same direction, so a retraced out-and-back is already one line. What is not
   collapsed is the return picking *different* tiles, which draws a loop — 67 of
   them over 27 of the 102 lanes. Retraced, the loop count over the whole set
-  falls from 72 to 23, SeaShrineB2 from 8 to 0 and VolcanoB4 from 7 to 1, and
+  falls from 67 to 19, SeaShrineB2 from 8 to 0 and VolcanoB4 from 7 to 1, and
   the walk does not move: every one of 378 legs runs between the same two tiles
   for the same cost, which `tools/tests/test_lane.py` checks rather than
-  asserts. The bill is time — one Dijkstra per leg rather than per lane, since
-  a growing prefer set invalidates `Floor.search`'s memo — about half again on
-  a regen, and more than that on `/path` during authoring, which is why the
-  editor's live canvas does not retrace and its baked preview does.
+  asserts.
+
+  (Those totals read 72 and 23 until 2026-09-04, when the count was corrected
+  to be taken over the drawing rather than over the walks. A loot lane is drawn
+  as an extension of its region's route lane, so a circuit of its own lying
+  inside the route corridor was being counted and never rendered — seven
+  map/mode pairs overstated, SkyPalace2F and MirageTower1F each reporting loops
+  on a drawing that has none. The per-map figures here were always over the
+  drawing and are unchanged.)
+
+  The bill is time — one Dijkstra per leg rather than per lane, since a growing
+  prefer set invalidates `Floor.search`'s memo — about half again on a regen,
+  and more than that on `/path` during authoring, which is why the editor's
+  live canvas does not retrace and its baked preview does.
 
   **The judgement itself is still open, and it is now 24 separate judgements.**
   On a floor that genuinely loops, one line with arrows both ways can read as

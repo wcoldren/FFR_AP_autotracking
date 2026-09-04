@@ -230,6 +230,46 @@ for was, want in (({"retrace": True}, "on"), ({"retrace": False}, "auto"),
     check("a cache slot of %r reads as %r" % (was.get("retrace"), want),
           regen_maps.retrace_slot(was), want)
 
+# The guard that decides whether to redraw and the line that says why used to
+# be two copies of one chain, and they had drifted: --retrace was compared
+# outside the --lanes authored gate in both, so `--lanes none --retrace off`
+# after a default run redrew every file and blamed --retrace, on art that
+# carries no lane at all. One function now, read here the way both read it.
+import types  # noqa: E402
+
+
+def flags(**kw):
+    return types.SimpleNamespace(**{"npcs": "none", "lanes": "none",
+                                    "retrace": "auto", **kw})
+
+
+current = {"npcs": "none", "lanes": "authored", "retrace": "auto",
+           "lane_files": regen_maps.lane_files_sha()}
+check("art drawn with the same flags is not stale",
+      regen_maps.flag_change(current, flags(lanes="authored")), None)
+check("--npcs is compared whatever the lanes are",
+      bool(regen_maps.flag_change(dict(current, lanes="none"),
+                                  flags(npcs="gates"))), True)
+check("and so is --lanes itself",
+      bool(regen_maps.flag_change(current, flags(lanes="solved"))), True)
+check("--retrace is compared where authored lanes are drawn",
+      regen_maps.flag_change(current, flags(lanes="authored",
+                                            retrace="off")),
+      "--retrace changed from auto to off since the last run")
+# The finding itself: nothing a run with no authored lanes puts on the image
+# depends on --retrace, so switching it must not throw the art away.
+check("and not where none are, because it changes nothing there",
+      regen_maps.flag_change(dict(current, lanes="none"),
+                             flags(lanes="none", retrace="off")), None)
+check("a lane file moving is stale where authored lanes are drawn",
+      regen_maps.flag_change(dict(current, lane_files="not the hash"),
+                             flags(lanes="authored")),
+      "a lane file changed since the last run")
+check("and is not where none are",
+      regen_maps.flag_change(dict(current, lanes="none",
+                                  lane_files="not the hash"),
+                             flags(lanes="none")), None)
+
 # ------------------------------------------------- every committed lane file
 committed = sorted(f for f in os.listdir(LF.LANES)
                    if f.endswith(".json")) if os.path.isdir(LF.LANES) else []
