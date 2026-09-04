@@ -366,7 +366,19 @@ function showPin(kind, ...)
     if isNoOverworld() then
       return 1
     end
-    return Tracker:ProviderCountForCode("entranceShuffle") > 0 and 1 or 0
+    if Tracker:ProviderCountForCode("entranceShuffle") > 0 then
+      return 1
+    end
+    -- Fails open on the same reasoning as toggleOn, and needs saying separately
+    -- because this is the one code in the branch that is not the pin toggle: an
+    -- item nothing defines counts zero exactly like a seed that moved no doors,
+    -- so a rename in flags.json would empty the Auto stage and say nothing.
+    if not Tracker:FindObjectForCode("entranceShuffle") then
+      warnOnce("entranceShuffle",
+               "nothing defines entranceShuffle -- drawing the pin")
+      return 1
+    end
+    return 0
   end
   if kind == "slot" then
     -- A slot this seed did incentivize is not a skipped one, so the toggle has

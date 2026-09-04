@@ -377,6 +377,14 @@ entrancePins.CurrentStage = 0
 byCode.entrance_pins = nil
 check("an undefined entrance control draws", showPin("entrance"), 1)
 byCode.entrance_pins = entrancePins
+-- And so does the other code the Auto stage reads. It counts zero exactly like
+-- a seed that moved no doors, so a rename in flags.json would empty the stage
+-- with nothing said.
+local shuffleItem = byCode.entranceShuffle
+byCode.entranceShuffle = nil
+check("an undefined entranceShuffle draws", showPin("entrance"), 1)
+byCode.entranceShuffle = shuffleItem
+check("and defined-but-off still does not", showPin("entrance"), 0)
 provided = {}
 
 ------------------------------------------------------------------
