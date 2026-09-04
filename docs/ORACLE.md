@@ -68,16 +68,29 @@ graded against them -- a figure taken here is a measurement, never a grade.
 | Seed | Directory | FFR | Mode | What it answers |
 |---|---|---|---|---|
 | `F258553F` | `duck-104` | 4.9.2 | GameMode 2, ToFRMode 2 (Short) | the reference No-Overworld cartridge; the source of the `nov` art and of most No-Overworld measurements in the log |
-| `8EF791AA` | `duck-weekly-0831` | 4.9.7 | GameMode 0 | the source of the `std` art, and the seed the Cardia pins were reported wrong on |
-| `05436F8E` | `duck-weekly-0831-v2` | 4.9.7 | GameMode 0 | the replay of that flag set, rolled with `Spoilers` on. One setting of 568 differs from `8EF791AA`, and it is `Spoilers` |
+| `8EF791AA` | `duck-weekly-0831` | 4.9.7 | GameMode 0 | the seed the Cardia pins were reported wrong on; the source of the `std` art until 2026-09-04 |
+| `05436F8E` | `duck-weekly-0831-v2` | 4.9.7 | GameMode 0 | the replay of that flag set, rolled with `Spoilers` on. One setting of 568 differs from `8EF791AA`, and it is `Spoilers`. The source of the `std` art since 2026-09-04, and the cartridge every lane file was drawn on |
 | `C189A0EF` | `duck-102` | 4.9.2 | GameMode 0 | the standard seed the sprite and Crown-gate counts were taken on |
 | `2CCBA52F` | `duck-103` | 4.9.2 | GameMode 0 | the second standard seed, so a count has two cartridges behind it |
 | `72A52C25` | `practice-72A52C25` | 4.9.2 | GameMode 0 | the standard control for the Temple of Fiends floor comparison |
 | `F2585540` | not kept | 4.9.8 | GameMode 2, ToFRMode 2 (Short) | rolled once to measure version drift against `F258553F`, then discarded |
 
-`duck-weekly-0831` and `duck-104` are the pair the installed override was
+`duck-weekly-0831-v2` and `duck-104` are the pair the installed override is
 rendered from, standard and No-Overworld. Replacing either means a regen for
 that mode, not a file swap.
+
+**The standard half moved from `duck-weekly-0831` to `duck-weekly-0831-v2` on
+2026-09-04**, when the authored lanes landed. A lane file is keyed by the map's
+layout digest and refuses a cartridge it was not drawn for, and all 57 were
+drawn on `duck-weekly-0831-v2`: only 10 of them resolve on `duck-weekly-0831`,
+so the art it renders carries ten lanes rather than fifty-seven. The two seeds
+differ in one setting of 568 and it is `Spoilers`, so nothing else about the
+art moves with them.
+
+`duck-104` carries no authored lane at all -- none of the 57 resolves on it --
+so the No-Overworld art is rendered `--lanes none` and its floors show no
+route. Drawing them is an authoring pass in `tools/lane_edit.py` against that
+cartridge, not a flag.
 
 **`F258553F` and `F2585541` are different cartridges.** Both are FFR 4.9.2,
 both GameMode 2, both ToFRMode 2 (Short), and they differ in the last two
