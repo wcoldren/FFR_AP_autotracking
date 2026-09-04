@@ -817,13 +817,18 @@ Nothing here is urgent unless it says so.
   combinations of the two flags; the fourth, hoard on and Cardia off, is the one
   the old shape could not state.
 
-  **What is not demonstrated: the No-Overworld half.** All six hoard cartridges
-  are standard seeds, and no No-Overworld hoard cartridge has been built (the
-  same gap `docs/ORACLE.md` records for the `BahamutHoard` alternative). So the
-  five-cartridge flip is standard-mode evidence, and the No-Overworld side rests
-  on the sheets being held in step by `tests/test_incentives.lua` rather than on
-  a measurement. A `novhoard` cartridge would close that and grade the
-  `$standardWorld`-guarded alternative at the same time.
+  **The No-Overworld half is demonstrated too, on a cartridge rolled for it.**
+  All six existing hoard cartridges are standard seeds, so the first pass could
+  only claim standard-mode evidence. `novhoard` closes that: `oracle_nov`'s
+  preset at `oracle_nov`'s seed with `MapDragonsHoard` flipped on and
+  `IncentivizeCardia` left off, read back off the cartridge as 533 decoded flags
+  against `nov`'s 533 with exactly one differing. Restoring the inheritance in
+  the grader reddens six rows rather than five, `novhoard` among them, and the
+  fix greens all six. It also retired a second standing "not measured" note --
+  `docs/ORACLE.md` had no No-Overworld hoard cartridge to grade the
+  `$standardWorld`-guarded `BahamutHoard` alternative against, and now grades it
+  224 compared, 223 agree, 1 divergent, that one being the same deliberately
+  strict `Lefein` row `nov` carries.
 
 - **A slot can ring for a location the seed does not have, and the caravan was
   not the only one.** Found 2026-09-03 by the same grader. On `notail` the pack

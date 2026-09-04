@@ -27,6 +27,7 @@ the export drops ToFR.
 | `shard` | `oracle_shard` | `5A4D0BAF` | GameMode 0, ShardHunt | `isShardHunt()` against a real export |
 | `notail` | `oracle_notail` | `45057553` | GameMode 0, ToFRMode 0 (Long), NoTail | that `NoTail` reaches no exported rule — see below |
 | `novnolefein` | `oracle_novnolefein` | `F2585541` | the same as `nov`, minus `LefeinSuperStore` | what `LefeinSuperStore` does to a No-Overworld seed, which is nothing a router sees |
+| `novhoard` | `oracle_novhoard` | `F2585541` | the same as `nov`, plus `MapDragonsHoard`, with `IncentivizeCardia` still off | the No-Overworld half of the cardia split, which the six standard hoard cartridges could not answer for |
 
 Modes are quoted as **read back off the cartridge**, never off the filename —
 that trap has bitten more than once.
@@ -107,6 +108,7 @@ against regenerated derivations.
 | `nov` vs `nov2`, ToFR shuffle | **0 differences** |
 | `notail`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
 | `novnolefein`, derived rules vs FFR | **222 compared, 221 agree, 1 divergent** (Lefein, the same strict row `nov` has) — **5 granted an off-vocabulary item**; 256 derived, 0 unreachable |
+| `novhoard`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein again, the same strict row) — **5 granted an off-vocabulary item**; 256 derived, 0 unreachable. So a No-Overworld seed with the hoard on costs nothing: the `BahamutHoard` alternative being guarded `$standardWorld` is now measured rather than merely untested |
 
 `std`'s 225/225 is the baseline to protect: it validates the harness end to end
 against rules that were written by hand, and it must not move. `shard`'s 229/229
@@ -347,7 +349,7 @@ Last run 2026-09-03.
 | `std497` vs `nofetchitems497`, exported rules | **206 in both, 0 differ.** `NPCFetchItems` moves no reachability rule at all, the same as its free-half sibling |
 | `std497` vs `nofetchitems497`, `priority_locations` | **7 gone: Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick and Smith**, with `IncentivizeFetchNPCs` still on -- the `NPCFetchItems` conjunct of the seven computed at `FlagsCompute.cs:220-226`. The pack rings all seven; see `docs/ISSUES.md` |
 | `std497` vs `nofetchitems497`, whether a slot leaves | **no. All seven stay in `rules` and `locations`** -- 227 to 226, and both the removed and the added names are chests, so the net one is pool churn the tool declines to attribute. Unlike the free half there is no caravan-shaped second repair: the fetch fix is the conjunction on seven rows and nothing else |
-| the incentive rings, all 23 exports | **0 wrong**, since 2026-09-03. `tools/tests/test_incentive_conjunction.py` predicts each slot's ring from the export's own flags and compares it to `priority_locations`. Before the conjunctions it was 13 wrong rings and one ghost -- 7 on `nofetchitems497`, 6 plus the caravan slot on `nonpcitems497` -- and before Nerrick's third term, `nov` and `nov2` each rang him. One disagreement is waived by name rather than scoped away: a Sea Shrine chest `notail` does not have. Two others were waived and are not now. `Dr Unne`, who is no seed's location, went when the slot was removed rather than excused; the Cardia ring on the five hoard cartridges went when the progressive was split, and `hoarddockbridge497`'s Cardia ghost went with it -- that row was only reachable through the ring being wrong, so the finding behind it is open and this corpus can no longer show it. Both 2026-09-03 |
+| the incentive rings, all 23 exports | **0 wrong**, since 2026-09-03. `tools/tests/test_incentive_conjunction.py` predicts each slot's ring from the export's own flags and compares it to `priority_locations`. Before the conjunctions it was 13 wrong rings and one ghost -- 7 on `nofetchitems497`, 6 plus the caravan slot on `nonpcitems497` -- and before Nerrick's third term, `nov` and `nov2` each rang him. One disagreement is waived by name rather than scoped away: a Sea Shrine chest `notail` does not have. Two others were waived and are not now. `Dr Unne`, who is no seed's location, went when the slot was removed rather than excused; the Cardia ring on the five standard hoard cartridges and on `novhoard` went when the progressive was split, and `hoarddockbridge497`'s Cardia ghost went with it -- that row was only reachable through the ring being wrong, so the finding behind it is open and this corpus can no longer show it. Both 2026-09-03 |
 | `std497` vs `nofetchitems497`, `Dr Unne` | **not among the seven, and not an AP location at all.** FFR has no `IncentivizeUnne`; `SCLogic.cs:555-557` folds Unne into Lefein's reachability. The pack gave `I: Dr Unne` an incentive section on both sheets, `hosted_item: slabTranslated` gated on `fetchQuestsAreIncentive` -- an eighth slot FFR never fills. Removed 2026-09-03 rather than re-gated, with no line cited here because the close took both sections out; `docs/ISSUES.md` has it |
 | `std497` vs `nonpcitems497`, the caravan slot | **`Shop Item` leaves `rules` and `locations` too**, not only the incentive pool: 227 locations to 224, and the six NPCs stay. So six of the seven are un-ringed checks and the seventh is not a check at all -- a different repair, and the one the pool heading hid until 2026-09-03 |
 | `hoarddockbridge497`, pack rules vs FFR | **227 checked, 227 agree, 0 divergences** — it was 216 agree, 3 divergences over 11 locations |
@@ -387,9 +389,15 @@ So with the hoard on, each of the thirteen is reachable from its island *or*
 from Bahamut's Cave, and the pack's Cardia nodes carry a `BahamutHoard`
 alternative for the second route. Only the alternative that adds something is
 written: the airship, the hike and the land bridge already reach both places, so
-the dock is the one route that needed spelling out. **The No-Overworld hoard
-case is not measured** -- no such cartridge was built -- so that alternative is
-guarded `$standardWorld` and claims nothing there.
+the dock is the one route that needed spelling out. That alternative is guarded
+`$standardWorld` and claims nothing on a No-Overworld seed.
+
+**The No-Overworld hoard case was not measured until 2026-09-03**, when
+`novhoard` was rolled for the cardia split. The guard costs nothing: the
+cartridge grades 224 compared, 223 agree, 1 divergent, and the divergence is the
+same deliberately strict `Lefein` row `nov` and `novnolefein` carry. So the
+alternative is guarded because a No-Overworld seed does not need it, which is
+now read off a cartridge rather than assumed from the absence of one.
 
 **`objnpc497` is the row that does not mean what the others mean.** Every other
 line above is the pack agreeing with FFR. This one is the pack agreeing with FFR
@@ -702,8 +710,10 @@ will not accept a path. Each flags preset is a stock 4.9.2 preset from
 are what take FFR's `rules:` from the key items alone up to 225 locations.
 `oracle_std` is `default.json`, `oracle_nov` is `NOverworld.json`, `oracle_shard`
 is `Shard_Hunt.json`. `oracle_novnolefein` is `oracle_nov.json` with
-`LefeinSuperStore` set `false` and nothing else -- the two files differ on that
-line and the `Name`, and on nothing else.
+`LefeinSuperStore` set `false` and nothing else, and `oracle_novhoard` is the
+same file with `MapDragonsHoard` set `true` -- `IncentivizeCardia` is already
+`false` there, which is the pair that combination was rolled for. Each differs
+from `oracle_nov` on that one line and the `Name`, and on nothing else.
 
 **The rebuild is bit-reproducible.** Regenerating `std` and `nov` from their
 flags JSON at their recorded seeds produced ROMs, spoilers and exports
