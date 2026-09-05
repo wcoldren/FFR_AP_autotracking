@@ -73,6 +73,52 @@
      ]
     }
    ]
+  },
+  {
+   "digest": "1168589e55219243",
+   "seen": [
+    "4-9-7|8D5DD816|nm-BSQBNhJax7iCv9fLVidJqJCu6A41qbKzuf0NnBP6nTyJJbsVueeyQYBzNGq0qwCY9pKqi3aiylqFHwvLXibqkgm3enEeieWWTS01oQiuajeEbQpBDA.rYtzc60lAx9bYZPiDyP-v5LqUC8OgjqfkkdZVM3IUdFBsEe7mhSlF-keCHVP4SW4vJk9iIdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        11,
+        23
+       ],
+       "in": [
+        11,
+        23
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        4,
+        18
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        40,
+        12
+       ]
+      },
+      {
+       "kind": "tile",
+       "at": [
+        42,
+        11
+       ]
+      }
+     ]
+    }
+   ]
   }
  ]
 }

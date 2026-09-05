@@ -86,6 +86,62 @@
      ]
     }
    ]
+  },
+  {
+   "digest": "d496c21d1899c3f3",
+   "seen": [
+    "4-9-7|8D5DD816|nm-BSQBNhJax7iCv9fLVidJqJCu6A41qbKzuf0NnBP6nTyJJbsVueeyQYBzNGq0qwCY9pKqi3aiylqFHwvLXibqkgm3enEeieWWTS01oQiuajeEbQpBDA.rYtzc60lAx9bYZPiDyP-v5LqUC8OgjqfkkdZVM3IUdFBsEe7mhSlF-keCHVP4SW4vJk9iIdXYCxVNLqv"
+   ],
+   "lanes": [
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        20,
+        17
+       ],
+       "in": [
+        20,
+        17
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        40,
+        35
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "route",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "exit",
+       "at": [
+        1,
+        1
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        40,
+        1
+       ],
+       "in": [
+        40,
+        1
+       ]
+      }
+     ]
+    }
+   ]
   }
  ]
 }
