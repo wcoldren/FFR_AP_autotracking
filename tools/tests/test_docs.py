@@ -7,9 +7,10 @@ sent somewhere wrong, and each is enforced by remembering to. The pack's own
 standard for a rule is stricter than that: a check that cannot fail is
 worthless, and so is a rule that cannot bite.
 
-So this holds the prose to six things a commit can break. The first five were
+So this holds the prose to seven things a commit can break. The first five were
 chosen because each has already gone wrong here at least once; the sixth guards
-a convention new enough not to have failed yet:
+a convention new enough not to have failed yet, and the seventh was written the
+day the convention it guards failed eleven times in one commit:
 
   1. A `path:line` citation names a line the file still has, and the symbol the
      sentence names is still near it. `flag_mapping.lua:410` sat in two
@@ -38,6 +39,13 @@ a convention new enough not to have failed yet:
      wording is the whole of the pointer -- reword either end and the row still
      reads fine while pointing at nothing. The plan's own gloss after an em dash
      is not held to the register, only the phrase before it.
+  7. `ISSUES.md` points at its own entries by name and not by position, and
+     those names still open an entry. Sorting the register's open entries above
+     its closed ones moved 18 of 47 bullets, and nine "the entry above/below"
+     pointers reversed in that one commit -- including the one four lines above
+     the paragraph where the file argues that pointing by position rots. Two
+     others had been wrong for longer. This is the third habit in the paragraph
+     at the top of this docstring, and the only one that was still a habit.
 
 The symbol check in (1) is deliberately generous: it fires only when the citing
 paragraph names an identifier or quotes a phrase, matches case-insensitively,
@@ -705,6 +713,83 @@ check("the defects table still has rows to check", len(defect_rows) >= 10, True)
 check("every defects row opens with an ISSUES.md entry", unresolved, [])
 check("and names exactly one of them", ambiguous, [])
 
+# ------------------------------------------------------------------------ 7
+# The register points at its own entries too, and it used to do it by saying
+# where they sat. That held only while nothing moved them. Sorting the open
+# entries above the closed ones on 2026-09-05 moved 18 of the 47, and nine
+# pointers reversed in one commit -- "the entry below" on the `I: Shop Item`
+# close was pointing up by the time anyone read it. Two more had been wrong
+# since before the sort, including the header's own "the first entry below",
+# which is the failure this file's docstring names as a habit nobody enforced.
+#
+# So two rows, one per half of the convention. A pointer at another entry may
+# not be a position, and a pointer that names one has to still land on it --
+# the same rule as row 6, turned inward, because a rewording of a bolded lead
+# breaks a pointer from the next page and a pointer from the next paragraph in
+# exactly the same way.
+#
+# Both read the idiom rather than the intent, which is the whole of their
+# limit and is deliberate. "The entry above" is caught because it identifies an
+# entry by where it sits; "the conjunction above" is not, because nothing in
+# those words says whether the conjunction is in this entry or another one, and
+# guessing would either miss the real ones or fail on the many honest pointers
+# an entry makes to its own tables and paragraphs. The rule the register states
+# is the one that makes this decidable: if you mean another entry, say *entry*,
+# and then you have to say its name.
+#
+# Held against the entry leads of row 6 rather than every bolded lead the page
+# has. Row 2b takes the wider set, because a pointer from another page names
+# whatever it can see; here the words being checked are "entry named", and 110
+# anchors to 47 entries is the difference between a name that has to open an
+# entry and one that may land on a bold paragraph inside somebody else's.
+ANOTHER_ENTRY = re.compile(
+    r"entr(?:y|ies)\s+(?:above|below|up|down)"
+    r"|(?:next|previous|preceding|last|following)\s+entr(?:y|ies)"
+    r"|\bsee\s+(?:above|below)\b", re.I)
+NAMED_ENTRY = re.compile(r'entr(?:y|ies)\s+named\s+"([^"]{4,140})"', re.S)
+SPECIMEN = re.compile(r'"[^"\n]*"')
+
+
+def unquoted(name):
+    """A name with its quoting normalised -- how it is quoted is not part of it.
+
+    A lead that carries a quotation of its own gets pointed at from inside a
+    quotation, so the inner marks flip to apostrophes and a literal compare
+    fails on prose that is right: `The derivation cannot say "reach another
+    location"` is pointed at as `... 'reach another location'`.
+    """
+    bare = name.replace('"', "").replace("'", "")
+    return " ".join(bare.split()).strip("*`.,").lower()
+
+
+def unspecimened(line):
+    """A line with its quotations blanked.
+
+    The register has to be able to *name* the banned idiom in order to ban it,
+    and it does, twice. A quoted specimen is prose about a pointer, not one.
+    """
+    return SPECIMEN.sub('""', line)
+
+
+by_position, gone_missing, lands_on_two = [], [], []
+for n, ln in enumerate(read(REGISTER), 1):
+    if ANOTHER_ENTRY.search(unspecimened(ln)):
+        by_position.append("%s:%d  %s" % (REGISTER, n, ln.strip()))
+
+ANCHORS = [unquoted(e) for e in leads]
+for m in NAMED_ENTRY.finditer("\n".join(read(REGISTER))):
+    want = unquoted(m.group(1))
+    hits = resolves(want, ANCHORS)
+    if hits == 0:
+        gone_missing.append(want)
+    elif hits > 1:
+        lands_on_two.append(want)
+
+check("the register still has entries to check", len(ANCHORS) >= 40, True)
+check("no register entry points at another by position", by_position, [])
+check("every entry the register names by name is still there", gone_missing, [])
+check("and that name still opens exactly one entry", lands_on_two, [])
+
 # ------------------------------------------------------------------------
 # Each row above has to be able to fail, or this file is the thing it was
 # written to catch. These exercise the machinery on inputs whose answer is
@@ -817,6 +902,37 @@ check("one naming a single entry resolves to it",
       resolves("A lone entry", _LEADS), 1)
 check("and one naming two is caught rather than taken as resolved",
       resolves("Same lead,", _LEADS), 2)
+check("an entry pointed at by position is caught",
+      bool(ANOTHER_ENTRY.search("which is the entry above; until then")), True)
+check("and so is the next-entry form",
+      bool(ANOTHER_ENTRY.search("the whole problem -- see the next entry")), True)
+check("and a bare see-below, which names nothing at all",
+      bool(ANOTHER_ENTRY.search("genuinely permissive (see below). Quote")),
+      True)
+check("but a pointer inside one entry is left alone",
+      bool(ANOTHER_ENTRY.search("the table above went stale with it")), False)
+check("and so is a noun the words cannot place",
+      bool(ANOTHER_ENTRY.search("not fixed with the conjunction above")), False)
+check("a quoted specimen is prose about the idiom, not the idiom",
+      bool(ANOTHER_ENTRY.search(
+          unspecimened('this sentence said "two entries down" and was wrong'))),
+      False)
+check("but the same words unquoted still are",
+      bool(ANOTHER_ENTRY.search(
+          unspecimened("this sentence said two entries down"))),
+      True)
+check("a name is compared without the quoting it arrived in",
+      unquoted("The derivation cannot say 'reach another location'"),
+      "the derivation cannot say reach another location")
+check("and a name that wrapped is flattened to one line",
+      unquoted("The same enemies could carry two\n  different trap letters"),
+      "the same enemies could carry two different trap letters")
+check("a named pointer is read across the wrap it sits on",
+      NAMED_ENTRY.findall('by the entry named "The Cardia ring cannot\n  '
+                          'be switched off" and nothing else'),
+      ["The Cardia ring cannot\n  be switched off"])
+check("and a positional one is not a named pointer at all",
+      NAMED_ENTRY.findall("by the entry above"), [])
 if FROM_GIT:
     # Held this way round on purpose. `is_pack_doc` is a naming, and a tracked
     # document landing outside it would simply stop being checked off a walk --
