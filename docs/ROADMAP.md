@@ -58,7 +58,6 @@ work it is, not how much it matters.
 
 | | |
 |---|---|
-| §1 | The two rolls the bridge should read, not guess at |
 | §2 | ToFR floor modelling |
 | §3 | Whether Inspect survives `hide unreachable locations` |
 | §3 | Warn once when a stale override shadows pack edits |
