@@ -24,10 +24,11 @@ What is checked:
     and no other marker carries either
   * a place pin does not sit on a door: spread() is seeded with the door tiles,
     which is what makes the trapezoid the one you see
-  * every floor link is a `norm` or an `exit` and never a `warp`. A town's whole
-    outer border is warp-to-overworld, so the warp count is asserted outright:
-    the filter going missing is not a pin or two out of place, it is tens of
-    thousands of them
+  * every floor link is a `norm`, an `exit`, or one of the few `warp` tiles that
+    are a floor's door rather than a town's border. A town's whole outer border
+    is warp-to-overworld, so both sides of that filter are asserted: the tens of
+    thousands it drops, and the two conditions it keeps a tile on, each shown
+    failing on a grid built here
   * a link on a tile that also holds a drawn sprite stays a trapezoid
 
 Set FF1_ROM to a cartridge; without one the cartridge half skips.
@@ -132,6 +133,40 @@ def main():
     check("  and stays put where no door is seeded",
           op.spread({"Coneria": (10, 40)}, 6)["Coneria"], (10, 40))
 
+    # The floor-exit rule, on a grid built here rather than found on a
+    # cartridge. A cartridge can only show the rule agreeing with itself; this
+    # can show each of its two conditions rejecting a tile the other would let
+    # through, which is the only way either is known to be load-bearing.
+    #
+    # An 11x11 block of tile 1 in a field of tile 0: the edge flood reaches the
+    # field and stops at the block, so the block is the content.
+    dim = render_maps.MAP_DIM
+    tiles = [0] * (dim * dim)
+    for row in range(20, 31):
+        for col in range(20, 31):
+            tiles[row * dim + col] = 1
+    warps = ([(28, 28)]                              # a door: lone, and inside
+             + [(5, 5)]                              # lone, but out in the field
+             + [(col, row) for row in range(21, 24)  # inside, but a flood
+                for col in range(21, 24)])
+
+    class Grid:                                      # what floor_exits reads
+        def teleports(self, map_id):
+            return [(c, r, entrance_graph.TP_TELE_WARP, 0) for c, r in warps]
+
+        def grid(self, map_id):
+            return tiles, None, None
+
+    check("a lone warp tile inside the content is a door",
+          sorted(regen_maps.floor_exits(Grid(), 0)), [(28, 28)])
+    check("  the one out in the filler is not, whatever its cluster",
+          (5, 5) in render_maps.content_cells(tiles), False)
+    was = regen_maps.FLOOR_EXIT_CLUSTER
+    regen_maps.FLOOR_EXIT_CLUSTER = dim * dim
+    check("  and without the cluster test the flood comes in with it",
+          len(regen_maps.floor_exits(Grid(), 0)), 10)
+    regen_maps.FLOOR_EXIT_CLUSTER = was
+
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):
         print("SKIP  set FF1_ROM to a Final Fantasy cartridge to run this")
@@ -168,12 +203,20 @@ def main():
     check("every link is a norm or an exit",
           sorted({k for k in kinds if k in regen_maps.FLOOR_LINK_KINDS}),
           sorted(regen_maps.FLOOR_LINK_KINDS))
-    check("  and the warp tiles are all left out",
+    floor_doors = sum(len(regen_maps.floor_exits(graph, m))
+                      for m in render_maps.MAP_FILES)
+    print(f"-- {floor_doors} of the warp tiles are a floor's door")
+
+    check("  and the border warps are all left out",
           len(links), kinds.get(entrance_graph.TP_TELE_NORM, 0)
-          + kinds.get(entrance_graph.TP_TELE_EXIT, 0))
+          + kinds.get(entrance_graph.TP_TELE_EXIT, 0) + floor_doors)
     # Not a round number and not meant to be: it is five figures, and a filter
     # quietly dropped would put every one of them on the board.
-    check("  which is worth doing", warps > 10000, True)
+    check("  which is worth doing", warps - floor_doors > 10000, True)
+    # The other side of the same filter. A door per floor is two figures on
+    # every cartridge measured; a border leaking in is four or five, and would
+    # pass a check that only asked whether the count had grown.
+    check("  and what it keeps is a door per floor", floor_doors < 100, True)
 
     check("link names are unique", len(set(links)), len(links))
     check("  and none names its destination",
@@ -185,11 +228,14 @@ def main():
           sorted(set(links) & set(doors)), [])
 
     # Every link is on a tile the map's own teleport table names -- read back
-    # from the graph rather than from entrance_tiles' own output.
+    # from the graph rather than from entrance_tiles' own output. A floor's door
+    # counts, and is read back the same way: the table has to call it a warp,
+    # and floor_exits has to call that warp a door.
     astray = []
     for name, (map_id, col, row) in links.items():
         table = {(x, y) for x, y, k, _ in graph.teleports(map_id)
                  if k in regen_maps.FLOOR_LINK_KINDS}
+        table |= regen_maps.floor_exits(graph, map_id)
         if (col, row) not in table:
             astray.append(name)
     check("every link sits on a tile its map's table names", sorted(astray), [])

@@ -931,11 +931,81 @@ def marker_tiles(rom, locations, dropped=None):
     return {k: v for k, v in out.items() if v}
 
 
-# What counts as a floor link. Warp (TP_TELE_WARP) is excluded and the reason
-# is not a nicety: a town's entire outer border is warp-to-overworld, 33,282
-# tiles on the standard oracle against 99 real links, so including it is the
-# difference between a feature and a board nobody can read.
+# What counts as a floor link outright. Warp (TP_TELE_WARP) is not on the list
+# and the reason is not a nicety: a town's entire outer border is
+# warp-to-overworld, 33,282 tiles on the standard oracle against 99 of these,
+# so taking the kind wholesale is the difference between a feature and a board
+# nobody can read.
 FLOOR_LINK_KINDS = (entrance_graph.TP_TELE_NORM, entrance_graph.TP_TELE_EXIT)
+
+# But some warp tiles are the way out of a dungeon floor, and dropping the kind
+# wholesale dropped those too. Mirage Tower 1F is the case that showed it: two
+# teleport tiles, (14,31) norm up to 2F and (17,31) warp out to the overworld,
+# and only the first was drawn -- on a floor whose lane-start box is painted on
+# the second, so the art marked the tile and the pins did not.
+#
+# The two shapes are not close. A door is a lone tile or a doorway two or three
+# wide; a border is a flood of thousands. Measured on the standard oracle the
+# warp clusters run 1, 1, ... 2, 3, then 5, 6, 7, 11, 18, 39, then 1074 and up
+# to 3510 -- so a cluster of four or fewer is a door and anything above is a
+# border, with two orders of magnitude of daylight either side of the line.
+#
+# Size alone is not enough. Everything from 5 up is a straight run along a map
+# edge, and the same runs leave stragglers a flood does not join: three tiles at
+# x=0 in Lefein, three at y=0 in Northwest Castle, eleven in all on the standard
+# oracle. So the cluster has to be inside the map's content as well -- the same
+# edge flood the crop is measured from, which is what "border" means here.
+#
+# And content the crop keeps, not content the flood found. Sky Palace 4F has a
+# warp tile at (3,3) that is its own one-cell region, walled off from all
+# sixteen rooms: a tile you cannot reach and the crop drops as a speck. Taking
+# the flood's answer put a pin on a tile the art does not draw, and the regen
+# stopped on it -- which is the guard working, but the rule was the thing that
+# was wrong. A door nobody can walk to is not a door.
+FLOOR_EXIT_CLUSTER = 4
+
+
+def _clusters(cells):
+    """[{(col, row)}] -- `cells` split into 4-connected groups."""
+    seen, out = set(), []
+    for start in cells:
+        if start in seen:
+            continue
+        queue, group = [start], set()
+        seen.add(start)
+        while queue:
+            col, row = queue.pop()
+            group.add((col, row))
+            for step in ((col + 1, row), (col - 1, row),
+                         (col, row + 1), (col, row - 1)):
+                if step in cells and step not in seen:
+                    seen.add(step)
+                    queue.append(step)
+        out.append(group)
+    return out
+
+
+def floor_exits(graph, map_id):
+    """{(col, row)} -- the warp tiles on a map that are a door, not a border.
+
+    See FLOOR_EXIT_CLUSTER for the two conditions and what each one is for.
+    Neither is a guess about the art: the cluster comes off the teleport table
+    and the content off render_maps' own flood and speck rule, so this answers
+    the same way for a cartridge nobody has drawn yet.
+
+    The specks are dropped without `keep`, which regen passes to content_crop
+    and this cannot see. That direction is the safe one: a speck the crop saves
+    for a chest loses its floor door here, which is a pin missing from art that
+    was drawn, rather than a pin on art that was not.
+    """
+    warp = {(col, row) for col, row, kind, _ in graph.teleports(map_id)
+            if kind == entrance_graph.TP_TELE_WARP}
+    if not warp:
+        return set()
+    content, _ = render_maps.drop_specks(
+        render_maps.content_cells(graph.grid(map_id)[0]))
+    return {cell for group in _clusters(warp) if len(group) <= FLOOR_EXIT_CLUSTER
+            for cell in group & content}
 
 
 def entrance_tiles(graph):
@@ -953,14 +1023,20 @@ def entrance_tiles(graph):
     Same-floor links are kept. Every one of them in the game is a warp pad on
     Castle of Ordeals 2F -- 15 on both cartridge kinds -- and they are the same
     kind of tile as a real link, which is what a player wants to know.
+
+    So is the way out. floor_exits picks the warp tiles that are a door rather
+    than a town's border, and they arrive here under the same names and the same
+    shape as a staircase, because leaving a floor by the front is the same kind
+    of thing to a player as leaving it by the stairs.
     """
     out = {}
     for map_id in render_maps.MAP_FILES:
-        for col, row, kind, _ in graph.teleports(map_id):
-            if kind in FLOOR_LINK_KINDS:
-                name = (overworld_pins.ENTRANCE_PREFIX
-                        + f"{entrance_graph.MAP_NAMES[map_id]} {col},{row}")
-                out[name] = (map_id, col, row)
+        cells = {(col, row) for col, row, kind, _ in graph.teleports(map_id)
+                 if kind in FLOOR_LINK_KINDS}
+        for col, row in sorted(cells | floor_exits(graph, map_id)):
+            name = (overworld_pins.ENTRANCE_PREFIX
+                    + f"{entrance_graph.MAP_NAMES[map_id]} {col},{row}")
+            out[name] = (map_id, col, row)
     return out
 
 

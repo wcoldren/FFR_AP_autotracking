@@ -822,18 +822,49 @@ citations.
 
 ## And the staircases with them
 
-2026-09-04, the same day. 99 floor links on the standard cartridge and 165 on
-the No-Overworld one, in the same group and under the same switch as the doors.
+2026-09-04, the same day. 160 floor links on the standard oracle and 201 on the
+No-Overworld one, in the same group and under the same switch as the doors. The
+count moves with the layout now that a floor's own door is one of them -- the
+duck weekly cartridge comes out at 159 -- so a figure here names its cartridge.
 A door and a staircase are the same thing to a player and to the toggle; that
-they come from two different tables is the tool's problem.
+they come from three different tables is the tool's problem.
 
-**The warp filter is the whole feature.** `Graph.teleports` returns warp tiles
-as well as links, and a town's entire outer border is warp-to-overworld: 33,282
-of them on the standard oracle against 99 real links, and 32,200 against 165 on
-the No-Overworld one. Keeping `norm` and `exit` and dropping `warp` is the
-difference between a board and a fog. The suite asserts the warp side as well as
-the links, in the only form that holds whichever cartridge it is handed -- five
-figures -- because the way that filter goes wrong is by disappearing.
+**The warp filter is the whole feature, and taking the kind wholesale was too
+much of it.** `Graph.teleports` returns warp tiles as well as links, and a
+town's entire outer border is warp-to-overworld: 33,282 of them on the standard
+oracle against 99 `norm`-and-`exit` links, and 32,200 against 165 on the
+No-Overworld one. Dropping the kind outright is what made the board readable --
+and it also dropped every dungeon floor's way out, because leaving a floor for
+the overworld is a warp too.
+
+**Mirage Tower 1F is the case that showed it.** Two teleport tiles: `(14,31)`
+norm up to 2F, drawn, and `(17,31)` warp out to the overworld, not. The lane's
+own `arrival` stop is `(17,31)`, so the art painted its start box on the tile
+and the pins left it bare -- the map disagreeing with itself in the one place a
+player looks to find the exit. The standard and No-Overworld boards disagreed
+too, because on a No-Overworld cartridge that same tile is a `norm`.
+
+**The two shapes are nowhere near each other, which is what makes the rule
+safe.** Warp clusters on the standard oracle run 1, 1, ... 2, 3, then 5, 6, 7,
+11, 18, 39, then 1074 and up to 3510. A cluster of four or fewer is a door;
+above that is a border. Size alone was not enough: everything from 5 up is a
+straight run along a map edge, and those runs leave stragglers no flood joins --
+three tiles at x=0 in Lefein, three at y=0 in Northwest Castle, eleven in all.
+So a door has to be inside the map's content as well, measured with the same
+edge flood the crop uses.
+
+**And inside the content the crop keeps, which is not the same set.** Sky Palace
+4F has a warp tile at (3,3) that is its own one-cell region, walled off from all
+sixteen rooms -- a tile nobody can reach, and one `content_crop` drops as a
+speck. The flood's answer put a pin on art that is not drawn and the regen
+stopped on it, which is the guard doing its job on a rule that was wrong: a door
+nobody can walk to is not a door. Dropping specks the same way costs two tiles
+on the standard oracle and one on the No-Overworld, and Sea Shrine B3's
+thirteen-cell pocket is the other one.
+
+That leaves 61 tiles on the standard oracle across 47 maps and 36 on the
+No-Overworld one across 28: one per floor, except Cardia's five mouths and ten
+floors with two.
 
 **Same-floor links were nearly filtered out, and the measurement said not to.**
 The case for dropping them was that a warp pad is not a hole. The case against
