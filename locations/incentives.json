@@ -535,7 +535,12 @@
                     "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
-                    "$noOverworld,$hasFloater"
+                    "$noOverworld,$gatewayRollUnknown,$hasCanoe,$hasFloater",
+                    "$noOverworld,$gatewayRollUnknown,chime,$hasFloater,oxyale",
+                    "$noOverworld,bahamutCaveFromWaterfall,$hasFloater",
+                    "$noOverworld,bahamutCaveFromGaia,$hasFloater",
+                    "$noOverworld,bahamutCaveFromIceCave,$hasCanoe",
+                    "$noOverworld,bahamutCaveFromIceCave,chime,$hasFloater,oxyale"
                 ],
                 "sections": [
                     {
@@ -573,8 +578,12 @@
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "cardiaLandBridge,cardiaDock,$standardWorld,$noShipDrydock,ship,canal",
                     "BahamutHoard,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
-                    "$noOverworld,$hasCanoe,$hasFloater",
-                    "$noOverworld,chime,$hasFloater,oxyale"
+                    "$noOverworld,$gatewayRollUnknown,$hasCanoe,$hasFloater",
+                    "$noOverworld,$gatewayRollUnknown,chime,$hasFloater,oxyale",
+                    "$noOverworld,cardiaForestFromWaterfall,$hasFloater",
+                    "$noOverworld,cardiaForestFromGaia,$hasFloater",
+                    "$noOverworld,cardiaForestFromIceCave,$hasCanoe",
+                    "$noOverworld,cardiaForestFromIceCave,chime,$hasFloater,oxyale"
                 ],
                 "sections": [
                     {

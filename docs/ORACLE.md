@@ -123,8 +123,8 @@ against regenerated derivations.
 |---|---|
 | `std`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** |
 | `shard`, pack rules vs FFR | **229 checked, 229 agree, 0 divergences** |
-| `nov`, pack rules vs FFR | **226 compared, 220 agree, 6 deliberately strict**; of the 226, **215 independently supported** by the sweep, 11 not |
-| `nov2`, pack rules vs FFR | **224 compared, 218 agree, 6 deliberately strict** |
+| `nov`, pack rules vs FFR | **227 checked, 226 agree, 1 divergence** (`Shop Item`, unrelated) since the pack reads the gateway roll off the cartridge, 2026-09-05. It was **220 agree, 6 deliberately strict** while the rule had to cover every permutation; of the 226 then compared, **215 independently supported** by the sweep, 11 not |
+| `nov2`, pack rules vs FFR | **225 checked, 225 agree, 0 divergences** since the same change. It was **218 agree, 6 deliberately strict** |
 | `nov`, derived rules vs FFR | **226 compared, 225 agree, 1 divergent** (Lefein) — **5 granted an off-vocabulary item**, so **221** are genuinely comparable; 256 derived, 0 unreachable |
 | `nov2`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein) — **5 granted**, **219** genuinely comparable; 256 derived, 0 unreachable |
 | `nov` vs `nov2`, ToFR shuffle | **0 differences** |
@@ -163,7 +163,7 @@ Tagging all 226 comparisons on `nov` by where the pack-side rule came from:
 |---|---|
 | 158 | transcribed from FFR's export |
 | 12 | FFR region rule plus a pre-existing section gate |
-| 6 | intersection of FFR's two seed exports — Cardia Forest |
+| 6 | Cardia Forest — the intersection of FFR's two seed exports until 2026-09-05, and read off the cartridge since |
 | 32 | a pre-existing pack rule, written for standard mode years earlier |
 | 18 | no gate at all |
 | 0 | derived from the cartridge sweep |
@@ -187,9 +187,10 @@ Bottle, Crystal), and Lefein, where the derivation is permissive and FFR is
 right — see `docs/ISSUES.md`.
 
 **The eleven, by name**, so this does not have to be re-derived. The 6 strict
-are `Cardia Forest Incentive Room Left`, `Incentive Room Middle`,
+were `Cardia Forest Incentive Room Left`, `Incentive Room Middle`,
 `Incentive Room Lower`, `Cardia Forest Incentive`, `Cardia Forest Entrance
-Bottom` and `Entrance Middle`. The 4 granted are `Dwarf Cave Smith` (adamant),
+Bottom` and `Entrance Middle`; since 2026-09-05 they are read off the cartridge
+and agree, which leaves five. The 4 granted are `Dwarf Cave Smith` (adamant),
 `Matoya's Cave Matoya` (crystal), `Elf Castle Elf Prince` (herb) and `Fairy`
 (bottle). Lefein is granted the slab and is also the one divergence.
 
@@ -202,11 +203,26 @@ item the cartridge's talk table does not carry at all -- `bottle` is not among
 `talk_item_requirements`' seven entries, where herb, adamant, crystal and slab
 all are.
 
-The **6 deliberately strict** are Cardia Forest, and they are not a defect. FFR
-says `chime,floater,oxyale OR canoe` on `nov` and `floater` on `nov2` because
-that gateway is rolled per seed; the pack ships one static rule, so it ships the
-conjunction and is strict on both. A check shown red that is reachable beats a
-check shown green that is not.
+The **6 deliberately strict** were Cardia Forest, and they were not a defect.
+FFR says `chime,floater,oxyale OR canoe` on `nov` and `floater` on `nov2`
+because that gateway is rolled per seed; the pack shipped one static rule, so it
+shipped the conjunction and was strict on both. A check shown red that is
+reachable beats a check shown green that is not.
+
+**Closed 2026-09-05 by reading the roll rather than covering it.** The bridge
+publishes the permutation as `ff1/rolls` and the rules name the source the seed
+actually rolled, so the six agree on all four No-Overworld cartridges: `nov`
+226 of 227, `nov2` 225 of 225, `novnolefein` 222 of 223, `novhoard` 219 of 225,
+with the remaining rows the unrelated `Shop Item` one and, on `novhoard`, the
+hoard's own copies of the Cardia chests. Where the strict rule was covering
+three possibilities, the requirement each source really carries is now measured
+across those four cartridges: Waterfall and Gaia want the Floater, and Ice Cave
+B1 wants the Canoe, or the Chime with the Floater and Oxyale. **Bahamut's Cave
+moved in the other direction**: its one No-Overworld alternative asked for the
+Floater alone, which is the Waterfall and Gaia answer and too weak on a seed
+whose Ice Cave gateway leads there — `novnolefein` is that seed. FFR's export
+has no Bahamut's Cave location, so nothing graded it; the derived walk did, and
+says `canoe OR chime,floater,oxyale` there.
 
 `nov2`'s counts are 224 rather than 226 because that seed's export carries 225
 locations rather than 227 — which pool a seed draws varies, and the comparable

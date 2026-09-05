@@ -51,6 +51,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PACK = os.path.abspath(os.path.join(HERE, ".."))
 sys.path.insert(0, os.path.join(HERE, "ffr_flags"))
 import ffr_flags  # noqa: E402
+sys.path.insert(0, HERE)
+import entrance_graph  # noqa: E402
 
 LOCATION_FILES = ["locations/overworld.json", "locations/incentives.json"]
 
@@ -477,6 +479,88 @@ def flag_codes(flags, pack=PACK):
     return codes
 
 
+# ------------------------------------------------------------- the two rolls
+
+def roll_stage_codes(pack=PACK):
+    """{handle code: [the code each stage provides]} out of items/rolls.json.
+
+    Read rather than restated, the same way flag_codes reads flag_mapping.lua.
+    Every stage there carries the item's handle plus one code of its own; the
+    handle is what Tracker:FindObjectForCode resolves and the other is what a
+    rule names, so the handle is dropped here and the rest is the stage's code.
+    """
+    with open(os.path.join(pack, "items/rolls.json")) as handle:
+        items = json.load(handle)
+    out = {}
+    for item in items:
+        stages = item.get("stages")
+        if not stages:
+            continue
+        codes = [[c.strip() for c in st.get("codes", "").split(",")]
+                 for st in stages]
+        shared = set(codes[0]).intersection(*(set(c) for c in codes[1:]))
+        if len(shared) != 1:
+            raise SystemExit("items/rolls.json: %r does not have exactly one "
+                             "code on every stage to be found by" % item.get("name"))
+        name = shared.pop()
+        out[name] = [next(c for c in stage if c != name) for stage in codes]
+    return out
+
+
+def roll_stage_order(pack=PACK):
+    """The two tables scripts/autotracking/rolls_mapping.lua decodes with.
+
+    -> ({source: stage}, {home: stage}, {landing: handle}, {npc: handle}).
+
+    Regexes over the Lua for the same reason flag_codes uses one: the pack's
+    own file is where this mapping is decided, and a second copy here would
+    drift silently in whichever direction nobody reads.
+    """
+    src = open(os.path.join(pack, "scripts/autotracking/rolls_mapping.lua")).read()
+
+    def table(name, value):
+        m = re.search(r"local %s = \{(.*?)\}" % name, src, re.S)
+        if not m:
+            raise SystemExit("could not read %s out of rolls_mapping.lua" % name)
+        return {k: value(v) for k, v in re.findall(
+            r"(\w+)\s*=\s*\"?([\w]+)\"?", m.group(1))}
+
+    return (table("GATEWAY_SOURCE_STAGE", int),
+            table("OBJECTIVE_HOME_STAGE", int),
+            table("GATEWAY_CODE", str),
+            table("OBJECTIVE_CODE", str))
+
+
+def roll_codes(rom, pack=PACK):
+    """The codes the pack would be showing for this cartridge's two rolls.
+
+    The bridge reads both permutations off PRG ROM and publishes them; this is
+    the same read, so that a rule which names one is graded on the seed in
+    front of it rather than on the strict fallback. A cartridge that answers
+    for neither leaves both guards pinned, which is exactly the board an
+    Archipelago-only session gets.
+    """
+    codes = set()
+    image = entrance_graph.Rom.of(rom)
+    stage_codes = roll_stage_codes(pack)
+    sources, homes, landing_code, npc_code = roll_stage_order(pack)
+
+    dest = entrance_graph.gateway_destinations(image)
+    if dest is None:
+        codes.add("$gatewayRollUnknown")
+    else:
+        codes.add("gatewayRoll")
+        for tid, tile in dest.items():
+            landing = entrance_graph.GATEWAY_LANDINGS[tile]
+            handle = landing_code.get(landing)
+            if handle is None:
+                continue      # cardiaCaravan: no rule can ask about it
+            source = entrance_graph.GATEWAY_SOURCE_NAMES[tid]
+            codes.add(stage_codes[handle][sources[source] - 1])
+
+    return codes
+
+
 # ------------------------------------------------------------- ground truth
 
 REQ_SPLIT = re.compile(r"\s+OR\s+")
@@ -804,7 +888,7 @@ def check_seed(rom_path, pack_rules, ap_paths, players_dir=None, verbose=False,
     except ffr_flags.DecodeError as err:
         print("  cannot read this ROM: %s" % err)
         return 0, 0
-    pinned = flag_codes(flags)
+    pinned = flag_codes(flags) | roll_codes(rom)
     noverworld = flags.get("GameMode") == 2
 
     # --derived is a No-Overworld artefact end to end: noverworld_rules.py

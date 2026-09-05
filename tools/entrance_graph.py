@@ -1379,6 +1379,11 @@ GATEWAY_IDS = (0x89, 0x8A, 0x8B)
 # and Gaia are fixed tiles, and the Waterfall stair position is rolled per seed
 # -- which moves where the gateway stands, not where it goes.
 GATEWAY_SOURCES = {0x89: 18, 0x8A: 15, 0x8B: 5}
+# The name each source goes by on the wire and in the pack's codes. The bridge
+# and scripts/autotracking/rolls_mapping.lua use these spellings, so this is
+# where the two implementations agree on a vocabulary rather than each holding
+# their own copy.
+GATEWAY_SOURCE_NAMES = {0x89: "waterfall", 0x8A: "icecave", 0x8B: "gaia"}
 
 # The three destinations, keyed by the (map, x, y) they land on.
 #
@@ -1457,10 +1462,14 @@ OBJECTIVE_HOMES = {3: "melmond", 9: "elflandCastle", 39: "bahamutCaveB2"}
 OBJECTIVE_TILES = {3: (0x1A, 0x01), 9: (0x09, 0x05), 39: (0x15, 0x03)}
 
 
-def objective_roll(g):
+def objective_roll(rom):
     """Which home each of the three objective NPCs stands in, or None.
 
     -> {"elfdoc": home name, "unne": ..., "bahamut": ...}.
+
+    Takes a Rom rather than a Graph: this is a walk of one flat table and
+    decompresses nothing, and a caller that only wants the roll should not have
+    to build a graph to ask for it.
 
     None when the three are not one to a home. The whole object table is
     walked rather than the three homes, which is what makes "they only ever
@@ -1470,9 +1479,14 @@ def objective_roll(g):
     """
     where = {}
     for map_id in range(MAP_COUNT):
-        for oid, x, y in g.objects(map_id):
+        base = MAP_OBJECTS + map_id * OBJ_STRIDE
+        for i in range(OBJS_PER_MAP):
+            oid = rom.data[base + i * OBJ_RECORD]
             if oid in OBJECTIVE_NPCS:
-                where.setdefault(OBJECTIVE_NPCS[oid], []).append((map_id, x, y))
+                where.setdefault(OBJECTIVE_NPCS[oid], []).append(
+                    (map_id,
+                     rom.data[base + i * OBJ_RECORD + 1] & COORD_MASK,
+                     rom.data[base + i * OBJ_RECORD + 2] & COORD_MASK))
     if sorted(where) != sorted(OBJECTIVE_NPCS.values()):
         return None
     if any(len(v) != 1 for v in where.values()):
@@ -1501,7 +1515,8 @@ def print_rolls(g):
         for r in roll:
             m, x, y = r["dest"]
             where = ", ".join(f"({a},{b})" for a, b in r["tiles"])
-            print(f"  {MAP_NAMES[r['source']]:12s} ${r['teleport']:02X} at "
+            print(f"  {GATEWAY_SOURCE_NAMES[r['teleport']]:12s} "
+                  f"${r['teleport']:02X} at "
                   f"{where or 'NOT ON THIS MAP':16s} -> {r['landing']:14s} "
                   f"{MAP_NAMES[m]} ({x:02X},{y:02X})")
             if not r["tiles"]:
@@ -1511,7 +1526,7 @@ def print_rolls(g):
     print()
     print("the objective-NPC roll -- Bahamut, Dr Unne and the Elf Doctor")
     print("across Melmond, Elfland Castle and Bahamut's Cave B2")
-    homes = objective_roll(g)
+    homes = objective_roll(g.rom)
     if homes is None:
         print("  not one NPC to a home on this cartridge -- refusing to guess.")
         return

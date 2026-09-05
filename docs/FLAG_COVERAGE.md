@@ -148,7 +148,7 @@ either. The eleven above them are in both schemas.
 
 | FFR flag | Pack | Status |
 |---|---|---|
-| `OrbsRequiredCount`, `OrbsRequiredMode` | `logic.lua:202-203` reads `ffrFlag()` directly | code |
+| `OrbsRequiredCount`, `OrbsRequiredMode` | `logic.lua:223-224` reads `ffrFlag()` directly | code |
 | `ShardCount` | `hasEnoughShards()` | code |
 | `ToFRMode` | `shortToFR` progressive; `shortToFR,$canBreakOrb` on the ToFR node | code — only Short moves a rule |
 | `ChaosRush` | `chaosRush` toggle; `chaosRush,$canBreakOrb,lute` on the ToFR node | code |

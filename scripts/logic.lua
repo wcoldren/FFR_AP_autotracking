@@ -78,6 +78,27 @@ function noObjectiveShuffle()
   return 1
 end
 
+-- The two rolls, and the state where nothing has said.
+--
+-- scripts/autotracking/rolls_mapping.lua sets a toggle per half when the
+-- bridge has read that permutation off the cartridge, and these are what the
+-- strict alternatives carry so they fall out the moment it has. One guard per
+-- half is enough because a half is all or nothing: the decoder refuses a
+-- permutation it cannot account for entirely, so the pack either knows where
+-- all three gateways go or knows nothing about any of them.
+--
+-- Unknown is the ordinary case, not an error. An Archipelago-only session has
+-- no cartridge to read, a session with no bridge attached has nothing
+-- publishing it, and every board is unknown until the emulator is up -- and
+-- all three get exactly the rules the pack shipped before it could ask.
+function gatewayRollUnknown()
+  local item = Tracker:FindObjectForCode("gatewayRoll")
+  if item and item.Active then
+    return 0
+  end
+  return 1
+end
+
 -- Shard hunt: the goal is a count of shards rather than four lit orbs.
 --
 -- The variants are named in manifest.json, and the UID carries a leading digit

@@ -101,7 +101,7 @@ else:
     # Whatever this cartridge rolled, not an assumed arrangement: FF1_ROM may
     # be a seed that rolled the flag, and the swap below is checked against
     # what was there rather than against the vanilla trio.
-    before = eg.objective_roll(g)
+    before = eg.objective_roll(rom)
     ok(before is not None, "the three NPCs are one to a home on FF1_ROM",
        "" if before else "-- is this a Final Fantasy cartridge?")
 
@@ -114,7 +114,7 @@ else:
         two = bytes(rom.data[bah:bah + 3])
         rom.data[unne:unne + 3] = two
         rom.data[bah:bah + 3] = one
-        after = eg.objective_roll(g)
+        after = eg.objective_roll(rom)
         want = dict(before)
         want["unne"], want["bahamut"] = before["bahamut"], before["unne"]
         ok(after == want, "swapping two records swaps two homes", str(after))
@@ -130,10 +130,10 @@ else:
         if spare is not None:
             rom.data[spare:spare + 3] = rom.data[unne:unne + 3]
             rom.data[unne:unne + 3] = b"\x00\x00\x00"
-            ok(eg.objective_roll(g) is None,
+            ok(eg.objective_roll(rom) is None,
                "an objective NPC off the three homes refuses the read")
         rom.data[:] = keep
-        ok(eg.objective_roll(g) == before, "and the table is put back")
+        ok(eg.objective_roll(rom) == before, "and the table is put back")
 
 
 # --- the gateway roll, on real cartridges ----------------------------------
