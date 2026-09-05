@@ -932,7 +932,7 @@ def marker_tiles(rom, locations, dropped=None):
 
 
 # What counts as a floor link. Warp (TP_TELE_WARP) is excluded and the reason
-# is not a nicety: a town's entire outer border is warp-to-overworld, 33,381
+# is not a nicety: a town's entire outer border is warp-to-overworld, 33,282
 # tiles on the standard oracle against 99 real links, so including it is the
 # difference between a feature and a board nobody can read.
 FLOOR_LINK_KINDS = (entrance_graph.TP_TELE_NORM, entrance_graph.TP_TELE_EXIT)
@@ -1649,12 +1649,20 @@ def main():
         ow_box = overworld_pins.content_box(
             list(ow_placed.values()) + list(ow_doors.values()))
         for _ in range(8):
-            stacked_ = overworld_pins.spread(
-                ow_placed, overworld_pins.marker_tiles(max(ow_box[2], ow_box[3])),
-                taken=door_taken)
+            step_ = overworld_pins.marker_tiles(max(ow_box[2], ow_box[3]))
+            stacked_ = overworld_pins.spread(ow_placed, step_,
+                                             taken=door_taken)
             box_ = overworld_pins.content_box(
                 list(stacked_.values()) + list(ow_doors.values()))
             if box_ == ow_box:
+                # The incentive sheet gets the same pins stacked at the same
+                # step but without the doors claimed. It shares the overworld's
+                # art and draws none of the trapezoids -- entrance_group is the
+                # board's alone -- so a pin pushed off a door there would stand
+                # a marker north of the town it names with nothing at the tile
+                # to say why. The doors move the board's pins because the board
+                # is where the doors are drawn.
+                ow_sheet = overworld_pins.spread(ow_placed, step_)
                 ow_placed = stacked_
                 break
             ow_box = box_
@@ -1670,9 +1678,10 @@ def main():
         # "could not be placed on the overworld" -- for placements that were
         # never going to be attempted.
         ow_placed, ow_unplaced, ow_anchors = {}, [], {}
+        ow_sheet = {}
         ow_doors = {}
         ow_box = (0, 0, render_overworld.OW_DIM, render_overworld.OW_DIM)
-    ow_mirror = overworld_pins.mirror_of(board_doc, ow_placed)
+    ow_mirror = overworld_pins.mirror_of(board_doc, ow_sheet)
     ow_moved, ow_dropped = 0, []
     # Which map names this mode's overworld render backs -- none of them off a
     # No-Overworld cartridge, which gets no overworld render and keeps both the
@@ -1757,9 +1766,9 @@ def main():
         if rel is incentive_locations and mode == "std":
             placed_here, un_here, _ = overworld_pins.resolve(
                 rom, ow_reader, ow_graph, doc, tiles_by_name, mirror=ow_mirror)
-            # The sheet mirrors the board, so its pins arrive already stacked
-            # where the board's were; this only separates any of its own that
-            # land together.
+            # The sheet mirrors the door-free stacking, so its pins arrive
+            # already parted from each other and standing on the doors they
+            # name; this only separates any of its own that land together.
             placed_here = overworld_pins.spread(
                 placed_here, overworld_pins.marker_tiles(max(ow_box[2],
                                                              ow_box[3])))

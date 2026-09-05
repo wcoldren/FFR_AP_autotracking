@@ -495,9 +495,26 @@ check("  and its first stage is the Auto one",
       "Overworld Tab: Auto (the seed decides)")
 
 local init = io.open(PACK .. "/scripts/init.lua"):read("a")
+-- Line by line with the comments dropped, rather than a two-line window over
+-- the whole file. The assignment does not have to sit directly under the
+-- lookup to be back -- `tabMode.Active = true` occupies the line it used to be
+-- on, so the natural place to re-add it is one lower, which the window missed.
+-- Comments are dropped because init.lua's own note says the words
+-- `tabMode.CurrentStage = 0` to explain why they are gone, and `shardsRequired`
+-- sets CurrentStage for real, so neither the bare name nor the bare field is
+-- something to search the file for.
+local function sets(text, pattern)
+  for line in text:gmatch("[^\n]+") do
+    if not line:match("^%s*%-%-") and line:match(pattern) then
+      return true
+    end
+  end
+  return false
+end
 check("init.lua asserts no tab stage",
-      init:match("tab_mode[^\n]*\n[^\n]*CurrentStage") ~= nil, false)
-check("  and no Auto-Tab default", init:match("tabSwitch%.Active") ~= nil, false)
+      sets(init, "tabMode%.CurrentStage")
+      or sets(init, "tab_mode.*CurrentStage"), false)
+check("  and no Auto-Tab default", sets(init, "tabSwitch%.Active"), false)
 
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

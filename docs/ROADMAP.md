@@ -210,7 +210,7 @@ Things a bridge-only player checks that the board has no cell for.
   **The overworld doors landed 2026-09-04**: 30 trapezoid pins on a standard
   cartridge, one per door, drawn on regenerated art only and switched by the
   three-stage `Entrance Pins` control. A door's *position* is not shuffled, so
-  that half is cartridge-invariant and spoils nothing. Left, in order:
+  that half is cartridge-invariant and spoils nothing.
 
   **The dungeon floor links landed the same day**: 99 staircases and holes on a
   standard cartridge, 165 on a No-Overworld one, in the same group and under the

@@ -828,11 +828,12 @@ A door and a staircase are the same thing to a player and to the toggle; that
 they come from two different tables is the tool's problem.
 
 **The warp filter is the whole feature.** `Graph.teleports` returns warp tiles
-as well as links, and a town's entire outer border is warp-to-overworld: 33,281
-of them on the standard oracle against 99 real links. Keeping `norm` and `exit`
-and dropping `warp` is the difference between a board and a fog. The suite
-asserts the warp count outright rather than the links alone, because the way
-that filter goes wrong is by disappearing.
+as well as links, and a town's entire outer border is warp-to-overworld: 33,282
+of them on the standard oracle against 99 real links, and 32,200 against 165 on
+the No-Overworld one. Keeping `norm` and `exit` and dropping `warp` is the
+difference between a board and a fog. The suite asserts the warp side as well as
+the links, in the only form that holds whichever cartridge it is handed -- five
+figures -- because the way that filter goes wrong is by disappearing.
 
 **Same-floor links were nearly filtered out, and the measurement said not to.**
 The case for dropping them was that a warp pad is not a hole. The case against
