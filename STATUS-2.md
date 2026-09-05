@@ -800,6 +800,23 @@ its castle, Bahamut's cave and Cardia -- where no marker size separates them and
 stacking one would put a trapezoid on a tile that is not its door, which is the
 one thing these pins exist to say.
 
+**Two of those three were still one shape, and half a marker fixed it.** A full
+step is what puts a pin off its door; half is not, because the box reaches half
+a marker either side of centre, so a town nudged by half still covers the tile
+it names -- off centre, not off its door. Coneria and its castle go from sixteen
+pixels apart to sixty-six, Elfland's pair from sixteen to fifty-one. They still
+overlap, since the boxes are ninety-two and the doors are one tile apart, but
+they read as two shapes, which is what the board needed.
+
+Which of a pair moves is read off the names rather than listed: a town's name is
+a prefix of its castle's, so the shorter is the town. South, because the place
+pins stack north and nudging up would walk a door into the pins that just moved
+out of its way. Bahamut's Cave and Cardia are not a pair and stay put at eighty
+pixels -- a rule firing wherever boxes touch would move pins nobody was
+struggling to tell apart. It runs inside the crop's fixed point and off the
+unnudged doors every pass, because the nudge is measured in markers and the
+marker is what that loop is settling.
+
 **The tooltip icon is the one place a pin can carry a picture.** The marker is
 a shape and a state colour and nothing else -- `mapwidget.cpp:352` paints a
 diamond, a trapezoid or a rect and has no path to an image -- so the door a

@@ -1763,12 +1763,19 @@ def main():
         # they widen the crop: five doors carry no place pin at all, two of them
         # well away from the nearest one, and a door outside the box is a fatal
         # ow_stray rather than a marker quietly off the edge.
-        ow_doors = overworld_pins.entrance_door_pins(ow_reader)
-        door_taken = {cell: name for name, cell in ow_doors.items()}
+        #
+        # A town and its castle are a tile apart and part_doors nudges the town
+        # half a marker south, which is inside the loop rather than before it
+        # because the nudge is measured in markers and the marker is what the
+        # loop is settling. It reads the unnudged doors every pass, so nothing
+        # compounds and the fixed-point argument above still holds.
+        raw_doors = overworld_pins.entrance_door_pins(ow_reader)
         ow_box = overworld_pins.content_box(
-            list(ow_placed.values()) + list(ow_doors.values()))
+            list(ow_placed.values()) + list(raw_doors.values()))
         for _ in range(8):
             step_ = overworld_pins.marker_tiles(max(ow_box[2], ow_box[3]))
+            ow_doors = overworld_pins.part_doors(raw_doors, step_)
+            door_taken = {cell: name for name, cell in ow_doors.items()}
             stacked_ = overworld_pins.spread(ow_placed, step_,
                                              taken=door_taken)
             box_ = overworld_pins.content_box(

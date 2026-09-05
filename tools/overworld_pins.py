@@ -152,6 +152,46 @@ DOOR_SHUT_IMG = "images/icons/door_shut.png"
 DOOR_OPEN_IMG = "images/icons/door_open.png"
 
 
+def part_doors(doors, step, dim=256):
+    """A copy of `doors` with a town nudged clear of its own castle.
+
+    Two doors can be a tile apart -- Coneria and Coneria Castle, Elfland and
+    Elfland Castle -- and at a marker six tiles wide that is one shape on the
+    board where the player needs two. Nothing separates them: the boxes are 92
+    pixels and the doors are sixteen apart, so only a full marker parts them and
+    a full marker puts the trapezoid on a tile that is not its door.
+
+    Half a marker is the move that costs nothing. The box reaches half a marker
+    either side of centre, so a pin nudged by half still covers the tile it
+    names -- it is off centre, not off its door -- and the two shapes read as
+    two. That is the whole claim, and it is why this is a half and not a step.
+
+    South, because the place pins stack north: nudging a door up would walk it
+    into the pins that just moved out of its way.
+
+    Which of the pair moves is read off the names rather than listed here. A
+    town's name is a prefix of its castle's, so the shorter one is the town, and
+    that is a relationship rather than a coincidence of sort order. Doors that
+    merely crowd each other are left alone -- Bahamut's Cave and Cardia are
+    eighty pixels apart and already read as two -- because a rule that fires
+    wherever boxes touch would move pins nobody was struggling to tell apart.
+    """
+    half = max(1, step // 2)
+    out = dict(doors)
+    for name, cell in doors.items():
+        bare = name[len(ENTRANCE_PREFIX):]
+        for other, where in doors.items():
+            if other == name:
+                continue
+            if abs(where[0] - cell[0]) >= step or abs(where[1] - cell[1]) >= step:
+                continue
+            theirs = other[len(ENTRANCE_PREFIX):]
+            if theirs.startswith(bare) and len(theirs) > len(bare):
+                out[name] = (cell[0], min(dim - 1, cell[1] + half))
+                break
+    return out
+
+
 def entrance_group(doors, origin=(0, 0), map_name="overworld", tile_px=16):
     """The tree node the door pins are injected as.
 

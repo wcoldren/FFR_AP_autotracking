@@ -219,6 +219,25 @@ def main():
     check("  and one link in two places stays two",
           sorted(regen_maps._one_per_link(apart)), [(11, 4), (20, 4)])
 
+    # part_doors, on the shape it exists for: a town a tile from its castle.
+    # Half a marker down, so the box still covers the door it names.
+    pair = {"Entrance: Coneria": (151, 160), "Entrance: ConeriaCastle1": (152, 159)}
+    check("a town is nudged clear of its own castle",
+          op.part_doors(pair, 6),
+          {"Entrance: Coneria": (151, 163),
+           "Entrance: ConeriaCastle1": (152, 159)})
+    check("  and it still covers its own tile",
+          abs(op.part_doors(pair, 6)["Entrance: Coneria"][1] - 160) < 6, True)
+    # Two doors that crowd without being a pair. Bahamut's Cave and Cardia are
+    # inside a marker of each other and read as two shapes already; a rule that
+    # fired on overlap alone would move one of them for nothing.
+    crowd = {"Entrance: BahamutCave1": (75, 38), "Entrance: Cardia1": (71, 35)}
+    check("  and two doors that merely crowd are left alone",
+          op.part_doors(crowd, 6), crowd)
+    far = {"Entrance: Coneria": (151, 160), "Entrance: ConeriaCastle1": (151, 180)}
+    check("  and a castle a marker away needs none",
+          op.part_doors(far, 6), far)
+
     # The tooltip icon. The two paths are one pair of constants, referenced by
     # the group that names them and by the regen that writes them, so the way
     # this fails silently -- a path that resolves to nothing and falls back to
