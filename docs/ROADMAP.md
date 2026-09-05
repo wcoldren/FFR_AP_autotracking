@@ -212,8 +212,8 @@ Things a bridge-only player checks that the board has no cell for.
   three-stage `Entrance Pins` control. A door's *position* is not shuffled, so
   that half is cartridge-invariant and spoils nothing.
 
-  **The dungeon floor links landed the same day**: 160 staircases, holes and
-  floor doors on the standard oracle, 201 on the No-Overworld one, in the same
+  **The dungeon floor links landed the same day**: 148 staircases, holes and
+  floor doors on the standard oracle, 190 on the No-Overworld one, in the same
   group and under the same switch. Same-floor links are kept -- every one of
   them in the game is a warp pad on Castle of Ordeals 2F, 15 on both cartridge
   kinds -- because they are the same kind of tile as a real link and a player

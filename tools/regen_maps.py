@@ -1031,13 +1031,56 @@ def entrance_tiles(graph):
     """
     out = {}
     for map_id in render_maps.MAP_FILES:
-        cells = {(col, row) for col, row, kind, _ in graph.teleports(map_id)
-                 if kind in FLOOR_LINK_KINDS}
-        for col, row in sorted(cells | floor_exits(graph, map_id)):
+        link = {(col, row): (kind, pay)
+                for col, row, kind, pay in graph.teleports(map_id)
+                if kind in FLOOR_LINK_KINDS}
+        for cell in floor_exits(graph, map_id):
+            link[cell] = (entrance_graph.TP_TELE_WARP, 0)
+        for col, row in sorted(_one_per_link(link)):
             name = (overworld_pins.ENTRANCE_PREFIX
                     + f"{entrance_graph.MAP_NAMES[map_id]} {col},{row}")
             out[name] = (map_id, col, row)
     return out
+
+
+def _one_per_link(link):
+    """{(col, row)} -- one cell per link, for a {cell: (kind, id)} of tiles.
+
+    A doorway is as wide as the art draws it and the teleport table repeats
+    itself across it: Coneria Castle's two entrances are three tiles and five,
+    each tile its own exit, so the board drew eight trapezoids in two rows along
+    the castle's rim for what a player walks through twice. Ice Cave B2's wide
+    pit is the same thing one floor down.
+
+    Adjacent tiles are one pin when they are the same link -- same kind, same
+    teleport id -- which is the condition that makes this lossless rather than
+    tidy. Measured on four cartridges every run of adjacent link tiles is
+    uniform in both, so nothing merges that a player could tell apart, and two
+    pits that share a destination but not a wall stay two pins because that is
+    what the floor has.
+
+    Merging on the destination instead would be the spoiler: it is the shuffled
+    half, and pins that grouped by it would hand over the permutation.
+    """
+    out = set()
+    for value in set(link.values()):
+        for group in _clusters({c for c, v in link.items() if v == value}):
+            out.add(_middle(group))
+    return out
+
+
+def _middle(group):
+    """The cell of `group` nearest its centre -- a five-tile doorway's third.
+
+    Ties break on row then column so the answer does not depend on set order:
+    the name carries these coordinates, and a name that moved between runs of
+    the same cartridge would look like a link that moved.
+    """
+    mid_c = sum(c for c, _ in group) / len(group)
+    mid_r = sum(r for _, r in group) / len(group)
+    return min(group, key=lambda cell: ((cell[0] - mid_c) ** 2
+                                        + (cell[1] - mid_r) ** 2,
+                                        cell[1], cell[0]))
 
 
 def entrance_children(by_rom, tiles, sprite_cells=None):

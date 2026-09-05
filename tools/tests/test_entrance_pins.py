@@ -167,6 +167,19 @@ def main():
           len(regen_maps.floor_exits(Grid(), 0)), 10)
     regen_maps.FLOOR_EXIT_CLUSTER = was
 
+    # One pin per link, not per tile, and what keeps that lossless.
+    doorway = {(11, 4): ("exit", 4), (12, 4): ("exit", 4), (13, 4): ("exit", 4)}
+    check("a doorway drawn across three tiles is one pin",
+          sorted(regen_maps._one_per_link(doorway)), [(12, 4)])
+    touching = {(11, 4): ("exit", 4), (12, 4): ("exit", 9)}
+    check("  and two different links that touch stay two",
+          sorted(regen_maps._one_per_link(touching)), [(11, 4), (12, 4)])
+    # Ice Cave B2's shape: one destination, several pits, and they are several
+    # holes to walk into. Merging on where a link goes would also be the spoiler.
+    apart = {(11, 4): ("norm", 18), (20, 4): ("norm", 18)}
+    check("  and one link in two places stays two",
+          sorted(regen_maps._one_per_link(apart)), [(11, 4), (20, 4)])
+
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):
         print("SKIP  set FF1_ROM to a Final Fantasy cartridge to run this")
@@ -207,8 +220,21 @@ def main():
                       for m in render_maps.MAP_FILES)
     print(f"-- {floor_doors} of the warp tiles are a floor's door")
 
+    # Every tile the filter lets through, per map, with what link it is part
+    # of -- and the runs of them, flooded here rather than taken from
+    # regen_maps, so the collapse is checked against a second implementation
+    # the way the tile-on-a-teleport check above is.
+    eligible = {}
+    for map_id in render_maps.MAP_FILES:
+        cells = {(col, row): (kind, pay)
+                 for col, row, kind, pay in graph.teleports(map_id)
+                 if kind in regen_maps.FLOOR_LINK_KINDS}
+        for cell in regen_maps.floor_exits(graph, map_id):
+            cells[cell] = (entrance_graph.TP_TELE_WARP, 0)
+        eligible[map_id] = cells
     check("  and the border warps are all left out",
-          len(links), kinds.get(entrance_graph.TP_TELE_NORM, 0)
+          sum(len(c) for c in eligible.values()),
+          kinds.get(entrance_graph.TP_TELE_NORM, 0)
           + kinds.get(entrance_graph.TP_TELE_EXIT, 0) + floor_doors)
     # Not a round number and not meant to be: it is five figures, and a filter
     # quietly dropped would put every one of them on the board.
@@ -217,6 +243,39 @@ def main():
     # every cartridge measured; a border leaking in is four or five, and would
     # pass a check that only asked whether the count had grown.
     check("  and what it keeps is a door per floor", floor_doors < 100, True)
+
+    # One pin per link, however many tiles the doorway is drawn across. Both
+    # directions: a run that kept a pin each would fail the first, and a pin
+    # merged across two different links would fail the second.
+    runs = []
+    for map_id, cells in eligible.items():
+        seen = set()
+        for start in cells:
+            if start in seen:
+                continue
+            queue, group = [start], set()
+            seen.add(start)
+            while queue:
+                col, row = queue.pop()
+                group.add((col, row))
+                for step in ((col + 1, row), (col - 1, row),
+                             (col, row + 1), (col, row - 1)):
+                    if (cells.get(step) == cells[start]) and step not in seen:
+                        seen.add(step)
+                        queue.append(step)
+            runs.append((map_id, group))
+    here = {}
+    for name, (map_id, col, row) in links.items():
+        here.setdefault(map_id, set()).add((col, row))
+    check("every run of one link carries exactly one pin",
+          sorted((entrance_graph.MAP_NAMES[m], len(g & here.get(m, set())))
+                 for m, g in runs
+                 if len(g & here.get(m, set())) != 1), [])
+    check("  and every pin stands in one",
+          sorted(name for name, (m, c, r) in links.items()
+                 if not any(mm == m and (c, r) in g for mm, g in runs)), [])
+    print(f"-- {sum(len(c) for c in eligible.values())} link tiles "
+          f"in {len(runs)} runs")
 
     check("link names are unique", len(set(links)), len(links))
     check("  and none names its destination",

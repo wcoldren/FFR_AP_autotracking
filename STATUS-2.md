@@ -822,10 +822,10 @@ citations.
 
 ## And the staircases with them
 
-2026-09-04, the same day. 160 floor links on the standard oracle and 201 on the
+2026-09-04, the same day. 148 floor links on the standard oracle and 190 on the
 No-Overworld one, in the same group and under the same switch as the doors. The
 count moves with the layout now that a floor's own door is one of them -- the
-duck weekly cartridge comes out at 159 -- so a figure here names its cartridge.
+duck weekly cartridge comes out at 147 -- so a figure here names its cartridge.
 A door and a staircase are the same thing to a player and to the toggle; that
 they come from three different tables is the tool's problem.
 
@@ -865,6 +865,27 @@ thirteen-cell pocket is the other one.
 That leaves 61 tiles on the standard oracle across 47 maps and 36 on the
 No-Overworld one across 28: one per floor, except Cardia's five mouths and ten
 floors with two.
+
+**One pin per link, not per tile.** A doorway is as wide as the art draws it and
+the teleport table repeats itself across every tile of it, so Coneria Castle
+drew eight trapezoids in two rows along its rim -- three tiles and five -- for
+what a player walks through twice. Ice Cave B2's wide pit is the same thing a
+floor down. Adjacent tiles are one pin when they are the same link, same kind
+and same teleport id, which is what makes the merge lossless: measured on four
+cartridges every run of adjacent link tiles is uniform in both. 160 tiles come
+out as 148 pins on the standard oracle and 201 as 190 on the No-Overworld one.
+
+Two pits that share a destination but not a wall stay two pins, because that is
+what the floor has -- fifteen of Ice Cave B2's nineteen holes go to one tile of
+B3 and are scattered across the floor. Merging on the destination would also be
+the one merge that spoils: it is the shuffled half.
+
+The suite asserts both sides. The border half stays five figures, which is the
+only form that holds whichever cartridge it is handed. The door half is checked
+on a grid built in the test -- a lone warp inside the content, one out in the
+filler, and a 3x3 flood inside it -- because a cartridge can only ever show the
+rule agreeing with itself, and each condition has to be seen rejecting a tile
+the other would let through.
 
 **Same-floor links were nearly filtered out, and the measurement said not to.**
 The case for dropping them was that a warp pad is not a hole. The case against
