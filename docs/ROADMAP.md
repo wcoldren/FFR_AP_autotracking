@@ -111,22 +111,28 @@ code, the affected `access_rules` alternatives, and **one oracle seed rolled
 with the flag on** so `check_logic --ap-rules` grades the branch. A rule without
 its oracle seed is a hand transcription, which is what section 5 is meant to end.
 
-- **The two rolls the bridge should read, not guess at.** Both are permutations
-  chosen at generation that reach neither the flag string nor the spoiler, and
-  both are answered today by being deliberately strict. They want one feature
-  between them, not two.
-
-  The **Cardia roll** is the gateway permutation (`MetroidVaniaMap.cs:726`); the
-  bridge would publish `ff1/gateways` next to `ff1/flags` and the rule reads it.
-  The **objective-NPC roll** is the same shape one flag along, and
-  `tools/extract_npcs.py` already knows how to find it — it is what measured the
-  Bahamut/Unne swap in the first place. `regen_maps.py` reads the cartridge per
-  seed already; the live bridge does not publish NPC positions.
-
-  Until then both stay strict, which costs six Cardia Forest locations on a
-  No-Overworld seed and the Elf Prince plus Dr Unne on a shuffled one.
+**Nothing here is open.** The last of it, the two rolls, closed 2026-09-05.
 
 **Closed.**
+
+- **The two rolls the bridge should read, not guess at. Closed 2026-09-05**, as
+  one feature rather than two, which is what this bullet asked for. Both are
+  permutations chosen at generation that reach neither the flag string nor the
+  spoiler: the Cardia gateway permutation (`MetroidVaniaMap.cs:726`) and
+  `ShuffleObjectiveNPCs`. The bridge reads both off PRG ROM and publishes
+  `ff1/rolls`, one key with two fields; `tools/entrance_graph.py --rolls` is the
+  same read offline, and `check_logic` reads it too, so the rules are graded on
+  the seed in front of them.
+
+  What it bought, measured: the six Cardia Forest locations agree on all four
+  No-Overworld cartridges, `novhoard` gained the hoard's own route as well, and
+  the Elf Prince's `WAIVED` row came off `objnpc497`. Bahamut's Cave was fixed
+  in the other direction — it had one No-Overworld alternative, the Floater,
+  which is too weak on a seed whose Ice Cave gateway leads there.
+
+  Two things stayed strict on purpose, and `docs/ISSUES.md` has both: an NPC
+  rolled into the third home, and everything on a session with no cartridge to
+  read.
 
 - **Every flag that made a pin lie has a code or a recorded decision. Closed
   2026-09-01**, the last two — `MapAirshipHike` and `MapCardiaLandBridge` —

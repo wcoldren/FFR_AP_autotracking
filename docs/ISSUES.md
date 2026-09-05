@@ -732,9 +732,27 @@ Nothing here is urgent unless it says so.
   `check_logic`'s `WAIVED` table and stays printed. `bahamut` needed no change —
   it was already gated on the home that dominates.
 
-  The right fix is unbuilt and is shared with the Cardia gateway roll: teach the
-  bridge to publish the permutation that `tools/extract_npcs.py` already reads.
-  `docs/ROADMAP.md` holds it as one item rather than two.
+  **The right fix landed 2026-09-05**, and it was one feature with the Cardia
+  gateway roll as the roadmap said. The bridge reads both permutations off the
+  cartridge and publishes `ff1/rolls`; each cell gained one alternative saying
+  the NPC is at home, keyed on the roll, and the strict alternatives stay for
+  the state where nothing has said — an Archipelago-only session, or a board
+  before the bridge attaches. The `WAIVED` row for the Elf Prince came off:
+  `objnpc497` grades him `(Herb AND Ship) OR (Canoe AND Herb)` against FFR's
+  own, in agreement rather than excused.
+
+  It was not `tools/extract_npcs.py` that could read it, though this entry and
+  the roadmap both said so. That tool collects object `$06`, the Elf Prince, who
+  holds the check and never moves; the object the roll moves is `$05`, the Elf
+  Doctor. What it measured was the other two trading places.
+
+  **One strictness is left on purpose.** A roll that sends the NPC to the third
+  home — the Elf Doctor to Melmond, Dr Unne to Elfland Castle — still asks for
+  Bahamut's Cave, which dominates. Naming those two homes properly means
+  spelling their geography into both cells in four files, and no cartridge in
+  either corpus grades the result: FFR's export does not notice the swap at all.
+  The case where it costs something real is a No-Overworld seed with the Doctor
+  in Melmond, where the truth is that Melmond is free.
 
 - **Titan has a box now.** Closed 2026-09-02. The obstacle was a name rather
   than a signal: `titan` was taken by `ruby` stage 2, so a cell could not host

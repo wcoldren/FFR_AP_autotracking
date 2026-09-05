@@ -149,15 +149,6 @@ WAIVED = {
     ("Inner Sea/Coneria Castle/Coneria Castle Sara/Sara", "strict"):
         "the pack wants Garland beaten before the princess is back; FFR folds"
         " that in, because Garland is beatable from the start",
-    ("Inner Sea/Elf Castle/Elf Castle Elf Prince/Elf Prince", "strict"):
-        "ShuffleObjectiveNPCs is on, and the pack does not know where the Elf"
-        " Doctor went. FFR does -- it wrote the seed -- so its rule names the"
-        " one home the roll picked and does not move at all between a shuffled"
-        " export and an unshuffled one. The permutation reaches neither the"
-        " flag string nor the spoiler, so the pack asks for all three homes"
-        " instead, which is Bahamut's Cave. Deliberately strict, the same call"
-        " the Cardia gateway roll got, and it only fires on a seed that rolled"
-        " the flag",
 }
 
 # FFR spoiler "Source" column against the pack's hosted-item codes. This is the
@@ -557,6 +548,17 @@ def roll_codes(rom, pack=PACK):
                 continue      # cardiaCaravan: no rule can ask about it
             source = entrance_graph.GATEWAY_SOURCE_NAMES[tid]
             codes.add(stage_codes[handle][sources[source] - 1])
+
+    # No guard code for this half. The rules that read it name a home and
+    # nothing else, and the state where nothing has said is covered by
+    # $noObjectiveShuffle and the objectiveNPCs alternatives that were already
+    # there -- so a $objectiveRollUnknown pinned here would be a token no rule
+    # spells, and scripts/logic.lua has no such function to match it.
+    where = entrance_graph.objective_roll(image)
+    if where is not None:
+        codes.add("objectiveRoll")
+        for npc, home in where.items():
+            codes.add(stage_codes[npc_code[npc]][homes[home] - 1])
 
     return codes
 

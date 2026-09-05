@@ -200,12 +200,18 @@
                     {
                         "name": "I: Elf Prince",
                         "access_rules": [
+                            "herb,elfdocInElflandCastle,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
                             "herb,$noObjectiveShuffle,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
                             "herb,objectiveNPCs,$standardWorld,airship,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
                             "herb,objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
                             "herb,objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
                             "herb,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
-                            "herb,objectiveNPCs,$noOverworld,$hasFloater,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems"
+                            "herb,objectiveNPCs,$noOverworld,$gatewayRollUnknown,$hasCanoe,$hasFloater,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,$noOverworld,$gatewayRollUnknown,chime,$hasFloater,oxyale,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,$noOverworld,bahamutCaveFromWaterfall,$hasFloater,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,$noOverworld,bahamutCaveFromGaia,$hasFloater,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,$noOverworld,bahamutCaveFromIceCave,$hasCanoe,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,$noOverworld,bahamutCaveFromIceCave,chime,$hasFloater,oxyale,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems"
                         ],
                         "hosted_item": "elfprince"
                     }

@@ -295,19 +295,26 @@ the `ChestsKeyItems` conjunct FFR ANDs in at `NPCs.cs:135`: with that flag off
 the shuffle does not run and the pack is needlessly strict, which is the side to
 be wrong on until there is a code for it.
 
-**This is a weaker close than a graded one, and the difference is worth naming.**
-Every other row here was settled by making `check_logic` agree with FFR. This
-one deliberately *disagrees*: on `objnpc497` the pack now holds the Elf Prince
-where FFR opens him, because FFR wrote the seed and knows where the Elf Doctor
-went. That divergence is in `check_logic`'s `WAIVED` table with the reason, so
-it is printed rather than hidden, and it fires only on a seed that rolled the
+**That was a weaker close than a graded one, and the difference was worth
+naming.** Every other row here was settled by making `check_logic` agree with
+FFR. That one deliberately *disagreed*: on `objnpc497` the pack held the Elf
+Prince where FFR opens him, because FFR wrote the seed and knew where the Elf
+Doctor went. The divergence sat in `check_logic`'s `WAIVED` table with the
+reason, printed rather than hidden, and fired only on a seed that rolled the
 flag.
 
-**The better fix is still open, and it is shared.** `tools/extract_npcs.py`
-already reads the permutation straight off the cartridge, and `regen_maps.py`
-already reads the cartridge per seed; the live bridge does not publish NPC
-positions today. Teaching it to is the same feature as publishing `ff1/gateways`
-for the Cardia roll, and it should be built once, for both.
+**Closed for real 2026-09-05, by reading the roll.** The bridge publishes both
+permutations as `ff1/rolls` — one key, two fields — and each of the two cells
+gained an alternative saying the NPC is at home, keyed on what the cartridge
+says rather than on the flag. `objnpc497` now grades the Elf Prince
+`(Herb AND Ship) OR (Canoe AND Herb)` in agreement with FFR, and the waiver is
+gone. The strict alternatives stay for the state where nothing has said, which
+is every Archipelago-only session and every board before the bridge attaches.
+
+The roll that sends an NPC to the *third* home is still strict — the Doctor to
+Melmond, Dr Unne to Elfland Castle both ask for Bahamut's Cave, which dominates
+— and `docs/ISSUES.md` says what that costs and why no cartridge can grade the
+alternative.
 
 **`ToFRMode` and `ChaosRush` landed 2026-08-31.** Neither can be graded by
 `check_logic` — `Archipelago.cs:93` drops every ToFR location from the pool, so

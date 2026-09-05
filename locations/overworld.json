@@ -1244,12 +1244,18 @@
                             {
                                 "name": "Elf Prince",
                                 "access_rules": [
+                                    "herb,elfdocInElflandCastle",
                                     "herb,$noObjectiveShuffle",
                                     "herb,objectiveNPCs,$standardWorld,airship",
                                     "herb,objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                                     "herb,objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                                     "herb,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
-                                    "herb,objectiveNPCs,$noOverworld,$hasFloater"
+                                    "herb,objectiveNPCs,$noOverworld,$gatewayRollUnknown,$hasCanoe,$hasFloater",
+                                    "herb,objectiveNPCs,$noOverworld,$gatewayRollUnknown,chime,$hasFloater,oxyale",
+                                    "herb,objectiveNPCs,$noOverworld,bahamutCaveFromWaterfall,$hasFloater",
+                                    "herb,objectiveNPCs,$noOverworld,bahamutCaveFromGaia,$hasFloater",
+                                    "herb,objectiveNPCs,$noOverworld,bahamutCaveFromIceCave,$hasCanoe",
+                                    "herb,objectiveNPCs,$noOverworld,bahamutCaveFromIceCave,chime,$hasFloater,oxyale"
                                 ],
                                 "item_count": 1,
                                 "hosted_item": "elfprince"
@@ -2640,12 +2646,18 @@
                     {
                         "name": "Dr Unne",
                         "access_rules": [
+                            "unneInMelmond",
                             "$noObjectiveShuffle",
                             "objectiveNPCs,$standardWorld,airship",
                             "objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                             "objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                             "objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
-                            "objectiveNPCs,$noOverworld,$hasFloater"
+                            "objectiveNPCs,$noOverworld,$gatewayRollUnknown,$hasCanoe,$hasFloater",
+                            "objectiveNPCs,$noOverworld,$gatewayRollUnknown,chime,$hasFloater,oxyale",
+                            "objectiveNPCs,$noOverworld,bahamutCaveFromWaterfall,$hasFloater",
+                            "objectiveNPCs,$noOverworld,bahamutCaveFromGaia,$hasFloater",
+                            "objectiveNPCs,$noOverworld,bahamutCaveFromIceCave,$hasCanoe",
+                            "objectiveNPCs,$noOverworld,bahamutCaveFromIceCave,chime,$hasFloater,oxyale"
                         ],
                         "hosted_item": "slabTranslated"
                     }
