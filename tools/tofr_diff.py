@@ -29,7 +29,15 @@ Three answers, not two. Cartridges the flags cannot certify as comparable get
 exit 2 rather than a cheerful 0 -- see `comparable` below for the three ways
 that happens. Saying "I cannot tell" is different from saying nothing moved.
 
+`--dump` reads one cartridge instead of comparing two. It exists because the
+refusal above is not a gap to be closed: the mode really does decide which
+floors exist, so Long against Mid is not a shuffle difference and never will
+be. The only way to record what each mode does is to read each one and put the
+readings side by side, which is what the flag prints -- which floors have a way
+in, and where the seven chest indices landed.
+
     tofr_diff.py a.nes b.nes          0 = same, 1 = differs, 2 = incomparable
+    tofr_diff.py --dump a.nes [b.nes] one cartridge's shape, not a comparison
 """
 
 import argparse
@@ -41,6 +49,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import entrance_graph as eg
 import extract_chests
+import noverworld_rules
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "ffr_flags"))
 import ffr_flags
 
@@ -57,6 +66,10 @@ KIND_NAME = {eg.TP_TELE_NORM: "norm", eg.TP_TELE_EXIT: "exit",
 # to a real mode with `rng.Between` and writes that nowhere. Two cartridges from
 # the same Random preset both decode as 3 while one is Long and the other Short.
 TOFR_MODE_RANDOM = 3
+
+# For the dump's heading only. The diff never spells a mode out, because it only
+# ever reports that two of them differ.
+MODE_NAME = {0: "Long", 1: "Mid", 2: "Short", TOFR_MODE_RANDOM: "Random"}
 
 
 def tofr_map_ids():
@@ -155,6 +168,10 @@ def read(path):
         "tofr_mode": flags.get("ToFRMode"),
         "maps": maps,
         "inbound": inbound,
+        # Not compared, and no test fixture carries it: the walk `--dump` does
+        # wants the same decompressed maps this function already built, and
+        # handing the graph on is cheaper than reading the cartridge twice.
+        "graph": g,
     }
 
 
@@ -183,6 +200,101 @@ def comparable(a, b):
     if a["tofr_mode"] is None:
         return "no ToFRMode in the decoded flags -- nothing certifies the shape."
     return None
+
+
+def wiring(state):
+    """{map name: (ways in, ways out)} for the eight ToFR maps.
+
+    Built out of what `read` already holds rather than by a second pass over the
+    cartridge. Only a normal teleport can land on a map: `inbound` is the census
+    of those from every map outside ToFR, and a floor's own rows carry the ones
+    from inside the gauntlet. So a floor with no way in is a floor the mode did
+    not wire, which is the question Long, Mid and Short answer differently --
+    Mid blocks the passages to Stairs B and repoints 1F's left stairs at the
+    Earth floor, and Short repoints the Black Orb warp at Chaos and orphans all
+    seven (FF1Lib/TempleOfFiends.cs, MidToFR and ShortenToFR).
+    """
+    into = collections.Counter()
+    for row, count in state["inbound"].items():
+        into[row[1]] += count
+    for name in TOFR_MAPS:
+        for row, count in state["maps"][name]["teleports"].items():
+            if row[3] in TOFR_MAPS:
+                into[row[3]] += count
+    return {name: (into[name], sum(state["maps"][name]["teleports"].values()))
+            for name in TOFR_MAPS}
+
+
+def reached(g, state):
+    """{map_id: {(x, y)}} -- every tile you can stand on, entering ToFR.
+
+    A walk, and it has to be. The teleport tables do not say which floors a mode
+    puts in the dungeon: `MidToFR` blocks the passages to Stairs B by writing
+    walls onto 1F (`0x39` at [0x1C,0x15] and [0x11,0x20]) and leaves 2F and 3F
+    with every table entry and every staircase they had. A census of ways in
+    reports them wired on a Mid cartridge, and they are not reachable. Only
+    Short's change is table-visible, because it repoints a teleport.
+
+    Seeded at the arrivals `read` already found rather than at the doors, which
+    is what makes this answerable on a standard cartridge at all: the walk does
+    not model an overworld, but it does not have to -- entering ToFR is the only
+    question, and `inbound` is the census of every way in.
+
+    Every item is in hand on purpose. What is being asked is what the mode
+    built, not what the seed gates, and holding everything separates the two: a
+    floor missing from this walk is missing because there is no way in.
+    """
+    seeds = [(None, eg.MAP_NAMES.index(row[1]), (row[2], row[3]))
+             for row in state["inbound"]]
+    return noverworld_rules.reachable_tiles(g, set(eg.ITEM_NAMES), seeds)
+
+
+def dump(state, path):
+    """Print one cartridge's ToFR shape.
+
+    The diff refuses across modes on purpose, so a comparison can never say what
+    Long does that Mid does not. Three of these tables side by side can, and
+    that is the whole reason this exists.
+
+    Two readings per floor, because they disagree and the disagreement is the
+    finding. `tele in` is how many teleports on the cartridge land on the floor,
+    read off the tables; `walk` is whether you can actually stand there entering
+    from outside with every item in hand. On Mid, 2F and 3F keep their table
+    entries and lose the walk.
+
+    Chests are listed by index rather than by floor, because the index is what
+    stays put. No mode erases a chest tile: Mid and Short lay fresh copies on
+    the floors they do put you on and leave the originals where they were, so an
+    index on two floors is the normal case there and the walk is what tells the
+    live copy from the stranded one.
+    """
+    mode = state["tofr_mode"]
+    print(path)
+    print(f"ToFRMode: {mode} ({MODE_NAME.get(mode, '?')})   "
+          f"GameMode: {state['game_mode']}")
+    ways = wiring(state)
+    tiles = reached(state["graph"], state)
+    print(f"  {'floor':34}{'tele in':>8}{'out':>5}{'chests':>8}  walk")
+    rows = []
+    for name in TOFR_MAPS:
+        map_id = eg.MAP_NAMES.index(name)
+        n_in, n_out = ways[name]
+        chests = sum(state["maps"][name]["chests"].values())
+        print(f"  {name:34}{n_in:8}{n_out:5}{chests:8}  "
+              + ("reached" if tiles.get(map_id) else "NOT REACHED"))
+        for (idx, col, row), count in state["maps"][name]["chests"].items():
+            # A chest is opened from beside it, never stood on -- the shared
+            # test for that is noverworld_rules.bump, which every derived rule
+            # in this repo already goes through.
+            rows.append((idx, name, col, row, count,
+                         noverworld_rules.bump(map_id, col, row)(tiles)))
+    print(f"  {'chest':>5}   {'floor':34}tile      walk")
+    for idx, name, col, row, count, live in sorted(rows):
+        print(f"  {idx:5}   {name:34}({col},{row})".ljust(54)
+              + ("open" if live else "stranded")
+              + (f" x{count}" if count > 1 else ""))
+    if not rows:
+        print("      none -- no ToFR map on this cartridge carries a chest")
 
 
 def diff_counter(a, b):
@@ -240,10 +352,25 @@ def main():
     ap = argparse.ArgumentParser(
         description="Diff the Temple of Fiends Revisited between two FFR ROMs")
     ap.add_argument("rom_a")
-    ap.add_argument("rom_b")
+    ap.add_argument("rom_b", nargs="?")
     ap.add_argument("-v", "--verbose", action="store_true",
                     help="also print the maps that agree")
+    ap.add_argument("--dump", action="store_true",
+                    help="print each cartridge's ToFR shape instead of "
+                         "comparing two")
     args = ap.parse_args()
+
+    if args.dump:
+        for i, path in enumerate(p for p in (args.rom_a, args.rom_b) if p):
+            if i:
+                print()
+            dump(read(path), path)
+        return 0
+    if args.rom_b is None:
+        # Not a usage nicety: a comparison silently given one cartridge is the
+        # shape of a check that cannot fail, which is what this whole tool
+        # exists to avoid.
+        ap.error("two ROMs are needed to compare; --dump reads one or two")
 
     a, b = read(args.rom_a), read(args.rom_b)
     n = report(a, b, args.rom_a, args.rom_b, args.verbose)

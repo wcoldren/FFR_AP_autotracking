@@ -286,12 +286,47 @@ dead reader: the two cartridges differ in 45987 bytes, and Gaia's gateway, both
 Waterfall stairs and SkyPalace5F's chest layout all moved between them. Nothing
 in ToFR did.
 
-**Open, and deliberately not concluded here:** the recorded four-seed finding
-that ToFR floor membership varies seed to seed was taken on *standard* seeds,
-which roll Long or Mid ToFR. Both cartridges here are ToFRMode 2 (Short), where
-Chaos's room holds the whole chest block. Whether Short is genuinely seed-stable
-or these two seeds simply agree needs a second standard pair to say, and has not
-been measured.
+**Closed 2026-09-05: ToFR floor membership is stable within a mode, and the
+earlier finding was reading two modes as one.** The question here was whether
+`nov` against `nov2` agreeing meant Short is seed-stable or meant those two
+seeds happen to agree, and the way to answer it was to stop pairing cartridges
+and read each one. Every cartridge on this machine, 37 of them across both
+corpora and the play seeds: **one chest layout per mode**, 26 Long, 5 Mid, 6
+Short. The source says why — every chest tile `MidToFR` and `ShortenToFR` write
+is a literal constant, and the only per-seed rows in either are the fiend
+battles and `CreateTwoPathsToFR`'s staircase permutation, neither of which
+touches a chest. So the recorded "varies seed to seed" was Long against Mid,
+mistaken for variance within a mode.
+
+**What each mode builds, read off one cartridge each.** The diff refuses across
+modes on purpose — the mode decides which floors exist, so Long against Mid is
+not a shuffle difference and never will be — so `tofr_diff.py --dump` reads a
+single cartridge instead, and three readings side by side are what the
+comparison cannot be. Measured 2026-09-05 on `6BF0DEA9` (Long), `C189A0EF`
+(Mid) and `72A52C25` (Short), every one of them GameMode 0. Walking from the
+ways in that the cartridge itself carries, holding every item:
+
+| ToFRMode | floors you can stand on | where the seven chest indices open |
+|---|---|---|
+| 0 Long | all eight | Air 248; Fire 249-252; 3F 253-254 |
+| 1 Mid | six — 2F and 3F are walled off | 1F 253-254; Earth 249-250; Fire 251-252 **and** 249-250; Water 248; Air 248 |
+| 2 Short | Chaos alone | Chaos 248-254, cols 12-18 rows 1-2 |
+
+Two things there are worth more than the table. **A mode's floor deletion is
+geometry, not the teleport table.** `MidToFR` blocks the passages to Stairs B by
+writing walls onto 1F and leaves 2F and 3F holding every table entry and every
+staircase they had, so a census of ways in reports them wired and they are not
+reachable; only Short's change is table-visible, because it repoints a
+teleport. That is why the dump walks rather than counting, and why its two
+columns disagree on a Mid cartridge.
+
+**And no mode erases a chest tile.** Mid and Short lay fresh copies on the
+floors they do put you in and leave the originals where they stood, so on Mid
+five of the seven indices sit on two tiles and on Short all seven do. On Mid
+both copies of 248, 249 and 250 are open — the stranded ones are 253 and 254 on
+3F. On Short every vanilla-floor copy is stranded. The pack names its seven
+locations after the vanilla floors and pins each to one map, which is the shape
+this measurement is against.
 
 **The derived-rule files in the corpus were regenerated on 2026-08-30**, when
 the SubEngineer and Titan rows widened the sweep to 2^12. They had been behind
@@ -797,6 +832,13 @@ touches a map bank.)
         --ap-rules $O/notail/notail.yaml --ff1-world $W
 
     python3 tools/tofr_diff.py $O/nov/oracle_nov.nes $O/nov2/oracle_nov2.nes
+
+The per-mode reading is the same tool on one cartridge, and its three seeds are
+play cartridges rather than corpus ones. That is not a compromise: ToFR is out
+of the AP export, so an oracle cartridge carries nothing here that a played seed
+does not, and no corpus preset rolls Mid.
+
+    python3 tools/tofr_diff.py --dump ~/repos/AP/seeds/ff1/duck-102/FFR_C189A0EF_TGXsXTAA.nes
 
 `--ff1-world` no longer has to be passed, as of 2026-09-03: the default was
 pointing one directory level short of the world and every location came back
