@@ -77,6 +77,10 @@ local function makeResyncButton()
     -- seed's settings too. Resync is the one place that is meant to throw away
     -- hand edits, flag-grid clicks included.
     FFR_FLAGS_SOURCE = nil
+    -- The two rolls with them. Nothing hand-edits those, but Resync is meant
+    -- to rebuild the board from the feeds, and a record already in
+    -- FFR_ROLLS_SOURCE would be short-circuited on the next tick.
+    FFR_ROLLS_SOURCE = nil
     resetForNewGame()
   end
 end
@@ -358,6 +362,11 @@ local function checkRom(store)
     -- string (flag_mapping.lua:347), so two seeds rolled on the same flags would
     -- otherwise carry the previous one's hand-corrected grid into the new game.
     FFR_FLAGS_SOURCE = nil
+    -- And the two rolls, for exactly the same reason: two cartridges that
+    -- rolled the same permutation publish the same record, so without this the
+    -- second would read as no change -- and one that publishes nothing would
+    -- leave the first one's answer standing on the board.
+    FFR_ROLLS_SOURCE = nil
     -- With it the verdict on that record. ff1/rom and ff1/flags normally arrive
     -- in the same message, so applyFFRFlags is about to re-decide this a few
     -- lines below -- but "normally" is not "always", and the light left over
@@ -396,6 +405,13 @@ function onFF1Flags(store)
   -- applyFFRFlags is a no-op unless the string actually changed.
   if applyFFRFlags then
     applyFFRFlags(store:ReadVariable("ff1/flags"))
+  end
+
+  -- The two permutations no flag string carries, on the same terms as the
+  -- flags: a fact about the cartridge, wanted before a save is loaded, and a
+  -- no-op unless the record actually changed.
+  if applyFFRRolls then
+    applyFFRRolls(store:ReadVariable("ff1/rolls"))
   end
 
   -- Ahead of the ready gate for the third time, and for the same reason: which
@@ -482,6 +498,6 @@ end
 -- order is not defined, and reading both out of one store removes any chance of
 -- decoding the new cartridge's flags against the old cartridge's identity.
 ScriptHost:AddVariableWatch("ff1mem",
-  {"ff1/mem", "ff1/ready", "ff1/rom", "ff1/flags", "ff1/goal", "ff1/art",
-   "ff1/shopitem"},
+  {"ff1/mem", "ff1/ready", "ff1/rom", "ff1/flags", "ff1/rolls", "ff1/goal",
+   "ff1/art", "ff1/shopitem"},
   onFF1Flags)

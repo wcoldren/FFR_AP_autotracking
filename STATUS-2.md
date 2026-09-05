@@ -93,7 +93,7 @@ the whole story.
   at once. Written down after the bank bug and never run until now -- and it
   earned itself immediately, by failing on its own stated invariant. See
   `STATUS.md`, "The gauntlet the mode skips".
-- `tests/run.sh` — 14 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
+- `tests/run.sh` — 15 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
   — the cartridge-reading tools' own tests, Python and nothing else; the ones
   that need a cartridge skip unless `FF1_ROM` points at one.
 - `tools/regen_maps.py --verify` — not part of either suite, because it asks

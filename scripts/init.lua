@@ -7,6 +7,10 @@ Tracker:AddItems("items/items.json")
 Tracker:AddItems("items/hosted_items.json")
 Tracker:AddItems("items/flags.json")
 Tracker:AddItems("items/shards.json")
+-- The two rolls the bridge reads off the cartridge. Not flags: nothing in
+-- items/rolls.json is a setting anyone chose, and no layout draws them. They
+-- exist because a rule can only be re-evaluated by an item changing.
+Tracker:AddItems("items/rolls.json")
 
 -- NOverworld needs the 53 dungeon maps too, or its per-chest markers have
 -- nowhere to draw; NOverworldMaps.json is loaded second so its entries win.
@@ -133,6 +137,11 @@ if PopVersion and PopVersion>="0.18.0" then
     ScriptHost:LoadScript("scripts/flags/schemas.lua")
     ScriptHost:LoadScript("scripts/autotracking/flags_decode.lua")
     -- flag_mapping.lua is already loaded, above, for the defaults.
+    --
+    -- The two rolls come off the same feed and have no defaults to restore --
+    -- the board already starts where "nothing has said" is -- so unlike
+    -- flag_mapping this is loaded here and nowhere else.
+    ScriptHost:LoadScript("scripts/autotracking/rolls_mapping.lua")
     ScriptHost:LoadScript("scripts/autotracking/uat.lua")
   end
 end

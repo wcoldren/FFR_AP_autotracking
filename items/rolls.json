@@ -1,0 +1,134 @@
+[
+	{
+		"name" : "Gateway roll read",
+		"type" : "toggle",
+		"img" : "images/icons/door_open.png",
+		"codes" : "gatewayRoll"
+	},
+	{
+		"name" : "Cardia Forest gateway",
+		"type" : "progressive",
+		"stages" : [
+			{
+				"name" : "Cardia Forest is through the Waterfall gateway",
+				"img" : "images/items/cube.png",
+				"codes" : "cardiaForestGateway,cardiaForestFromWaterfall",
+				"inherit_codes" : false
+			},
+			{
+				"name" : "Cardia Forest is through the Ice Cave gateway",
+				"img" : "images/locations/iceCave.png",
+				"codes" : "cardiaForestGateway,cardiaForestFromIceCave",
+				"inherit_codes" : false
+			},
+			{
+				"name" : "Cardia Forest is through the Gaia gateway",
+				"img" : "images/flags/gaiaMountain.png",
+				"codes" : "cardiaForestGateway,cardiaForestFromGaia",
+				"inherit_codes" : false
+			}
+		]
+	},
+	{
+		"name" : "Bahamut's Cave gateway",
+		"type" : "progressive",
+		"stages" : [
+			{
+				"name" : "Bahamut's Cave is through the Waterfall gateway",
+				"img" : "images/items/cube.png",
+				"codes" : "bahamutCaveGateway,bahamutCaveFromWaterfall",
+				"inherit_codes" : false
+			},
+			{
+				"name" : "Bahamut's Cave is through the Ice Cave gateway",
+				"img" : "images/locations/iceCave.png",
+				"codes" : "bahamutCaveGateway,bahamutCaveFromIceCave",
+				"inherit_codes" : false
+			},
+			{
+				"name" : "Bahamut's Cave is through the Gaia gateway",
+				"img" : "images/flags/gaiaMountain.png",
+				"codes" : "bahamutCaveGateway,bahamutCaveFromGaia",
+				"inherit_codes" : false
+			}
+		]
+	},
+	{
+		"name" : "Objective NPC roll read",
+		"type" : "toggle",
+		"img" : "images/misc/unne.png",
+		"codes" : "objectiveRoll"
+	},
+	{
+		"name" : "Elf Doctor",
+		"type" : "progressive",
+		"stages" : [
+			{
+				"name" : "The Elf Doctor is in Melmond",
+				"img" : "images/flags/melmondRiver.png",
+				"codes" : "elfdocHome,elfdocInMelmond",
+				"inherit_codes" : false
+			},
+			{
+				"name" : "The Elf Doctor is in Elfland Castle",
+				"img" : "images/locations/prince.png",
+				"codes" : "elfdocHome,elfdocInElflandCastle",
+				"inherit_codes" : false
+			},
+			{
+				"name" : "The Elf Doctor is in Bahamut's Cave",
+				"img" : "images/items/tail.png",
+				"codes" : "elfdocHome,elfdocInBahamutCave",
+				"inherit_codes" : false
+			}
+		]
+	},
+	{
+		"name" : "Dr Unne",
+		"type" : "progressive",
+		"stages" : [
+			{
+				"name" : "Dr Unne is in Melmond",
+				"img" : "images/flags/melmondRiver.png",
+				"codes" : "unneHome,unneInMelmond",
+				"inherit_codes" : false
+			},
+			{
+				"name" : "Dr Unne is in Elfland Castle",
+				"img" : "images/locations/prince.png",
+				"codes" : "unneHome,unneInElflandCastle",
+				"inherit_codes" : false
+			},
+			{
+				"name" : "Dr Unne is in Bahamut's Cave",
+				"img" : "images/items/tail.png",
+				"codes" : "unneHome,unneInBahamutCave",
+				"inherit_codes" : false
+			}
+		]
+	},
+	{
+		"name" : "Bahamut",
+		"type" : "progressive",
+		"stages" : [
+			{
+				"name" : "Bahamut is in Melmond",
+				"img" : "images/flags/melmondRiver.png",
+				"codes" : "bahamutHome,bahamutInMelmond",
+				"inherit_codes" : false
+			},
+			{
+				"name" : "Bahamut is in Elfland Castle",
+				"img" : "images/locations/prince.png",
+				"codes" : "bahamutHome,bahamutInElflandCastle",
+				"inherit_codes" : false
+			},
+			{
+				"name" : "Bahamut is in Bahamut's Cave",
+				"img" : "images/items/tail.png",
+				"codes" : "bahamutHome,bahamutInBahamutCave",
+				"inherit_codes" : false
+			}
+		]
+	}
+]

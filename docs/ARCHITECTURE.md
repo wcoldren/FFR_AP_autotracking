@@ -450,7 +450,7 @@ that fails the run. That is the thing to run before
 calling anything done; what follows is what it runs.
 
 ```
-tests/run.sh         14 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
+tests/run.sh         15 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
 tools/tests/run.sh   32 Python suites for the cartridge-reading tools.
                      Eighteen of them skip, wholly or in part, unless FF1_ROM
