@@ -190,13 +190,31 @@ its oracle seed is a hand transcription, which is what section 5 is meant to end
 
 Things a bridge-only player checks that the board has no cell for.
 
-- **ToFR floor modelling.** The rules are *not* unwritten:
-  `locations/overworld.json:410` carries three alternatives on the `ToFR` node
-  and the seven chests inherit them. What is unwritten is the *floors* — Mid
-  ToFR deletes 2F and 3F outright and the tree does not know, and nothing
-  distinguishes the Lute Plate rooms or the Kary floors from the entrance. The
-  AP export drops ToFR unconditionally, so `tofr_diff.py` stays the only check
-  and any change here needs its own measured cartridge pair.
+- **ToFR floor modelling.** Two of the three halves this bullet named are done.
+
+  **The rules now distinguish the rooms from the gauntlet, 2026-09-05.** The
+  whole gate used to sit on the `ToFR` node where a child could not widen it,
+  and the two Lute Plate rooms are in front of the lute plate rather than
+  behind it, so they were red on every Long and Mid seed — 31 of the 37
+  cartridges on this machine. The node keeps `$canBreakOrb` and the five chests
+  past the plate carry the rest themselves. `docs/ISSUES.md`, "Two ToFR chests
+  were held red on every standard seed".
+
+  **And each mode has been read, 2026-09-05.** `tofr_diff.py --dump` walks one
+  cartridge instead of comparing two, because the diff refuses across modes on
+  purpose. Long wires eight floors, Mid six, Short one; no mode erases a chest
+  tile, so five of the seven indices sit on two tiles on Mid and all seven do
+  on Short; and membership is stable within a mode across all 37 cartridges.
+  `docs/ORACLE.md`, "What each mode builds".
+
+  **What is left is the pins.** The seven chest children still name one vanilla
+  floor each, so on a Mid seed two pins sit on `ToFR 3F` — which that mode does
+  not wire at all — and on a Short seed all seven sit on floors the warp never
+  takes you to. The placement table is known and static; what it needs is a
+  code the tree can name the mode with, a `map_locations` entry per mode-floor,
+  and `tools/map_calibration.json` offsets for `tofr1F`, `tofrEarth`,
+  `tofrWater` and `tofrChaos`, none of which has one because none has a vanilla
+  chest to solve from.
 
 **Closed.**
 

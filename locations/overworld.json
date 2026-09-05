@@ -408,9 +408,7 @@
                     {
                         "name": "ToFR",
                         "access_rules": [
-                            "$canBreakOrb,lute,key",
-                            "chaosRush,$canBreakOrb,lute",
-                            "shortToFR,$canBreakOrb"
+                            "$canBreakOrb"
                         ],
                         "sections": [
                             {
@@ -502,6 +500,11 @@
                             },
                             {
                                 "name": "ToFR Vanilla Masa",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute",
+                                    "shortToFR"
+                                ],
                                 "sections": [
                                     {
                                         "name": "Chest",
@@ -523,6 +526,11 @@
                             },
                             {
                                 "name": "ToFR Kary Floor 1",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute",
+                                    "shortToFR"
+                                ],
                                 "sections": [
                                     {
                                         "name": "Chest",
@@ -544,6 +552,11 @@
                             },
                             {
                                 "name": "ToFR Kary Floor 2",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute",
+                                    "shortToFR"
+                                ],
                                 "sections": [
                                     {
                                         "name": "Chest",
@@ -565,6 +578,11 @@
                             },
                             {
                                 "name": "ToFR Kary Floor 3",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute",
+                                    "shortToFR"
+                                ],
                                 "sections": [
                                     {
                                         "name": "Chest",
@@ -586,6 +604,11 @@
                             },
                             {
                                 "name": "ToFR Kary Floor 4",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute",
+                                    "shortToFR"
+                                ],
                                 "sections": [
                                     {
                                         "name": "Chest",

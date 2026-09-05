@@ -150,8 +150,8 @@ either. The eleven above them are in both schemas.
 |---|---|---|
 | `OrbsRequiredCount`, `OrbsRequiredMode` | `logic.lua:223-224` reads `ffrFlag()` directly | code |
 | `ShardCount` | `hasEnoughShards()` | code |
-| `ToFRMode` | `shortToFR` progressive; `shortToFR,$canBreakOrb` on the ToFR node | code — only Short moves a rule |
-| `ChaosRush` | `chaosRush` toggle; `chaosRush,$canBreakOrb,lute` on the ToFR node | code |
+| `ToFRMode` | `shortToFR` progressive; `shortToFR` on the five chests behind the lute plate | code — only Short moves a rule |
+| `ChaosRush` | `chaosRush` toggle; `chaosRush,lute` on the same five | code |
 | `ExitToFR` | `NOT_MODELLED` in `flag_mapping.lua` | **decided against** — it opens nothing; see below |
 | `FiendsRefights` | `NOT_MODELLED`, status `unjudged` | **unmeasured** — decides whether the four fiends stand in ToFR and on which paths (`TempleOfFiends.cs:53`, `:93`, `:100`) |
 | `ShortToFRFiendsRefights` | `NOT_MODELLED`, status `unjudged` | **unmeasured** — the same decision for a shortened ToFR, with seven arrangements rather than three (`:54`, `:207-332`) |

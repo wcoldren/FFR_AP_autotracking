@@ -427,8 +427,10 @@ else:
        "all seven are derived reachable on the orbs alone",
        f"{len(orbs_only)} of 7")
 
-    # And the pack now says the same. The ToFR node's alternatives are read out
-    # of the tree; with shortToFR held, one of them must need nothing but orbs.
+    # And the pack now says the same. A child's rules are not its own --
+    # PopTracker crosses the parent's alternatives with its own -- so the
+    # effective rule is built here rather than read off one node, which is what
+    # made the check worth having once the gate moved down onto the chests.
     tree = json.load(open(os.path.join(os.path.dirname(TOOLS), "locations/overworld.json")))
 
     def find(nodes, name):
@@ -440,18 +442,33 @@ else:
                 return hit
 
     node = find(tree, "ToFR")
-    held = {"shortToFR", "orbs"}
-    reach = [a for a in node["access_rules"]
-             if set(cl.alt_terms(a)) <= held]
-    ok(len(reach) == 1,
-       "the pack has an alternative the orbs alone satisfy on a Short seed",
-       reach[0] if reach else "none -- the chests stay red")
 
-    # The gate is still a gate: nothing opens them without shortToFR.
-    bare = [a for a in node["access_rules"] if set(cl.alt_terms(a)) <= {"orbs"}]
-    ok(not bare, "and none they satisfy without it",
-       bare[0] if bare else "none, as it should be")
+    def effective(name):
+        """[{terms}] -- the parent's alternatives crossed with the child's."""
+        child = find(node.get("children", []), name)
+        own = child.get("access_rules") or [""]
+        return [set(cl.alt_terms(a)) | set(cl.alt_terms(b)) if b else set(cl.alt_terms(a))
+                for a in node["access_rules"] for b in own]
 
+    def opens(name, held):
+        return any(alt <= held for alt in effective(name))
 
-print("\n" + ("FAILURES: " + ", ".join(fails) if fails else "ALL PASS"))
-sys.exit(1 if fails else 0)
+    PLATE = ["ToFR Lute Plate Room 1", "ToFR Lute Plate Room 2"]
+    GAUNTLET = [n for n in TOFR if n not in PLATE]
+
+    shut = [n for n in GAUNTLET if not opens(n, {"shortToFR", "orbs"})]
+    ok(not shut, "the five behind the plate open on the orbs on a Short seed",
+       ", ".join(shut) if shut else "all five")
+
+    # The gate is still a gate: nothing opens those five without shortToFR.
+    bare = [n for n in GAUNTLET if opens(n, {"orbs"})]
+    ok(not bare, "and none of them opens without it",
+       ", ".join(bare) if bare else "none, as it should be")
+
+    # The two in front of the plate are open on the orbs on every mode, which is
+    # the half the corpus above agrees with and the pack used to deny: walking
+    # 6BF0DEA9 (Long) and C189A0EF (Mid) from the Black Orb landing on the orbs
+    # alone opens chest indices 253 and 254 and nothing else.
+    closed = [n for n in PLATE if not opens(n, {"orbs"})]
+    ok(not closed, "the two in front of it need nothing but the orbs",
+       ", ".join(closed) if closed else "both open")
