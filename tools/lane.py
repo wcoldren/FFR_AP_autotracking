@@ -807,6 +807,30 @@ def region_of(f, tile, regs=None):
     return 0
 
 
+def preferred_edges(runs, region):
+    """Every step of every route lane already walked for `region`.
+
+    What a loot lane in that region prefers, so the two coincide wherever
+    following the route costs nothing. Named apart from
+    render_maps.route_edges, which answers the drawing-side half of the same
+    question -- that one indexes every region at once and subtracts, this one
+    is one region's and feeds a cost function.
+
+    Every matching run rather than the first. A region may carry more than one
+    route lane -- the file format has always allowed it and nothing here caps
+    it, only tools/lane_edit.py's addressing used to -- and stopping at the
+    first leaves the rest unpreferred, so the loot lane walks at full length
+    down a corridor a later route lane already covers. render_maps.route_edges
+    has never had the cap, so a second route lane drew correctly and was walked
+    as though it were not there: the drawing and the walk disagreed.
+    """
+    edges = []
+    for r in runs:
+        if r.label == "route" and r.region == region:
+            edges.extend(zip(r.path, r.path[1:]))
+    return tuple(edges)
+
+
 def authored(rom, graph, map_id, entry, chests=None, retrace=False):
     """-> Lanes for one map from a lane file's layout entry, or None.
 
@@ -857,14 +881,9 @@ def authored(rom, graph, map_id, entry, chests=None, retrace=False):
                 regs = regions(plain)
             here = anchors(plain, stops[0], groups)
             region = region_of(plain, here[0], regs) if here else 0
-        # The loot lane prefers the route lane already drawn for this region,
+        # The loot lane prefers the route lanes already drawn for this region,
         # exactly as plan() does, so the two coincide where that is free.
-        prefer = ()
-        if flavour == "loot":
-            for r in runs:
-                if r.label == "route" and r.region == region:
-                    prefer = zip(r.path, r.path[1:])
-                    break
+        prefer = preferred_edges(runs, region) if flavour == "loot" else ()
         f = Floor(rom, graph, map_id, prefer=prefer)
         first = anchors(f, stops[0], groups)
         got_path, got, gaps = walk(f, stops, groups,

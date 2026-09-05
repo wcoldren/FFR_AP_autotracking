@@ -124,6 +124,56 @@ def regions_do_not_share_edges():
     return fails
 
 
+def a_region_may_carry_more_than_one_route_lane():
+    """A loot lane prefers every route lane in its region, not the first.
+
+    The file format and lane.authored have always allowed a second route lane
+    in one region; what capped it was tools/lane_edit.py addressing a lane by
+    (flavour, region), so the second was unreachable through the UI and the
+    case never arose. Lifting that in the editor makes this reachable, and the
+    two halves of the pack disagreed about it: render_maps.route_edges unions
+    every route run per region and always has, so a second route lane *drew*
+    correctly while being walked as though it were not there -- the loot lane
+    would take a second line down a corridor the drawing then collapses.
+
+    Needs no cartridge. preferred_edges is the whole rule, and Run carries its
+    own label, path and region.
+    """
+    fails = []
+
+    def check(label, got, want):
+        if got != want:
+            fails.append(f"{label}: got {got!r}, want {want!r}")
+        print(f"{'ok  ' if got == want else 'FAIL'} {label}")
+
+    def run(label, path, region=0):
+        return L.Run(label, path[0], list(path), frozenset(), [1], [], region)
+
+    first = run("route", [(1, 1), (2, 1), (3, 1)])
+    second = run("route", [(7, 1), (8, 1), (9, 1)])
+    elsewhere = run("route", [(1, 5), (2, 5)], region=1)
+    loot = run("loot", [(1, 1), (2, 1)])
+
+    one = L.preferred_edges([first, loot], 0)
+    check("one route lane in the region is preferred", one,
+          (((1, 1), (2, 1)), ((2, 1), (3, 1))))
+
+    both = L.preferred_edges([first, second, loot], 0)
+    check("a second route lane in the same region is preferred too",
+          len(both), 4)
+    check("  and it is the second one's steps that were added",
+          set(both) - set(one), {((7, 1), (8, 1)), ((8, 1), (9, 1))})
+
+    check("another region's route lane is not",
+          L.preferred_edges([first, elsewhere, loot], 0), one)
+    check("  and that region sees only its own",
+          L.preferred_edges([first, elsewhere, loot], 1),
+          (((1, 5), (2, 5)),))
+    check("a region with no route lane prefers nothing",
+          L.preferred_edges([loot], 3), ())
+    return fails
+
+
 def arrowheads_do_not_meet_nose_to_nose():
     """No tile carries two heads pointing opposite ways.
 
@@ -360,6 +410,7 @@ def loops_counts_circuits_not_repeats():
 
 def main():
     fails = regions_do_not_share_edges()
+    fails += a_region_may_carry_more_than_one_route_lane()
     fails += arrowheads_do_not_meet_nose_to_nose()
     fails += arrowheads_meet_across_the_torus_join()
     fails += loops_counts_circuits_not_repeats()

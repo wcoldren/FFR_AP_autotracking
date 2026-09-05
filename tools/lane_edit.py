@@ -753,6 +753,15 @@ label.tog{display:flex; gap:6px; align-items:center; font-size:11px;
         </div>
         <select id="region"></select>
       </div>
+      <!-- Every lane on this floor, because a floor may carry more than one of
+           a kind in a region and the flavour buttons above can only ever reach
+           the first. The strip is what makes the rest addressable, and what
+           makes "how many lanes has this floor got" a thing you can see. -->
+      <div class="row" style="margin-top:6px">
+        <div class="seg" id="laneStrip"></div>
+        <button id="addLane" title="A new lane with the flavour and region selected above">+ lane</button>
+        <button id="dropLane" title="Remove the selected lane from this floor">Drop lane</button>
+      </div>
       <ul id="stops"></ul>
       <div class="row" style="margin-top:8px">
         <button id="del">Delete</button>
@@ -899,6 +908,23 @@ function syncUI() {
   for (const b of document.querySelectorAll('#flav button'))
     b.classList.toggle('on', b.dataset.f === L.flavour);
   el('region').value = String(L.region || 0);
+  /* One chip per lane, labelled by kind, region and its ordinal among the
+     lanes sharing that pair -- so "R2b" is the second route lane in region 2.
+     The ordinal only appears where there is one to disambiguate. */
+  const nth = {};
+  el('laneStrip').innerHTML = lanes.map((M, i) => {
+    const key = M.flavour + ':' + (M.region || 0);
+    nth[key] = (nth[key] || 0) + 1;
+    const twins = lanes.filter(o => o.flavour === M.flavour
+                                 && (o.region || 0) === (M.region || 0)).length;
+    const suffix = twins > 1 ? String.fromCharCode(96 + nth[key]) : '';
+    return '<button data-l="' + i + '"' + (i === cur ? ' class="on"' : '') +
+      ' title="' + M.flavour + ', region ' + ((M.region || 0) + 1) + ', ' +
+      M.stops.length + ' stop(s)">' +
+      (M.flavour === 'route' ? 'R' : 'L') + ((M.region || 0) + 1) + suffix +
+      '</button>';
+  }).join('');
+  el('dropLane').disabled = lanes.length < 2;
   const gaps = (drawn[cur] || {}).gaps || [];
   const bad = new Set(gaps.flat());
   el('stops').innerHTML = L.stops.map((s, i) =>
@@ -934,6 +960,9 @@ function refresh() {
     for (const i of order) {
       const L = lanes[i];
       if (L.stops.length < 2) { out[i] = { path: [], gaps: [] }; continue; }
+      /* Every route lane in the region, not the first: lane.walk joins them
+         the same way, and a page that subtracted one of two would draw a loot
+         lane the bake then disagrees with. */
       let prefer = [];
       if (L.flavour === 'loot')
         for (let j = 0; j < lanes.length; j++)
@@ -941,7 +970,6 @@ function refresh() {
               && out[j] && out[j].path.length > 1) {
             const p = out[j].path;
             for (let k = 1; k < p.length; k++) prefer.push([p[k - 1], p[k]]);
-            break;
           }
       const r = await (await fetch('/path', { method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1102,6 +1130,32 @@ el('region').onchange = () => {
   let i = lanes.findIndex(L => L.flavour === f && L.region === reg);
   if (i < 0) { snapshot(); lanes.push({ flavour: f, region: reg, stops: [] }); i = lanes.length - 1; }
   cur = i; sel = -1; refresh();
+};
+
+/* The strip addresses a lane by its index, which is the only handle that tells
+   two lanes of one kind in one region apart. The buttons above still address
+   by (flavour, region) and still reach the first of a pair, which is what a
+   floor with one of each -- nearly all of them -- wants. */
+el('laneStrip').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  cur = +b.dataset.l; sel = -1; refresh();
+});
+el('addLane').onclick = () => {
+  const L = lanes[cur] || { flavour: 'route', region: 0 };
+  snapshot();
+  lanes.push({ flavour: L.flavour, region: L.region || 0, stops: [] });
+  cur = lanes.length - 1; sel = -1; refresh();
+};
+/* A floor always keeps one lane: refresh() seeds an empty route lane when the
+   list is empty, so dropping the last would put back what was just removed and
+   read as the button doing nothing. */
+el('dropLane').onclick = () => {
+  if (lanes.length < 2) return;
+  snapshot();
+  lanes.splice(cur, 1);
+  if (cur >= lanes.length) cur = lanes.length - 1;
+  sel = -1; refresh();
 };
 for (const b of document.querySelectorAll('#zoom button')) b.onclick = () => {
   zoom = +b.dataset.z;
