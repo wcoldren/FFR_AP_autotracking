@@ -64,9 +64,65 @@
        ]
       }
      ]
+    },
+    {
+     "flavour": "route",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        55,
+        5
+       ],
+       "in": [
+        49,
+        6
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        50,
+        8
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        55,
+        5
+       ],
+       "in": [
+        49,
+        6
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 112,
+       "at": [
+        51,
+        8
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        50,
+        8
+       ]
+      }
+     ]
     }
    ],
-   "ported": true
+   "retrace": true
   }
  ]
 }

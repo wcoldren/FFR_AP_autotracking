@@ -385,10 +385,37 @@
        ]
       }
      ]
+    },
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        30,
+        32
+       ],
+       "in": [
+        5,
+        2
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        5,
+        2
+       ],
+       "in": [
+        5,
+        2
+       ]
+      }
+     ]
     }
    ],
-   "retrace": true,
-   "ported": true
+   "retrace": true
   }
  ]
 }

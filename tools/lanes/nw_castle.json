@@ -110,6 +110,17 @@
         16,
         7
        ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        28,
+        3
+       ],
+       "in": [
+        10,
+        20
+       ]
       }
      ]
     },
@@ -129,22 +140,61 @@
        ]
       },
       {
-       "kind": "tile",
+       "kind": "chest",
+       "index": 17,
        "at": [
-        28,
-        4
+        8,
+        13
        ]
       },
       {
-       "kind": "tile",
+       "kind": "chest",
+       "index": 19,
        "at": [
         10,
-        19
+        14
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 18,
+       "at": [
+        12,
+        13
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "route",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        28,
+        3
+       ],
+       "in": [
+        10,
+        20
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        10,
+        20
+       ],
+       "in": [
+        10,
+        20
        ]
       }
      ]
     }
-   ]
+   ],
+   "retrace": true
   }
  ]
 }

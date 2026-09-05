@@ -69,17 +69,25 @@
      "region": 0,
      "stops": [
       {
-       "kind": "tile",
+       "kind": "arrival",
        "at": [
-        36,
-        38
+        7,
+        7
+       ],
+       "in": [
+        7,
+        7
        ]
       },
       {
-       "kind": "exit",
+       "kind": "arrival",
        "at": [
-        58,
-        58
+        18,
+        16
+       ],
+       "in": [
+        7,
+        7
        ]
       }
      ]
@@ -89,24 +97,22 @@
      "region": 0,
      "stops": [
       {
-       "kind": "tile",
+       "kind": "arrival",
        "at": [
-        36,
-        38
+        18,
+        16
+       ],
+       "in": [
+        7,
+        7
        ]
       },
       {
-       "kind": "tile",
+       "kind": "chest",
+       "index": 27,
        "at": [
-        37,
-        50
-       ]
-      },
-      {
-       "kind": "exit",
-       "at": [
-        58,
-        58
+        26,
+        7
        ]
       }
      ]
@@ -116,24 +122,83 @@
      "region": 1,
      "stops": [
       {
-       "kind": "tile",
+       "kind": "arrival",
        "at": [
-        7,
-        8
+        34,
+        37
+       ],
+       "in": [
+        34,
+        37
        ]
       },
       {
-       "kind": "tile",
+       "kind": "chest",
+       "index": 25,
        "at": [
-        17,
+        37,
+        49
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "route",
+     "region": 1,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        34,
+        37
+       ],
+       "in": [
+        34,
+        37
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        58,
+        58
+       ],
+       "in": [
+        34,
+        37
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        18,
         16
+       ],
+       "in": [
+        7,
+        7
        ]
       },
       {
-       "kind": "tile",
+       "kind": "chest",
+       "index": 24,
        "at": [
-        26,
-        8
+        11,
+        23
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 25,
+       "at": [
+        9,
+        23
        ]
       }
      ]

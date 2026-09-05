@@ -73,11 +73,11 @@
        "kind": "arrival",
        "at": [
         21,
-        27
+        25
        ],
        "in": [
-        21,
-        27
+        1,
+        7
        ]
       },
       {
@@ -90,25 +90,18 @@
      ]
     },
     {
-     "flavour": "loot",
+     "flavour": "route",
      "region": 0,
      "stops": [
       {
        "kind": "arrival",
        "at": [
         21,
-        27
+        25
        ],
        "in": [
-        21,
-        27
-       ]
-      },
-      {
-       "kind": "tile",
-       "at": [
-        43,
-        24
+        1,
+        7
        ]
       },
       {
@@ -116,6 +109,62 @@
        "at": [
         1,
         7
+       ],
+       "in": [
+        1,
+        7
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        21,
+        25
+       ],
+       "in": [
+        1,
+        7
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        43,
+        23
+       ],
+       "in": [
+        1,
+        7
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        43,
+        23
+       ],
+       "in": [
+        1,
+        7
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        32,
+        52
        ],
        "in": [
         1,

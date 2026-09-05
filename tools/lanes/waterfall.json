@@ -146,9 +146,56 @@
        ]
       }
      ]
+    },
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        57,
+        56
+       ],
+       "in": [
+        10,
+        55
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        18,
+        32
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "exit",
+       "at": [
+        18,
+        32
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        10,
+        55
+       ],
+       "in": [
+        10,
+        55
+       ]
+      }
+     ]
     }
-   ],
-   "ported": true
+   ]
   }
  ]
 }

@@ -168,9 +168,32 @@
        ]
       }
      ]
+    },
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        1,
+        12
+       ],
+       "in": [
+        1,
+        12
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        46,
+        23
+       ]
+      }
+     ]
     }
-   ],
-   "ported": true
+   ]
   }
  ]
 }

@@ -200,17 +200,10 @@
        ]
       },
       {
-       "kind": "tile",
+       "kind": "exit",
        "at": [
-        30,
+        31,
         7
-       ]
-      },
-      {
-       "kind": "tile",
-       "at": [
-        3,
-        2
        ]
       }
      ]
@@ -226,16 +219,8 @@
         42
        ],
        "in": [
-        21,
-        42
-       ]
-      },
-      {
-       "kind": "chest",
-       "index": 160,
-       "at": [
-        36,
-        25
+        2,
+        2
        ]
       },
       {
@@ -247,16 +232,13 @@
        ]
       },
       {
-       "kind": "tile",
+       "kind": "arrival",
        "at": [
-        30,
-        7
-       ]
-      },
-      {
-       "kind": "tile",
-       "at": [
-        3,
+        2,
+        2
+       ],
+       "in": [
+        2,
         2
        ]
       }
@@ -349,10 +331,69 @@
        ]
       }
      ]
+    },
+    {
+     "flavour": "route",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        21,
+        42
+       ],
+       "in": [
+        2,
+        2
+       ]
+      },
+      {
+       "kind": "arrival",
+       "at": [
+        2,
+        2
+       ],
+       "in": [
+        2,
+        2
+       ]
+      }
+     ]
+    },
+    {
+     "flavour": "loot",
+     "region": 0,
+     "stops": [
+      {
+       "kind": "arrival",
+       "at": [
+        21,
+        42
+       ],
+       "in": [
+        2,
+        2
+       ]
+      },
+      {
+       "kind": "chest",
+       "index": 160,
+       "at": [
+        36,
+        25
+       ]
+      },
+      {
+       "kind": "exit",
+       "at": [
+        31,
+        7
+       ]
+      }
+     ]
     }
    ],
-   "retrace": true,
-   "ported": true
+   "retrace": true
   }
  ]
 }
