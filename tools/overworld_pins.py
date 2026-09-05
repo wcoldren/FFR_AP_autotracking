@@ -355,25 +355,41 @@ def spread(placed, step, dim=256, taken=None):
     marker of 92 pixels, near six tiles, two boxes a tile apart still sit on
     top of each other. Boxes are what a player sees, so boxes are what has to
     be stacked, and how big one is depends on a crop this cannot see.
+
+    Which is why the collision is a box overlap and not a shared tile. Taking
+    the step from the marker and then asking whether two pins sat on the same
+    cell answered the wrong question: Cardia Swampy stood three tiles off
+    Bahamut's door, cleared the tile test, and drew half on top of it. Two
+    boxes clash when they are within a step on both axes, which is the same
+    measurement the step already is.
     """
     step = max(1, int(step))
     out, taken = {}, dict(taken or {})
+
+    def clash(cell):
+        """The name of a marker whose box overlaps one drawn at `cell`."""
+        for (col, row), who in taken.items():
+            if abs(col - cell[0]) < step and abs(row - cell[1]) < step:
+                return who
+        return None
+
     for name, where in placed.items():
         moved = where
         # North first: there is most room above a door on this art, and the
         # column then reads as one stack rather than two directions.
-        while moved in taken and moved[1] - step >= 0:
+        while clash(moved) and moved[1] - step >= 0:
             moved = (moved[0], moved[1] - step)
         # The top edge is not a wrap point. This is not a torus -- content_box
         # clamps to the map -- and a door within a step of row 0 used to wrap to
         # y~250, which stretched the crop to nearly every row and put the pin at
         # the far bottom of the render: a silently wrong map rather than a
         # reported failure. Out of room going north, go south instead.
-        while moved in taken and moved[1] + step < dim:
+        while clash(moved) and moved[1] + step < dim:
             moved = (moved[0], moved[1] + step)
-        if moved in taken:
+        blocked = clash(moved)
+        if blocked:
             raise ValueError(
-                f"no room to stack {name!r} clear of {taken[moved]!r}: "
+                f"no room to stack {name!r} clear of {blocked!r}: "
                 f"{where} with a {step}-tile step on a {dim}-tile map")
         taken[moved] = name
         out[name] = moved

@@ -789,6 +789,17 @@ door with its contents on top. The doors are anchors for the crop too, because
 five of them carry no place pin and two of those sit well away from the nearest;
 that cost six rows and no width, and the eight-pass fixed point settled.
 
+**And the collision had to become a box, not a tile.** `spread()` took its step
+from the marker and then asked whether two pins sat on the same *cell*, which is
+two different measurements: Cardia Swampy stood three tiles off Bahamut's door,
+cleared the tile test, and drew half on top of the trapezoid. Two boxes clash
+when they are within a step on both axes. That takes the standard overworld from
+six overlapping pairs to three, and the incentive sheet to none. The three left
+are doors sixteen to eighty pixels apart -- Elfland and its castle, Coneria and
+its castle, Bahamut's cave and Cardia -- where no marker size separates them and
+stacking one would put a trapezoid on a tile that is not its door, which is the
+one thing these pins exist to say.
+
 **Where the injection goes is load-bearing in both directions.** After
 `restamp`, which would otherwise take all thirty straight back out. Before
 `pin_visibility.stamp`, so the rule is the stamper's to write -- it learned an

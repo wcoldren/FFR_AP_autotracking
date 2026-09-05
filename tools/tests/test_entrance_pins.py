@@ -132,6 +132,13 @@ def main():
           op.spread({"Coneria": (10, 40)}, 6, taken=door)["Coneria"], (10, 34))
     check("  and stays put where no door is seeded",
           op.spread({"Coneria": (10, 40)}, 6)["Coneria"], (10, 40))
+    # The collision is a box overlap, not a shared tile. Three tiles off a door
+    # with a six-tile marker is Cardia Swampy's case: clear on the tile test and
+    # half on top of the trapezoid on the board.
+    check("    a shared-tile test would call this one clear", (13, 43) in door,
+          False)
+    check("  and it moves anyway, because the boxes overlap",
+          op.spread({"Coneria": (13, 43)}, 6, taken=door)["Coneria"], (13, 31))
 
     # The floor-exit rule, on a grid built here rather than found on a
     # cartridge. A cartridge can only show the rule agreeing with itself; this
