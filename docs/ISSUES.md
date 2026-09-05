@@ -6,11 +6,40 @@ without reading the whole log. The narrative — how each was found, what was tr
 
 **A closed entry stays here, dated, and is not deleted.** Nothing re-reads a
 closed defect, so an entry that goes quiet outlives its own fix and sends the
-next reader after work already done — which is exactly how the first entry below
-led this list for weeks after it stopped being true. Say a closed entry closed,
-in it, on the day it closes. This is the opposite call from `docs/ROADMAP.md`,
-and deliberately: that page is a plan and gets shorter as things land, this one
-is a register and only earns its keep by holding the whole history of a defect.
+next reader after work already done — which is exactly how the entry named "The
+No-Overworld variants ran standard-overworld logic" led this list for weeks
+after it stopped being true. Say a closed entry closed, in it, on the day it
+closes. This is the opposite call from `docs/ROADMAP.md`, and deliberately: that
+page is a plan and gets shorter as things land, this one is a register and only
+earns its keep by holding the whole history of a defect.
+
+**Open entries sort above closed ones inside each section. Sorted 2026-09-05**,
+the sort `docs/ROADMAP.md` took the day before and for the same reason. The two
+kinds had grown fully interleaved -- 18 closed against 29 open, changing kind 18
+times down the page -- so the register could not be read for what is still wrong
+without reading all of it, and the rule above guarantees that only gets worse:
+every close stays, so every close lands in the middle of the open work. Sorting
+is the half of the answer this page can have without deleting anything. Nothing
+was deleted, nothing was shrunk to a conclusion -- that is the plan's call, not
+the register's -- and inside each half the old order is kept, so no entry moved
+relative to its own kind.
+
+**A pointer by position rots when the page is sorted, so entries name each
+other.** The sort found sixteen pointers from one entry to another. Nine were
+about to point the wrong way and two were already wrong before it; the other
+five still pointed correctly, and were named anyway, because "correct until the
+next sort" is the state this whole paragraph is about. This file had already
+written the rule down, under the `shopItem` close, and then went on pointing by
+position anyway. "The entry named X" survives a sort and a rewording is a grep
+away; "the entry below" reads fine while pointing at nothing. `above` and
+`below` *inside* one entry point at its own tables and paragraphs, are
+unaffected by any of this, and stay.
+
+`tools/tests/test_docs.py` holds both halves now: an entry named by position
+fails the suite, and a name that no longer opens an entry fails it too. The
+check reads the idiom rather than the intent, so it catches "the entry above"
+and not "the conjunction above" -- if you point at another entry, say *entry*
+and say its name.
 
 Nothing here is urgent unless it says so.
 
@@ -43,111 +72,6 @@ Nothing here is urgent unless it says so.
   snapshot now holds what `items/flags.json` declares rather than what a script
   wrote, and the declared defaults are the thing to change. The rest is
   upstream's.
-
-- **The override staleness check read one cache key and not the other, so an
-  edited lane file left it green. Closed 2026-09-04**, found by the digest
-  narrowing below: re-keying all 57 lane files changed what the standard art
-  draws, and `regen_maps.py --verify` -- verify.sh stage 4 -- said the override
-  was current. Two holes, both on the same path. `verify()` compared the
-  INPUT_FILES fingerprint and the written files and stopped there, while the
-  `lane_files` sha it needed was already in the cache and already read by
-  `flag_change`, which is what decides a redraw; and `tools/lane_file.py` was
-  not in INPUT_FILES at all, though it decides which layout a digest resolves
-  to. So a lane edit was invisible to the stage that exists to notice one.
-
-  `verify()` now compares `lane_files` the way `flag_change` does -- per mode,
-  and only where that mode drew `--lanes authored`, because the files have no
-  bearing on art rendered `--lanes none` and globbing them into INPUT_FILES
-  would redraw the No-Overworld half on every authoring edit. Three rows in
-  `tools/tests/test_lane_file.py` hold it, against a fabricated override
-  directory rather than the machine's.
-
-  **The lesson is about the shape rather than the two lines.** A cache key that
-  one reader compares and another does not is a green check over stale art, and
-  the second reader is the one a person trusts -- `flag_change` runs when you
-  have already decided to regen. Any key added to a mode's cache slot needs
-  both readers, or it is decoration in the one that gets read.
-
-- **The Cardia islands had one standard-world route where Bahamut's Cave had
-  two. Closed 2026-09-01**, by `73337dc`, `52ba9d5` and `15ac915` -- before it
-  was diagnosed, which is why it is filed closed rather than fixed. Reported off
-  `8EF791AA`: the Cardia chest pins were red while the Hoard was reachable. On
-  the build being played, `Cardia Grassy` carried `$standardWorld,airship` and
-  nothing else, while `Bahamut's Cave` already carried the Bahamut-dock
-  alternative -- so on a seed with the dock and the hoard on, the cave went green
-  and the islands beside it stayed red. Both states the report is consistent with
-  leave the Cardia pins red: with Canal and Ship the cave is green and the
-  islands red, which is the report as written; with Floater and Ship the cave is
-  red too, so the Hoard being reachable in that state was seen in the game rather
-  than on a pin. On the rules as they stand both states come out green throughout
-  -- the islands through `15ac915`'s `BahamutHoard` alternative under Canal and
-  Ship and through `73337dc`'s `airshipHike` one under Floater and Ship, the cave
-  through `52ba9d5`. `9d55246` landed in the same batch and is easy to miscredit
-  here: it wants `MapCardiaLandBridge`, which this seed has off, so it cannot
-  fire on these flags at all.
-
-  What makes it stay closed is `hoarddockhike497`, not the fix: the cartridge
-  carries the three flags this entry turns on -- `MapDragonsHoard`,
-  `MapBahamutCardiaDock` and `MapAirshipHike` -- on `std497`'s baseline rather
-  than the played seed's whole flag set, and the rules that were being played
-  grade **95 agree, 13 distinct divergences over 129 locations** against it,
-  where the current ones grade 224 of 224. The combination was ungraded until
-  now because the corpus had `hoarddock497` and `hoardhike497` and not the pair
-  together -- and the pair turns out to be the plain union of the two, which
-  `hoarddockbridge497` had established is not something a pair can be assumed to
-  be. `docs/ORACLE.md` carries both rows.
-
-- **The No-Overworld variants ran standard-overworld logic. Closed 2026-08-30.**
-  This entry led "Known wrong" for weeks saying `scripts/logic.lua` "branches on
-  shard hunt and nothing else", and it had not been true since the
-  `noverworld-logic` merge. `isNoOverworld()` in `scripts/logic.lua` matches
-  `Tracker.ActiveVariantUID` with `:find`; `noOverworld()` and `standardWorld()`
-  feed the 25 region rules that replaced the overworld geography, so one set of
-  rules serves both modes rather than two trees that must agree and never get
-  compared. Named rather than numbered: this entry cited three line numbers that
-  had all moved by 2026-09-01.
-
-  The entry is kept rather than deleted because of *how* it went stale: nothing
-  re-reads a closed defect, so a "largest live defect in the pack" line survives
-  its own fix and sends the next reader after work already done. When a Known
-  wrong entry closes, say so in it the same day.
-
-  What is genuinely left on this mode is smaller and is filed separately:
-  **Lefein**, the one `--derived` divergence, below; the **committed dungeon
-  tree** still being a copy of the standard one; the poster's missing
-  **`nerrick`** slot; and the **Gaia** rule the two trees disagree about. None
-  of them is a mode guard.
-
-- **The walk models all five object gates the cartridge has. Closed
-  2026-08-30.** `FF1Lib/Sanity/SCMap.cs:167-186` gates **five** object ids by
-  tile, in one switch: RodPlate `0x16`, LutePlate `0x17`, BlackOrb `0xCA` →
-  orbs, SubEngineer `0x10` → oxyale and Titan `0x14` → ruby. All five are
-  ordinary map objects standing on chokepoint tiles, and the walk now blocks all
-  five. `GATED_OBJECTS` holds the two plates; `black_orb_item()` and
-  `object_gate_items()` read the other three off the cartridge per seed.
-
-  This entry used to say Oxyale and the Ruby were "game rules" the sweep could
-  not see, and that was wrong twice over. They are graph properties, and
-  `orbs` — what BlackOrb wants — had been in the swept vocabulary all along, so
-  every sweep to that date walked through an orb gate as though it were not
-  there. BlackOrb closed first; it was why seven ToFR locations derived as free,
-  and they derive `orbs` now. The last two closed the same day, together with
-  the vocabulary widening they needed: a `GATED_OBJECTS` row whose item the
-  sweep cannot hold blocks that tile in every subset, so the row and the item
-  have to land in one commit or everything behind the gate derives as
-  unreachable rather than gated. `ITEM_NAMES` is twelve items and the sweep is
-  2^12.
-
-  What that bought is on the measurement rather than on the map: the
-  off-vocabulary grant `check_logic --derived` hands both sides fell from 164 of
-  `nov`'s 222 comparisons to **5 of 226**, because Oxyale and the Ruby were 161
-  of those 164. See `docs/ORACLE.md`.
-
-  The genuinely non-graph requirements are the *trades*, and half of those are
-  already read: `entrance_graph.talk_item_requirements()` takes them off the
-  talk table — Astos's Crown, Nerrick's TNT, the Smith's Adamant, Matoya's
-  Crystal, Unne's Slab, the Elf Doctor's Herb, and Titan's Ruby. `Bottle`
-  remains, and so does the Lefein man below.
 
 - **The derivation cannot say "reach another location", and Lefein is where
   that shows.** Found 2026-08-30, when dropping the Ruby grant uncovered it:
@@ -215,61 +139,10 @@ Nothing here is urgent unless it says so.
   permissive rule is the worse of the two, and it argues for widening the swept
   vocabulary before trusting the "225 of 226 agree" figure as coverage.
 
-- **`ShuffleObjectiveNPCs` moved two cells and nothing in the pack knew. Closed
-  strictly 2026-09-01, the day it was found.** Found and closed 2026-09-01. `NPCs.cs:135` runs the shuffle when `ChestsKeyItems` is also
-  on and the mode is not Deep Dungeon, and `NPCs.cs:277` permutes Bahamut, Dr
-  Unne and the Elf Doctor across BahamutCave2, Melmond and Elfland Castle.
-  Measured on `objnpc497` — `std497` plus this one flag — with
-  `tools/extract_npcs.py`: Bahamut moved to Melmond and Unne to BahamutCave2,
-  the Elf Doctor stayed.
-
-  The pack hosts `bahamut` under `Cardia Islands/Bahamut's Cave`, gated on the
-  airship, and `slabTranslated` under `Melmond Continent/Melmond/Dr Unne`. On
-  that cartridge the first is held red while Bahamut is reachable early and the
-  second reads reachable while Unne is behind the airship. **The second is the
-  over-reporting direction**, which is the one that matters.
-
-  Nothing grades it. Of the 204 rules `std497` and `objnpc497` share, exactly one
-  moves, and it is `Shop Item` — roll noise, the same row the `ShipDrydock` diff
-  hit for the same reason. `Elf Prince` and `Lefein` are byte-identical across
-  the two, so the pack scores 224 of 224 on a seed it is wrong about. This is the
-  `NoTail` case: the export cannot see the branch and the lying cell is the
-  pack's own.
-
-  **The close is the strict one and not the right one.** With the flag on, both
-  cells now ask for all three homes at once, which collapses to Bahamut's Cave
-  because it dominates the other two under every one of its alternatives.
-  `$noObjectiveShuffle` in `scripts/logic.lua` is the guard, `check_logic`
-  answers it the same way, and `tests/test_ram.lua` demonstrates it opening and
-  closing.
-
-  What that costs: on a shuffled seed the pack now holds the Elf Prince where
-  FFR opens him, because FFR wrote the seed and knows where the Elf Doctor went.
-  That is a deliberate disagreement rather than an agreement, so it lives in
-  `check_logic`'s `WAIVED` table and stays printed. `bahamut` needed no change —
-  it was already gated on the home that dominates.
-
-  The right fix is unbuilt and is shared with the Cardia gateway roll: teach the
-  bridge to publish the permutation that `tools/extract_npcs.py` already reads.
-  `docs/ROADMAP.md` holds it as one item rather than two.
-
-- **Titan has a box now.** Closed 2026-09-02. The obstacle was a name rather
-  than a signal: `titan` was taken by `ruby` stage 2, so a cell could not host
-  it — `FindObjectForCode` would have handed back the Ruby, and the box would
-  have read as cleared whenever the Ruby was spent. The fix was to free the
-  name rather than work around it. No access rule ever asked for that second
-  code, so renaming it to `rubyDone` cost nothing and is what lets the section
-  host the literal `titan`, which is what `extract_npcs.WANTED` calls object
-  `$14` — so the pin, the object-gate id and the `npc` classification all join
-  with no alias taught to `regen_maps.py`, `noverworld_rules.py` or
-  `pin_visibility.py`. `$6214` is read twice, once as `ruby` stage 1 and once
-  as `titan`, the way `sigil` and `mark` already read the Floater and the Canoe.
-  Bridge-only: Titan is not an Archipelago location.
-
 - **Five NPCs the cartridge places have no box anywhere.** Fifteen of the twenty
   objects `extract_npcs.WANTED` reads have a pin; Unne and the four fiends host
   no section in the location tree, so there is no location a pin could belong
-  to. It was six until Titan got his box above; the fiends write no flag that
+  to. It was six until Titan got his box; the fiends write no flag that
   could be autotracked at all; Unne holds no shuffled item, and carries the same
   code clash Titan had (`slab,slabTranslated,unne`), resolvable the same way if
   that decision is ever revisited. Each would be a
@@ -332,60 +205,15 @@ Nothing here is urgent unless it says so.
   blue, and red outranks blue by design. Nothing to do in the pack; worth knowing
   if that setting is on.
 
-- **`shopItem` had no incentive toggle behind it and no FFR flag mapped to it,
-  so it was never blue and never gold. Closed 2026-09-03**, by the entry below
-  on the `I: Shop Item` pin: the section carries
-  `^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems` now, with
-  `visibility_rules: ["npcItems"]` and a `$showPin` restriction on the pin, so
-  it demotes and hides like every other slot.
-
-  Filed here because it outlived its own fix by a day while still reading as
-  open, which is the failure the header above describes -- an entry that goes
-  quiet sends the next reader after work already done. The close that made it
-  false is the entry named "The `I: Shop Item` pin ignores the flag that
-  governs it", which did not think to come up here. Named rather than pointed
-  at by position, because a positional pointer rots the same way -- this
-  sentence said "two entries down" and was already wrong when it was written.
-
 - **Our trap letters are not DarkmoonEX's**, by design. His are hand-assigned for
   vanilla and do not describe an FFR seed; ours are read per cartridge. Only
   cross-referencing a letter against his guide is unsafe.
 
   This used to say ours are "self-consistent per map", which is true and is also
-  the whole problem — see the next entry. Once the marks are keyed to the
-  formation they become self-consistent per *cartridge*, which is the stronger
+  the whole problem — see the entry named "The same enemies could carry two
+  different trap letters". Once the marks are keyed to the formation they
+  become self-consistent per *cartridge*, which is the stronger
   claim and the one worth making.
-
-- **The same enemies could carry two different trap letters. Fixed.**
-  `trap_letters()` numbered by `(tileset, tile)` enumeration order rather than by
-  the formation the tile spawns, so one formation reached through two tileset
-  entries got two labels. Measured 2026-08-30, three formations on each oracle
-  cartridge: on the std seed formation `$10` was drawn **G** on `earthB1` and
-  **W** on `marshB3`; `$1C` was AA and AG; `$4A` V and X.
-
-  That defeated the thing a trap mark is for. Meet a fixed formation early,
-  decide it is worth fighting or worth avoiding, and the label it carried the
-  next time you met it might be a different one.
-
-  The same enumeration is why labels ran to two characters. 38 distinct labels
-  existed on the std cartridge, so everything past index 25 became AA…AL — seven
-  maps carried one, `tofrChaos` read AG AH AI AJ across eight tiles in a row and
-  `seaB4` read AB AC AD AE, and at two tiles wide a label no longer says which
-  tile it marks.
-
-  Both closed together, by keying the mark to the formation id and handing marks
-  out only to the formations that stand on a map. `render_maps.trap_marks()`
-  does that; `standing_formations()` is the order. Over five cartridges —
-  vanilla, std, nov, nov2, shard — every mark is a single glyph, no formation
-  carries two and no mark stands for two. 32 formations stand on a map (31 on
-  nov and shard) against 35 single glyphs in `0-9A-Z` once `O` is dropped, since
-  `tools/font.py` asserts `0` and `O` are the same glyph in the cartridge's font.
-  `seaB4` reads `0 1 Y Z` where it read `AB AC AD AE`.
-
-  **It costs the exact agreement with the shipped art, by one place.** The art
-  counted formation `$00` — five fixed tileset entries no map places — so
-  DarkmoonEX's `earthB1` `{G,H,I}` is this scheme's `{F,G,H}`. `test_crop.py`
-  asserts the shift and names its cause rather than pinning the output.
 
 - **A room bigger than the guard stays shut.** Mirage Tower 1F's interior is 458
   cells and `ROOM_MAX_CELLS` is 256, so it does not open. Raising the cap is not
@@ -611,54 +439,6 @@ Nothing here is urgent unless it says so.
   surface, and restamping 29 markers against a crop this mode never renders is
   work with nothing to check it against until there is one.
 
-- **The `I: Shop Item` pin ignores the flag that governs it. Fixed
-  2026-09-03.** Found 2026-09-02. Every other incentive slot carries `^$incentiveSlot|<flag>`, so
-  the board can grey a slot the seed did not incentivize. `shopItem` carries
-  none, on the belief that FFR has no flag for it. FFR does:
-  `FlagsCompute.cs:217` computes
-  `IncentivizeCaravan => (NPCItems ?? false) && (IncentivizeFreeNPCs ?? false)`,
-  and `PlacementContext.cs:198` adds `ItemLocations.CaravanItemShop1` to the
-  incentive location pool on it. `IncentivizeFreeNPCs` is `npcsAreIncentive`
-  here (`scripts/autotracking/flag_mapping.lua:53`).
-
-  So on a seed with Main NPCs unincentivized the pin claims a slot that FFR
-  never considered, and it claims it in the one direction the board has no other
-  way to correct — the slot cannot be graded by `check_logic` against a rule it
-  does not have.
-
-  **Why it hid.** The flag is computed rather than declared, so it is absent
-  from both flag schemas; a search of the schema for "shop" or "caravan" returns
-  nothing and reads like proof. The generalisation is the one that keeps
-  recurring here: an absence in a derived index is not an absence in the source.
-  `FF1Randomizer-497` is vendored, and the answer was three greps into it.
-
-  **The residue is real and separate.** Even with the flag on, roughly half of
-  solo seeds hold a consumable, because `ItemPlacement.SelectVendorItem` falls
-  back to the treasure pool when no eligible incentive item is left. The slot's
-  incentive status is a flag; its content is the roll. Conflating those is what
-  produced the wrong close.
-
-  Fixed by `^$incentiveSlot|npcsAreIncentive` on the `shopItem` section in both
-  incentive trees, plus `$showPin|slot|npcsAreIncentive` on the pin —
-  `pin_visibility.py` stamps the same rule, so the pin half is the tool's output
-  rather than a transcription of it. `scripts/incentive_slots.lua` is generated
-  and was re-run rather than edited.
-
-  **It gains one row where every other slot gains two**, and that is this
-  entry's own collision showing up somewhere new: a row's path is
-  `@<node>/<section>`, and the board's node for this slot is itself named
-  `I: Shop Item`, so the sheet path and the board path are the same string and
-  the second is deduped away. The surviving row reaches the board's section, by
-  the same first-match rule recorded below. What the sheet's section loses is
-  only the gold ring; its access rule and its pin rule are evaluated directly
-  and are unaffected.
-
-  Six counters moved, each re-derived: sections reporting Inspect 49 → 51,
-  generated rows 55 → 56, sheet pins with a rule 17 → 18 and 20 → 21, and pins
-  drawn with the flag off 9 → 8 and 8 → 7. The last pair is the demonstration
-  that the rule bites — with `npcsAreIncentive` absent the pin was drawn before
-  and is not drawn now.
-
 - **The `I: Shop Item` pin clears itself now, and is deliberately still green
   until it does.** The pin is `Onrac Continent/I: Shop Item`, with empty
   `access_rules` at node and section level under an organisational parent, so
@@ -745,6 +525,283 @@ Nothing here is urgent unless it says so.
   list, so it reproduced the OR answer by construction and could not have
   disagreed. It is evidence of nothing.
 
+- **A slot can ring for a location the seed does not have, and the caravan was
+  not the only one.** Found 2026-09-03 by the same grader. On `notail` the pack
+  rings `Sea Shrine Mermaids (B1) - Incentive Major`, which is not an
+  Archipelago location on that seed -- its Sea Shrine incentive chests are
+  `Incentive 1` and `Incentive 2`. `hoarddockbridge497` does the same with the
+  Cardia chest.
+
+  Same family as the caravan slot and a different cause. The caravan's existence
+  answers to a flag, so a rule can gate it; these are the seed naming a chest
+  slot differently, which no flag predicts, so the pack's row points at an id
+  the pool does not contain. What that should become is open -- probably a row
+  that can name more than one id, or a check that treats an absent id as no slot
+  rather than as a slot to ring.
+
+  **Only `notail` is waived now, and the other one did not get fixed.** The
+  Cardia half was reachable only because the pack ringed a Cardia slot on a
+  hoard seed at all; with the entry named "The Cardia ring cannot be switched
+  off on a hoard seed" fixed, the ring is decided by `IncentivizeCardia`, which
+  `hoarddockbridge497` has off, so the comparison
+  ends before the missing id is looked for. The waiver was removed rather than
+  left standing, because a waiver nothing can trigger reads as live evidence of
+  a live finding. The finding is live; this corpus can no longer show it, and a
+  seed that incentivized Cardia *and* rolled the hoard would show it again.
+
+- **The override staleness check read one cache key and not the other, so an
+  edited lane file left it green. Closed 2026-09-04**, found by the narrowing
+  in the entry named "The layout digest refuses a floor over which enemies a
+  trap tile spawns": re-keying all 57 lane files changed what the standard art
+  draws, and `regen_maps.py --verify` -- verify.sh stage 4 -- said the override
+  was current. Two holes, both on the same path. `verify()` compared the
+  INPUT_FILES fingerprint and the written files and stopped there, while the
+  `lane_files` sha it needed was already in the cache and already read by
+  `flag_change`, which is what decides a redraw; and `tools/lane_file.py` was
+  not in INPUT_FILES at all, though it decides which layout a digest resolves
+  to. So a lane edit was invisible to the stage that exists to notice one.
+
+  `verify()` now compares `lane_files` the way `flag_change` does -- per mode,
+  and only where that mode drew `--lanes authored`, because the files have no
+  bearing on art rendered `--lanes none` and globbing them into INPUT_FILES
+  would redraw the No-Overworld half on every authoring edit. Three rows in
+  `tools/tests/test_lane_file.py` hold it, against a fabricated override
+  directory rather than the machine's.
+
+  **The lesson is about the shape rather than the two lines.** A cache key that
+  one reader compares and another does not is a green check over stale art, and
+  the second reader is the one a person trusts -- `flag_change` runs when you
+  have already decided to regen. Any key added to a mode's cache slot needs
+  both readers, or it is decoration in the one that gets read.
+
+- **The Cardia islands had one standard-world route where Bahamut's Cave had
+  two. Closed 2026-09-01**, by `73337dc`, `52ba9d5` and `15ac915` -- before it
+  was diagnosed, which is why it is filed closed rather than fixed. Reported off
+  `8EF791AA`: the Cardia chest pins were red while the Hoard was reachable. On
+  the build being played, `Cardia Grassy` carried `$standardWorld,airship` and
+  nothing else, while `Bahamut's Cave` already carried the Bahamut-dock
+  alternative -- so on a seed with the dock and the hoard on, the cave went green
+  and the islands beside it stayed red. Both states the report is consistent with
+  leave the Cardia pins red: with Canal and Ship the cave is green and the
+  islands red, which is the report as written; with Floater and Ship the cave is
+  red too, so the Hoard being reachable in that state was seen in the game rather
+  than on a pin. On the rules as they stand both states come out green throughout
+  -- the islands through `15ac915`'s `BahamutHoard` alternative under Canal and
+  Ship and through `73337dc`'s `airshipHike` one under Floater and Ship, the cave
+  through `52ba9d5`. `9d55246` landed in the same batch and is easy to miscredit
+  here: it wants `MapCardiaLandBridge`, which this seed has off, so it cannot
+  fire on these flags at all.
+
+  What makes it stay closed is `hoarddockhike497`, not the fix: the cartridge
+  carries the three flags this entry turns on -- `MapDragonsHoard`,
+  `MapBahamutCardiaDock` and `MapAirshipHike` -- on `std497`'s baseline rather
+  than the played seed's whole flag set, and the rules that were being played
+  grade **95 agree, 13 distinct divergences over 129 locations** against it,
+  where the current ones grade 224 of 224. The combination was ungraded until
+  now because the corpus had `hoarddock497` and `hoardhike497` and not the pair
+  together -- and the pair turns out to be the plain union of the two, which
+  `hoarddockbridge497` had established is not something a pair can be assumed to
+  be. `docs/ORACLE.md` carries both rows.
+
+- **The No-Overworld variants ran standard-overworld logic. Closed 2026-08-30.**
+  This entry led "Known wrong" for weeks saying `scripts/logic.lua` "branches on
+  shard hunt and nothing else", and it had not been true since the
+  `noverworld-logic` merge. `isNoOverworld()` in `scripts/logic.lua` matches
+  `Tracker.ActiveVariantUID` with `:find`; `noOverworld()` and `standardWorld()`
+  feed the 25 region rules that replaced the overworld geography, so one set of
+  rules serves both modes rather than two trees that must agree and never get
+  compared. Named rather than numbered: this entry cited three line numbers that
+  had all moved by 2026-09-01.
+
+  The entry is kept rather than deleted because of *how* it went stale: nothing
+  re-reads a closed defect, so a "largest live defect in the pack" line survives
+  its own fix and sends the next reader after work already done. When a Known
+  wrong entry closes, say so in it the same day.
+
+  What is genuinely left on this mode is smaller and is filed separately:
+  **Lefein**, the one `--derived` divergence; the **committed dungeon
+  tree** still being a copy of the standard one; the poster's missing
+  **`nerrick`** slot; and the **Gaia** rule the two trees disagree about. None
+  of them is a mode guard.
+
+- **The walk models all five object gates the cartridge has. Closed
+  2026-08-30.** `FF1Lib/Sanity/SCMap.cs:167-186` gates **five** object ids by
+  tile, in one switch: RodPlate `0x16`, LutePlate `0x17`, BlackOrb `0xCA` →
+  orbs, SubEngineer `0x10` → oxyale and Titan `0x14` → ruby. All five are
+  ordinary map objects standing on chokepoint tiles, and the walk now blocks all
+  five. `GATED_OBJECTS` holds the two plates; `black_orb_item()` and
+  `object_gate_items()` read the other three off the cartridge per seed.
+
+  This entry used to say Oxyale and the Ruby were "game rules" the sweep could
+  not see, and that was wrong twice over. They are graph properties, and
+  `orbs` — what BlackOrb wants — had been in the swept vocabulary all along, so
+  every sweep to that date walked through an orb gate as though it were not
+  there. BlackOrb closed first; it was why seven ToFR locations derived as free,
+  and they derive `orbs` now. The last two closed the same day, together with
+  the vocabulary widening they needed: a `GATED_OBJECTS` row whose item the
+  sweep cannot hold blocks that tile in every subset, so the row and the item
+  have to land in one commit or everything behind the gate derives as
+  unreachable rather than gated. `ITEM_NAMES` is twelve items and the sweep is
+  2^12.
+
+  What that bought is on the measurement rather than on the map: the
+  off-vocabulary grant `check_logic --derived` hands both sides fell from 164 of
+  `nov`'s 222 comparisons to **5 of 226**, because Oxyale and the Ruby were 161
+  of those 164. See `docs/ORACLE.md`.
+
+  The genuinely non-graph requirements are the *trades*, and half of those are
+  already read: `entrance_graph.talk_item_requirements()` takes them off the
+  talk table — Astos's Crown, Nerrick's TNT, the Smith's Adamant, Matoya's
+  Crystal, Unne's Slab, the Elf Doctor's Herb, and Titan's Ruby. `Bottle`
+  remains, and so does the Lefein man, in the entry named "The derivation
+  cannot say 'reach another location'".
+
+- **`ShuffleObjectiveNPCs` moved two cells and nothing in the pack knew. Closed
+  strictly 2026-09-01, the day it was found.** Found and closed 2026-09-01. `NPCs.cs:135` runs the shuffle when `ChestsKeyItems` is also
+  on and the mode is not Deep Dungeon, and `NPCs.cs:277` permutes Bahamut, Dr
+  Unne and the Elf Doctor across BahamutCave2, Melmond and Elfland Castle.
+  Measured on `objnpc497` — `std497` plus this one flag — with
+  `tools/extract_npcs.py`: Bahamut moved to Melmond and Unne to BahamutCave2,
+  the Elf Doctor stayed.
+
+  The pack hosts `bahamut` under `Cardia Islands/Bahamut's Cave`, gated on the
+  airship, and `slabTranslated` under `Melmond Continent/Melmond/Dr Unne`. On
+  that cartridge the first is held red while Bahamut is reachable early and the
+  second reads reachable while Unne is behind the airship. **The second is the
+  over-reporting direction**, which is the one that matters.
+
+  Nothing grades it. Of the 204 rules `std497` and `objnpc497` share, exactly one
+  moves, and it is `Shop Item` — roll noise, the same row the `ShipDrydock` diff
+  hit for the same reason. `Elf Prince` and `Lefein` are byte-identical across
+  the two, so the pack scores 224 of 224 on a seed it is wrong about. This is the
+  `NoTail` case: the export cannot see the branch and the lying cell is the
+  pack's own.
+
+  **The close is the strict one and not the right one.** With the flag on, both
+  cells now ask for all three homes at once, which collapses to Bahamut's Cave
+  because it dominates the other two under every one of its alternatives.
+  `$noObjectiveShuffle` in `scripts/logic.lua` is the guard, `check_logic`
+  answers it the same way, and `tests/test_ram.lua` demonstrates it opening and
+  closing.
+
+  What that costs: on a shuffled seed the pack now holds the Elf Prince where
+  FFR opens him, because FFR wrote the seed and knows where the Elf Doctor went.
+  That is a deliberate disagreement rather than an agreement, so it lives in
+  `check_logic`'s `WAIVED` table and stays printed. `bahamut` needed no change —
+  it was already gated on the home that dominates.
+
+  The right fix is unbuilt and is shared with the Cardia gateway roll: teach the
+  bridge to publish the permutation that `tools/extract_npcs.py` already reads.
+  `docs/ROADMAP.md` holds it as one item rather than two.
+
+- **Titan has a box now.** Closed 2026-09-02. The obstacle was a name rather
+  than a signal: `titan` was taken by `ruby` stage 2, so a cell could not host
+  it — `FindObjectForCode` would have handed back the Ruby, and the box would
+  have read as cleared whenever the Ruby was spent. The fix was to free the
+  name rather than work around it. No access rule ever asked for that second
+  code, so renaming it to `rubyDone` cost nothing and is what lets the section
+  host the literal `titan`, which is what `extract_npcs.WANTED` calls object
+  `$14` — so the pin, the object-gate id and the `npc` classification all join
+  with no alias taught to `regen_maps.py`, `noverworld_rules.py` or
+  `pin_visibility.py`. `$6214` is read twice, once as `ruby` stage 1 and once
+  as `titan`, the way `sigil` and `mark` already read the Floater and the Canoe.
+  Bridge-only: Titan is not an Archipelago location.
+
+- **`shopItem` had no incentive toggle behind it and no FFR flag mapped to it,
+  so it was never blue and never gold. Closed 2026-09-03**, by the close on the
+  `I: Shop Item` pin: the section carries
+  `^$incentiveSlot|npcsAreIncentive,^$incentiveSlot|npcItems` now, with
+  `visibility_rules: ["npcItems"]` and a `$showPin` restriction on the pin, so
+  it demotes and hides like every other slot.
+
+  Filed here because it outlived its own fix by a day while still reading as
+  open, which is the failure the header above describes -- an entry that goes
+  quiet sends the next reader after work already done. The close that made it
+  false is the entry named "The `I: Shop Item` pin ignores the flag that
+  governs it", which did not think to come up here. Named rather than pointed
+  at by position, because a positional pointer rots the same way -- this
+  sentence said "two entries down" and was already wrong when it was written.
+
+- **The same enemies could carry two different trap letters. Fixed.**
+  `trap_letters()` numbered by `(tileset, tile)` enumeration order rather than by
+  the formation the tile spawns, so one formation reached through two tileset
+  entries got two labels. Measured 2026-08-30, three formations on each oracle
+  cartridge: on the std seed formation `$10` was drawn **G** on `earthB1` and
+  **W** on `marshB3`; `$1C` was AA and AG; `$4A` V and X.
+
+  That defeated the thing a trap mark is for. Meet a fixed formation early,
+  decide it is worth fighting or worth avoiding, and the label it carried the
+  next time you met it might be a different one.
+
+  The same enumeration is why labels ran to two characters. 38 distinct labels
+  existed on the std cartridge, so everything past index 25 became AA…AL — seven
+  maps carried one, `tofrChaos` read AG AH AI AJ across eight tiles in a row and
+  `seaB4` read AB AC AD AE, and at two tiles wide a label no longer says which
+  tile it marks.
+
+  Both closed together, by keying the mark to the formation id and handing marks
+  out only to the formations that stand on a map. `render_maps.trap_marks()`
+  does that; `standing_formations()` is the order. Over five cartridges —
+  vanilla, std, nov, nov2, shard — every mark is a single glyph, no formation
+  carries two and no mark stands for two. 32 formations stand on a map (31 on
+  nov and shard) against 35 single glyphs in `0-9A-Z` once `O` is dropped, since
+  `tools/font.py` asserts `0` and `O` are the same glyph in the cartridge's font.
+  `seaB4` reads `0 1 Y Z` where it read `AB AC AD AE`.
+
+  **It costs the exact agreement with the shipped art, by one place.** The art
+  counted formation `$00` — five fixed tileset entries no map places — so
+  DarkmoonEX's `earthB1` `{G,H,I}` is this scheme's `{F,G,H}`. `test_crop.py`
+  asserts the shift and names its cause rather than pinning the output.
+
+- **The `I: Shop Item` pin ignores the flag that governs it. Fixed
+  2026-09-03.** Found 2026-09-02. Every other incentive slot carries `^$incentiveSlot|<flag>`, so
+  the board can grey a slot the seed did not incentivize. `shopItem` carries
+  none, on the belief that FFR has no flag for it. FFR does:
+  `FlagsCompute.cs:217` computes
+  `IncentivizeCaravan => (NPCItems ?? false) && (IncentivizeFreeNPCs ?? false)`,
+  and `PlacementContext.cs:198` adds `ItemLocations.CaravanItemShop1` to the
+  incentive location pool on it. `IncentivizeFreeNPCs` is `npcsAreIncentive`
+  here (`scripts/autotracking/flag_mapping.lua:53`).
+
+  So on a seed with Main NPCs unincentivized the pin claims a slot that FFR
+  never considered, and it claims it in the one direction the board has no other
+  way to correct — the slot cannot be graded by `check_logic` against a rule it
+  does not have.
+
+  **Why it hid.** The flag is computed rather than declared, so it is absent
+  from both flag schemas; a search of the schema for "shop" or "caravan" returns
+  nothing and reads like proof. The generalisation is the one that keeps
+  recurring here: an absence in a derived index is not an absence in the source.
+  `FF1Randomizer-497` is vendored, and the answer was three greps into it.
+
+  **The residue is real and separate.** Even with the flag on, roughly half of
+  solo seeds hold a consumable, because `ItemPlacement.SelectVendorItem` falls
+  back to the treasure pool when no eligible incentive item is left. The slot's
+  incentive status is a flag; its content is the roll. Conflating those is what
+  produced the wrong close.
+
+  Fixed by `^$incentiveSlot|npcsAreIncentive` on the `shopItem` section in both
+  incentive trees, plus `$showPin|slot|npcsAreIncentive` on the pin —
+  `pin_visibility.py` stamps the same rule, so the pin half is the tool's output
+  rather than a transcription of it. `scripts/incentive_slots.lua` is generated
+  and was re-run rather than edited.
+
+  **It gains one row where every other slot gains two**, and that is this
+  entry's own collision showing up somewhere new: a row's path is
+  `@<node>/<section>`, and the board's node for this slot is itself named
+  `I: Shop Item`, so the sheet path and the board path are the same string and
+  the second is deduped away. The surviving row reaches the board's section, by
+  the same first-match rule the entry named "The `I: Shop Item` pin clears
+  itself now" records. What the sheet's section loses is only the gold ring;
+  its access rule and its pin rule are evaluated directly
+  and are unaffected.
+
+  Six counters moved, each re-derived: sections reporting Inspect 49 → 51,
+  generated rows 55 → 56, sheet pins with a rule 17 → 18 and 20 → 21, and pins
+  drawn with the flag off 9 → 8 and 8 → 7. The last pair is the demonstration
+  that the rule bites — with `npcsAreIncentive` absent the pin was drawn before
+  and is not drawn now.
+
 - **Seven incentive slots ring gold on a seed FFR did not incentivize them on.
   Fixed 2026-09-03.** Found the same day, by the first use of
   `tools/export_diff.py`, on the cartridge rolled for it.
@@ -761,7 +818,7 @@ Nothing here is urgent unless it says so.
   `nov` and `nov2`.
 
   **Three findings the grader turned up on the way, none of them this defect**,
-  filed below: the Cardia progressive's stage-2 inheritance, a Sea Shrine
+  filed separately: the Cardia progressive's stage-2 inheritance, a Sea Shrine
   incentive chest `notail` does not have, and `Dr Unne`, which already had an
   entry.
 
@@ -848,7 +905,8 @@ Nothing here is urgent unless it says so.
   `MapDragonsHoard` on with `IncentivizeCardia` off; the grader reported five of
   them as a wrong ring on `Cardia Forest Island - Incentive Major`, where FFR's
   `priority_locations` names no Cardia location at all, and the sixth,
-  `hoarddockbridge497`, as a ghost instead -- see the entry below.
+  `hoarddockbridge497`, as a ghost instead -- see the entry named "A slot can
+  ring for a location the seed does not have".
 
   The cause was the shape of the model rather than a wrong flag.
   `cardiaIsIncentive` was a progressive whose stage 2 was Bahamut's Hoard, and a
@@ -912,32 +970,11 @@ Nothing here is urgent unless it says so.
   224 compared, 223 agree, 1 divergent, that one being the same deliberately
   strict `Lefein` row `nov` carries.
 
-- **A slot can ring for a location the seed does not have, and the caravan was
-  not the only one.** Found 2026-09-03 by the same grader. On `notail` the pack
-  rings `Sea Shrine Mermaids (B1) - Incentive Major`, which is not an
-  Archipelago location on that seed -- its Sea Shrine incentive chests are
-  `Incentive 1` and `Incentive 2`. `hoarddockbridge497` does the same with the
-  Cardia chest.
-
-  Same family as the caravan slot and a different cause. The caravan's existence
-  answers to a flag, so a rule can gate it; these are the seed naming a chest
-  slot differently, which no flag predicts, so the pack's row points at an id
-  the pool does not contain. What that should become is open -- probably a row
-  that can name more than one id, or a check that treats an absent id as no slot
-  rather than as a slot to ring.
-
-  **Only `notail` is waived now, and the other one did not get fixed.** The
-  Cardia half was reachable only because the pack ringed a Cardia slot on a
-  hoard seed at all; with the entry above fixed, the ring is decided by
-  `IncentivizeCardia`, which `hoarddockbridge497` has off, so the comparison
-  ends before the missing id is looked for. The waiver was removed rather than
-  left standing, because a waiver nothing can trigger reads as live evidence of
-  a live finding. The finding is live; this corpus can no longer show it, and a
-  seed that incentivized Cardia *and* rolled the hoard would show it again.
-
 - **The pack has an eighth fetch incentive slot that FFR never fills. Fixed
   2026-09-03**, by removing the section rather than re-gating it. Found
-  2026-09-03 on `nofetchitems497`, while measuring the flag above. The pack
+  2026-09-03 on `nofetchitems497`, while measuring the flag for the entry named
+  "Seven incentive slots ring gold on a seed FFR did not incentivize them on".
+  The pack
   gave `I: Dr Unne` a real incentive section in `locations/incentives.json` and
   its `NOverworld` twin -- `hosted_item: "slabTranslated"`, gated on
   `fetchQuestsAreIncentive` -- and `scripts/incentive_slots.lua` listed it in
@@ -956,7 +993,7 @@ Nothing here is urgent unless it says so.
   slot: the ring can never be correct there, on any flagset, because there is
   nothing for FFR to incentivize.
 
-  Not fixed with the conjunction above, and not the same defect: the seven rows
+  Not fixed with that conjunction, and not the same defect: the seven rows
   ring on the wrong condition, this row rings on no condition FFR has. Both
   trees need the section reconsidered rather than re-gated. What it should
   become -- dropped, or kept as reachability with the incentive section removed
@@ -1048,21 +1085,6 @@ Nothing here is urgent unless it says so.
   a quiet edit -- and why it takes a regen per mode to reach the installed art.
 
 ## Open questions
-
-- **Retracted 2026-09-03: `canon` has no latent false FAIL in `test_maps.lua`
-  check 7.** This said `canon` treats a rule as unconstrained only when *every*
-  alternative empties out, where PopTracker makes an OR with one unconditional
-  branch unconditional. `canon` does not: it `return nil`s the whole rule on the
-  first alternative that empties, which is PopTracker's semantics. The guard was
-  already there when this was written, and the entry described the code it
-  replaced.
-
-  Recorded rather than deleted because the retraction is the useful part. This
-  was filed as a prediction — "a false FAIL waiting on the next incentive rule"
-  — and the next incentive rule has now been written, twice: every gated section
-  on both sheets carries a second `^$incentiveSlot` term. Nothing fired, because
-  nothing could have. A prediction about code that is not re-read against the
-  code is the failure mode this page keeps finding in itself.
 
 - **The gold ring stops being gold once this pack's off filter has had it.**
   `make_toggle_icons.py` draws only the "on" image and lets PopTracker grey the
@@ -1183,36 +1205,6 @@ Nothing here is urgent unless it says so.
   measurement that filtered the phantom arrivals; the digest note above added
   2026-09-04.
 
-- **The agreement figures used to grant away most of what they appeared to
-  compare. Largely closed 2026-08-30.** `check_logic --derived` hands every
-  off-vocabulary item to both sides before comparing (`offvocab_items()`), so a
-  location whose FFR rule is entirely granted is counted as agreeing without
-  being tested. On the corpus as it stood that was most of them, and the
-  concentration was one item — the Oxyale and the Ruby, neither in the swept
-  vocabulary, because the SubEngineer and Titan gate rows were missing. The
-  counts, before and after those rows landed, are in `docs/ORACLE.md`.
-
-  Both rows landed with the vocabulary that carries them. The grant is now **5
-  of `nov`'s 226 and 5 of `nov2`'s 224** — one each for Herb, Adamant, Bottle,
-  Crystal and Slab, the trades the walk genuinely cannot express — so 221 and
-  219 are really compared, against 58 and 64 before.
-
-  The pack's own No-Overworld rules had the mirror-image problem: transcribed
-  from FFR's export for the seed, so grading them against that export was
-  largely self-agreement. By provenance, of 226 comparisons: **63 independently
-  supported, 163 self-agreeing by construction, 6 deliberately strict** (Cardia
-  Forest, whose gateway is rolled per seed), with the sweep contributing nothing
-  because the single rule taken from it was not in FFR's pool.
-
-  That is what the two rows changed. The sweep now derives a rule for every
-  compared location and agrees with FFR at 225 of 226, and at every location
-  where the pack's transcribed rule agrees with FFR the derived rule does too.
-  **215 of the 226 now rest on two independent readings** — the transcription
-  and a walk of the cartridge — rather than on the transcription alone. The
-  eleven that do not: 6 deliberately strict, 4 still granted a trade item, and
-  Lefein, where the derivation is genuinely permissive (see above). Quote 215,
-  not 220, and not 226.
-
 - **Nothing cross-checks the ToFR rules, so the agreement figure does not cover them.**
   `Archipelago.cs:93` excludes ToFR from the pool unconditionally, so FFR writes
   no rule for any ToFR location and not one of them is among the 226 the
@@ -1222,8 +1214,10 @@ Nothing here is urgent unless it says so.
   location at a time and by hand. **That settlement is now believed wrong**: it
   reasoned from where the lute gate stands and never asked what the Black Orb
   object does, and the walk has no row for it. The oracle could not have caught
-  it, which is the entry above in miniature. This is a limit on what the agreement figure
-  licenses rather than a defect: quoting it as though it covered the whole
+  it, which is the entry named "The agreement figures used to grant away most
+  of what they appeared to compare" in miniature. This is a limit on what the
+  agreement figure licenses rather than a defect: quoting it as though it
+  covered the whole
   derived set overstates it by exactly the ToFR floors. Anything that changes
   how ToFR is walked needs its own measurement, because the oracle will stay
   silent.
@@ -1259,7 +1253,8 @@ Nothing here is urgent unless it says so.
   cannot fail for any reason, including the pixel tolerance it is written around.
   It passed the Ordeals defect for that reason and would have passed it for that
   reason no matter what the check compared. It starts doing real work the moment
-  the trees legitimately diverge, which is the entry above; until then its 283
+  the trees legitimately diverge, which is the entry named "The committed
+  No-Overworld dungeon tree is a copy of the standard one"; until then its 283
   matching locations are not evidence of anything. Its sibling check 7, which
   compares the incentive tree against the dungeon tree, is unaffected -- those
   two files are genuinely different.
@@ -1290,6 +1285,110 @@ Nothing here is urgent unless it says so.
   orb-lit slots that are poster-only by design. Where `nerrick` should sit on a
   poster with no overworld is the same question as deriving the rest of the
   pins, so it stays filed with `docs/ROADMAP.md` item 3.
+
+- **Does anyone outside this repo use the pack?** It decides the four `NoMap`
+  variants question in `docs/IDEAS.md`, and nothing else can settle it.
+
+- **Is a loop worth collapsing?** Retracing points the prefer tie-break at a
+  lane's own edges as it accumulates them, so a return leg retraces the
+  outbound wherever retracing is free. **Whether it should is a per-floor
+  judgement, and as of 2026-09-04 the answer is recorded per floor**: a
+  `retrace` key on the layout entry in `tools/lanes/<map>.json`, absent meaning
+  no. `regen_maps.py --retrace` is the override rather than the switch —
+  `auto` (the default) lets each entry say, `on` and `off` force the whole set,
+  and a bare `--retrace` still means `on`, which is what every figure below was
+  measured with.
+
+  What it does is measured. Across the 57 authored files on a duck cartridge:
+  7007 drawn edges, 22.3% of them walked both ways and **none** twice in the
+  same direction, so a retraced out-and-back is already one line. What is not
+  collapsed is the return picking *different* tiles, which draws a loop — 67 of
+  them over 27 of the 102 lanes. Retraced, the loop count over the whole set
+  falls from 67 to 19, SeaShrineB2 from 8 to 0 and VolcanoB4 from 7 to 1, and
+  the walk does not move: every one of 378 legs runs between the same two tiles
+  for the same cost, which `tools/tests/test_lane.py` checks rather than
+  asserts.
+
+  (Those totals read 72 and 23 until 2026-09-04, when the count was corrected
+  to be taken over the drawing rather than over the walks. A loot lane is drawn
+  as an extension of its region's route lane, so a circuit of its own lying
+  inside the route corridor was being counted and never rendered — seven
+  map/mode pairs overstated, SkyPalace2F and MirageTower1F each reporting loops
+  on a drawing that has none. The per-map figures here were always over the
+  drawing and are unchanged.)
+
+  The bill is time — one Dijkstra per leg rather than per lane, since a growing
+  prefer set invalidates `Floor.search`'s memo — about half again on a regen,
+  and more than that on `/path` during authoring, which is why the editor's
+  live canvas does not retrace and its baked preview does.
+
+  **The judgement itself is still open, and it is now 24 separate judgements.**
+  On a floor that genuinely loops, one line with arrows both ways can read as
+  "walk this twice" when what is true is "there is a way round" — and there the
+  loop is the more honest drawing. So the maps get looked at one at a time,
+  with `tools/lane_edit.py`'s A/B flip: `Preview A/B` bakes the floor both ways
+  and space swaps between two images the browser already holds, because the
+  difference on most of them is one corridor and a re-bake loses it.
+
+  **24 of the 57 draw differently, and 21 is the wrong number to work from.**
+  ConeriaTown, MarshCaveB3 and SeaShrineB1 are redrawn without their loop count
+  moving, so the editor's map rail marks a floor by whether its *drawn edges*
+  differ and shows the count only as the label. `lane_edit.py --check` prints
+  the same table for planning the pass from a terminal.
+
+  One thing it corrects on the way past: the invariant is *same anchors, same
+  per-leg cost*, and not "steps and turns come out identical". `STEP` and `TURN`
+  are the same weight, so a leg trades two of one for two of the other for free
+  — ConeriaTown does, 84 steps and 24 turns becoming 86 and 22. And `turns()`
+  over a whole run counts corners at the leg joins that no search ever charged,
+  which is the entire "extra turn" on MarshCaveB3. Counting either reports a
+  change that has not happened.
+
+- **Retracted 2026-09-03: `canon` has no latent false FAIL in `test_maps.lua`
+  check 7.** This said `canon` treats a rule as unconstrained only when *every*
+  alternative empties out, where PopTracker makes an OR with one unconditional
+  branch unconditional. `canon` does not: it `return nil`s the whole rule on the
+  first alternative that empties, which is PopTracker's semantics. The guard was
+  already there when this was written, and the entry described the code it
+  replaced.
+
+  Recorded rather than deleted because the retraction is the useful part. This
+  was filed as a prediction — "a false FAIL waiting on the next incentive rule"
+  — and the next incentive rule has now been written, twice: every gated section
+  on both sheets carries a second `^$incentiveSlot` term. Nothing fired, because
+  nothing could have. A prediction about code that is not re-read against the
+  code is the failure mode this page keeps finding in itself.
+
+- **The agreement figures used to grant away most of what they appeared to
+  compare. Largely closed 2026-08-30.** `check_logic --derived` hands every
+  off-vocabulary item to both sides before comparing (`offvocab_items()`), so a
+  location whose FFR rule is entirely granted is counted as agreeing without
+  being tested. On the corpus as it stood that was most of them, and the
+  concentration was one item — the Oxyale and the Ruby, neither in the swept
+  vocabulary, because the SubEngineer and Titan gate rows were missing. The
+  counts, before and after those rows landed, are in `docs/ORACLE.md`.
+
+  Both rows landed with the vocabulary that carries them. The grant is now **5
+  of `nov`'s 226 and 5 of `nov2`'s 224** — one each for Herb, Adamant, Bottle,
+  Crystal and Slab, the trades the walk genuinely cannot express — so 221 and
+  219 are really compared, against 58 and 64 before.
+
+  The pack's own No-Overworld rules had the mirror-image problem: transcribed
+  from FFR's export for the seed, so grading them against that export was
+  largely self-agreement. By provenance, of 226 comparisons: **63 independently
+  supported, 163 self-agreeing by construction, 6 deliberately strict** (Cardia
+  Forest, whose gateway is rolled per seed), with the sweep contributing nothing
+  because the single rule taken from it was not in FFR's pool.
+
+  That is what the two rows changed. The sweep now derives a rule for every
+  compared location and agrees with FFR at 225 of 226, and at every location
+  where the pack's transcribed rule agrees with FFR the derived rule does too.
+  **215 of the 226 now rest on two independent readings** — the transcription
+  and a walk of the cartridge — rather than on the transcription alone. The
+  eleven that do not: 6 deliberately strict, 4 still granted a trade item, and
+  Lefein, where the derivation is genuinely permissive (see the entry named
+  "The derivation cannot say 'reach another location'"). Quote 215,
+  not 220, and not 226.
 
 - **The two tabs disagreed about how to reach Gaia. Closed 2026-09-01: the
   poster was right.** The Gaia node's northern-docks route read
@@ -1352,61 +1451,3 @@ Nothing here is urgent unless it says so.
   board what the console was already saying. Closing this also fixed a warning
   that was wrong: the old `GameMode ~= 0` line fired on every No-Overworld seed
   loaded into the No-Overworld variant it belongs in.
-
-- **Does anyone outside this repo use the pack?** It decides the four `NoMap`
-  variants question in `docs/IDEAS.md`, and nothing else can settle it.
-
-- **Is a loop worth collapsing?** Retracing points the prefer tie-break at a
-  lane's own edges as it accumulates them, so a return leg retraces the
-  outbound wherever retracing is free. **Whether it should is a per-floor
-  judgement, and as of 2026-09-04 the answer is recorded per floor**: a
-  `retrace` key on the layout entry in `tools/lanes/<map>.json`, absent meaning
-  no. `regen_maps.py --retrace` is the override rather than the switch —
-  `auto` (the default) lets each entry say, `on` and `off` force the whole set,
-  and a bare `--retrace` still means `on`, which is what every figure below was
-  measured with.
-
-  What it does is measured. Across the 57 authored files on a duck cartridge:
-  7007 drawn edges, 22.3% of them walked both ways and **none** twice in the
-  same direction, so a retraced out-and-back is already one line. What is not
-  collapsed is the return picking *different* tiles, which draws a loop — 67 of
-  them over 27 of the 102 lanes. Retraced, the loop count over the whole set
-  falls from 67 to 19, SeaShrineB2 from 8 to 0 and VolcanoB4 from 7 to 1, and
-  the walk does not move: every one of 378 legs runs between the same two tiles
-  for the same cost, which `tools/tests/test_lane.py` checks rather than
-  asserts.
-
-  (Those totals read 72 and 23 until 2026-09-04, when the count was corrected
-  to be taken over the drawing rather than over the walks. A loot lane is drawn
-  as an extension of its region's route lane, so a circuit of its own lying
-  inside the route corridor was being counted and never rendered — seven
-  map/mode pairs overstated, SkyPalace2F and MirageTower1F each reporting loops
-  on a drawing that has none. The per-map figures here were always over the
-  drawing and are unchanged.)
-
-  The bill is time — one Dijkstra per leg rather than per lane, since a growing
-  prefer set invalidates `Floor.search`'s memo — about half again on a regen,
-  and more than that on `/path` during authoring, which is why the editor's
-  live canvas does not retrace and its baked preview does.
-
-  **The judgement itself is still open, and it is now 24 separate judgements.**
-  On a floor that genuinely loops, one line with arrows both ways can read as
-  "walk this twice" when what is true is "there is a way round" — and there the
-  loop is the more honest drawing. So the maps get looked at one at a time,
-  with `tools/lane_edit.py`'s A/B flip: `Preview A/B` bakes the floor both ways
-  and space swaps between two images the browser already holds, because the
-  difference on most of them is one corridor and a re-bake loses it.
-
-  **24 of the 57 draw differently, and 21 is the wrong number to work from.**
-  ConeriaTown, MarshCaveB3 and SeaShrineB1 are redrawn without their loop count
-  moving, so the editor's map rail marks a floor by whether its *drawn edges*
-  differ and shows the count only as the label. `lane_edit.py --check` prints
-  the same table for planning the pass from a terminal.
-
-  One thing it corrects on the way past: the invariant is *same anchors, same
-  per-leg cost*, and not "steps and turns come out identical". `STEP` and `TURN`
-  are the same weight, so a leg trades two of one for two of the other for free
-  — ConeriaTown does, 84 steps and 24 turns becoming 86 and 22. And `turns()`
-  over a whole run counts corners at the leg joins that no search ever charged,
-  which is the entire "extra turn" on MarshCaveB3. Counting either reports a
-  change that has not happened.
