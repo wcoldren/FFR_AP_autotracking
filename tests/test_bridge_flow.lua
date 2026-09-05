@@ -1174,5 +1174,139 @@ frames(20)
 check("a non-FFR image publishes no purchase",
   table.concat(textFrames(allSent())):find('"ff1/shopitem","value":true', 1, true), nil)
 
+
+------------------------------------------------------------------
+-- 24. ff1/rolls. Two permutations FFR picks at generation and writes into no
+--     flag string and no spoiler: which Cardia landing each No-Overworld
+--     gateway leads to, and where ShuffleObjectiveNPCs put Bahamut, Dr Unne
+--     and the Elf Doctor. Both are read off PRG ROM once per cartridge and
+--     published as one key with two fields.
+--
+--     What the tests below are mostly about is the refusals. A rule that is
+--     told the wrong permutation opens a check that is not reachable, which is
+--     worse than the strict rule it replaced -- so every half-read, every
+--     duplicate and every NPC standing somewhere unexpected has to publish an
+--     empty field rather than a guess.
+------------------------------------------------------------------
+
+-- Where each landing sits: {map, x, y}, the three destinations
+-- MetroidVaniaMap.cs deals out.
+local LANDING_TILE = {
+  cardiaForest = { 16, 58, 55 },
+  cardiaCaravan = { 16, 43, 29 },
+  bahamutCave = { 17, 2, 2 },
+}
+local GATEWAY_BASE = { map = 0x3F200, x = 0x3F000, y = 0x3F100 }
+
+-- Three landing names in teleport-id order: Waterfall, Ice Cave B1, Gaia.
+--
+-- The Y byte is written with bit 7 set, which is what a real cartridge holds:
+-- FFR's room-to-room patch (0F_9200_TeleportXYInroom.asm) steals the top bit
+-- of each coordinate, so all three landings read $9D, $B7 and $82 rather than
+-- $1D, $37 and $02. Writing clean coordinates here would leave the reader's
+-- mask untested and every real seed unrecognised.
+function putGateways(landings)
+  for i = 1, 3 do
+    local tile = LANDING_TILE[landings[i]]
+    local id = 0x89 + i - 1
+    PRGROM[GATEWAY_BASE.map + id] = tile[1]
+    PRGROM[GATEWAY_BASE.x + id] = tile[2]
+    PRGROM[GATEWAY_BASE.y + id] = tile[3] | 0x80
+  end
+end
+
+local OBJECT_ID = { bahamut = 0x0E, elfdoc = 0x05, unne = 0x0B }
+local HOME_MAP = { melmond = 3, elflandCastle = 9, bahamutCaveB2 = 39 }
+
+-- {bahamut = "melmond", ...}. A home may also be given as a bare map id, which
+-- is how the "somewhere else entirely" case is written.
+function putObjectiveNpcs(homes)
+  for _, map in pairs(HOME_MAP) do
+    for i = 0, 14 do PRGROM[0x3400 + map * 48 + i * 3] = 0 end
+  end
+  local used = {}
+  for name, home in pairs(homes) do
+    local map = type(home) == "number" and home or HOME_MAP[home]
+    local slot = used[map] or 0
+    used[map] = slot + 1
+    PRGROM[0x3400 + map * 48 + slot * 3] = OBJECT_ID[name]
+  end
+end
+
+-- The cartridge swap only, without freshCart's 60 frames and the allSent()
+-- that drops them: ff1/rolls is published once per cartridge and memoised, so
+-- a helper that throws the first frames away would throw away the whole
+-- answer.
+local function rollsCart(id)
+  ROM_INFO = { name = id .. ".nes", path = "/roms/" .. id .. ".nes",
+               fileSha1Hash = "sha-" .. id }
+end
+
+local ROLLED = "gateways=waterfall:cardiaCaravan,icecave:cardiaForest,"
+    .. "gaia:bahamutCave|npcs=bahamut:melmond,elfdoc:elflandCastle,"
+    .. "unne:bahamutCaveB2"
+
+putFlagRecord("4-9-7", "rolls", "5EED0010")
+putGateways({ "cardiaCaravan", "cardiaForest", "bahamutCave" })
+putObjectiveNpcs({ bahamut = "melmond", elfdoc = "elflandCastle",
+                   unne = "bahamutCaveB2" })
+rollsCart("rollsA")
+frames(12)
+check("both rolls are published",
+  table.concat(textFrames(allSent())):find('"ff1/rolls","value":"' .. ROLLED .. '"',
+                                           1, true) ~= nil, true)
+
+frames(12)
+check("and not resent while the cartridge sits still",
+  table.concat(textFrames(allSent())):find('"ff1/rolls"', 1, true) == nil, true)
+
+-- A standard cartridge has no gateways at all, and the field is empty rather
+-- than absent: the NPC half applies to every seed, which is the whole reason
+-- one key carries two fields.
+putFlagRecord("4-9-7", "rolls", "5EED0011")
+putObjectiveNpcs({ bahamut = "bahamutCaveB2", elfdoc = "elflandCastle",
+                   unne = "melmond" })
+rollsCart("rollsB")
+frames(12)
+check("a cartridge with no gateways still answers for the NPCs",
+  table.concat(textFrames(allSent())):find(
+    '"ff1/rolls","value":"gateways=|npcs=bahamut:bahamutCaveB2,'
+    .. 'elfdoc:elflandCastle,unne:melmond"', 1, true) ~= nil, true)
+
+-- Two gateways landing on one tile is not a permutation. Half a read is worth
+-- nothing here, so the whole field goes.
+putFlagRecord("4-9-7", "rolls", "5EED0012")
+putGateways({ "cardiaForest", "cardiaForest", "bahamutCave" })
+-- A different NPC arrangement from the cartridge above, so the record as a
+-- whole changes and the diff sends it: two cartridges that publish the same
+-- string are indistinguishable here by design.
+putObjectiveNpcs({ bahamut = "melmond", elfdoc = "elflandCastle",
+                   unne = "bahamutCaveB2" })
+rollsCart("rollsC")
+frames(12)
+check("two gateways on one landing publish no gateway field",
+  table.concat(textFrames(allSent())):find(
+    '"ff1/rolls","value":"gateways=|npcs=bahamut:melmond,'
+    .. 'elfdoc:elflandCastle,unne:bahamutCaveB2"', 1, true) ~= nil, true)
+
+-- An objective NPC standing anywhere but the three homes is a cartridge this
+-- read does not describe.
+putFlagRecord("4-9-7", "rolls", "5EED0013")
+putGateways({ "cardiaCaravan", "cardiaForest", "bahamutCave" })
+putObjectiveNpcs({ bahamut = 0, elfdoc = "elflandCastle", unne = "melmond" })
+rollsCart("rollsD")
+frames(12)
+check("an objective NPC off the three homes publishes no NPC field",
+  table.concat(textFrames(allSent())):find('|npcs="', 1, true) ~= nil, true)
+
+-- And a cartridge that answers neither publishes nothing at all, which is what
+-- a non-FFR image and an emulator that will not read PRG both look like.
+putFlagRecord(nil)
+rollsCart("rollsE")
+frames(12)
+check("neither half readable reads as empty",
+  table.concat(textFrames(allSent())):find('"ff1/rolls","value":""', 1, true) ~= nil,
+  true)
+
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

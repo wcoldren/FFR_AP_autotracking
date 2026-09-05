@@ -92,6 +92,60 @@ local FLAGS_ROM_OFF = 0x7BE00
 local FLAGS_ROM_LEN = 512   -- comfortably past the longest record
 local FLAGS_MARKER = "FFRInfo"
 
+-- The two rolls, which are the two things about a cartridge that no flag
+-- string can say. FFR picks both at generation and writes neither to the flag
+-- record nor to the spoiler, so the ROM itself is the only source:
+--
+--   the gateway roll   in No-Overworld, three one-way teleporters out of
+--                      Waterfall, Ice Cave B1 and Gaia are dealt two Cardia
+--                      landings and Bahamut's Cave B1 in a shuffled order
+--                      (MetroidVaniaMap.cs:717-736)
+--   the objective roll ShuffleObjectiveNPCs permutes Bahamut, Dr Unne and the
+--                      Elf Doctor across Melmond, Elfland Castle and Bahamut's
+--                      Cave B2 (NPCs.cs:277)
+--
+-- Both are short reads at fixed offsets, which is what makes this a bridge
+-- feature rather than a map decompressor: the gateways keep three fixed
+-- teleport ids and only their destinations move, and the NPCs are three
+-- records in one flat table. tools/entrance_graph.py --rolls is the same read
+-- offline and is what these figures were measured with.
+--
+-- Offsets are PRG, header excluded, like FLAGS_ROM_OFF above: FFR's extended
+-- teleport tables are bank $0F at $B000/$B100/$B200, and lut_MapObjects is
+-- bank $00 at $B400. The Python tools quote the same addresses 0x10 higher,
+-- because they index the file and count the iNES header.
+local ROLLS_NORM_X = 0x3F000
+local ROLLS_NORM_Y = 0x3F100
+local ROLLS_NORM_MAP = 0x3F200
+-- Consecutive on purpose: they are read as one 3-byte run per table, from the
+-- first id. They come off a `teleportIDtracker++` at a fixed point in a
+-- hand-authored table of 75, and were the same three on all five
+-- No-Overworld cartridges measured.
+local GATEWAY_FIRST_ID = 0x89
+local GATEWAY_SOURCES = { "waterfall", "icecave", "gaia" }
+-- Keyed "<map>:<x>,<y>" on the destination each gateway lands on. Reading the
+-- destinations rather than the GameMode is what decides whether this cartridge
+-- has gateways at all: all three have to land on these three tiles, one each.
+-- So a cartridge whose flag record will not decode still answers, and an FFR
+-- that moves a landing publishes nothing rather than something plausible.
+local GATEWAY_LANDINGS = {
+  ["16:58,55"] = "cardiaForest",
+  ["16:43,29"] = "cardiaCaravan",
+  ["17:2,2"] = "bahamutCave",
+}
+local COORD_MASK = 0x3F   -- the top bits of a teleport coordinate are flags
+
+local MAP_OBJECTS_ROM = 0x3400
+local OBJ_MAP_COUNT, OBJ_PER_MAP, OBJ_RECORD, OBJ_STRIDE = 61, 15, 3, 48
+-- $05 is the Elf **Doctor**, not the Elf Prince at $06. The prince holds the
+-- check and never moves; reading his object would report every cartridge as
+-- unshuffled in that third of the permutation.
+local OBJECTIVE_NPCS = { [0x05] = "elfdoc", [0x0B] = "unne", [0x0E] = "bahamut" }
+local OBJECTIVE_HOMES = { [3] = "melmond", [9] = "elflandCastle", [39] = "bahamutCaveB2" }
+-- Published in a fixed order, so the string is stable across scans and two
+-- cartridges rolled the same way publish the same bytes.
+local OBJECTIVE_ORDER = { "bahamut", "elfdoc", "unne" }
+
 -- The shop key item, and why it takes two different reads.
 --
 -- FFR gives the item shop slot a synthetic object id of 0xFF so that buying a
@@ -537,9 +591,13 @@ end
 local INFO_MSG =
   '[{"cmd":"Info","protocol":0,"name":"FF1R Mesen Bridge","version":"1.0.0"}]'
 
--- Last state actually put on the wire, for diffing.
-local sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt, sentShop =
-    nil, nil, nil, nil, nil, nil, nil, nil
+-- Last state actually put on the wire, for diffing. A table rather than nine
+-- parallel locals: the caller passes the same shape, so a field added here is
+-- one line in each of the two places rather than a positional list to keep in
+-- step at four call sites.
+local sent = {}
+local STATE_KEYS = { "mem", "ready", "goal", "map", "rom", "flags", "art",
+                     "shop", "rolls" }
 
 local function varMem(mem)
   local parts = {}
@@ -566,49 +624,62 @@ local function varStr(name, value)
   return '{"cmd":"Var","name":"' .. name .. '","value":"' .. escaped .. '"}'
 end
 
-local function sendState(mem, ready, goal, map, rom, flags, art, shop, force)
+local function sendState(state, force)
   local msgs = {}
-  if force or mem ~= sentMem then
-    msgs[#msgs + 1] = varMem(mem)
+  local function changed(key)
+    return force or state[key] ~= sent[key]
   end
-  if force or ready ~= sentReady then
-    msgs[#msgs + 1] = varBool("ff1/ready", ready)
+  if changed("mem") then
+    msgs[#msgs + 1] = varMem(state.mem)
   end
-  if force or goal ~= sentGoal then
-    msgs[#msgs + 1] = varBool("ff1/goal", goal)
+  if changed("ready") then
+    msgs[#msgs + 1] = varBool("ff1/ready", state.ready)
+  end
+  if changed("goal") then
+    msgs[#msgs + 1] = varBool("ff1/goal", state.goal)
   end
   -- Whether the shop key item has been bought. A boolean and nothing else: the
   -- bridge knows which shop and which item, and publishing either would hand
   -- over the shop hunt.
-  if force or shop ~= sentShop then
-    msgs[#msgs + 1] = varBool("ff1/shopitem", shop)
+  if changed("shop") then
+    msgs[#msgs + 1] = varBool("ff1/shopitem", state.shop)
   end
-  if force or map ~= sentMap then
-    msgs[#msgs + 1] = varNum("ff1/map", map)
+  if changed("map") then
+    msgs[#msgs + 1] = varNum("ff1/map", state.map)
   end
   -- Sent whatever ff1/ready says. This is which cartridge is in the slot, not
   -- game state, and the pack needs it before the save-loaded guard passes --
   -- that is the whole window in which a ROM swap has to be noticed.
-  if force or rom ~= sentRom then
-    msgs[#msgs + 1] = varStr("ff1/rom", rom)
+  if changed("rom") then
+    msgs[#msgs + 1] = varStr("ff1/rom", state.rom)
   end
   -- Same reasoning as ff1/rom: this describes the cartridge, not the save, so
   -- it goes out whether or not a save is loaded. The pack needs it to configure
   -- its flag grid before there is any progress to show.
-  if force or flags ~= sentFlags then
-    msgs[#msgs + 1] = varStr("ff1/flags", flags)
+  if changed("flags") then
+    msgs[#msgs + 1] = varStr("ff1/flags", state.flags)
+  end
+  -- And on the same terms: the two permutations FFR rolled into this cartridge
+  -- are a property of the cartridge, and the rules that read them want them
+  -- before a save is loaded, the way the flag grid does.
+  if changed("rolls") then
+    msgs[#msgs + 1] = varStr("ff1/rolls", state.rolls)
   end
   -- And on the same terms again: which cartridge the art on disk was drawn for
   -- is a fact about the installation, not about the save.
-  if force or art ~= sentArt then
-    msgs[#msgs + 1] = varStr("ff1/art", art)
+  if changed("art") then
+    msgs[#msgs + 1] = varStr("ff1/art", state.art)
   end
   if #msgs == 0 then
     return
   end
   if send(wsEncodeText("[" .. table.concat(msgs, ",") .. "]")) then
-    sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt, sentShop =
-        mem, ready, goal, map, rom, flags, art, shop
+    -- The named keys and not pairs(state): a caller that left one out would
+    -- otherwise leave the previous cartridge's value standing in `sent`, and
+    -- the next frame carrying it would read as unchanged.
+    for _, key in ipairs(STATE_KEYS) do
+      sent[key] = state[key]
+    end
   end
 end
 
@@ -629,6 +700,9 @@ local lastGoal = false
 local lastMap = MAP_OVERWORLD
 local lastRom = ""
 local lastFlags = ""
+-- The two permutations this cartridge rolled, or "". Beside lastFlags for the
+-- same reason: a fact about the cartridge, published on the same terms.
+local lastRolls = ""
 -- Why the drawn maps are not this cartridge's, or "". Kept beside lastFlags
 -- because it describes the cartridge rather than the save, and goes out on the
 -- same terms.
@@ -723,6 +797,108 @@ local function readFlags(rom)
   EMU.log("seed flags: FFR " .. version .. ", seed " .. seed .. ", "
           .. #flags .. " characters")
   return flagsValue
+end
+
+------------------------------------------------------------------
+-- The two rolls, read off the cartridge.
+------------------------------------------------------------------
+
+-- The gateway roll as "waterfall:<landing>,icecave:<landing>,gaia:<landing>",
+-- or "" when this cartridge has none -- every mode but No-Overworld, and every
+-- image FFR did not write.
+local function readGatewayRoll()
+  local n = #GATEWAY_SOURCES
+  local okX, xs = pcall(EMU.readRom, ROLLS_NORM_X + GATEWAY_FIRST_ID, n)
+  local okY, ys = pcall(EMU.readRom, ROLLS_NORM_Y + GATEWAY_FIRST_ID, n)
+  local okM, ms = pcall(EMU.readRom, ROLLS_NORM_MAP + GATEWAY_FIRST_ID, n)
+  if not (okX and okY and okM) then
+    return ""
+  end
+  if type(xs) ~= "string" or type(ys) ~= "string" or type(ms) ~= "string" then
+    return ""
+  end
+  if #xs < n or #ys < n or #ms < n then
+    return ""
+  end
+  local parts, seen = {}, {}
+  for i = 1, n do
+    local key = string.format("%d:%d,%d", ms:byte(i),
+                              xs:byte(i) & COORD_MASK, ys:byte(i) & COORD_MASK)
+    local landing = GATEWAY_LANDINGS[key]
+    -- One landing each. Two gateways on one tile is not a permutation, and
+    -- would mean these ids are carrying something else entirely.
+    if landing == nil or seen[landing] then
+      return ""
+    end
+    seen[landing] = true
+    parts[i] = GATEWAY_SOURCES[i] .. ":" .. landing
+  end
+  return table.concat(parts, ",")
+end
+
+-- The objective roll as "bahamut:<home>,elfdoc:<home>,unne:<home>", or "".
+--
+-- The whole object table is walked rather than the three homes, so "they only
+-- ever stand on three maps" is measured on the cartridge in the slot rather
+-- than assumed: an objective NPC found anywhere else publishes nothing instead
+-- of two thirds of an answer. It is 2928 bytes, read once per cartridge.
+local function readObjectiveRoll()
+  local want = OBJ_MAP_COUNT * OBJ_STRIDE
+  local ok, raw = pcall(EMU.readRom, MAP_OBJECTS_ROM, want)
+  if not ok or type(raw) ~= "string" or #raw < want then
+    return ""
+  end
+  local home = {}
+  for mapId = 0, OBJ_MAP_COUNT - 1 do
+    local base = mapId * OBJ_STRIDE
+    for i = 0, OBJ_PER_MAP - 1 do
+      local name = OBJECTIVE_NPCS[raw:byte(base + i * OBJ_RECORD + 1)]
+      if name ~= nil then
+        if home[name] ~= nil or OBJECTIVE_HOMES[mapId] == nil then
+          return ""
+        end
+        home[name] = OBJECTIVE_HOMES[mapId]
+      end
+    end
+  end
+  local parts, seen = {}, {}
+  for i, name in ipairs(OBJECTIVE_ORDER) do
+    local where = home[name]
+    if where == nil or seen[where] then
+      return ""
+    end
+    seen[where] = true
+    parts[i] = name .. ":" .. where
+  end
+  return table.concat(parts, ",")
+end
+
+-- Both rolls as one record, "gateways=<...>|npcs=<...>", or "" when neither
+-- half could be read.
+--
+-- One key with two fields rather than two keys: they are one read on one
+-- channel, and a pack that has to know whether it has heard yet would
+-- otherwise have two answers to reconcile. An empty field is its own answer --
+-- "this cartridge has no gateways" is what every standard seed says, and the
+-- rules that name them stay strict on it.
+--
+-- Memoised on the cartridge id for the same reason readFlags is: none of this
+-- can change while a ROM is loaded, and a swap changes the id.
+local rollsFor, rollsValue = nil, ""
+
+local function readRolls(rom)
+  if rollsFor == rom then
+    return rollsValue
+  end
+  rollsFor, rollsValue = rom, ""
+  if not EMU.readRom then
+    return rollsValue
+  end
+  local gateways, npcs = readGatewayRoll(), readObjectiveRoll()
+  if gateways ~= "" or npcs ~= "" then
+    rollsValue = "gateways=" .. gateways .. "|npcs=" .. npcs
+  end
+  return rollsValue
 end
 
 ------------------------------------------------------------------
@@ -1506,15 +1682,26 @@ local function drawRunClock()
   EMU.log("cannot draw the run clock -- it is still being kept and logged")
 end
 
+-- Everything sendState diffs, in one place. `ready` is the only field that
+-- differs between the four calls below, which is why it is the argument.
+local function currentState(ready)
+  return {
+    mem = lastMem, ready = ready, goal = lastGoal, map = lastMap,
+    rom = lastRom, flags = lastFlags, art = lastArt, shop = lastShop,
+    rolls = lastRolls,
+  }
+end
+
 local function scan()
   local mem = readMem()
   lastRom = readRom()
   lastFlags = readFlags(lastRom)
+  lastRolls = readRolls(lastRom)
   lastArt = readArt(lastRom)
 
   if not inGame(mem) or looksUninitialised(mem) then
     invalidate()
-    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags, lastArt, lastShop)
+    sendState(currentState(false))
     return
   end
 
@@ -1529,7 +1716,7 @@ local function scan()
   end
 
   if not isReady() then
-    sendState(lastMem, false, lastGoal, lastMap, lastRom, lastFlags, lastArt, lastShop)
+    sendState(currentState(false))
     return
   end
 
@@ -1538,7 +1725,7 @@ local function scan()
   lastShop = shopItemBought(mem, lastRom)
   lastMap = readMap()
   noteRunProgress(lastRom, lastGoal)
-  sendState(lastMem, true, lastGoal, lastMap, lastRom, lastFlags, lastArt, lastShop)
+  sendState(currentState(true))
 end
 
 ------------------------------------------------------------------
@@ -1571,12 +1758,12 @@ local function handleHandshake()
   end
 
   handshaked = true
-  sentMem, sentReady, sentGoal, sentMap, sentRom, sentFlags, sentArt, sentShop =
-      nil, nil, nil, nil, nil, nil, nil, nil
+  sent = {}
   -- A client can connect and Sync before the first scan tick, and the very
   -- first thing it needs is which cartridge this is.
   lastRom = readRom()
   lastFlags = readFlags(lastRom)
+  lastRolls = readRolls(lastRom)
   lastArt = readArt(lastRom)
   EMU.log("PopTracker connected")
   EMU.notify("PopTracker connected")
@@ -1602,8 +1789,7 @@ local function handleFrames()
       -- is correct for it, so match on the name rather than carrying a JSON
       -- parser for one string.
       if payload:find('"Sync"', 1, true) then
-        sendState(lastMem, isReady(), lastGoal, lastMap, lastRom, lastFlags,
-                  lastArt, lastShop, true)
+        sendState(currentState(isReady()), true)
       end
     end
   end
