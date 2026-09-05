@@ -24,6 +24,21 @@ cite them by number — `scripts/autotracking/flag_mapping.lua` and
 `tests/test_maps.lua` among them — and renumbering to tidy a page is how a
 pointer stops resolving.
 
+**A close cannot carry an open finding. Added 2026-09-04**, from an audit of
+every open item on this page and in `docs/ISSUES.md` against the tree. §1's
+incentive-conjunction close ended by naming one finding it did not fix — a gold
+ring on a check the seed does not have — and that is the only place this page
+mentions it. An open defect hanging off a closed bullet is invisible by
+construction: it is not in the index below, so nobody reading the plan for what
+is next will see it. A close now shrinks to its conclusion and *spawns* a row;
+it does not keep custody of what it left behind.
+
+The same audit found live defects with no bullet here at all, which is a
+different failure and not one the triage rule catches: defects belong to
+`docs/ISSUES.md` by design, and the cost is that the plan cannot see them. The
+second table below indexes them. It carries a line each and a pointer, never the
+prose — that page owns them, this one only has to make them findable.
+
 The triage rule, from 2026-08-30: **does it change a colour, add a box, or save
 a click?** If yes it is product and goes in sections 1-4. If no it is tooling
 and goes in 5, where it earns its place by keeping 1-4 true. **The section
@@ -43,6 +58,7 @@ work it is, not how much it matters.
 
 | | |
 |---|---|
+| §1 | A slot rings for a location the seed does not have |
 | §1 | The two rolls the bridge should read, not guess at |
 | §2 | ToFR floor modelling |
 | §3 | Whether Inspect survives `hide unreachable locations` |
@@ -50,7 +66,7 @@ work it is, not how much it matters.
 | §3 | Room-level zoom, after the towns |
 | §3 | The regen's execution half, after the detection half |
 | §4 | Entrance markers: where a door now goes |
-| §4 | The lanes still to draw: ten No-Overworld floors, 32 ported drafts, the by-eye pass, the run-wide order |
+| §4 | The lanes still to draw: ten No-Overworld floors, the ported drafts, the by-eye pass, the run-wide order |
 | §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
 | §4 | Boss names in the Map Key |
@@ -58,12 +74,51 @@ work it is, not how much it matters.
 | §5 | Port from the export — blocked on a provenance decision |
 | §5 | Two location trees, one rule set |
 
+**Defects the register owns.** Open entries in `docs/ISSUES.md` that are work
+someone could pick up, listed so the plan can see them. One line and a pointer;
+that page holds the evidence and the history.
+
+| | |
+|---|---|
+| blocked | The derivation cannot say "reach another location" — Lefein, the last `--derived` divergence. Wants the requirements solver in `docs/IDEAS.md`, so it is filed rather than small |
+| maps | Crop boxes are looser than the map on several tabs, from two causes |
+| maps | A room bigger than `ROOM_MAX_CELLS` stays shut — Mirage Tower 1F is 458 cells against 256, and raising it wants a measurement of what else opens |
+| maps | The Map Key drops a font scale on the narrowest maps that carry a lane |
+| lanes | A lane file's `region` is an index the digest does not guard |
+| lanes | A stop at a chest re-orients for free, and nothing says whether it should |
+| tests | Nothing tests the multi-tile OR in `derive()` |
+| board | The No-Overworld incentive poster is missing one slot — `nerrick` and `airship` differ, one of them really absent |
+| board | The incentive defaults are still a guess on a version with no schema |
+| board | `showIncentiveRings` may want a drawn "off" image: gold does not survive this pack's `grayscale, dim` filter |
+| docs | `ChestsKeyItems` is a seven-chest flag and `maptab.lua` glosses it as a general one |
+| docs | The standard-seed reachability oracle is stated without its precondition |
+| unproven | `smith $6209` and `fairy $6213` read a chest bit where their rules test the event bit |
+| upstream | A pinned control cannot survive Reset, so `Entrance Pins` and `Overworld Tab` start on Auto every launch. No pack-side fix exists |
+
+Two more sit under a section above rather than here, because a bullet already
+owns them: the No-Overworld overworld row and its 29 unrestamped pins is part of
+§4's map surface, and the two dungeon trees being byte-identical — so
+`test_maps.lua` check 6 cannot fail — is §5's.
+
 ## 1. Colours that are wrong on real seeds
 
 Each item here is a pin that lied on a seed someone could roll. Each wants a
 code, the affected `access_rules` alternatives, and **one oracle seed rolled
 with the flag on** so `check_logic --ap-rules` grades the branch. A rule without
 its oracle seed is a hand transcription, which is what section 5 is meant to end.
+
+- **A slot rings for a location the seed does not have.** On `notail` the pack
+  rings `Sea Shrine Mermaids (B1) - Incentive Major`, which is not an
+  Archipelago location on that seed — its Sea Shrine incentive chests are
+  `Incentive 1` and `Incentive 2`; `hoarddockbridge497` does the same with the
+  Cardia chest. Same family as the caravan slot and a different cause: the
+  caravan's existence answers to a flag so a rule can gate it, while these are
+  the seed naming a chest slot differently, which no flag predicts. The row
+  points at an id the pool does not contain. What it should become is open —
+  probably a row that can name more than one id, or treating an absent id as no
+  slot. Found 2026-09-03 by `test_incentive_conjunction.py`, and it spent a day
+  as a trailing sentence on the close below. `docs/ISSUES.md`, "A slot can ring
+  for a location the seed does not have".
 
 - **The two rolls the bridge should read, not guess at.** Both are permutations
   chosen at generation that reach neither the flag string nor the spoiler, and
@@ -117,8 +172,9 @@ its oracle seed is a hand transcription, which is what section 5 is meant to end
   carrying forward: `check_logic` grades access rules against reachability, the
   rings answer to `priority_locations`, and nothing compared the two.
   `tools/tests/test_incentive_conjunction.py` closes that.
-  `docs/ISSUES.md` has the entry and the one further finding still open, which
-  no conjunction fixes: a chest `notail` names differently.
+  `docs/ISSUES.md` has the entry. The one finding it turned up that no
+  conjunction fixes — a chest `notail` names differently — is the open bullet at
+  the top of this section, not a sentence here.
 
 ## 2. Boxes that do not exist
 
