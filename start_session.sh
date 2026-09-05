@@ -139,7 +139,7 @@ except SystemExit as e:
 
 out = regen_maps.default_out()
 cache = os.path.join(out, regen_maps.CACHE_NAME)
-npcs, lanes = "all", "none"
+npcs, lanes, retrace = "all", "authored", "on"
 drawn = None
 # "-" rather than an empty field: this line is read back by a positional
 # `set --`, where an empty one would shift every field after it. Art drawn
@@ -151,15 +151,16 @@ try:
     npcs = entry.get("npcs", npcs)
     lanes = entry.get("lanes", lanes)
     drawn = entry.get("rom")
+    retrace = entry.get("retrace", retrace)
     branch = entry.get("branch") or "-"
 except (OSError, ValueError):
     pass
 
 if drawn == sha:
-    print(f"current {mode} {npcs} {lanes} {branch}")
+    print(f"current {mode} {npcs} {lanes} {retrace} {branch}")
 else:
     why = "no art for this mode yet" if drawn is None else "drawn from another cartridge"
-    print(f"redraw {mode} {npcs} {lanes} {branch} {why}")
+    print(f"redraw {mode} {npcs} {lanes} {retrace} {branch} {why}")
 PY
 )
     # Globbing off: a branch name is one of these fields now, and git allows
@@ -170,7 +171,7 @@ PY
     verdict=${1:-cannot}
     case $verdict in
         current)
-            mode=$2 npcs=$3 lanes=$4 drawn_branch=$5
+            mode=$2 npcs=$3 lanes=$4 retrace=$5 drawn_branch=$6
             # The art matches this cartridge, which does not yet mean it
             # matches the checkout: --verify is the one that compares those.
             if out=$("$PY" "$ROOT/tools/regen_maps.py" --verify 2>&1); then
@@ -179,7 +180,7 @@ PY
                 echo "$out" | head -4
                 if regen_ok "$mode" "$drawn_branch"; then
                     echo "-> the art is this cartridge's but predates the checkout; redrawing"
-                    if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes"; then
+                    if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes" --retrace "$retrace"; then
                         echo "redraw failed -- the tabs will show the shipped art" >&2
                         problems=$((problems + 1))
                     fi
@@ -187,7 +188,7 @@ PY
             fi
             ;;
         redraw)
-            mode=$2 npcs=$3 lanes=$4 drawn_branch=$5
+            mode=$2 npcs=$3 lanes=$4 retrace=$5 drawn_branch=$6
             shift 5
             # Printed before the guard rather than inside it. On the blocked
             # path this line is the whole story, and the reason that usually
@@ -200,7 +201,7 @@ PY
                 echo "-> redrawing from this cartridge"
                 # Not piped into tail: the exit status of a pipeline is the
                 # last command's, so gating on it would ask whether tail worked.
-                if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes"; then
+                if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes" --retrace "$retrace"; then
                     echo "redraw failed -- the tabs will show the shipped art" >&2
                     problems=$((problems + 1))
                 fi
