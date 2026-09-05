@@ -314,7 +314,8 @@ Things a bridge-only player checks that the board has no cell for.
   and it is looking rather than drawing. Each carries `"ported": true` and
   `lane_edit` clears it on save, so how many are left is a question for the
   files rather than for this paragraph: 32 when they were carried across, 26 on
-  2026-09-04. That figure is here so a reader knows roughly what is left before
+  2026-09-04, 14 after the 2026-09-05 pass. That figure is here so a reader
+  knows roughly what is left before
   running the grep, not so it can be cited — a count in prose beside a count in
   the files is the one that goes stale.
 

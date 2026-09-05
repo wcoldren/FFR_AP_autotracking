@@ -1151,3 +1151,65 @@ row came off. What stayed strict is an NPC rolled into the third home, and every
 session with no cartridge to read, which is not a gap that can be closed from
 this side: the permutation exists only on the cartridge, and an Archipelago-only
 session has none.
+
+## A region can carry more than one route lane, and seventeen floors wanted to
+
+The editor addressed a lane by `(flavour, region)`, so a second route lane in
+one region could not be selected and therefore could not be drawn. That read
+like a format limit and was not one: the lane file has always been a list, and
+`lane.authored` has never capped runs per region. The cap was two lines of
+lookup in the page.
+
+**The two halves of the pack already disagreed about it**, which is the reason
+this could not be fixed in the editor alone. `render_maps.route_edges` indexes
+every route run per region and unions them, and always has. `lane.authored`
+preferred the *first* matching route run and then broke. So a second route lane
+would have drawn correctly and been walked as though it were not there -- the
+loot lane would take a second line down a corridor the drawing then collapses
+into one. Lifting the UI cap on its own would have made a wrong drawing
+reachable by clicking, which is a worse failure than the missing button,
+because the button's absence is visible and the disagreement is not.
+
+The join came out into `lane.preferred_edges(runs, region)` -- named apart from
+`render_maps.route_edges` because the two answer the same question on different
+sides, one indexing every region to subtract and one serving a cost function --
+and the editor's JavaScript does the same join now. That page has no pathfinder
+of its own on purpose, and a preview that subtracted one of two route lanes
+would have drawn a loot lane the bake then disagreed with.
+
+**What the rail gained is a lane strip**: one chip per lane on the floor,
+labelled by kind and region and lettered where a region holds two of a kind,
+with a button to add one and one to drop it. The flavour buttons still address
+by `(flavour, region)` and still reach the first of a pair, which is what a
+floor with one of each wants, and nearly all of them are. The strip's other
+effect is that how many lanes a floor carries is now visible; the old rail
+could not show it.
+
+**The pass that followed used it immediately and widely**, which is the part
+that says the limit was real rather than theoretical. Nineteen regions across
+seventeen floors now carry more than one lane of a kind: `ordeals1F` and
+`elf_castle` five route lanes each, `marshB1` and `tof` four, `matoya` and
+`sarda` three, and `marshB2`, `seaB3` and `tof` two loot lanes. `marshB1`
+dropped its loot lane outright and became four route lanes, which is a
+judgement about that floor rather than a mechanical carry. Twelve carried
+drafts were reviewed and kept in the same pass, taking the ported count to
+fourteen, and ten floors that were never drafts were authored.
+
+**Three of the twenty-two files edited moved the standard art too**, and that
+is worth knowing before someone reads a nov-mode pass as nov-only. `bahamut`,
+`sky2F` and `tofr3F` are tile-identical to their standard twins, so the digest
+narrowing gave them one shared layout entry; editing them on either cartridge
+moves both. Only `bahamut` reaches the drawing -- the standard regen redrew one
+image. The narrowing is working as designed, but "a `--mode nov` pass does not
+touch standard art" is not true and should not be inferred later from the flag.
+
+**Left open, and named so it is not re-derived.** `retrace` is recorded per
+floor and every one of those flags was set when a region had one route lane;
+`loops_of` counts circuits over the drawn set, so a floor now carrying four or
+five may collapse differently than it did when its flag was decided. And the
+second limit recorded beside this one -- keeping a lane off a tile -- is
+untouched, because it carries a decision rather than only work: an `avoid` list
+would port for free, but a port only runs when the digest differs, so a bare
+tile coordinate would mean something else on the target and would silently
+avoid an arbitrary tile instead of refusing. Either exclude it from the carry
+or give it a typed form the way stops have one.
