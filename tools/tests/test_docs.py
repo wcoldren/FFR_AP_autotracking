@@ -7,10 +7,11 @@ sent somewhere wrong, and each is enforced by remembering to. The pack's own
 standard for a rule is stricter than that: a check that cannot fail is
 worthless, and so is a rule that cannot bite.
 
-So this holds the prose to seven things a commit can break. The first five were
+So this holds the prose to eight things a commit can break. The first five were
 chosen because each has already gone wrong here at least once; the sixth guards
-a convention new enough not to have failed yet, and the seventh was written the
-day the convention it guards failed eleven times in one commit:
+a convention new enough not to have failed yet, the seventh was written the day
+the convention it guards failed eleven times in one commit, and the eighth the
+day the plan's own index outlived the section it indexed:
 
   1. A `path:line` citation names a line the file still has, and the symbol the
      sentence names is still near it. `flag_mapping.lua:410` sat in two
@@ -46,6 +47,13 @@ day the convention it guards failed eleven times in one commit:
      the paragraph where the file argues that pointing by position rots. Two
      others had been wrong for longer. This is the third habit in the paragraph
      at the top of this docstring, and the only one that was still a habit.
+  8. `ROADMAP.md`'s open-work index does not list a section that says it has
+     nothing open. Section 1 closed and said so in its own words while the index
+     above it still carried its last bullet as a row. That index is the page's
+     answer to "what is next" and the half a reader trusts without reading
+     further, and it was the one table on the page with nothing holding it: the
+     defects table below it is checked because its rows point into another page,
+     and this one points at bullets on its own.
 
 The symbol check in (1) is deliberately generous: it fires only when the citing
 paragraph names an identifier or quotes a phrase, matches case-insensitively,
@@ -797,6 +805,68 @@ check("no register entry points at another by position", by_position, [])
 check("every entry the register names by name is still there", gone_missing, [])
 check("and that name still opens exactly one entry", lands_on_two, [])
 
+# ------------------------------------------------------------------------ 8
+# The plan's open-work index, held to the page's own declaration.
+#
+# A section says outright when it has nothing left, and that sentence is the
+# only machine-readable statement of it -- which bullets in sections 3 and 5 are
+# open and which are closed is a matter of where the word "Closed" sits in the
+# prose, so counting bullets would be guessing. Section 1 closed on 2026-09-05
+# and said "Nothing here is open" in its own words, and its row stayed in the
+# index above for the rest of the day.
+GLANCE = "Every open bullet on this page"
+NOTHING_OPEN = "nothing here is open"
+PLAN_HEADING = re.compile(r"^##\s+(\d+)\.")
+
+
+def plan_sections(lines):
+    """{number: [its lines]} for the plan's numbered sections.
+
+    Any other heading closes the section it follows rather than extending it.
+    The index itself sits under one, so without that every row would read as
+    part of whatever section came before.
+    """
+    out, cur = {}, None
+    for ln in lines:
+        m = PLAN_HEADING.match(ln)
+        if m:
+            cur = out.setdefault(m.group(1), [])
+        elif ln.startswith("##"):
+            cur = None
+        elif cur is not None:
+            cur.append(ln)
+    return out
+
+
+def says_nothing_open(body):
+    """Whether a section declares itself finished, however it is emphasised."""
+    return any(NOTHING_OPEN in " ".join(ln.replace("**", "").split()).lower()
+               for ln in body)
+
+
+def stale_index_rows(lines):
+    """(rows naming a finished section, rows naming no section at all)."""
+    sections = plan_sections(lines)
+    closed, missing = [], []
+    for cells in table_rows(lines, GLANCE):
+        num = cells[0].strip().lstrip("§").strip()
+        body = sections.get(num)
+        if body is None:
+            missing.append(" | ".join(cells))
+        elif says_nothing_open(body):
+            closed.append(" | ".join(cells))
+    return closed, missing
+
+
+plan_lines = read(PLAN)
+listed_but_closed, listed_but_absent = stale_index_rows(plan_lines)
+
+check("the open-work index still has rows to check",
+      len(table_rows(plan_lines, GLANCE)) >= 5, True)
+check("no index row names a section that says nothing is open",
+      listed_but_closed, [])
+check("and every row names a section the page has", listed_but_absent, [])
+
 # ------------------------------------------------------------------------
 # Each row above has to be able to fail, or this file is the thing it was
 # written to catch. These exercise the machinery on inputs whose answer is
@@ -949,6 +1019,30 @@ check("a named pointer is read across the wrap it sits on",
       ["The Cardia ring cannot\n  be switched off"])
 check("and a positional one is not a named pointer at all",
       NAMED_ENTRY.findall("by the entry above"), [])
+# The index rows, on a page whose answer is known. The first pair is the shape
+# that got through -- a row for a section that had closed -- and the rest are
+# the two ways the walker could stop looking: reading a declaration across a
+# section boundary, or losing the rows to the heading the index sits under.
+_STALE = ["## Open work, at a glance", "",
+          "Every open bullet on this page, in section order.", "",
+          "| | |", "|---|---|",
+          "| \u00a71 | The thing that closed |",
+          "| \u00a72 | The thing that did not |", "",
+          "## 1. A section that finished", "",
+          "**Nothing here is open.** The last of it closed today.", "",
+          "## 2. A section that did not", "", "- **A bullet.** Still open."]
+check("a row for a section that says nothing is open is caught",
+      stale_index_rows(_STALE)[0], ["\u00a71 | The thing that closed"])
+check("and the section that did not say it keeps its row",
+      [r for r in stale_index_rows(_STALE)[0] if "\u00a72" in r], [])
+check("a declaration does not carry into the next section",
+      says_nothing_open(plan_sections(_STALE)["2"]), False)
+check("and the index's own heading does not swallow the rows",
+      len(table_rows(_STALE, GLANCE)), 2)
+check("a row naming a section the page does not have is caught",
+      stale_index_rows(_STALE[:7] + ["| \u00a79 | A section nobody wrote |"]
+                       + _STALE[7:])[1],
+      ["\u00a79 | A section nobody wrote"])
 if FROM_GIT:
     # Held this way round on purpose. `is_pack_doc` is a naming, and a tracked
     # document landing outside it would simply stop being checked off a walk --
