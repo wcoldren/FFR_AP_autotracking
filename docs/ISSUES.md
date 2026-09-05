@@ -278,8 +278,11 @@ Nothing here is urgent unless it says so.
   pins moved to the cartridge and the other six gained boxes; nothing measured
   in that pass argues for adding these.
 
-- **14 of the 245 shipped images are referenced by nothing.** Counted
-  2026-09-01 by grepping every tracked file for `images/...`. They are
+- **14 of the 251 shipped images are referenced by nothing.** Counted
+  2026-09-01 and re-counted 2026-09-04, when the denominator had drifted to 249
+  and the door icons took it to 251; all fourteen are still unreferenced, each
+  checked by its full path rather than its basename, because this entry naming
+  them makes a basename search find every one of them in this file. They are
   `flags/airBoatOFF.png`, `flags/noOpenProgression.png`, `items/airorb.png`,
   `items/masmune.png`, `items/ribbon.png`, six under `locations/`
   (`earthRod`, `seaShrineKey`, `skyPalaceChime`, `skyPalaceCube`, `volcano`,
@@ -298,10 +301,23 @@ Nothing here is urgent unless it says so.
   from a fork on a tidying impulse is not a change worth making without a
   reason. If one is ever wanted, it is here.
 
-- **17 maps have no markers on the shipped hand-drawn art.** 16 were never
-  calibrated and `ConeriaCastle2F` is a composite the schema cannot address. This
-  is a limit of that art only: markers on redrawn art are built from the
-  cartridge and every map has them. Solving the 16 offsets by hand would only
+- **15 maps have no markers on the shipped hand-drawn art.** Measured
+  2026-09-04 as the `maps.json` rows carrying no `map_locations` entry in any of
+  the four committed trees: `bahamut`, `earthB5`, `marshB1`, `mirage3F`,
+  `ordeals1F`, `seaB5`, `sky4F`, `sky5F`, `tofr1F`, `tofr2F`, `tofrChaos`,
+  `tofrEarth`, `tofrWater`, `volcB1`, `volcB3`.
+
+  **This said 17 and gave a breakdown that does not reconcile**, which is why
+  the method is written down now rather than the number alone. It read "16 were
+  never calibrated and `ConeriaCastle2F` is a composite the schema cannot
+  address", and no denominator in the repo produces 16: there are 61
+  `MAP_FILES`, 53 `maps.json` rows, 40 calibration entries and 23 `MAP_FILES`
+  with no calibration entry. `con_castle2F` carries markers today, so whatever
+  it was counting has moved. Re-derive from the trees rather than trusting
+  either figure.
+
+  This is a limit of that art only: markers on redrawn art are built from the
+  cartridge and every map has them. Solving the offsets by hand would only
   benefit a player who never runs `tools/regen_maps.py`.
 
 - **The incentive defaults are still a guess** on a version with no schema. The
@@ -1048,16 +1064,24 @@ Nothing here is urgent unless it says so.
   nothing could have. A prediction about code that is not re-read against the
   code is the failure mode this page keeps finding in itself.
 
-- **The toggle icons are sized against a filter a third darker than their
-  docstring assumed.** `make_toggle_icons.py` draws only the "on" image and lets
-  PopTracker grey the off state; the docstring described the default `grey`
-  filter, but `settings.json` sets `disabled_image_filter` to `grayscale, dim`,
-  and `dim` is a flat halving (`imagefilter.cpp:78-81`) applied after a greyscale
-  taken at full value. Measured through the real filter: GROUND 24/24/28 -> 12,
-  GLYPH 188 -> 94, blue -> 61, gold -> 78. The glyph shapes hold at 94 on 12.
-  The gold ring at 78 against a 94 glyph has stopped being gold, which makes
-  `showIncentiveRings` the one of the four most likely to want a drawn "off"
-  image. A look-at-it-on-a-board decision, not a code one.
+- **The gold ring stops being gold once this pack's off filter has had it.**
+  `make_toggle_icons.py` draws only the "on" image and lets PopTracker grey the
+  off state. Measured through the filter this pack actually sets --
+  `disabled_image_filter: grayscale, dim`, a flat halving
+  (`imagefilter.cpp:78-81`) after a greyscale taken at full value -- GROUND
+  24/24/28 goes to 12, GLYPH 188 to 94, blue to 61 and gold to 78. The glyph
+  shapes hold at 94 on 12. The gold at 78 against a 94 glyph does not, which
+  makes `showIncentiveRings` the one of the four most likely to want a drawn
+  "off" image of its own. A look-at-it-on-a-board decision, not a code one, and
+  the open half of this entry.
+
+  **The docstring half is closed. 2026-09-04.** This entry led with it -- the
+  icons were "sized against a filter a third darker than their docstring
+  assumed", because that docstring described PopTracker's default `grey` rather
+  than what `settings.json` sets. It reads the filter off this pack now and says
+  so, including that the default is the brighter of the two and would flatter
+  the shapes. Leading with the fixed half is how the live question underneath it
+  went unread.
 
 - **A stop at a chest re-orients for free, and nothing says whether it
   should.** `Floor.lane` chains its legs with `path()`, and `search()` seeds

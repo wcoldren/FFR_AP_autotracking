@@ -239,13 +239,16 @@ Things a bridge-only player checks that the board has no cell for.
   collapses a route lane to the cheapest pair of ends the floor offers, on 23 of
   them.
 
-  **The 32 are drafts, not finished lanes.** Each is the standard route replayed
-  on a floor whose walls have moved, so it is legal and may still be silly — a
-  corridor that was the short way round on one cartridge can be the long way on
-  another. Reviewing them in `tools/lane_edit.py` is the open work, and it is
-  looking rather than drawing. Each carries `"ported": true` and `lane_edit`
-  clears it on save, so how many are left is a question for the files rather
-  than for this paragraph.
+  **The ported ones are drafts, not finished lanes.** Each is the standard route
+  replayed on a floor whose walls have moved, so it is legal and may still be
+  silly — a corridor that was the short way round on one cartridge can be the
+  long way on another. Reviewing them in `tools/lane_edit.py` is the open work,
+  and it is looking rather than drawing. Each carries `"ported": true` and
+  `lane_edit` clears it on save, so how many are left is a question for the
+  files rather than for this paragraph: 32 when they were carried across, 26 on
+  2026-09-04. That figure is here so a reader knows roughly what is left before
+  running the grep, not so it can be cited — a count in prose beside a count in
+  the files is the one that goes stale.
 
   **The ten that refuse are the authoring pass.** Six towns plus `tofr1F` lose
   the arrival outright; `elf_castle` and `nw_castle` keep an arrival they cannot
