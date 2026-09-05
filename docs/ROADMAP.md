@@ -75,25 +75,30 @@ work it is, not how much it matters.
 | §5 | Two location trees, one rule set |
 
 **Defects the register owns.** Open entries in `docs/ISSUES.md` that are work
-someone could pick up, listed so the plan can see them. One line and a pointer;
-that page holds the evidence and the history.
+someone could pick up, listed so the plan can see them; that page holds the
+evidence and the history. It writes its entries as bullets rather than headings,
+so there is no anchor to link to and the wording has to be the link: **each row
+opens with the entry's own first words**, and grepping that phrase lands on the
+entry. Anything after an em dash is this page's gloss rather than the
+register's. Rewording either end is how a row stops resolving, which
+`tools/tests/test_docs.py` now catches.
 
 | | |
 |---|---|
-| blocked | The derivation cannot say "reach another location" — Lefein, the last `--derived` divergence. Wants the requirements solver in `docs/IDEAS.md`, so it is filed rather than small |
-| maps | Crop boxes are looser than the map on several tabs, from two causes |
-| maps | A room bigger than `ROOM_MAX_CELLS` stays shut — Mirage Tower 1F is 458 cells against 256, and raising it wants a measurement of what else opens |
+| blocked | The derivation cannot say "reach another location", and Lefein is where that shows — the last `--derived` divergence. Wants the requirements solver in `docs/IDEAS.md`, so it is filed rather than small |
+| maps | Crop boxes are looser than the map on several tabs — two causes, not one |
+| maps | A room bigger than the guard stays shut — Mirage Tower 1F is 458 cells against `ROOM_MAX_CELLS` at 256, and raising it wants a measurement of what else opens |
 | maps | The Map Key drops a font scale on the narrowest maps that carry a lane |
 | lanes | A lane file's `region` is an index the digest does not guard |
 | lanes | A stop at a chest re-orients for free, and nothing says whether it should |
 | tests | Nothing tests the multi-tile OR in `derive()` |
-| board | The No-Overworld incentive poster is missing one slot — `nerrick` and `airship` differ, one of them really absent |
+| board | The No-Overworld incentive poster is missing one slot, not two — of `nerrick` and `airship`, only `nerrick` is |
 | board | The incentive defaults are still a guess on a version with no schema |
-| board | `showIncentiveRings` may want a drawn "off" image: gold does not survive this pack's `grayscale, dim` filter |
-| docs | `ChestsKeyItems` is a seven-chest flag and `maptab.lua` glosses it as a general one |
+| board | The gold ring stops being gold once this pack's off filter has had it — `showIncentiveRings` may want a drawn "off" image |
+| docs | `ChestsKeyItems` is a seven-chest flag, and the pack describes it as a general one — `maptab.lua:65-66` is the gloss |
 | docs | The standard-seed reachability oracle is stated without its precondition |
-| unproven | `smith $6209` and `fairy $6213` read a chest bit where their rules test the event bit |
-| upstream | A pinned control cannot survive Reset, so `Entrance Pins` and `Overworld Tab` start on Auto every launch. No pack-side fix exists |
+| unproven | `smith $6209` reads `0x05` and `fairy $6213` reads `0x04` — the chest bit set where their rules test the event bit |
+| upstream | A pinned control cannot survive Reset, and no pack-side change can make it — `Entrance Pins` and `Overworld Tab` start on Auto every launch |
 
 Two more sit under a section above rather than here, because a bullet already
 owns them: the No-Overworld overworld row and its 29 unrestamped pins is part of

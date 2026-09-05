@@ -7,8 +7,9 @@ sent somewhere wrong, and each is enforced by remembering to. The pack's own
 standard for a rule is stricter than that: a check that cannot fail is
 worthless, and so is a rule that cannot bite.
 
-So this holds the prose to five things a commit can break, chosen because each
-one has already gone wrong here at least once:
+So this holds the prose to six things a commit can break. The first five were
+chosen because each has already gone wrong here at least once; the sixth guards
+a convention new enough not to have failed yet:
 
   1. A `path:line` citation names a line the file still has, and the symbol the
      sentence names is still near it. `flag_mapping.lua:410` sat in two
@@ -31,6 +32,12 @@ one has already gone wrong here at least once:
      carried eight of the nine pages: `FLAG_COVERAGE.md` had no row, while the
      same file's own "one home per fact" paragraph named it as an owner. A page
      the index does not list is a page a reader does not find.
+  6. Every row of `ROADMAP.md`'s defects table opens with the first words of the
+     `ISSUES.md` entry it stands for, and lands on exactly one. The register
+     gives its entries no headings, so there is no anchor to link to and the
+     wording is the whole of the pointer -- reword either end and the row still
+     reads fine while pointing at nothing. The plan's own gloss after an em dash
+     is not held to the register, only the phrase before it.
 
 The symbol check in (1) is deliberately generous: it fires only when the citing
 paragraph names an identifier or quotes a phrase, matches case-insensitively,
@@ -611,6 +618,93 @@ check("docs/README.md lists every page beside it", sorted(beside - indexed), [])
 check("and lists no page that is gone",
       sorted(p for p in indexed if p not in TRACKED), [])
 
+# ------------------------------------------------------------------------ 6
+# `ROADMAP.md`'s defects table points into this register by wording. There is
+# no anchor to link to -- `ISSUES.md` writes its entries as bullets rather than
+# headings -- so each row opens with the entry's own first words and that
+# phrase is the whole of the link. Reword either end and the row still reads fine
+# while resolving to nothing, which is the failure this file exists for. The
+# em dash separates the pointer from the plan's own gloss, so only the half
+# before it is held to the register. Unlike the rows above this one guards a
+# convention rather than a past failure: it is new, and a pointer held
+# together by care is the kind that rots quietly.
+REGISTER = "docs/ISSUES.md"
+PLAN = "docs/ROADMAP.md"
+DEFECTS = "**Defects the register owns."
+DASH = " — "
+
+
+def table_rows(lines, after):
+    """The cells of the first table following the paragraph that opens `after`."""
+    rows, seen = [], False
+    for ln in lines:
+        if ln.startswith(after):
+            seen = True
+        elif seen and ROW.match(ln):
+            cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+            # The header is empty on both sides and the rule is all dashes.
+            if any(c and set(c) != {"-"} for c in cells):
+                rows.append(cells)
+        elif seen and rows:
+            break
+    return rows
+
+
+def lead_text(block):
+    """A bullet flattened to one line, without its marker or its emphasis."""
+    joined = " ".join(block).replace("**", "")
+    return " ".join(re.sub(r"^\s*[-*]\s+", "", joined).split())
+
+
+def entry_leads(rel):
+    """Every top-level bullet in a register, flattened.
+
+    Held against a bullet's own opening rather than against the file, so a
+    row that happens to quote a phrase from the middle of some other entry
+    does not count as resolving.
+    """
+    blocks, cur = [], None
+    for ln in read(rel):
+        if ln.startswith("- "):
+            if cur is not None:
+                blocks.append(cur)
+            cur = [ln]
+        elif cur is not None:
+            if ln.startswith("#"):
+                blocks.append(cur)
+                cur = None
+            else:
+                cur.append(ln)
+    if cur is not None:
+        blocks.append(cur)
+    return [lead_text(b) for b in blocks]
+
+
+def pointer(cell):
+    """A row's pointer half: everything before the plan's own gloss."""
+    return " ".join(cell.split(DASH)[0].replace("**", "").split())
+
+
+def resolves(key, entries):
+    """How many entries a pointer lands on. One is the only right answer."""
+    return len([e for e in entries if e.startswith(key)])
+
+
+leads = entry_leads(REGISTER)
+defect_rows = table_rows(read(PLAN), DEFECTS)
+unresolved, ambiguous = [], []
+for cells in defect_rows:
+    key = pointer(cells[-1])
+    hits = resolves(key, leads)
+    if hits == 0:
+        unresolved.append(key)
+    elif hits > 1:
+        ambiguous.append(key)
+
+check("the defects table still has rows to check", len(defect_rows) >= 10, True)
+check("every defects row opens with an ISSUES.md entry", unresolved, [])
+check("and names exactly one of them", ambiguous, [])
+
 # ------------------------------------------------------------------------
 # Each row above has to be able to fail, or this file is the thing it was
 # written to catch. These exercise the machinery on inputs whose answer is
@@ -702,6 +796,27 @@ check("nor is a citation into another file",
 check("but an identifier still is",
       bool(PATH.fullmatch("`applyFFRFlags()`")
            or CITE.fullmatch("`applyFFRFlags()`")), False)
+_TBL = ["**Defects the register owns.** Open entries in `docs/ISSUES.md`",
+        "that wrap onto a second line.", "", "| | |", "|---|---|",
+        "| maps | A row |", "", "| §9 | A later table |"]
+check("the defects walker takes its table and stops at the end of it",
+      table_rows(_TBL, DEFECTS), [["maps", "A row"]])
+check("a pointer drops the plan's own gloss",
+      pointer("Crop boxes are looser " + DASH.strip() + " two causes, not one"),
+      "Crop boxes are looser")
+check("and keeps a row that carries no gloss",
+      pointer("Nothing tests the multi-tile OR in `derive()`"),
+      "Nothing tests the multi-tile OR in `derive()`")
+check("an entry lead loses its bullet and its emphasis",
+      lead_text(["- **Bold lead.** and", "  the rest of it"]),
+      "Bold lead. and the rest of it")
+_LEADS = ["Same lead, one thing.", "Same lead, two things.", "A lone entry."]
+check("a pointer naming no entry resolves to nothing",
+      resolves("No entry opens like this", _LEADS), 0)
+check("one naming a single entry resolves to it",
+      resolves("A lone entry", _LEADS), 1)
+check("and one naming two is caught rather than taken as resolved",
+      resolves("Same lead,", _LEADS), 2)
 if FROM_GIT:
     # Held this way round on purpose. `is_pack_doc` is a naming, and a tracked
     # document landing outside it would simply stop being checked off a walk --
