@@ -142,7 +142,7 @@ def main():
           NOT_AP_LOCATIONS)
 
     seen = 0
-    wrong, ghosts, ungated, missing = [], [], [], []
+    wrong, ungated, missing = [], [], []
     for slug, e in exports():
         if not e.get("priority") or not e.get("locations"):
             continue
@@ -165,8 +165,6 @@ def main():
                 # rather than merely asserted.
                 if flags_say:
                     ungated.append((slug, name))
-                if rings:
-                    ghosts.append("%s: %s" % (slug, name))
                 continue
             if rings != (name in e["priority"]):
                 wrong.append("%s: %s %s" % (
@@ -183,11 +181,29 @@ def main():
     check("every ring the pack would draw is one FFR drew", wrong, [])
     check("the corpus still holds a slot whose location a seed lacks",
           sorted(ungated), sorted(DEMONSTRATED_GHOSTS))
-    check("nothing is ringed for a location the seed does not have", ghosts, [])
+    # There was a third check here -- "nothing is ringed for a location the
+    # seed does not have" -- and it could not fail. `rings` is `flags_say and
+    # present`, so inside `if not present:` it is False by construction and its
+    # list could never be appended to. It read as live evidence that the gate
+    # bites, which is exactly what this file's header refuses.
+    #
+    # No check of that shape can live here: the model above *is* the gate, so
+    # asserting it against itself is always a tautology. What can fail is the
+    # row above, which asserts the corpus still contains the case, and the Lua
+    # end in tests/test_incentives.lua -- "a pool without it puts the ring out"
+    # -- which drives the real refreshIncentiveHighlights.
     check("no incentivized location the pack knows is missing a row",
           missing, [])
 
     print("-- and the generated table is the one that was graded")
+    # A row that names no location must say `nil` and not the string "None".
+    # Every one of the 54 carries a real code today, so the generator cannot
+    # demonstrate this on its own output; the assertion is on the renderer.
+    # scripts/incentives.lua rings a row with no code on its flags alone, and
+    # "None" is a code -- it would join to no location and put the ring out on
+    # every seed that states a pool.
+    check("a row with no hosted code renders as nil",
+          incentive_slots.hosted_literal({"hosted": None}), "hosted = nil,")
     check("scripts/incentive_slots.lua is up to date",
           os.system("%s %s --check >/dev/null"
                     % (sys.executable,

@@ -190,5 +190,28 @@ check("and every stage under them", provides("bahamutInBahamutCave"), false)
 check("a record with no fields is a change", apply("nonsense"), true)
 check("and leaves the board unread", provides("gatewayRoll"), false)
 
+------------------------------------------------------------------
+print("\n-- a code the pack does not have")
+------------------------------------------------------------------
+
+-- All or nothing is what the rules were written against, and the toggle is the
+-- half that says so: with it on and a stage missing, a location loses both its
+-- source's alternative and the strict one it would have fallen back to, which
+-- leaves it unreachable rather than merely held. So an item this pack cannot
+-- find takes the whole half down to unknown, where every strict rule still
+-- fires.
+local realFind = Tracker.FindObjectForCode
+Tracker.FindObjectForCode = function(_, code)
+  if code == "cardiaForestGateway" then return nil end
+  return byCode[code]
+end
+apply(NOV)
+check("a missing stage code leaves the gateway half unread",
+      provides("gatewayRoll"), false)
+check("  and sets none of the stages it could have",
+      provides("cardiaForestFromWaterfall"), false)
+check("  while the other half is unaffected", provides("objectiveRoll"), true)
+Tracker.FindObjectForCode = realFind
+
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)

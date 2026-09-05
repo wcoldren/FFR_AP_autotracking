@@ -415,6 +415,18 @@ check("  and says nothing about the slots it does have", hostedCodes.king, true)
 Archipelago = { MissingLocations = nil, CheckedLocations = nil }
 check("an unreportable pool hosts nothing at all", apPoolHostedCodes(), nil)
 
+-- And the shape a bridge-only session actually presents, which is neither of
+-- the two above: Archipelago is a live object with both lists empty, because
+-- scripts/autotracking.lua registers its handlers at load time whether or not
+-- a slot is connected. An empty table is truthy, so a reader that took it for
+-- a stated pool would conclude the seed contains none of the 54 slots and put
+-- every gold ring out on the first incentive flag that moves. Empty is
+-- cannot-say: a host that has connected states at least 19 locations.
+Archipelago = { MissingLocations = {}, CheckedLocations = {} }
+check("an empty pool is cannot-say, not a seed with no slots",
+  apPoolHostedCodes(), nil)
+check("  and the chest count answers the same way", apPoolChestCount(), nil)
+
 Archipelago = nil
 
 ------------------------------------------------------------------

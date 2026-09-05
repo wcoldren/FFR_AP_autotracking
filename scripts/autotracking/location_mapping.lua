@@ -281,6 +281,17 @@ LOCATION_MAPPING = {
 -- Two readers below ask different questions of the same two lists. One copy of
 -- the guard is what keeps them saying "cannot say" in the same cases, which is
 -- the answer both of them have to fail open on.
+--
+-- Two empty lists are "cannot say" as well, and that is the case a bridge-only
+-- session is in. Archipelago is a live object in PopTracker whether or not a
+-- slot is connected -- scripts/autotracking.lua registers its handlers at load
+-- time, unconditionally -- so the type checks above pass with nothing behind
+-- them, and an empty table is truthy. A caller reading that as a stated pool
+-- concludes the seed contains none of its 54 slots.
+--
+-- A connected seed cannot say it either way: the smallest pool measured is 19
+-- locations and the pool is built from whole classes rather than sampled, so
+-- empty is not an answer a host that has connected ever gives.
 local function apPoolLists()
   if type(Archipelago) ~= "table" and type(Archipelago) ~= "userdata" then
     return nil
@@ -288,6 +299,9 @@ local function apPoolLists()
   local ok, missing = pcall(function() return Archipelago.MissingLocations end)
   local ok2, checked = pcall(function() return Archipelago.CheckedLocations end)
   if not (ok and ok2) or type(missing) ~= "table" or type(checked) ~= "table" then
+    return nil
+  end
+  if next(missing) == nil and next(checked) == nil then
     return nil
   end
   return { missing, checked }

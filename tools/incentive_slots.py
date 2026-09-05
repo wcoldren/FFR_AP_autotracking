@@ -205,6 +205,13 @@ def literal(flags):
 
 
 def hosted_literal(row):
+    # A row with no hosted code says so in Lua rather than carrying the string
+    # "None". scripts/incentives.lua reads a missing code as "cannot join this
+    # row to a location" and rings on the flags alone; a code of "None" is a
+    # code, so it would join to nothing and put the ring out on every seed that
+    # states a pool -- the opposite of what the absence is supposed to mean.
+    if not row.get("hosted"):
+        return "hosted = nil,"
     return 'hosted = "%s",' % row["hosted"]
 
 

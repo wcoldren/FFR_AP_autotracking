@@ -154,11 +154,27 @@ local function applyGateways(field)
       return nil
     end
   end
-  local applied = 0
+  -- The toggle says "this half was read", and every rule that names a source
+  -- reads it as "so stop offering the strict alternative". So it may only go
+  -- on when every stage it speaks for went on: a code the pack is missing
+  -- would otherwise leave a location with neither its source's alternative nor
+  -- the unknown one, which is not reachable at all -- strictly worse than the
+  -- strictness this feature replaced.
+  local want, applied = 0, 0
   for code, value in pairs(stage) do
+    want = want + 1
     if setStage(code, value) then
       applied = applied + 1
     end
+  end
+  if applied < want then
+    -- Back to stage 0 rather than leaving the ones that did land: a half-set
+    -- permutation would hand a rule its source's alternative *and* the strict
+    -- one, which is the union of the two and more permissive than either.
+    for _, code in pairs(GATEWAY_CODE) do
+      setStage(code, 0)
+    end
+    return nil
   end
   setToggle("gatewayRoll", true)
   return applied
@@ -184,11 +200,19 @@ local function applyObjectiveNpcs(field)
       return nil
     end
   end
-  local applied = 0
+  -- All or nothing, for the reason applyGateways states above.
+  local want, applied = 0, 0
   for code, value in pairs(stage) do
+    want = want + 1
     if setStage(code, value) then
       applied = applied + 1
     end
+  end
+  if applied < want then
+    for _, code in pairs(OBJECTIVE_CODE) do
+      setStage(code, 0)
+    end
+    return nil
   end
   setToggle("objectiveRoll", true)
   return applied
