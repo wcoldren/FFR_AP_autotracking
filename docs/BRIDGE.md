@@ -125,10 +125,10 @@ serves the override's `layouts/shared.json` ahead of this checkout's, and the
 cell the light sits in was added here -- an override written before it renders
 an empty group and says nothing, the same shadowing that hid
 `shared_display_grid` on 2026-08-30. `tools/regen_maps.py --verify` names it in
-milliseconds without reading a cartridge; the fix is to re-run the tool once
-per mode you have art for. Worth checking before concluding the light is
-broken, because everyone who can see a stale-art warning has an override
-installed by definition.
+milliseconds without reading a cartridge, and `--refresh` redraws every mode it
+named from the cartridge and settings that mode recorded. Worth checking before
+concluding the light is broken, because everyone who can see a stale-art
+warning has an override installed by definition.
 
 Archipelago cannot answer this one: like the flag string, it only exists on the
 cartridge, so an AP-only session leaves the light dark.

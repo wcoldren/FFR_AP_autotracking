@@ -30,6 +30,7 @@ directory puts everything back.
 
     tools/regen_maps.py FFR_seed.nes
     tools/regen_maps.py --verify        # is the installed override current?
+    tools/regen_maps.py --refresh       # redraw whatever --verify calls stale
 
 The cartridge's own GameMode decides which set its art joins -- images/maps/std
 or images/maps/nov -- and the two live side by side, each with its own
@@ -1388,6 +1389,57 @@ def outputs_intact(out_dir, cache):
     return True
 
 
+# Why a mode's art no longer matches the checkout. Reasons rather than the
+# sentences they print, because `verify` reports them and `refresh` acts on
+# them, and the two must never disagree about which modes are stale.
+STALE_INPUTS = "inputs"
+STALE_LANES = "lanes"
+STALE_OUTPUTS = "outputs"
+
+
+def stale_modes(out_dir, cache):
+    """-> ({mode: [reasons]}, whether every written file is still intact).
+
+    The comparisons `verify` has always made, keyed by mode rather than by
+    display name so that a caller can redraw the modes this names. A mode can
+    be stale for more than one reason at once and all of them are kept:
+    `verify` prints a heading per reason, and a mode missing from one heading
+    would read as current in that respect.
+
+    `outputs_intact` is the second half of the return rather than a reason on
+    some mode, because it is the one check that cannot say which mode it is
+    about. A cache with damaged files and no modes at all is not a state this
+    tool writes, but it is one a hand-edited cache can reach, and the caller
+    that reads only the mode map would call it current.
+    """
+    inputs_sha = inputs_fingerprint()
+    # The lane files are not in INPUT_FILES and must not be: they have no
+    # bearing on a mode drawn --lanes none, and globbing them in would redraw
+    # that mode's art on every authoring edit. So they are compared here the
+    # way flag_change compares them -- per mode, and only where authored lanes
+    # were actually drawn. Without this the whole 2026-09-04 re-key of all 57
+    # files left this stage green over art drawn from the old stops.
+    lanes_sha = lane_files_sha()
+    worn = {}
+    for mode, was in sorted(cache.get("modes", {}).items()):
+        why = []
+        if was.get("inputs") != inputs_sha:
+            why.append(STALE_INPUTS)
+        if (was.get("lanes") == "authored"
+                and was.get("lane_files") != lanes_sha):
+            why.append(STALE_LANES)
+        if why:
+            worn[mode] = why
+    outputs_ok = outputs_intact(out_dir, cache)
+    if not outputs_ok:
+        # Every mode rather than none: the check cannot say which mode owns the
+        # file that moved, and redrawing a mode that did not need it costs six
+        # seconds where leaving a damaged one installed costs a wrong tab.
+        for mode in sorted(cache.get("modes", {})):
+            worn.setdefault(mode, []).append(STALE_OUTPUTS)
+    return worn, outputs_ok
+
+
 def verify(out_dir):
     """-> 0 if the installed override still matches this checkout, 1 if not.
 
@@ -1429,42 +1481,149 @@ def verify(out_dir):
               "say what it was built from")
         return 1
 
-    inputs_sha = inputs_fingerprint()
-    modes_ = sorted(cache.get("modes", {}).items())
-    bad = [MODE_DIRS[m] for m, was in modes_ if was.get("inputs") != inputs_sha]
-    if bad:
+    worn, outputs_ok = stale_modes(out_dir, cache)
+    named = [m for m in sorted(worn) if STALE_INPUTS in worn[m]]
+    if named:
         print("the pack changed since this override was written, so the "
               "tracker is serving the older copy of every file in INPUT_FILES "
               "-- layouts included, where a key it predates renders an empty "
               "group with no warning")
-        for name in bad:
-            print(f"  stale: {name}")
-    # The lane files are not in INPUT_FILES and must not be: they have no
-    # bearing on a mode drawn --lanes none, and globbing them in would redraw
-    # that mode's art on every authoring edit. So they are compared here the
-    # way flag_change compares them -- per mode, and only where authored lanes
-    # were actually drawn. Without this the whole 2026-09-04 re-key of all 57
-    # files left this stage green over art drawn from the old stops.
-    lanes_sha = lane_files_sha()
-    drawn = [MODE_DIRS[m] for m, was in modes_
-             if was.get("lanes") == "authored"
-             and was.get("lane_files") != lanes_sha]
-    if drawn:
+        for mode in named:
+            print(f"  stale: {MODE_DIRS[mode]}")
+    named = [m for m in sorted(worn) if STALE_LANES in worn[m]]
+    if named:
         print("a lane file changed since this override was written, so the "
               "tracker is serving art drawn from the old stops")
-        for name in drawn:
-            print(f"  stale: {name}")
-        bad += [name for name in drawn if name not in bad]
-    if not outputs_intact(out_dir, cache):
+        for mode in named:
+            print(f"  stale: {MODE_DIRS[mode]}")
+    if not outputs_ok:
         print("and files the last run wrote have been changed or removed")
-        bad = bad or ["outputs"]
-    if bad:
-        print("re-run tools/regen_maps.py <cartridge> once per affected mode, "
-              "or --clean to drop the override entirely")
+    if worn or not outputs_ok:
+        print("re-run tools/regen_maps.py --refresh to redraw every mode named "
+              "above from the cartridge and settings it recorded, or --clean "
+              "to drop the override entirely")
         return 1
     modes, outs = len(cache.get("modes", {})), len(cache["outputs"])
     print(f"{out_dir} is current with this checkout "
           f"({modes} mode(s), {outs} files)")
+    return 0
+
+
+def refresh(out_dir, dry_run):
+    """Redraw every mode `--verify` calls stale, from what it recorded.
+
+    The remedy that `--verify` used to only describe. It introduces nothing:
+    each mode is redrawn from the cartridge, npcs, lanes, retrace and marker
+    size already in its own cache entry, so a refresh can only bring the art up
+    to the checkout -- never change what it was drawn to show. That is the
+    whole reason it is safe to hand to a gate's failure message, where "re-run
+    it once per mode, reading the arguments back out of the cache" is a
+    reconstruction done by hand and gets them wrong.
+
+    Re-entered as a subprocess per mode rather than by drawing twice in one
+    process. The drawing reads its settings off a single parsed `args`, and a
+    second mode would have to either rebuild that or mutate it; a subprocess
+    makes each mode exactly the command a person would have typed, which is
+    also what gets printed before it runs.
+
+    It is deliberately not a fixup pass. A mode it cannot redraw honestly --
+    no recorded path, a cartridge that has moved, a checkout on another branch
+    -- is reported and skipped, and the exit status stays non-zero, so a stale
+    override never reads as refreshed.
+    """
+    if not os.path.isdir(out_dir):
+        print(f"no override installed at {out_dir}; nothing to refresh")
+        return 0
+    cache, old = load_cache(out_dir)
+    if old:
+        print(f"{out_dir} was written by an older version of this tool "
+              f"(cache v{old.get('version')}). Its files sit at paths nothing "
+              "writes any more, so they have to be cleared by a run on the "
+              "cartridge itself -- this cannot do it from the cache.")
+        return 1
+    if not cache:
+        print(f"{out_dir} holds no {CACHE_NAME}; nothing here can say what to "
+              "redraw, or from what")
+        return 1
+
+    worn, outputs_ok = stale_modes(out_dir, cache)
+    if not worn:
+        if not outputs_ok:
+            print("files the last run wrote have changed, but the cache names "
+                  "no mode to redraw them from")
+            return 1
+        print(f"{out_dir} is already current with this checkout; nothing to "
+              "redraw")
+        return 0
+
+    here = checkout_id().get("branch")
+    problems = 0
+    for mode in sorted(worn):
+        was = cache["modes"][mode]
+        name = MODE_DIRS[mode]
+        drawn_from = was.get("rom", "")
+        path = was.get("rom_path")
+        if not path:
+            print(f"\n{name}: drawn before this tool recorded which file the "
+                  "cartridge was, so there is nothing here to redraw from. "
+                  f"Run it on the cartridge whose sha256 starts "
+                  f"{drawn_from[:16] or '?'} once, and a refresh will find it "
+                  "after that.")
+            problems += 1
+            continue
+        try:
+            with open(path, "rb") as f:
+                rom = f.read()
+        except OSError as e:
+            print(f"\n{name}: {e}\n  That is where this art was drawn from. "
+                  f"The cartridge's sha256 starts {drawn_from[:16] or '?'}.")
+            problems += 1
+            continue
+        # The path is a convenience and the hash is the authority. A seed
+        # directory gets reused, and redrawing from whatever now sits at the
+        # remembered path would silently swap the art for another seed's.
+        if sha(rom) != drawn_from:
+            print(f"\n{name}: {path} is no longer the cartridge this art was "
+                  f"drawn from (that one's sha256 starts "
+                  f"{drawn_from[:16] or '?'}). Run this on the right cartridge, "
+                  "or --clean to drop the override.")
+            problems += 1
+            continue
+        # The guard start_session.sh makes before its own redraw, for the same
+        # reason: the override shadows the pack, so redrawing here bakes this
+        # checkout's location trees and layout into what the tracker serves.
+        # FF1_REGEN_ANYWAY is that script's escape hatch and stays the only one.
+        drawn_on = was.get("branch")
+        if (here and drawn_on and drawn_on != here
+                and not os.environ.get("FF1_REGEN_ANYWAY")):
+            print(f"\n{name}: art was drawn on '{drawn_on}' and this checkout "
+                  f"is on '{here}' -- not redrawing, because the override "
+                  "shadows the pack and this would bake the location trees on "
+                  f"'{here}' into what you play on. FF1_REGEN_ANYWAY=1 to "
+                  "redraw anyway.")
+            problems += 1
+            continue
+
+        marker = was.get("marker") or [MARKER_SIZE, MARKER_BORDER]
+        cmd = [sys.executable, os.path.abspath(__file__), path,
+               "--mode", mode,
+               "--npcs", was.get("npcs", "all"),
+               "--lanes", was.get("lanes", "none"),
+               "--retrace", was.get("retrace", "auto"),
+               "--marker-size", str(marker[0]),
+               "--marker-border", str(marker[1]),
+               "--out", out_dir]
+        if dry_run:
+            cmd.append("--dry-run")
+        # Printed whether or not it runs: this is the invocation the cache says
+        # the mode was drawn with, and seeing it is how you check that claim.
+        print(f"\n=== {name}: " + " ".join(cmd[1:]))
+        if subprocess.run(cmd).returncode != 0:
+            problems += 1
+
+    if problems:
+        print(f"\n{problems} mode(s) not refreshed")
+        return 1
     return 0
 
 
@@ -1570,6 +1729,11 @@ def main():
     ap.add_argument("--verify", action="store_true",
                     help="exit 1 if the installed override predates this "
                          "checkout; reads no cartridge and draws nothing")
+    ap.add_argument("--refresh", action="store_true",
+                    help="redraw every mode --verify calls stale, from the "
+                         "cartridge and settings that mode recorded. Names no "
+                         "cartridge and takes no drawing options: it repeats "
+                         "what was drawn before, against this checkout")
     args = ap.parse_args()
 
     out_dir = args.out or default_out()
@@ -1587,8 +1751,12 @@ def main():
     if args.verify:
         return verify(out_dir)
 
+    if args.refresh:
+        return refresh(out_dir, args.dry_run)
+
     if not args.rom:
-        ap.error("a cartridge is required unless --verify or --clean")
+        ap.error("a cartridge is required unless --verify, --refresh or "
+                 "--clean")
 
     with open(args.rom, "rb") as f:
         rom = f.read()
@@ -2116,7 +2284,13 @@ def main():
 
     if not args.dry_run:
         modes = dict((cache or {}).get("modes", {}))
-        modes[mode] = {"rom": rom_sha, "npcs": args.npcs,
+        modes[mode] = {"rom": rom_sha,
+                       # The hash stays the authority on which cartridge this
+                       # was; the path is so --refresh can find it again
+                       # without being told. Absolute, because a refresh runs
+                       # from wherever the caller happens to be.
+                       "rom_path": os.path.abspath(args.rom),
+                       "npcs": args.npcs,
                        "lanes": args.lanes,
                        "retrace": args.retrace,
                        "lane_files": lane_files_sha(),

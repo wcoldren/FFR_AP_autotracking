@@ -226,9 +226,9 @@ else
     # happened -- the mistake stage 3 above takes care not to make. Match what
     # it actually said.
     if echo "$out" | grep -q "the pack changed since this override was written\|a lane file changed since this override was written\|files the last run wrote have been changed"; then
-        echo "  (not a code failure: the drawn art predates the checkout. Re-run"
-        echo "   regen_maps.py once per mode, reading --npcs and --lanes back out"
-        echo "   of .regen_cache.json first -- both default to none.)"
+        echo "  (not a code failure: the drawn art predates the checkout."
+        echo "   tools/regen_maps.py --refresh redraws every mode named above"
+        echo "   from the cartridge and settings that mode recorded.)"
         record FAIL "override is stale"
     elif echo "$out" | grep -q "written by an older version of this tool\|holds no "; then
         echo "  (the override is there but cannot say what it was built from,"

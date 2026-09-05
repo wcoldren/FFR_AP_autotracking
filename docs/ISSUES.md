@@ -365,6 +365,24 @@ Nothing here is urgent unless it says so.
 
       tools/regen_maps.py --verify
 
+  `--refresh` is the other half: it redraws every mode `--verify` calls stale,
+  reading that mode's cartridge, `--npcs`, `--lanes`, `--retrace` and marker
+  size back out of the cache rather than asking for them again. It introduces
+  nothing -- it repeats what was drawn before against this checkout -- which is
+  what makes it safe for a gate's failure message to name, and verify.sh stage
+  4 names it. What it will not do is guess. A mode whose cartridge has moved,
+  or whose art was drawn on another branch, is reported and skipped and the
+  exit status stays 1, because a stale override that reads as refreshed is
+  worse than one that reads as stale. The branch guard is the one
+  `start_session.sh` makes, and `FF1_REGEN_ANYWAY=1` is the same escape hatch.
+
+      tools/regen_maps.py --refresh
+
+  The cartridge's path is recorded alongside its sha256 from 2026-09-05. An
+  override written before that has the hash and not the path, so the first
+  refresh after upgrading names the cartridge it needs and asks for one run on
+  it; every refresh after that finds it.
+
   Deliberately **not** in `tools/tests/run.sh`. Both suites are documented as
   needing nothing outside the checkout, and this answers a question about the
   machine's PopTracker install rather than about the code: a developer with a
@@ -377,8 +395,8 @@ Nothing here is urgent unless it says so.
   Closing it properly is a PopTracker change, a warning from `getLayout` on the
   key it could not find.
 
-  Workaround for the remaining gap: re-run `tools/regen_maps.py` after touching
-  any file in `INPUT_FILES`, once per mode, or `--clean` the override.
+  Workaround for the remaining gap: run `tools/regen_maps.py --refresh` after
+  touching any file in `INPUT_FILES`, or `--clean` the override.
 
   **Guarded in `start_session.sh` since 2026-09-02**, which is the other half
   of this and fails in the opposite direction. Guarded there and only there:
@@ -419,8 +437,9 @@ Nothing here is urgent unless it says so.
   the board and no alternative carries the guard -- a seed with the flag on
   goes on showing 53 locations green that FFR calls unreachable, which is
   exactly the state the branch exists to end, on a board that otherwise looks
-  correct. Re-run the regen once per mode before reading anything off it;
-  `tools/regen_maps.py --verify` says whether an installed override is stale.
+  correct. Redraw the art before reading anything off it;
+  `tools/regen_maps.py --verify` says whether an installed override is stale,
+  and `--refresh` redraws every mode it names.
 
 - **The No-Overworld variants inherit the standard `overworld` row, and their
   29 overworld pins are never restamped for it.** `NOverworldMaps.json`
