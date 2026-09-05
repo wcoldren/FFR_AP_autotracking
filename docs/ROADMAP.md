@@ -58,7 +58,6 @@ work it is, not how much it matters.
 
 | | |
 |---|---|
-| §1 | A slot rings for a location the seed does not have |
 | §1 | The two rolls the bridge should read, not guess at |
 | §2 | ToFR floor modelling |
 | §3 | Whether Inspect survives `hide unreachable locations` |
@@ -111,19 +110,6 @@ Each item here is a pin that lied on a seed someone could roll. Each wants a
 code, the affected `access_rules` alternatives, and **one oracle seed rolled
 with the flag on** so `check_logic --ap-rules` grades the branch. A rule without
 its oracle seed is a hand transcription, which is what section 5 is meant to end.
-
-- **A slot rings for a location the seed does not have.** On `notail` the pack
-  rings `Sea Shrine Mermaids (B1) - Incentive Major`, which is not an
-  Archipelago location on that seed — its Sea Shrine incentive chests are
-  `Incentive 1` and `Incentive 2`; `hoarddockbridge497` does the same with the
-  Cardia chest. Same family as the caravan slot and a different cause: the
-  caravan's existence answers to a flag so a rule can gate it, while these are
-  the seed naming a chest slot differently, which no flag predicts. The row
-  points at an id the pool does not contain. What it should become is open —
-  probably a row that can name more than one id, or treating an absent id as no
-  slot. Found 2026-09-03 by `test_incentive_conjunction.py`, and it spent a day
-  as a trailing sentence on the close below. `docs/ISSUES.md`, "A slot can ring
-  for a location the seed does not have".
 
 - **The two rolls the bridge should read, not guess at.** Both are permutations
   chosen at generation that reach neither the flag string nor the spoiler, and
@@ -178,8 +164,21 @@ its oracle seed is a hand transcription, which is what section 5 is meant to end
   rings answer to `priority_locations`, and nothing compared the two.
   `tools/tests/test_incentive_conjunction.py` closes that.
   `docs/ISSUES.md` has the entry. The one finding it turned up that no
-  conjunction fixes — a chest `notail` names differently — is the open bullet at
-  the top of this section, not a sentence here.
+  conjunction fixes — a chest `notail` names differently — is the close below,
+  not a sentence here.
+
+- **A slot rang for a location the seed does not have. Closed 2026-09-05**, by
+  asking Archipelago instead of the flag string. FFR builds the export's
+  location list out of the placement rather than the map, so which chest ids a
+  seed carries moves with the roll and no flag predicts it — but the pool is
+  stated outright at connect, and the pack has read it since the overworld-tab
+  work. A ring now wants the flags *and* the seed to have the location, joined
+  through the hosted item code that every slot row and every `LOCATION_MAPPING`
+  id already carry. It fails open wherever no pool was stated, so a bridge-only
+  session rings exactly as it did. The oracle seed is `notail`, where FFR's
+  `priority_locations` is 20 entries against `std`'s 21 and the Sea Shrine is
+  the missing one. `docs/ISSUES.md`, "A slot can ring for a location the seed
+  does not have".
 
 ## 2. Boxes that do not exist
 

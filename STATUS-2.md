@@ -981,3 +981,74 @@ said the pins sat over the trap-tile letters. They do not -- zero overlaps
 across all 61 maps, because a trap tile is standing ground and a link tile is a
 hole. The pins in that preview had been drawn at 24px when the map's markers are
 14px, which is also what made the floor look like a blob.
+
+## The ring asks the seed now, not just the flag string
+
+The last thing 2026-09-03's conjunction work turned up and could not fix: on
+`notail` the pack rang `Sea Shrine Mermaids (B1) - Incentive Major` gold, and
+that is not an Archipelago location on that seed. Its Sea Shrine incentive
+chests are `Incentive 1` and `Incentive 2`. The row pointed at an id the pool
+does not contain, and the finding spent a day as a trailing sentence on a close
+before it got a bullet of its own.
+
+**The first thing to establish was whether a flag could predict it, and none
+can.** FFR builds the export's location list out of the *placement*, not out of
+the map: a chest is a location only when the item the roll put in it falls into
+one of the categories the Archipelago options collect -- consumables, shards,
+gold, an equipment tier (`Archipelago.cs:45-104`, and `ProcessTreasures` reads
+that same list at `SCLogic.cs:253`). So one or two chest ids differ on nearly
+every cartridge in the corpus, in no pattern: `notail` has `Incentive 1` and
+`Incentive 2` and no `Incentive Major`, `std497` has `Incentive 2` and
+`Incentive Major` and no `Incentive 1`, `std` has all three. Nothing in the flag
+string moves with it.
+
+**The other half is that the seed states it outright.** Archipelago fills
+`MissingLocations` and `CheckedLocations` before it emits `onClear`, and the
+pack has read them since the overworld-tab work decided which tab to land on.
+`apPoolHostedCodes` beside `apPoolChestCount` now answers the second question
+the same two lists can answer: which slots this seed has a location for.
+
+**The join is the hosted item code, because both ends already carry one.** Each
+of the 26 codes in `LOCATION_MAPPING` belongs to exactly one id, and a slot's
+sheet section and its board section host the same code -- so one lookup answers
+for both pins, and the id stays written in the one file that owns ids.
+`tools/incentive_slots.py` puts the code in every generated row; all 54 join,
+which is what made this the cheap shape.
+
+**Of the two shapes floated when it was filed, it is the second.** A row that
+can name more than one id reads the case backwards: FFR did not incentivize a
+different Sea Shrine chest on `notail`, it incentivized nothing there --
+`priority_locations` is 20 entries against `std`'s 21. There is no second id for
+a row to name.
+
+**A refresh had to be added, because no watch fires for this.** The rings are
+re-drawn when an incentive flag moves, and connecting to a slot moves none of
+them; the pool arriving is a different kind of event. `onClear` now calls
+`refreshIncentiveHighlights` next to `refreshOverworldTab`, for the same reason
+and at the same moment. Without it the answer would be right only after the
+player happened to click a flag.
+
+**It fails open in every case where the pool was not stated** -- a bridge-only
+session, a UAT feed, a host too old to report one, and the first refresh, which
+runs at pack load before `autotracking.lua` has been loaded at all. A row with
+no hosted code fails open too: that is what a stale hand-edited
+`scripts/incentive_slots.lua` leaves behind, and a missing join is not evidence
+the seed lacks the slot.
+
+**What it deliberately does not do is take the pin away, or draw it blue.**
+Both were considered and both contradict a convention the pack already has: an
+ordinary seed puts 19 locations in the pool and the board still draws all 230
+chests, because a chest absent from the pool is still a chest. So absence means
+"no Archipelago item is here", which is exactly the gold ring's claim and
+nothing more. Blue is a demotion the flags make -- "the seed passed this slot
+over" -- and it is a rule, evaluated through PopTracker's provider cache, which
+the pool is not part of; a rule reading it would be cached against an answer
+that arrives later.
+
+**The waiver became a demonstration.** `test_incentive_conjunction.py` had
+`notail` in a `WAIVED_GHOSTS` set, which is a check agreeing to look away. It is
+`DEMONSTRATED_GHOSTS` now: the suite asserts that the corpus still holds a slot
+whose location a seed lacks *and* that none of them ring, so the gate is shown
+biting rather than only claimed. Dropping the gate turns that suite red on
+`notail`, and turns five rows of `tests/test_incentives.lua` red -- both
+directions in one seed, King ringed and Sara not on the same two flags.

@@ -80,6 +80,14 @@ function onClear()
   -- emits onClear) and cannot change while the slot is connected, so this is
   -- the one place worth asking whether the chests are checks this seed.
   refreshOverworldTab()
+  -- And the one place worth asking whether the seed has each incentive slot at
+  -- all: a flag can speak for a slot the seed does not contain, and only the
+  -- pool says so. The rings drawn when this file loaded were on the flags
+  -- alone, and nothing else revisits them -- no incentive flag moves on
+  -- connect, so no watch fires. See slotInPool in scripts/incentives.lua.
+  if type(refreshIncentiveHighlights) == "function" then
+    refreshIncentiveHighlights()
+  end
   for _, v in pairs(ITEM_MAPPING) do
     if v[1] and v[2] then
       if AUTOTRACKER_ENABLE_DEBUG_LOGGING then

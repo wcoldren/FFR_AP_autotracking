@@ -202,7 +202,9 @@ taken.
 scripts/init.lua              entry point; loads everything in order
 scripts/logic.lua             rules access_rules cannot express, and showPin
 scripts/incentives.lua        gold rings on slots this seed incentivized
-scripts/incentive_slots.lua   generated table of slot -> flag
+                              and has: the flags, and then the AP pool
+scripts/incentive_slots.lua   generated table of slot -> flags, and the hosted
+                              code that joins a slot to its AP location
 scripts/settings.lua          three globals, no UI
 
 scripts/autotracking.lua      the Archipelago feed

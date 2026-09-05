@@ -385,6 +385,36 @@ check("unreportable pool leaves the answer alone", overworldTab(), "Overworld")
 Archipelago = poolOf(INCENTIVE_ONLY_POOL, 0)
 refreshOverworldTab()
 check("a new incentive-only seed moves it back", overworldTab(), "Incentive Locations")
+
+-- The other reader of the same two lists: which slots this seed has a location
+-- for at all.
+--
+-- It answers in hosted item codes rather than ids, because that is what a slot
+-- row carries and what joins a sheet pin to its board twin.
+-- scripts/incentives.lua asks before it draws a gold ring, so a flag cannot
+-- ring a slot on a seed whose export never named the location -- notail names
+-- the Sea Shrine incentive chests `Incentive 1` and `Incentive 2` and has no
+-- `Incentive Major`, so id 436 is simply absent. docs/ISSUES.md.
+local hostedCodes = apPoolHostedCodes()
+local nhosted = 0
+for _ in pairs(hostedCodes or {}) do nhosted = nhosted + 1 end
+check("every id in an incentive-only pool hosts a code", nhosted, 19)
+check("  and the Sea Shrine slot is one of them", hostedCodes.sea, true)
+
+local noSea = {}
+for _, id in ipairs(INCENTIVE_ONLY_POOL) do
+  if id ~= 436 then noSea[#noSea + 1] = id end
+end
+Archipelago = poolOf(noSea, 0)
+hostedCodes = apPoolHostedCodes()
+check("a pool without that location does not host sea", hostedCodes.sea, nil)
+check("  and says nothing about the slots it does have", hostedCodes.king, true)
+
+-- A host that cannot say is not a host saying no, and the two have to stay
+-- distinguishable: nil is what makes a bridge-only session ring on the flags.
+Archipelago = { MissingLocations = nil, CheckedLocations = nil }
+check("an unreportable pool hosts nothing at all", apPoolHostedCodes(), nil)
+
 Archipelago = nil
 
 ------------------------------------------------------------------

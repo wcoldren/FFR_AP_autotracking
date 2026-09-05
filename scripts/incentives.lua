@@ -75,6 +75,48 @@ local function slotIsIncentivized(slot)
   return true
 end
 
+-- Does this seed have the slot at all?
+--
+-- The flags say whether FFR would incentivize a slot; they do not say whether
+-- the slot is there to incentivize. On notail the Sea Shrine incentive chests
+-- are named `Incentive 1` and `Incentive 2` and there is no `Incentive Major`,
+-- so IncentivizeSeaShrine is on, FFR incentivized nothing in the Sea Shrine,
+-- and the pack rang a gold ring on a location the seed does not contain. No
+-- flag predicts which name a seed used -- but Archipelago states its own
+-- location pool at connect, and that answers it outright.
+--
+-- Fails open twice over, and both matter more than the ring does:
+--
+--   * nothing stated a pool -- a bridge-only session, a UAT feed, a host too
+--     old to report one, or the first refresh, which runs from this file at
+--     load time before autotracking.lua has been loaded at all. Ring on the
+--     flags, exactly as before.
+--   * the row names no hosted code, which is what a stale hand-edited
+--     scripts/incentive_slots.lua leaves behind. A missing join must not put
+--     the ring out; it is not evidence the seed lacks the slot.
+--
+-- The AP pool is only meaningful for a slot Archipelago knows about, and every
+-- row does: all 54 join to exactly one LOCATION_MAPPING id through their
+-- hosted code. tools/incentive_slots.py writes the code into the row.
+local function slotInPool(slot, pool)
+  if not pool or not slot.hosted then
+    return true
+  end
+  return pool[slot.hosted] == true
+end
+
+-- Read once per refresh rather than once per row: the walk is over the whole
+-- pool, and there are 54 rows. apPoolHostedCodes lives in
+-- scripts/autotracking/location_mapping.lua, which init.lua loads long after
+-- this file and may not load at all -- hence the type check rather than a
+-- call, the same way scripts/logic.lua reaches chestsAreChecks().
+local function poolCodes()
+  if type(apPoolHostedCodes) ~= "function" then
+    return nil
+  end
+  return apPoolHostedCodes()
+end
+
 local highlightWarned = false
 local ringsWarned = false
 
@@ -137,19 +179,20 @@ function refreshIncentiveHighlights()
   local marked = 0
   local ok, err = pcall(function()
     local rings = wantRings()
+    local pool = poolCodes()
     for _, slot in ipairs(INCENTIVE_SLOTS) do
       -- Only one of the two incentive trees is loaded, so roughly a third of
       -- these are expected to be nil. tests/test_incentives.lua is what
       -- catches a path that resolves in neither.
       local section = Tracker:FindObjectForCode(slot.path)
       if section then
-        if rings and slotIsIncentivized(slot) then
+        if rings and slotIsIncentivized(slot) and slotInPool(slot, pool) then
           section.Highlight = Highlight.Priority
           marked = marked + 1
         else
           -- Reached with the toggle off as well as for a slot this seed
-          -- passed over, which is what puts the rings out on a click rather
-          -- than leaving the last set of them painted.
+          -- passed over or does not have, which is what puts the rings out on
+          -- a click rather than leaving the last set of them painted.
           section.Highlight = Highlight.None
         end
       end

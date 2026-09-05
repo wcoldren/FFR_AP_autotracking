@@ -597,6 +597,82 @@ maxDepth = 0
 dispatch()
 check("a watch during a refresh does not recurse", maxDepth <= 1, true)
 
+------------------------------------------------------------------
+-- 8. the pool. A flag can speak for a slot the seed does not have.
+--
+-- FFR's export names the Sea Shrine incentive chests `Incentive 1` and
+-- `Incentive 2` on notail, and has no `Incentive Major` at all -- so
+-- IncentivizeSeaShrine is on, FFR incentivized nothing in the Sea Shrine, and
+-- the pack rang gold on a location the seed does not contain. No flag predicts
+-- the naming; Archipelago states its own location pool at connect and that
+-- settles it. scripts/autotracking/location_mapping.lua reads the pool into
+-- hosted item codes -- tests/test_maptab.lua holds that end -- and a slot row
+-- carries the same code, so one lookup answers for a sheet pin and its board
+-- twin at once.
+------------------------------------------------------------------
+local pool = nil
+function apPoolHostedCodes() return pool end
+
+local SEA_BOARD = "@Sea Shrine Sea Incentive/Incentive"
+local SEA_SHEET = "@I: Sea Shrine/I: Sea Incentive"
+local SEA_NOV = "@I: Sea Incentive/I: Sea Incentive"
+
+-- Nothing stated: a bridge-only session, a UAT feed, or a host too old to
+-- report a pool. This is the case that must not change, and it is most of the
+-- file above -- every check up to here ran with no pool at all.
+provided = { show_gold_rings = 1, seaIsIncentive = 1 }
+refreshIncentiveHighlights()
+check("with no pool stated the slot rings on its flag",
+  sectionsByPath[SEA_BOARD].Highlight, Highlight.Priority)
+check("  and so does the sheet twin",
+  sectionsByPath[SEA_SHEET].Highlight, Highlight.Priority)
+
+pool = { sea = true }
+refreshIncentiveHighlights()
+check("a pool holding the location keeps the ring",
+  sectionsByPath[SEA_BOARD].Highlight, Highlight.Priority)
+
+-- notail. Same flag, and the location is not in the seed.
+pool = { king = true }
+refreshIncentiveHighlights()
+check("a pool without it puts the ring out",
+  sectionsByPath[SEA_BOARD].Highlight, Highlight.None)
+check("  on the sheet",
+  sectionsByPath[SEA_SHEET].Highlight, Highlight.None)
+check("  and on the No-Overworld sheet, which renames the node",
+  sectionsByPath[SEA_NOV].Highlight, Highlight.None)
+
+-- Both directions, in one seed: the pool decides per slot rather than turning
+-- the feature off. King and Sara answer to the same two flags and differ only
+-- in which of them the pool holds.
+provided = { show_gold_rings = 1, npcsAreIncentive = 1, npcItems = 1 }
+pool = { king = true }
+local ringedWithPool = refreshIncentiveHighlights()
+check("the slot the pool holds still rings",
+  sectionsByPath["@Coneria Castle King/King"].Highlight, Highlight.Priority)
+check("  and the one it does not does not",
+  sectionsByPath["@Coneria Castle Sara/Sara"].Highlight, Highlight.None)
+check("  which is fewer rings than the same flags drew unpooled",
+  ringedWithPool < ringed, true)
+
+-- A row with no hosted code cannot be joined to a location -- which is what a
+-- stale hand-edited scripts/incentive_slots.lua leaves behind. A missing join
+-- is not evidence the seed lacks the slot, so it must not put the ring out.
+local seaRow
+for _, slot in ipairs(INCENTIVE_SLOTS) do
+  if slot.path == SEA_BOARD then seaRow = slot end
+end
+local savedHosted = seaRow.hosted
+seaRow.hosted = nil
+provided = { show_gold_rings = 1, seaIsIncentive = 1 }
+pool = { king = true }
+refreshIncentiveHighlights()
+check("a row with no hosted code rings anyway",
+  sectionsByPath[SEA_BOARD].Highlight, Highlight.Priority)
+seaRow.hosted = savedHosted
+
+pool = nil
+
 -- A host with no Highlight at all must not take the board down with it.
 Highlight = nil
 check("no Highlight support means no rings, not an error",

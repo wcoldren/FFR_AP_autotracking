@@ -63,24 +63,32 @@ NOT_AP_LOCATIONS = {
     "@Bahamut's Cave/Cardia Incentive - Hoard",
 }
 
-# Slots the pack shows for a location the seed does not have: a chest whose
-# incentive name the seed did not use, so the pack's row points at an id the
-# pool does not contain. notail's Sea Shrine incentives are `Incentive 1` and
-# `Incentive 2` rather than `Incentive Major`. docs/ISSUES.md.
+# What the pool gate is for, on the cartridges that show it.
+#
+# A slot whose incentive name the seed did not use: the pack's row points at an
+# id the pool does not contain, so the flags speak for a slot the seed has not
+# got. notail's Sea Shrine incentives are `Incentive 1` and `Incentive 2`, and
+# there is no `Incentive Major` -- FFR incentivized nothing in the Sea Shrine
+# there, and the pack rang it gold until 2026-09-05. docs/ISSUES.md.
+#
+# Named and asserted rather than waived, and that is the difference this
+# constant carries. A waiver says "known, ignore it" and goes on saying it after
+# the finding is fixed; this says "the gate has something to bite on here", so
+# the row below fails if the corpus stops showing the case at all -- which is
+# how a gate quietly stops being tested. The ghost row underneath it is what
+# says the gate holds.
 #
 # There were three. The caravan slot left in 2026-09-03's conjunction work, when
 # it got a gate on its own existence. `hoarddockbridge497`'s Cardia chest left
-# the same day with the cardia split, and left differently: the issue is not
-# fixed, it has stopped being reachable. That row was only ever a ghost because
-# the pack ringed a Cardia slot on a hoard seed, and it no longer does -- the
-# ring is decided by IncentivizeCardia, which that cartridge has off, so the
-# comparison ends before the missing id is looked for. Keeping the tuple would
-# have made a dead waiver look like live evidence, which is the shape this file
-# exists to refuse. The finding stays open in docs/ISSUES.md with a note that
-# this corpus can no longer show it.
-WAIVED_GHOSTS = {
+# the same day with the cardia split, and left differently: it has stopped being
+# reachable rather than being fixed. That row was only ever a ghost because the
+# pack ringed a Cardia slot on a hoard seed, and it no longer does -- the ring is
+# decided by IncentivizeCardia, which that cartridge has off, so the comparison
+# ends before the missing id is looked for. A seed that incentivized Cardia *and*
+# rolled the hoard would show it again.
+DEMONSTRATED_GHOSTS = [
     ("notail", "Sea Shrine Mermaids (B1) - Incentive Major"),
-}
+]
 
 fails = []
 
@@ -134,7 +142,7 @@ def main():
           NOT_AP_LOCATIONS)
 
     seen = 0
-    wrong, ghosts, missing = [], [], []
+    wrong, ghosts, ungated, missing = [], [], [], []
     for slug, e in exports():
         if not e.get("priority") or not e.get("locations"):
             continue
@@ -142,12 +150,22 @@ def main():
         codes = check_logic.flag_codes(e["flags"], PACK)
         noverworld = e["flags"].get("GameMode") == 2
         for name, row in by_name.items():
-            # FFR's IncentivizeNerrick ends `&& !NoOverworld`; every other slot
-            # is its flags and nothing else.
-            rings = (all(f in codes for f in row["flags"])
-                     and not (row.get("standardOnly") and noverworld))
-            if name not in e["locations"]:
-                if rings and (slug, name) not in WAIVED_GHOSTS:
+            # Two questions in the order the pack asks them, and the second is
+            # not a flag. FFR's IncentivizeNerrick ends `&& !NoOverworld`; every
+            # other slot is its flags and nothing else -- and then the seed has
+            # to contain the location those flags speak for, which is what
+            # scripts/incentives.lua reads out of the Archipelago pool.
+            flags_say = (all(f in codes for f in row["flags"])
+                         and not (row.get("standardOnly") and noverworld))
+            present = name in e["locations"]
+            rings = flags_say and present
+            if not present:
+                # `ungated` is what the flags alone would have rung: the case
+                # the pool gate exists for, kept so the gate is shown biting
+                # rather than merely asserted.
+                if flags_say:
+                    ungated.append((slug, name))
+                if rings:
                     ghosts.append("%s: %s" % (slug, name))
                 continue
             if rings != (name in e["priority"]):
@@ -163,6 +181,8 @@ def main():
     # must not report as a pass.
     check("cartridges graded", seen >= 20, True)
     check("every ring the pack would draw is one FFR drew", wrong, [])
+    check("the corpus still holds a slot whose location a seed lacks",
+          sorted(ungated), sorted(DEMONSTRATED_GHOSTS))
     check("nothing is ringed for a location the seed does not have", ghosts, [])
     check("no incentivized location the pack knows is missing a row",
           missing, [])

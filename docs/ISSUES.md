@@ -526,28 +526,70 @@ Nothing here is urgent unless it says so.
   disagreed. It is evidence of nothing.
 
 - **A slot can ring for a location the seed does not have, and the caravan was
-  not the only one.** Found 2026-09-03 by the same grader. On `notail` the pack
-  rings `Sea Shrine Mermaids (B1) - Incentive Major`, which is not an
-  Archipelago location on that seed -- its Sea Shrine incentive chests are
-  `Incentive 1` and `Incentive 2`. `hoarddockbridge497` does the same with the
-  Cardia chest.
+  not the only one. Closed 2026-09-05** by asking Archipelago. Found 2026-09-03
+  by the same grader. On `notail` the pack rings
+  `Sea Shrine Mermaids (B1) - Incentive Major`, which is not an Archipelago
+  location on that seed -- its Sea Shrine incentive chests are `Incentive 1` and
+  `Incentive 2`. `hoarddockbridge497` does the same with the Cardia chest.
 
   Same family as the caravan slot and a different cause. The caravan's existence
   answers to a flag, so a rule can gate it; these are the seed naming a chest
   slot differently, which no flag predicts, so the pack's row points at an id
-  the pool does not contain. What that should become is open -- probably a row
-  that can name more than one id, or a check that treats an absent id as no slot
-  rather than as a slot to ring.
+  the pool does not contain.
 
-  **Only `notail` is waived now, and the other one did not get fixed.** The
-  Cardia half was reachable only because the pack ringed a Cardia slot on a
-  hoard seed at all; with the entry named "The Cardia ring cannot be switched
-  off on a hoard seed" fixed, the ring is decided by `IncentivizeCardia`, which
-  `hoarddockbridge497` has off, so the comparison
-  ends before the missing id is looked for. The waiver was removed rather than
-  left standing, because a waiver nothing can trigger reads as live evidence of
-  a live finding. The finding is live; this corpus can no longer show it, and a
-  seed that incentivized Cardia *and* rolled the hoard would show it again.
+  **Why no flag predicts it.** FFR builds the export's location list out of the
+  *placement*, not out of the map: a chest is a location only when the item the
+  roll happened to put in it falls into one of the categories the Archipelago
+  options collect -- consumables, shards, gold, an equipment tier
+  (`Archipelago.cs:45-104`, and `ProcessTreasures` reads that same list at
+  `SCLogic.cs:253`). So the Sea Shrine's third incentive chest is a location on
+  `std` and not on `notail` with nothing in the flag string differing to say so,
+  and one or two chests move like this on nearly every cartridge in the corpus.
+  There is nothing to derive; the seed has to be asked.
+
+  **It states it outright, at connect.** Archipelago publishes the slot's
+  location pool before it emits `onClear` -- the pack has read it since the
+  overworld-tab work, as `apPoolChestCount` in
+  `scripts/autotracking/location_mapping.lua`. `apPoolHostedCodes` beside it now
+  answers the other question the pool can answer: which slots this seed has a
+  location for, as hosted item codes. A code is the join because both ends
+  already carry one -- each of the 26 in `LOCATION_MAPPING` belongs to exactly
+  one id, and a slot's sheet section and board section host the same code, so
+  one lookup answers for both pins. `tools/incentive_slots.py` writes the code
+  into every generated row and `scripts/incentives.lua` ANDs the answer onto the
+  flags.
+
+  Of the two shapes floated when this was filed -- a row that can name more than
+  one id, or treating an absent id as no slot -- it is the second. The first
+  reads the case backwards: on `notail` FFR did not incentivize a *different*
+  Sea Shrine chest, it incentivized nothing there at all, and its
+  `priority_locations` is 20 entries against `std`'s 21. There is no second id
+  for a row to name.
+
+  **What it deliberately does not do.** Fails open wherever the pool is not
+  stated -- a bridge-only session, a UAT feed, a host too old to report one, and
+  the first refresh, which runs at pack load before `autotracking.lua` exists.
+  Ringing on the flags alone is the old behaviour and is right when nothing has
+  said otherwise; a missing answer must not put every ring out. The pin itself
+  is untouched: the chest is still in the cartridge and still worth opening, so
+  this takes the gold off it rather than taking it off the board.
+
+  **Only `notail` was waived, and the other one did not get fixed.** The Cardia
+  half was reachable only because the pack ringed a Cardia slot on a hoard seed
+  at all; with the entry named "The Cardia ring cannot be switched off on a
+  hoard seed" fixed, the ring is decided by `IncentivizeCardia`, which
+  `hoarddockbridge497` has off, so the comparison ends before the missing id is
+  looked for. This corpus can no longer show that half, and a seed that
+  incentivized Cardia *and* rolled the hoard would show it again -- the gate
+  covers both, because it does not care which slot it is.
+
+  The waiver in `tools/tests/test_incentive_conjunction.py` is now a
+  demonstration: `DEMONSTRATED_GHOSTS` names the `notail` case and the suite
+  fails if the corpus stops carrying one, so the gate has something to bite on
+  rather than only an assertion that it holds. Removing the gate turns that
+  suite red on the same cartridge. `tests/test_incentives.lua` holds the Lua
+  end, both directions in one seed -- King ringed and Sara not, on the same two
+  flags -- and `tests/test_maptab.lua` holds the pool reader.
 
 - **The override staleness check read one cache key and not the other, so an
   edited lane file left it green. Closed 2026-09-04**, found by the narrowing

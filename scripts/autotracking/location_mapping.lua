@@ -268,6 +268,32 @@ LOCATION_MAPPING = {
 }
 
 ------------------------------------------------------------------
+-- The pool this seed has, as the two id lists Archipelago states, or nil when
+-- nothing can say.
+--
+-- Archipelago.MissingLocations and .CheckedLocations landed in PopTracker
+-- 0.25.2, which the manifest's 0.32.0 floor now covers -- but the guard stays
+-- for the hosts that honour no floor at all: a UAT-only session where
+-- Archipelago is a stub, and the non-PopTracker trackers that read this pack.
+-- Both are populated before onClear fires (aptracker.h:130-134), which is the
+-- only place worth asking: the pool cannot change while a slot is connected.
+--
+-- Two readers below ask different questions of the same two lists. One copy of
+-- the guard is what keeps them saying "cannot say" in the same cases, which is
+-- the answer both of them have to fail open on.
+local function apPoolLists()
+  if type(Archipelago) ~= "table" and type(Archipelago) ~= "userdata" then
+    return nil
+  end
+  local ok, missing = pcall(function() return Archipelago.MissingLocations end)
+  local ok2, checked = pcall(function() return Archipelago.CheckedLocations end)
+  if not (ok and ok2) or type(missing) ~= "table" or type(checked) ~= "table" then
+    return nil
+  end
+  return { missing, checked }
+end
+
+------------------------------------------------------------------
 -- Is this a seed where the chests are checks?
 --
 -- A plain FFR seed hands Archipelago only the incentive slots and the NPCs.
@@ -280,24 +306,14 @@ LOCATION_MAPPING = {
 -- all of them. That makes presence the whole test: no threshold to pick, and
 -- no need to read FFR's flag word to guess at what AP already states outright.
 --
--- Returns nil when the host cannot say. Archipelago.MissingLocations and
--- .CheckedLocations landed in PopTracker 0.25.2, which the manifest's 0.32.0
--- floor now covers -- but the guard stays for the hosts that honour no floor
--- at all: a UAT-only session where Archipelago is a stub, and the non-PopTracker
--- trackers that read this pack. Both are populated before onClear fires
--- (aptracker.h:130-134), which is the only place worth asking: the pool cannot
--- change while a slot is connected.
+-- Returns nil when the host cannot say, which is apPoolLists' answer above.
 function apPoolChestCount()
-  if type(Archipelago) ~= "table" and type(Archipelago) ~= "userdata" then
-    return nil
-  end
-  local ok, missing = pcall(function() return Archipelago.MissingLocations end)
-  local ok2, checked = pcall(function() return Archipelago.CheckedLocations end)
-  if not (ok and ok2) or type(missing) ~= "table" or type(checked) ~= "table" then
+  local lists = apPoolLists()
+  if not lists then
     return nil
   end
   local n = 0
-  for _, list in ipairs({ missing, checked }) do
+  for _, list in ipairs(lists) do
     for _, id in ipairs(list) do
       local entry = LOCATION_MAPPING[id]
       if entry and entry[1] and entry[1]:match("/Chest$") then
@@ -306,4 +322,41 @@ function apPoolChestCount()
     end
   end
   return n
+end
+
+------------------------------------------------------------------
+-- Which slots this seed has a location for at all.
+--
+-- A set of hosted item codes -- the second field of a LOCATION_MAPPING row --
+-- for every id in the pool, or nil when the host cannot say. The codes are the
+-- join because they are what both ends already carry: each of the 26 belongs
+-- to exactly one id here, and a slot's sheet section and board section host
+-- the same one, so one lookup answers for both pins.
+--
+-- What it is for: the incentive flags can say a slot is incentivized on a seed
+-- that does not contain the slot. FFR's export names the Sea Shrine incentive
+-- chests `Incentive 1` and `Incentive 2` on notail and there is no
+-- `Incentive Major` at all -- so IncentivizeSeaShrine is on, nothing was
+-- incentivized there, and the pack rang a gold ring on a location the seed
+-- does not have. No flag predicts that; the pool states it outright.
+-- scripts/incentives.lua is the caller. docs/ISSUES.md.
+--
+-- nil and empty are different answers and the caller has to tell them apart:
+-- nothing stated means ring on the flags alone, which is what a bridge-only or
+-- UAT session gets.
+function apPoolHostedCodes()
+  local lists = apPoolLists()
+  if not lists then
+    return nil
+  end
+  local codes = {}
+  for _, list in ipairs(lists) do
+    for _, id in ipairs(list) do
+      local entry = LOCATION_MAPPING[id]
+      if entry and entry[2] then
+        codes[entry[2]] = true
+      end
+    end
+  end
+  return codes
 end
