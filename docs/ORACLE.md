@@ -212,9 +212,14 @@ reachable beats a check shown green that is not.
 **Closed 2026-09-05 by reading the roll rather than covering it.** The bridge
 publishes the permutation as `ff1/rolls` and the rules name the source the seed
 actually rolled, so the six agree on all four No-Overworld cartridges: `nov`
-226 of 227, `nov2` 225 of 225, `novnolefein` 222 of 223, `novhoard` 219 of 225,
-with the remaining rows the unrelated `Shop Item` one and, on `novhoard`, the
-hoard's own copies of the Cardia chests. Where the strict rule was covering
+226 of 227, `nov2` 225 of 225, `novnolefein` 222 of 223 and `novhoard` 224 of
+225, the one remaining row on each being the unrelated `Shop Item` one.
+`novhoard` took a second alternative to get there: `MapDragonsHoard` copies all
+thirteen Cardia chests into Bahamut's Cave B2 — measured on that cartridge,
+treasure ids 132-144, with Cardia keeping its own — so on a No-Overworld hoard
+seed every Cardia node is also reachable through whichever gateway leads to the
+cave, and the `BahamutHoard` alternative those nodes carried was guarded
+`$standardWorld` with no No-Overworld twin. Where the strict rule was covering
 three possibilities, the requirement each source really carries is now measured
 across those four cartridges: Waterfall and Gaia want the Floater, and Ice Cave
 B1 wants the Canoe, or the Chime with the Floater and Oxyale. **Bahamut's Cave

@@ -587,7 +587,13 @@
                     "$noOverworld,cardiaForestFromWaterfall,$hasFloater",
                     "$noOverworld,cardiaForestFromGaia,$hasFloater",
                     "$noOverworld,cardiaForestFromIceCave,$hasCanoe",
-                    "$noOverworld,cardiaForestFromIceCave,chime,$hasFloater,oxyale"
+                    "$noOverworld,cardiaForestFromIceCave,chime,$hasFloater,oxyale",
+                    "BahamutHoard,$noOverworld,$gatewayRollUnknown,$hasCanoe,$hasFloater",
+                    "BahamutHoard,$noOverworld,$gatewayRollUnknown,chime,$hasFloater,oxyale",
+                    "BahamutHoard,$noOverworld,bahamutCaveFromWaterfall,$hasFloater",
+                    "BahamutHoard,$noOverworld,bahamutCaveFromGaia,$hasFloater",
+                    "BahamutHoard,$noOverworld,bahamutCaveFromIceCave,$hasCanoe",
+                    "BahamutHoard,$noOverworld,bahamutCaveFromIceCave,chime,$hasFloater,oxyale"
                 ],
                 "sections": [
                     {
