@@ -256,6 +256,16 @@ Measured rather than argued. `objnpc497` is `std497` plus this one flag, and
     unne      map 3  (26,1)  ->  map 39 (21,3)     Melmond -> BahamutCave2
     elfprince unchanged
 
+**The third NPC in the permutation is the Elf Doctor, object `$05`, and not the
+Elf Prince, `$06`.** `NPCs.cs:277` names `ObjectId.ElfDoc`; the prince holds the
+check and never moves, and the two stand on different tiles of the same map —
+(9,5) and (8,6). The row above is a true observation about `$06` and a
+misleading one about the roll, since `$06` is fixed on every seed: reading it
+reports any cartridge as unshuffled in that third of the permutation.
+`tools/extract_npcs.py` collects `$06` and not `$05`, so it cannot answer this
+on its own — what it measured was the other two trading places.
+`entrance_graph.py <rom> --rolls` reads all three.
+
 FFR's export does not notice. Of the 204 rules the two exports share exactly one
 moves, and it is `Shop Item`, which tracks where the shop landed and is roll
 noise rather than the flag (the `ShipDrydock` diff hit the same row for the same

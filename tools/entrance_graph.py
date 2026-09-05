@@ -64,6 +64,7 @@ Usage:
     tools/entrance_graph.py ROM --to DwarfCave [--have key]
     tools/entrance_graph.py ROM --to-npc smith
     tools/entrance_graph.py ROM --tables
+    tools/entrance_graph.py ROM --rolls
     tools/entrance_graph.py ROM --self-check
 
 Exit status: 0 all good, 1 --self-check failed, 2 the NPC asked for is not
@@ -1351,6 +1352,177 @@ def self_check(g):
     return check_all_reachable(g, mode, why)
 
 
+# --------------------------------------------------------------- the two rolls
+#
+# Two permutations chosen at generation that reach neither the flag string nor
+# the spoiler log, so the cartridge is the only thing that can be asked. They
+# are read together because they are one read on one channel: PRG ROM at fixed
+# offsets, no map decompression for either half.
+#
+# The gateway roll. MetroidVaniaMap.cs:717-736 shuffles a list of three
+# destinations -- two Cardia landings and Bahamut's Cave B1 -- and hands them
+# out to three one-way teleporters it then writes onto Waterfall, Ice Cave B1
+# and Gaia, in that order. The ids come off `teleportIDtracker++` at a fixed
+# point in a hand-authored table, so the three ids do not move; only their
+# destinations do. Measured across all four No-Overworld cartridges in
+# oracle-4.9.2: three distinct permutations, the same three ids each time.
+#
+# The id-to-source assignment is read off the cartridge rather than off that
+# call order, because the call order is the one part of this a transcription
+# could get wrong. `--rolls` prints the tile each gateway was found on, and
+# says so when an id is not on the map the call order claims.
+
+GATEWAY_IDS = (0x89, 0x8A, 0x8B)
+
+# The map each id's tile is written onto, by the order of the three
+# UpdateMapTile calls in that block. Measured on all four cartridges: Ice Cave
+# and Gaia are fixed tiles, and the Waterfall stair position is rolled per seed
+# -- which moves where the gateway stands, not where it goes.
+GATEWAY_SOURCES = {0x89: 18, 0x8A: 15, 0x8B: 5}
+
+# The three destinations, keyed by the (map, x, y) they land on.
+#
+# cardiaCaravan is the pocket holding the Caravan door and nothing else: walked
+# on `nov` holding every item, it is 68 tiles, no chest and no NPC the pack
+# tracks. So no rule ever asks about it. It is named anyway, because a roll
+# that sends a source there is the reason the other two are where they are.
+GATEWAY_LANDINGS = {
+    (16, 0x3A, 0x37): "cardiaForest",
+    (16, 0x2B, 0x1D): "cardiaCaravan",
+    (17, 0x02, 0x02): "bahamutCave",
+}
+
+
+def gateway_destinations(rom):
+    """{teleport id: (map, x, y)} for the three gateways, or None.
+
+    None says this cartridge has no such gateways, and it is decided by the
+    destinations rather than by the flag record: all three ids have to land on
+    the three known tiles, one each. So a cartridge whose flags will not decode
+    still answers, and an FFR that moves the landings says nothing rather than
+    something plausible.
+
+    Separate from gateway_roll() because it is the whole read -- three tables,
+    no map decompression -- and it is what says whether decompressing anything
+    is worth it. The bridge reads exactly this.
+    """
+    x = rom.at(BANK_EXTTELEPORTINFO, NORM_TELE_X_EXT, NORM_COUNT_EXT)
+    y = rom.at(BANK_EXTTELEPORTINFO, NORM_TELE_Y_EXT, NORM_COUNT_EXT)
+    m = rom.at(BANK_EXTTELEPORTINFO, NORM_TELE_MAP_EXT, NORM_COUNT_EXT)
+    dest = {tid: (m[tid], coord(x[tid]), coord(y[tid])) for tid in GATEWAY_IDS}
+    if sorted(dest.values()) != sorted(GATEWAY_LANDINGS):
+        return None
+    return dest
+
+
+def gateway_roll(g):
+    """Where the three Cardia/Bahamut one-way gateways go on this cartridge.
+
+    -> [{teleport, source, tiles, dest, landing}] in id order, or None when
+    this cartridge has no such gateways.
+
+    `tiles` is where the gateway stands, read off the source map rather than
+    taken from the call order in that block -- see above. An empty list is the
+    one thing here that is reported rather than refused: the destination is
+    still what the teleport does.
+    """
+    dest = gateway_destinations(g.rom)
+    if dest is None:
+        return None
+    return [{"teleport": tid,
+             "source": GATEWAY_SOURCES[tid],
+             "tiles": [(x, y) for x, y, kind, payload
+                       in g.teleports(GATEWAY_SOURCES[tid])
+                       if kind == TP_TELE_NORM and payload == tid],
+             "dest": dest[tid],
+             "landing": GATEWAY_LANDINGS[dest[tid]]}
+            for tid in GATEWAY_IDS]
+
+
+# NPCs.cs:277 -- ShuffleObjectiveNPCs permutes these three objects across these
+# three (map, tile) homes, and nothing else moves: the positions below are the
+# `objectiveNPCPositions` table read back as tiles.
+#
+# **The third one is the Elf Doctor, $05, and not the Elf Prince, $06.** The
+# prince holds the check and never moves; the doctor is who has to be reached
+# with the Herb before the prince gives it up, and he is the one the roll sends
+# to Melmond or Bahamut's Cave. Reading $06 here would report every seed as
+# unshuffled in the elf's half of the permutation, because the object it names
+# is fixed -- and $06 is what tools/extract_npcs.py collects, so that tool
+# cannot answer this on its own. Measured on `objnpc497`: bahamut and unne
+# trade homes, $05 stays in Elfland Castle, $06 stays at its own separate tile
+# (9,5) vs (8,6) in the same map.
+OBJECTIVE_NPCS = {0x05: "elfdoc", 0x0B: "unne", 0x0E: "bahamut"}
+OBJECTIVE_HOMES = {3: "melmond", 9: "elflandCastle", 39: "bahamutCaveB2"}
+OBJECTIVE_TILES = {3: (0x1A, 0x01), 9: (0x09, 0x05), 39: (0x15, 0x03)}
+
+
+def objective_roll(g):
+    """Which home each of the three objective NPCs stands in, or None.
+
+    -> {"elfdoc": home name, "unne": ..., "bahamut": ...}.
+
+    None when the three are not one to a home. The whole object table is
+    walked rather than the three homes, which is what makes "they only ever
+    stand on three maps" a per-cartridge measurement rather than a premise: an
+    objective NPC found anywhere else refuses the read instead of being
+    dropped from it.
+    """
+    where = {}
+    for map_id in range(MAP_COUNT):
+        for oid, x, y in g.objects(map_id):
+            if oid in OBJECTIVE_NPCS:
+                where.setdefault(OBJECTIVE_NPCS[oid], []).append((map_id, x, y))
+    if sorted(where) != sorted(OBJECTIVE_NPCS.values()):
+        return None
+    if any(len(v) != 1 for v in where.values()):
+        return None
+    homes = {}
+    for name, spots in where.items():
+        map_id = spots[0][0]
+        if map_id not in OBJECTIVE_HOMES:
+            return None
+        homes[name] = OBJECTIVE_HOMES[map_id]
+    if sorted(homes.values()) != sorted(OBJECTIVE_HOMES.values()):
+        return None
+    return homes
+
+
+def print_rolls(g):
+    """The two permutations the flag string cannot say."""
+    print("the gateway roll -- three one-way gateways across two Cardia")
+    print("landings and Bahamut's Cave, No-Overworld only")
+    roll = gateway_roll(g)
+    if roll is None:
+        print("  no gateways on this cartridge: those three teleport ids do not")
+        print("  land on the three known tiles, which is every mode but")
+        print("  No-Overworld and every cartridge FFR did not write.")
+    else:
+        for r in roll:
+            m, x, y = r["dest"]
+            where = ", ".join(f"({a},{b})" for a, b in r["tiles"])
+            print(f"  {MAP_NAMES[r['source']]:12s} ${r['teleport']:02X} at "
+                  f"{where or 'NOT ON THIS MAP':16s} -> {r['landing']:14s} "
+                  f"{MAP_NAMES[m]} ({x:02X},{y:02X})")
+            if not r["tiles"]:
+                print("       the id is not on the map the call order says it is "
+                      "written to;")
+                print("       the destination above is still what it does.")
+    print()
+    print("the objective-NPC roll -- Bahamut, Dr Unne and the Elf Doctor")
+    print("across Melmond, Elfland Castle and Bahamut's Cave B2")
+    homes = objective_roll(g)
+    if homes is None:
+        print("  not one NPC to a home on this cartridge -- refusing to guess.")
+        return
+    for name in sorted(homes):
+        print(f"  {name:9s} -> {homes[name]}")
+    if homes == {"elfdoc": "elflandCastle", "unne": "melmond",
+                 "bahamut": "bahamutCaveB2"}:
+        print("  (the unrolled arrangement -- either the flag was off, or it")
+        print("   rolled the identity)")
+
+
 def print_gates(g):
     """Where the No-Overworld gate NPCs stand, and what each one wants."""
     where = talk_routine_bank(g.rom.data)
@@ -1655,6 +1827,9 @@ def main():
                     help="what each NPC wants handed over before it gives anything")
     ap.add_argument("--gates", action="store_true",
                     help="No-Overworld gate NPCs and the item each one wants")
+    ap.add_argument("--rolls", action="store_true",
+                    help="the two permutations the flag string cannot say: "
+                         "the Cardia gateways and the objective NPCs")
     ap.add_argument("--self-check", action="store_true", help="staircases must not be chests")
     ap.add_argument("-o", "--out", help="write the graph as JSON")
     args = ap.parse_args()
@@ -1685,6 +1860,8 @@ def main():
         ok = self_check(g)
     if args.gates:
         print_gates(g)
+    if args.rolls:
+        print_rolls(g)
     if args.trades:
         print_trades(g)
     if args.tables:
@@ -1718,8 +1895,8 @@ def main():
                   + " -- try --have key")
         else:
             npc_reached = False
-    if not any((args.self_check, args.gates, args.trades, args.tables, args.dump,
-                args.to, args.to_npc, args.out)):
+    if not any((args.self_check, args.gates, args.rolls, args.trades, args.tables,
+                args.dump, args.to, args.to_npc, args.out)):
         print_doors(g, tabs)
 
     if args.out:

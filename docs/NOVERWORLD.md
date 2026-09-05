@@ -50,6 +50,15 @@ The mode is deterministic apart from three things:
 None of that reaches the spoiler log, so the cartridge is the only source. On the
 reference seed, Bahamut is behind Gaia.
 
+`entrance_graph.py <rom> --rolls` reads the gateway permutation off a cartridge.
+It is a nine-byte read: the three teleports keep fixed ids in the extended NORM
+table and only their destinations move, so no map has to be decompressed to
+learn where they go. Which id belongs to which source *is* read off the maps,
+because that half is otherwise a transcription of the call order in
+`MetroidVaniaMap.cs`. Measured across the five No-Overworld cartridges on hand:
+the same three ids every time, four distinct permutations, and the Ice Cave and
+Gaia stairs on fixed tiles while the Waterfall one moves per seed.
+
 Measured across three seeds: **157 links each**, and the only differences are
 those two rolled things. The other ~154 links are identical on every seed, which
 is what makes a static connection diagram the right shape — the three gateways

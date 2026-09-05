@@ -247,7 +247,7 @@ library — no Pillow, no .NET.
 |---|---|
 | `render_maps.py` | Draws all 61 maps out of a ROM using the game's own tile art |
 | `regen_maps.py` | Renders, places every marker, and installs the result |
-| `entrance_graph.py` | Reads the entrance/floor shuffle; routes; self-checks |
+| `entrance_graph.py` | Reads the entrance/floor shuffle; routes; self-checks; `--rolls` reads the two permutations no flag string carries |
 | `noverworld_rules.py` | Derives a No-Overworld seed's access rules from the walk |
 | `doormap.py` | A clickable HTML page of the shuffle |
 | `lane.py` | Routes one floor: the cost model and the pathing primitive |
@@ -452,8 +452,8 @@ calling anything done; what follows is what it runs.
 ```
 tests/run.sh         14 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   31 Python suites for the cartridge-reading tools.
-                     Seventeen of them skip, wholly or in part, unless FF1_ROM
+tools/tests/run.sh   32 Python suites for the cartridge-reading tools.
+                     Eighteen of them skip, wholly or in part, unless FF1_ROM
                      points at a cartridge, and three more unless FF1_SEEDS
                      points at the seed tree — so a bare run passes and checks
                      a good deal less than the count suggests. One slow guard opts in
