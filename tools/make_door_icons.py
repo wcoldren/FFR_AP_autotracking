@@ -32,16 +32,26 @@ measured cartridges, with Coneria Castle always the first map to carry one, but
 reading the property is what makes that a measurement instead of two numbers
 typed in here.
 
-**The shut state is dimmed rather than drawn.** A locked door and an unlocked
-one are the same tile in this game, which is the cartridge's answer and not a
-corner cut, so there is no second sprite to lift. The transform is not a number
-picked by eye either: `settings.json` sets `disabled_image_filter` to
-`grayscale, dim`, so every other off image in this pack is an average greyscale
-at half brightness (`imagefilter.cpp:66-81`). The same is baked in here, because
-a section image is a raw path and img_mods are not applied to one
-(`maptooltip.cpp:228`, "TODO: +img_mods") -- PopTracker will not do it for us.
-Baking the pack's own filter means an unvisited door looks like every other
-thing this pack draws as not-yet.
+**The dim goes on the door you have been through, not the one you have not.** A
+locked door and an unlocked one are the same tile in this game, which is the
+cartridge's answer and not a corner cut, so there is no second sprite to lift
+and the state has to be carried by a transform. Which way round is not a taste
+call: PopTracker's own pair says it. `assets/closed.png` averages 63.7 over its
+opaque pixels and `assets/open.png` 53.1, so a check you have not done is the
+bright one and a done one fades. A shut door at full colour reads as somewhere
+to go; the faded one reads as somewhere you have been.
+
+The first cut had this the other way about, on the reasoning that this pack
+greys what you do not have yet -- `settings.json` sets `disabled_image_filter`
+to `grayscale, dim` (`imagefilter.cpp:66-81`). That filter is about items, where
+the axis is have and have-not. A location's axis is done and not-done, and
+PopTracker ships the answer for it.
+
+The transform itself is still that filter, average greyscale at half brightness,
+because it is the one this pack already uses and there is no reason to invent a
+second. It is baked in because a section image is a raw path and img_mods are
+not applied to one (`maptooltip.cpp:228`, "TODO: +img_mods") -- PopTracker will
+not do it for us.
 """
 
 import os
@@ -83,13 +93,13 @@ def icons(rom, graph):
     art = render_maps.tileset_art(
         rom, rom[render_maps.TILESET_LUT + map_id],
         render_maps.map_palettes(rom, map_id, True))[tile]
-    shut = [[_disabled(px) for px in row] for row in art]
-    return {overworld_pins.DOOR_OPEN_IMG: _png(art),
-            overworld_pins.DOOR_SHUT_IMG: _png(shut)}
+    faded = [[_faded(px) for px in row] for row in art]
+    return {overworld_pins.DOOR_SHUT_IMG: _png(art),
+            overworld_pins.DOOR_OPEN_IMG: _png(faded)}
 
 
-def _disabled(px):
-    """`grayscale, dim` -- what this pack's settings.json does to an off image."""
+def _faded(px):
+    """`grayscale, dim` -- the transform this pack's settings.json already uses."""
     grey = sum(px) // 3
     return (grey // 2,) * 3
 

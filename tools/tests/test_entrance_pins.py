@@ -346,13 +346,15 @@ def main():
         check("  both are the same size",
               [len(shut), len(shut[0]), len(opened), len(opened[0])],
               [64, 64, 64, 64])
-        # A dim that came out equal would draw two identical states and say
-        # nothing, which is the failure "both files exist" would pass.
-        check("  and the shut one is darker in every pixel",
-              all(a <= b for r1, r2 in zip(shut, opened)
+        # The direction, not just the difference. PopTracker's own pair has the
+        # unopened check brighter than the opened one -- assets/closed.png
+        # averages 63.7 against open.png's 53.1 -- and this had it the other way
+        # round on the first cut, which reads as "click it to light it up".
+        check("  and the one you have been through is darker in every pixel",
+              all(a >= b for r1, r2 in zip(shut, opened)
                   for a, b in zip(r1, r2)), True)
         check("    and strictly darker somewhere",
-              any(a < b for r1, r2 in zip(shut, opened)
+              any(a > b for r1, r2 in zip(shut, opened)
                   for a, b in zip(r1, r2)), True)
 
     check("link names are unique", len(set(links)), len(links))

@@ -825,12 +825,16 @@ first two. The door is not rolled per seed -- byte-identical off all four
 cartridges -- so a reader gets a door without owning a ROM.
 
 **A locked door and an unlocked one are the same tile**, which is the
-cartridge's answer and not a shortcut, so the state is carried by dimming the
-shut one rather than by a second piece of art, and the dim is the pack's own:
-`settings.json` sets `disabled_image_filter` to `grayscale, dim`, so every other
-off image here is an average greyscale at half brightness
-(`imagefilter.cpp:66-81`). Baking that means an unvisited door looks like
-everything else this pack draws as not-yet. PopTracker cannot do that
+cartridge's answer and not a shortcut, so the state is carried by a transform rather
+than by a second piece of art. The transform is the pack's own -- `settings.json`
+sets `disabled_image_filter` to `grayscale, dim`, an average greyscale at half
+brightness (`imagefilter.cpp:66-81`) -- but which side it goes on came out
+backwards first time, from reading that filter as the answer. It is not: it is
+about items, where the axis is have and have-not. A location's axis is done and
+not-done, and PopTracker ships that answer in its own pair -- `assets/closed.png`
+averages 63.7 over its opaque pixels against `open.png`'s 53.1. So the shut door
+is full colour and the one you have walked through fades, and the suite asserts
+the direction rather than only the difference. PopTracker cannot do that
 dimming for us: a section image is a raw path and `img_mods` are not applied to
 one (`maptooltip.cpp:228`, "TODO: +img_mods"). A path that resolves to nothing
 falls back to the chest without a word, so both sides name one pair of
