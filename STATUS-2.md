@@ -810,12 +810,27 @@ anywhere, so an entrance was showing PopTracker's built-in chest.
 The tile is found by its own property: the first tile any drawn map calls
 `TP_SPEC_LOCKED`, the door the Mystic Key opens. $3B in every tileset that has
 one on all four measured cartridges, and Coneria Castle is always the first map
-with one -- but reading the property is what makes that a measurement. Written
-by a regen into the override beside the art, because they are the game's pixels.
+with one -- but reading the property is what makes that a measurement.
+
+**They are committed, and `Pack::hasFile` is the reason.** The first cut had a
+regen write them into the override beside the art, which is where cartridge art
+belongs here and which does not work: `Pack::ReadFile` consults the override but
+`MakeLocationIcon` asks `hasFile` first (`maptooltip.cpp:214`), and
+`Pack::hasFile` (`pack.cpp:200`) looks only in the zip or the pack directory. A
+section image that lives only in the override fails that test and falls back to
+the chest -- silently, with every other overridden file being served. So it went
+in the pack, which `README.md` allows: whole maps stay out, "single sprites are
+a deliberate exception ... icons made that way may ship here". These are the
+first two. The door is not rolled per seed -- byte-identical off all four
+cartridges -- so a reader gets a door without owning a ROM.
 
 **A locked door and an unlocked one are the same tile**, which is the
 cartridge's answer and not a shortcut, so the state is carried by dimming the
-shut one to 55% rather than by a second piece of art. PopTracker cannot do that
+shut one rather than by a second piece of art, and the dim is the pack's own:
+`settings.json` sets `disabled_image_filter` to `grayscale, dim`, so every other
+off image here is an average greyscale at half brightness
+(`imagefilter.cpp:66-81`). Baking that means an unvisited door looks like
+everything else this pack draws as not-yet. PopTracker cannot do that
 dimming for us: a section image is a raw path and `img_mods` are not applied to
 one (`maptooltip.cpp:228`, "TODO: +img_mods"). A path that resolves to nothing
 falls back to the chest without a word, so both sides name one pair of

@@ -45,6 +45,7 @@ PACK = os.path.dirname(TOOLS)
 sys.path.insert(0, TOOLS)
 
 import entrance_graph  # noqa: E402
+import make_door_icons  # noqa: E402
 import overworld_pins as op  # noqa: E402
 import pin_visibility  # noqa: E402
 import regen_maps  # noqa: E402
@@ -94,6 +95,10 @@ def teleport_tiles(reader):
             for y in range(entrance_graph.OW_DIM)
             for x in range(entrance_graph.OW_DIM)
             if grid[y][x] in doors}
+
+
+def same_file(path, data):
+    return os.path.exists(path) and open(path, "rb").read() == data
 
 
 def png_pixels(data):
@@ -325,17 +330,24 @@ def main():
     print(f"-- {sum(len(c) for c in eligible.values())} link tiles "
           f"in {len(runs)} runs")
 
-    # The icons themselves, off this cartridge: same tile, and the shut one
-    # darker everywhere. A dim that came out equal would draw two identical
-    # states and say nothing, which is the failure a "both files exist" check
-    # would pass.
-    icons = regen_maps.door_icons(rom, graph)
-    check("a locked door was found to draw", icons is not None, True)
-    if icons:
-        shut, opened = (png_pixels(b) for b in icons)
-        check("  both icons are the same size",
+    # The committed icons are what the writer draws off this cartridge. Same
+    # shape of guard as test_toggle_icons': the writer has a --check mode and a
+    # mode nothing runs is worth nothing. It is the existence check too, and
+    # existence is the half that fails silently -- a section image that does not
+    # resolve falls back to PopTracker's chest without a word.
+    built = make_door_icons.icons(rom, graph)
+    check("a locked door was found to draw", built is not None, True)
+    if built:
+        check("  and the committed icons are what the writer draws",
+              sorted(rel for rel, data in built.items()
+                     if not same_file(os.path.join(PACK, rel), data)), [])
+        shut, opened = (png_pixels(built[rel]) for rel in
+                        (op.DOOR_SHUT_IMG, op.DOOR_OPEN_IMG))
+        check("  both are the same size",
               [len(shut), len(shut[0]), len(opened), len(opened[0])],
               [64, 64, 64, 64])
+        # A dim that came out equal would draw two identical states and say
+        # nothing, which is the failure "both files exist" would pass.
         check("  and the shut one is darker in every pixel",
               all(a <= b for r1, r2 in zip(shut, opened)
                   for a, b in zip(r1, r2)), True)

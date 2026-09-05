@@ -11,9 +11,12 @@ a thin border and a flat glyph, and nothing about them looks like it came off a
 cartridge. These follow it, and the palette is sampled from `autoTab.png` rather
 than guessed.
 
-Nothing here reads a ROM. That is the point: `README.md` says no art derived
-from a cartridge enters this repo, so these are drawn from constants, and the
-script is committed so a reader can see that rather than take it on trust.
+Nothing here reads a ROM, and the reason is the paragraph above rather than a
+rule against it: `README.md` keeps whole maps out of the repo but allows single
+sprites lifted for a tracker cell, which is how the door icons ship. A toggle is
+the one kind of icon that must not look lifted, so these are drawn from
+constants, and the script is committed so a reader can see that rather than take
+it on trust.
 
 The shapes are the pack's own vocabulary, not decoration:
 

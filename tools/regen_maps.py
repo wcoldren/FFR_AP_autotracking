@@ -1083,57 +1083,6 @@ def _middle(group):
                                         cell[1], cell[0]))
 
 
-# How much of the colour a door keeps before it has been walked through, and
-# how big the icon is written. The tooltip scales what it is handed, so the
-# scale is only about having pixels to scale from; the dim is what says "not
-# yet" without a second piece of art, because a locked door and an unlocked one
-# are the same tile in this game -- which is the cartridge's own answer, not a
-# shortcut. PopTracker cannot grey it for us: a section image is a raw path and
-# img_mods are not applied to one (maptooltip.cpp:228).
-DOOR_ICON_SCALE = 4
-DOOR_ICON_DIM = 0.55
-
-
-def door_icons(rom, graph):
-    """(shut, open) -- one locked-door tile, dimmed and not, as encoded PNGs.
-
-    Found by the tile's own property rather than by an id: the first tile any
-    drawn map calls TP_SPEC_LOCKED, which is the door the Mystic Key opens
-    (bank_0F.asm:3470). It is $3B in every tileset that has one on all four
-    measured cartridges and Coneria Castle is always the first map with one, but
-    reading the property is what makes that a measurement rather than a
-    hardcoded pair of numbers.
-
-    Drawn with the map's *inside* palette, because a door is somewhere you are
-    standing indoors when you look at it.
-    """
-    for map_id in sorted(render_maps.MAP_FILES):
-        tiles, props, _ = graph.grid(map_id)
-        for pos, byte in enumerate(props):
-            if byte & entrance_graph.TP_SPEC_MASK != entrance_graph.TP_SPEC_LOCKED:
-                continue
-            art = render_maps.tileset_art(
-                rom, rom[render_maps.TILESET_LUT + map_id],
-                render_maps.map_palettes(rom, map_id, True))[tiles[pos]]
-            dim = [[tuple(round(v * DOOR_ICON_DIM) for v in px) for px in row]
-                   for row in art]
-            return tuple(_scaled_png(block) for block in (dim, art))
-    return None
-
-
-def _scaled_png(block):
-    """A 16x16 block of (r, g, b) as a PNG, DOOR_ICON_SCALE times bigger."""
-    n = DOOR_ICON_SCALE
-    side = len(block) * n
-    out = bytearray()
-    for row in block:
-        line = bytearray()
-        for px in row:
-            line += bytes(px) * n
-        out += line * n
-    return encode(side, side, bytes(out))
-
-
 def entrance_children(by_rom, tiles, sprite_cells=None):
     """([node], [unplaceable], [(name, map)]) -- one location per floor link.
 
@@ -1899,16 +1848,6 @@ def main():
         return 1
     for rel, (w, h, rgb) in art.items():
         files[rel] = encode(w, h, rgb)
-
-    # The tooltip icons the entrance group hands its children, from the same
-    # cartridge and into the same tree as the art. Written whichever mode this
-    # is: every cartridge has floor links, so every mode has the group.
-    icons = door_icons(rom, ow_graph)
-    if icons is None:
-        print("\nFAILED: no map on this cartridge has a locked door, so there "
-              "is no door tile to draw the entrance tooltip with.")
-        return 1
-    files[overworld_pins.DOOR_SHUT_IMG], files[overworld_pins.DOOR_OPEN_IMG] = icons
 
     # 2. the markers, built from the cartridge onto it
     cal = rendered_calibration(rom, crops_)

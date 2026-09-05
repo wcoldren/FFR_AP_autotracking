@@ -55,7 +55,13 @@ besides, so it has no business in git.
 Single sprites are a deliberate exception. A tracker cell wants an icon,
 `tools/sprites.py` and `tools/font.py` can pull one off the cartridge, and an
 icon lifted and recoloured for a tracker is ordinary practice in this community.
-Icons made that way may ship here. None do today -- everything in `images/` is
+Icons made that way may ship here. Two do: `images/icons/door_shut.png` and
+`door_open.png`, the tooltip icon for an entrance pin, written by
+`tools/make_door_icons.py` off the locked-door tile. They are committed rather
+than left to a regen because `Pack::hasFile` does not consult the user-override,
+so a section image that lives only there falls back to PopTracker's chest. The
+door is vanilla tile art -- byte-identical off all four measured cartridges --
+so it is not rolled per seed the way a map is. Everything else in `images/` is
 either drawn for this pack or inherited from the pack this forked, whose authors
 are in [Credits](#credits).
 
