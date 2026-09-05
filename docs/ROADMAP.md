@@ -132,7 +132,9 @@ its oracle seed is a hand transcription, which is what section 5 is meant to end
 
   Two things stayed strict on purpose, and `docs/ISSUES.md` has both: an NPC
   rolled into the third home, and everything on a session with no cartridge to
-  read.
+  read. `STATUS-2.md`, "The bridge reads the two rolls, and the rules stop
+  guessing", has the build, the two measurements that made it small and the
+  object the scoping named wrong.
 
 - **Every flag that made a pin lie has a code or a recorded decision. Closed
   2026-09-01**, the last two — `MapAirshipHike` and `MapCardiaLandBridge` —

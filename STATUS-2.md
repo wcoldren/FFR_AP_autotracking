@@ -1052,3 +1052,102 @@ whose location a seed lacks *and* that none of them ring, so the gate is shown
 biting rather than only claimed. Dropping the gate turns that suite red on
 `notail`, and turns five rows of `tests/test_incentives.lua` red -- both
 directions in one seed, King ringed and Sara not on the same two flags.
+
+## The bridge reads the two rolls, and the rules stop guessing
+
+Two permutations are chosen at generation and reach neither the flag string nor
+the spoiler, so the pack answered both by being deliberately strict. The Cardia
+gateway roll permutes three one-way gateways -- out of Waterfall, Ice Cave B1
+and Gaia -- across two Cardia landings and Bahamut's Cave B1
+(`MetroidVaniaMap.cs:717-736`). `ShuffleObjectiveNPCs` permutes Bahamut, Dr Unne
+and the Elf Doctor across Melmond, Elfland Castle and Bahamut's Cave B2. Strict
+means asking for all the homes at once, which collapses to whichever dominates:
+six Cardia Forest locations held red on a No-Overworld seed, and the Elf Prince
+held where FFR opens him on a shuffled one.
+
+**Two measurements are why this was a morning rather than a decompressor.**
+Both were taken against the corpus before anything was built, and either one
+coming out the other way would have made this a different job.
+
+The three gateway teleports occupy fixed slots in the extended NORM teleport
+table and only their *destinations* permute. Read across the four No-Overworld
+cartridges, `0x89`, `0x8A` and `0x8B` are the same three ids every time and
+three distinct permutations of where they lead. So the bridge read is nine bytes
+at fixed offsets -- no map decompression, no tile lookup, no tileset
+properties. And the objective NPCs only ever stand on three of the sixty-one
+maps, so the second read is three blocks of `lut_MapObjects` rather than a walk
+of the table.
+
+One thing in that first measurement is read off FFR's C# rather than measured:
+which source each id belongs to comes from the order of the
+`newTeleporterTiles.Add` calls, corroborated by one sentence in
+`docs/NOVERWORLD.md`. It has not been walked on a cartridge, and it is the
+assumption under every gateway rule.
+
+**The scoping named the wrong object, and that is the part worth carrying.**
+The NPC the roll moves is the Elf **Doctor**, object `$05`. The Elf *Prince* is
+`$06`, he holds the check, and he never moves. `tools/extract_npcs.py` collects
+`$06` and not `$05` -- so the tool that both `docs/ISSUES.md` and
+`docs/ROADMAP.md` said had already measured this could not have. What it did
+measure on `objnpc497` was the other two objects trading places, which is a true
+reading of a different question, and that is the shape that reads as
+confirmation: a tool that answers, answers correctly, and was never asked what
+you thought you asked it.
+
+**One key with two fields, not a key per roll.** `ff1/rolls` carries
+`gateways=...|npcs=...`, either field left empty when that half could not be
+read. The roadmap had asked for `ff1/gateways`, and the name is the reason not
+to: the key carries both permutations, and a name saying only one of them would
+mislead every later reader. It ships the way `ff1/rom` and `ff1/flags` do,
+whether or not a save is loaded, because a permutation describes the cartridge
+rather than the state.
+
+**Items rather than a Lua global, because PopTracker only re-evaluates a rule
+when an item changes.** A rule calling a function that read a bridge variable
+would be evaluated once, against whatever the variable held at the time, and
+never again when the bridge answered -- the same reason `isNoOverworld()` reads
+the variant rather than `ffrFlag("GameMode")`.
+
+**A progressive per subject, with `inherit_codes: false` on every stage.** A
+PopTracker progressive hands out every code up to its current stage, which would
+have the Gaia stage also saying the gateway is behind Waterfall and behind the
+Ice Cave -- three answers to a question that has one. What makes a progressive
+fit here is that these subjects really are one-of-N; the Cardia incentive case
+that ruled a progressive out was not.
+
+**Stage 0 is the fourth state, and it is the whole of the backward
+compatibility story.** A progressive's disabled row provides no code at all, so
+"nothing has said" is a state a rule is written *against* rather than a value it
+has to test. Every board starts there: an Archipelago-only session, a UAT-less
+one, and every board before the bridge attaches. The strict alternatives stayed
+in place beside the new ones rather than being replaced by them, which is what
+makes those three cases byte-for-byte what they were.
+
+**The gateway half had an oracle and the NPC half cannot have one.**
+`tools/noverworld_rules.py` walks the cartridge's real teleporters, gateways
+included, so `check_logic --derived` grades a rule that claims to know the
+permutation against the seed's own topology -- an independent reading no other
+section-1 item had. There is no equivalent for the NPCs and there cannot be one
+from the export: `objnpc497` grades 224 of 224 while the pack is wrong about it,
+because FFR's export does not notice the swap at all. That half is graded by the
+offline reader plus the two cells, by hand.
+
+**A defect turned up that the scoping had not seen**, and it is only adjacent to
+the rolls. `MapDragonsHoard` duplicates the Cardia chests into Bahamut's Cave
+B2, and the Cardia nodes' hoard alternative was guarded `$standardWorld` with no
+No-Overworld twin, so a No-Overworld hoard seed held thirteen chests red that
+the cave opens. It was found by reading `novhoard` for the gateway work and
+noticing the wrong number. Measured on the cartridge rather than off the flag:
+the duplicated treasure ids appear on that seed and on no other in the corpus,
+and they are exactly the thirteen the pack tracks as Cardia Forest, Grassy and
+Swampy.
+
+**What it bought and what stayed strict** are in `docs/ROADMAP.md` §1 and
+`docs/ISSUES.md`, with the per-cartridge figures in `docs/ORACLE.md`. The short
+of it: the Cardia Forest rows agree on all four No-Overworld cartridges,
+Bahamut's Cave was fixed in the *other* direction -- it had been too permissive
+on a seed whose Ice Cave gateway leads there -- and the Elf Prince's `WAIVED`
+row came off. What stayed strict is an NPC rolled into the third home, and every
+session with no cartridge to read, which is not a gap that can be closed from
+this side: the permutation exists only on the cartridge, and an Archipelago-only
+session has none.
