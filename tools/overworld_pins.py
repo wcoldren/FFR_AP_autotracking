@@ -144,6 +144,14 @@ def entrance_door_pins(reader):
             for door, cell in sorted(door_cells(reader).items())}
 
 
+# The tooltip icons the entrance group hands its children. Written by a regen
+# from the cartridge, like the map art, and for the same reason: they are the
+# game's own pixels, so they belong beside the renders in the override rather
+# than committed here.
+DOOR_SHUT_IMG = "images/icons/door_shut.png"
+DOOR_OPEN_IMG = "images/icons/door_open.png"
+
+
 def entrance_group(doors, origin=(0, 0), map_name="overworld", tile_px=16):
     """The tree node the door pins are injected as.
 
@@ -164,11 +172,24 @@ def entrance_group(doors, origin=(0, 0), map_name="overworld", tile_px=16):
 
     `origin` is the crop box's top-left tile, the same measurement restamp
     takes, because the pixel is measured from the image actually written.
+
+    The two images are the group's rather than each door's, because a section
+    inherits both from its parent (location.cpp:175) -- so this one pair covers
+    every door and every floor link injected under it. They are the tooltip's
+    icon, which is the one place a pin can carry a picture: the marker itself is
+    a shape and a colour and nothing else (mapwidget.cpp:352). PopTracker's own
+    chest is the default, which is what an entrance was showing.
+
+    A path that does not resolve falls back to that chest without a word
+    (maptooltip.cpp:214, "TODO: remove silent fallback"), so the suite checks
+    these two against the files a regen writes rather than trusting the string.
     """
     ox, oy = origin
     half = tile_px // 2
     return {
         "name": pin_visibility.ENTRANCES_GROUP,
+        "chest_unopened_img": DOOR_SHUT_IMG,
+        "chest_opened_img": DOOR_OPEN_IMG,
         "children": [
             {"name": name,
              "sections": [{"name": name[len(ENTRANCE_PREFIX):]}],

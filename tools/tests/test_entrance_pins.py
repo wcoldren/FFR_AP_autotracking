@@ -35,7 +35,9 @@ Set FF1_ROM to a cartridge; without one the cartridge half skips.
 """
 
 import os
+import struct
 import sys
+import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
@@ -92,6 +94,31 @@ def teleport_tiles(reader):
             for y in range(entrance_graph.OW_DIM)
             for x in range(entrance_graph.OW_DIM)
             if grid[y][x] in doors}
+
+
+def png_pixels(data):
+    """[[luma]] for a PNG this suite just built -- 8-bit RGB, filter 0 only.
+
+    Written here rather than reached for from a library because the tools have
+    no image dependency and this is checking their own encoder's output.
+    """
+    pos, width, height, idat = 8, 0, 0, b""
+    while pos < len(data):
+        length = struct.unpack(">I", data[pos:pos + 4])[0]
+        kind = data[pos + 4:pos + 8]
+        if kind == b"IHDR":
+            width, height = struct.unpack(">II", data[pos + 8:pos + 16])
+        elif kind == b"IDAT":
+            idat += data[pos + 8:pos + 8 + length]
+        pos += 12 + length
+    raw = zlib.decompress(idat)
+    stride = width * 3
+    out = []
+    for y in range(height):
+        assert raw[y * (stride + 1)] == 0, "unexpected PNG filter"
+        line = raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)]
+        out.append([sum(line[x * 3:x * 3 + 3]) for x in range(width)])
+    return out
 
 
 def main():
@@ -186,6 +213,20 @@ def main():
     apart = {(11, 4): ("norm", 18), (20, 4): ("norm", 18)}
     check("  and one link in two places stays two",
           sorted(regen_maps._one_per_link(apart)), [(11, 4), (20, 4)])
+
+    # The tooltip icon. The two paths are one pair of constants, referenced by
+    # the group that names them and by the regen that writes them, so the way
+    # this fails silently -- a path that resolves to nothing and falls back to
+    # PopTracker's chest without a word (maptooltip.cpp:214) -- cannot come from
+    # the two sides disagreeing. What is left to check is that the group carries
+    # them at all, since a section inherits both from here and nowhere else.
+    icon_group = op.entrance_group({"Entrance: Coneria": (10, 40)})
+    check("the group hands its children a door for a chest",
+          [icon_group.get("chest_unopened_img"), icon_group.get("chest_opened_img")],
+          [op.DOOR_SHUT_IMG, op.DOOR_OPEN_IMG])
+    check("  and neither is a path a child has to repeat",
+          sorted(k for kid in icon_group["children"] for k in kid
+                 if k.startswith("chest_")), [])
 
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):
@@ -283,6 +324,24 @@ def main():
                  if not any(mm == m and (c, r) in g for mm, g in runs)), [])
     print(f"-- {sum(len(c) for c in eligible.values())} link tiles "
           f"in {len(runs)} runs")
+
+    # The icons themselves, off this cartridge: same tile, and the shut one
+    # darker everywhere. A dim that came out equal would draw two identical
+    # states and say nothing, which is the failure a "both files exist" check
+    # would pass.
+    icons = regen_maps.door_icons(rom, graph)
+    check("a locked door was found to draw", icons is not None, True)
+    if icons:
+        shut, opened = (png_pixels(b) for b in icons)
+        check("  both icons are the same size",
+              [len(shut), len(shut[0]), len(opened), len(opened[0])],
+              [64, 64, 64, 64])
+        check("  and the shut one is darker in every pixel",
+              all(a <= b for r1, r2 in zip(shut, opened)
+                  for a, b in zip(r1, r2)), True)
+        check("    and strictly darker somewhere",
+              any(a < b for r1, r2 in zip(shut, opened)
+                  for a, b in zip(r1, r2)), True)
 
     check("link names are unique", len(set(links)), len(links))
     check("  and none names its destination",

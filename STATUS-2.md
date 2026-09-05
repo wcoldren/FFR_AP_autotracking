@@ -800,6 +800,27 @@ its castle, Bahamut's cave and Cardia -- where no marker size separates them and
 stacking one would put a trapezoid on a tile that is not its door, which is the
 one thing these pins exist to say.
 
+**The tooltip icon is the one place a pin can carry a picture.** The marker is
+a shape and a state colour and nothing else -- `mapwidget.cpp:352` paints a
+diamond, a trapezoid or a rect and has no path to an image -- so the door a
+player hovers is `chest_unopened_img` / `chest_opened_img` on the group, which
+every section under it inherits (`location.cpp:175`). The pack set neither
+anywhere, so an entrance was showing PopTracker's built-in chest.
+
+The tile is found by its own property: the first tile any drawn map calls
+`TP_SPEC_LOCKED`, the door the Mystic Key opens. $3B in every tileset that has
+one on all four measured cartridges, and Coneria Castle is always the first map
+with one -- but reading the property is what makes that a measurement. Written
+by a regen into the override beside the art, because they are the game's pixels.
+
+**A locked door and an unlocked one are the same tile**, which is the
+cartridge's answer and not a shortcut, so the state is carried by dimming the
+shut one to 55% rather than by a second piece of art. PopTracker cannot do that
+dimming for us: a section image is a raw path and `img_mods` are not applied to
+one (`maptooltip.cpp:228`, "TODO: +img_mods"). A path that resolves to nothing
+falls back to the chest without a word, so both sides name one pair of
+constants rather than two strings that could drift apart.
+
 **Where the injection goes is load-bearing in both directions.** After
 `restamp`, which would otherwise take all thirty straight back out. Before
 `pin_visibility.stamp`, so the rule is the stamper's to write -- it learned an
