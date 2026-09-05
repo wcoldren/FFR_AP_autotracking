@@ -1213,3 +1213,56 @@ would port for free, but a port only runs when the digest differs, so a bare
 tile coordinate would mean something else on the target and would silently
 avoid an arbitrary tile instead of refusing. Either exclude it from the carry
 or give it a typed form the way stops have one.
+
+## The key rows name the line, and retrace governs one lane of the two
+
+**The Map Key rows dropped "Optimal"** and read `Route` and `Route for Loot`.
+The reason is what a route lane became once a region could carry more than one
+of them: they are per door pair -- `elf_castle` draws five, each the best walk
+between one arrival and one exit -- so a single row beside five lines was
+making a claim about the set rather than about each line. The objective is
+untouched and is still the reference's own, lexicographic over fixed-formation
+traps, encounter tiles, steps and turns. It lives where it is implemented
+rather than on the key; `docs/IDEAS.md`, "Optimal needs an objective function",
+holds it and now says so.
+
+The pixels were a side effect and not the reason, which matters because
+`docs/ISSUES.md` had ruled the long name kept precisely so that a font size
+could not buy a rename. Re-measured against the labels each map actually draws
+-- which is what `draw_map_key` scales from, and what the 2026-09-03 figures
+did not separate -- `MatoyasCave` at 288px and `TitansTunnel` at 304px go to
+scale 2 on both cartridges, and `BahamutCaveB2` at 208px does on the
+No-Overworld one, where it draws no loot row. Nothing clips.
+
+**Retrace only ever moves the loot lane, which is why the flags survived the
+lane limit being lifted.** The entry above left that open: every flag was set
+when a region had one route lane, and seventeen floors now carry more. Loading
+each of the seventeen twice, `--retrace on` against `off`, and diffing the
+drawn edges: thirteen draw identically either way, and on the four that differ
+-- `volcB2` 313/328 edges, `tof` 241/242, `onrac` 145/151, `marshB3` 334/335 --
+the route edges are identical every time. Only loot edges move.
+
+That is structural rather than lucky. A route lane runs arrival to exit in one
+direction and has no return leg to lay back over; a loot lane goes out and back
+through chests, which is the only thing a preference for one's own edges can
+bite on. So adding route lanes to a region cannot invalidate a retrace flag,
+and the seventeen did not need re-deciding. `marshB1` moved for a different
+reason -- it dropped its loot lane outright in that pass, so its flag is now
+inert.
+
+**All four flags stand as recorded, and one of them will keep asking to be
+re-derived.** `volcB2` keeps `true`: off draws the return leg as a second line
+one tile along the same corridor, which reads as two corridors, and collapsing
+costs nothing at 519 steps and 102 turns either way. `tof` keeps `true` over a
+three-tile jog. `marshB3` keeps off, and the turn count agrees at 87 against
+88.
+
+`onrac` is the one to know about. A fresh A/B look argues for collapsing it --
+151 edges to 145, two loops to none, the same 286 steps and 41 turns -- and
+that is wrong, because "Seventeen of the twenty-four collapse, and the towns
+are the seven that do not" already decided it. Onrac is a town, the loop is the
+fountain plaza, and a town is where there is a way round is the true thing to
+draw. The numbers do not carry that judgement and never will, on either
+cartridge: the standard entry differs over the same eight tiles, so a
+cartridge-by-cartridge pass finds the same argument twice. Read that entry
+before touching a town's flag.

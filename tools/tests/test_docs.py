@@ -364,11 +364,30 @@ HEADING = re.compile(r"^#{1,6}\s+(.*?)\s*$", re.M)
 BOLD_LEAD = re.compile(r"^\s*(?:[-*] )?\*\*(.+?)\*\*", re.M | re.S)
 
 
+def unquoted(name):
+    """A name with its quoting normalised -- how it is quoted is not part of it.
+
+    A lead that carries a quotation of its own gets pointed at from inside a
+    quotation, so the inner marks flip to apostrophes and a literal compare
+    fails on prose that is right: `The derivation cannot say "reach another
+    location"` is pointed at as `... 'reach another location'`.
+
+    Row 2b needs it for a harder reason than a flipped mark. Its pointers are
+    delimited by the quotes they are written in, so an anchor that opens with
+    one -- `**"Optimal" needs an objective function...**`, and five more like
+    it -- could not be named at all: every spelling of the pointer either
+    carried a quote the syntax forbids or failed the compare. Dropping the
+    marks on both sides is what makes those anchors pointable.
+    """
+    bare = name.replace('"', "").replace("'", "")
+    return " ".join(bare.split()).strip("*`.,").lower()
+
+
 def headings(rel):
     body = "\n".join(read(rel))
-    out = {h.strip().strip("*`.,").lower() for h in HEADING.findall(body)}
+    out = {unquoted(h) for h in HEADING.findall(body)}
     for lead in BOLD_LEAD.findall(body):
-        out.add(" ".join(lead.split()).strip("*`.,").lower())
+        out.add(unquoted(lead))
     return out
 
 
@@ -387,7 +406,7 @@ for doc in DOCS:
         target = resolve(target) or target
         if target not in TRACKED:
             continue
-        want = m.group(2).strip().strip("*`").lower()
+        want = unquoted(m.group(2))
         have = headings(target)
         if want in have:
             continue
@@ -750,18 +769,6 @@ NAMED_ENTRY = re.compile(r'entr(?:y|ies)\s+named\s+"([^"]{4,140})"', re.S)
 SPECIMEN = re.compile(r'"[^"\n]*"')
 
 
-def unquoted(name):
-    """A name with its quoting normalised -- how it is quoted is not part of it.
-
-    A lead that carries a quotation of its own gets pointed at from inside a
-    quotation, so the inner marks flip to apostrophes and a literal compare
-    fails on prose that is right: `The derivation cannot say "reach another
-    location"` is pointed at as `... 'reach another location'`.
-    """
-    bare = name.replace('"', "").replace("'", "")
-    return " ".join(bare.split()).strip("*`.,").lower()
-
-
 def unspecimened(line):
     """A line with its quotations blanked.
 
@@ -865,6 +872,15 @@ check("a heading a page really has is found",
       "the docs" in headings("docs/README.md"), True)
 check("and one it does not have is not",
       "a heading no page carries" in headings("docs/README.md"), False)
+# The pointer syntax is delimited by the quotes a pointer is written in, so an
+# anchor carrying its own could never be named -- the first row is the pointer
+# that cannot be written, the second is the anchor it was trying to reach.
+check("a pointer cannot carry the quote an anchor opens with",
+      SECTION.findall('`IDEAS.md`, ""Optimal" needs an objective function"'),
+      [])
+check("so the quoting is dropped from both ends instead",
+      unquoted('**"Optimal" needs an objective function.**'),
+      "optimal needs an objective function")
 check("a table row resolves to the page it names",
       LINK.findall("| [`ORACLE.md`](ORACLE.md) | the figures |"), ["ORACLE.md"])
 check("a row reaching out of docs/ normalises to the pack root",

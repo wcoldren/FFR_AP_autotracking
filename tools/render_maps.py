@@ -965,10 +965,22 @@ ARROW_EVERY = 7
 ARROW_NUDGE = 2
 
 # The key's own wording. No punctuation anywhere: font.CHARS is digits and
-# letters only, so a slash in "Optimal w/Key" draws as a gap.
+# letters only, so a slash in the reference's "Optimal w/Key" draws as a gap
+# and the reference's own label could never have been transcribed literally
+# anyway.
+#
+# The rows name the kind of line and drop that "Optimal", which this pack spent
+# a while keeping. The reason is what a route lane became once a region could
+# carry more than one: they are per *door pair* -- five on `elf_castle`, each
+# the best walk between one arrival and one exit -- so a single row saying
+# "Optimal Route" beside five lines reads as a claim about the set rather than
+# about each line. Dropping the adjective withdraws nothing: the objective is
+# still the reference's own, lexicographic over traps, encounter tiles, steps
+# and turns, and it lives where it is implemented rather than on the key. See
+# `docs/IDEAS.md`, "Optimal needs an objective function".
 LANE_KEY_TEXT = {
-    "route": "Optimal Route",
-    "loot": "Optimal Route for Loot",
+    "route": "Route",
+    "loot": "Route for Loot",
     "forced": "Forced Fight",
     "link": "Linked Chest",
 }
@@ -1041,11 +1053,18 @@ def draw_map_key(rom, font, out, w, h, crop, legend_rows, marks, lanes):
     black = NES_PALETTE[SHADOW_COLOUR]
     band = crop.size[1] * TILE_PX
 
-    # The key is the map's own width, and a map is as narrow as its content --
-    # sky5F on a No-Overworld cartridge is sixteen tiles across, four pixels
-    # short of the longest lane row at full scale. Rather than trim the wording
-    # to whatever fits today, measure and halve the scale where it does not:
-    # a small key still reads, and a clipped one silently loses its last word.
+    # The key is the map's own width, and a map is as narrow as its content,
+    # so the wording does not always fit at full scale. Measure and halve where
+    # it does not: a small key still reads, and a clipped one silently loses
+    # its last word.
+    #
+    # The wording was shortened once, when the rows stopped saying "Optimal"
+    # -- but for what a route lane means, not to buy pixels, which is the
+    # order that matters. Trimming a name to fit is still the trap `docs
+    # /ISSUES.md` names for the trap letters, and this fallback is what makes
+    # not trimming affordable. It still earns its place: the shorter rows left
+    # three drawn keys across the two cartridges at half scale -- `bahamut` on
+    # both, and `bahamutB2` on the standard one, where it draws the loot row.
     labels = [t for _, t in lanes] + [f"Trap Tile {m}" for m in marks]
     scale = LETTER_SCALE
     while scale > 1 and any(KEY_TEXT_X + font.text_px(t, scale) > w

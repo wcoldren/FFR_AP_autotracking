@@ -378,10 +378,12 @@ Things a bridge-only player checks that the board has no cell for.
   `tools/lane.py` and `tools/lane_edit.py` both cite this by name.
 
   **The naming fix landed with it**, because an editor that authored into the
-  wrong vocabulary would have had to be re-authored: "Optimal Route" is the
-  traversal lane, arrival to the nearest exit opening nothing, and "Optimal
-  Route for Loot" holds the floor's items from the start. `docs/IDEAS.md` has
-  what it cost.
+  wrong vocabulary would have had to be re-authored: the traversal lane is
+  arrival to the nearest exit opening nothing, and the loot lane holds the
+  floor's items from the start. The Map Key drew those as "Optimal Route" and
+  "Optimal Route for Loot" until 2026-09-05 and now draws `Route` and `Route
+  for Loot` -- the meanings are the ones authored against either way, and
+  `docs/IDEAS.md` has what the naming cost and why the adjective went.
 
   **The spoiler question is settled: a lane ends at the nearest exit.** Most
   chest-bearing maps have several on both duck cartridges, and the lane finishes

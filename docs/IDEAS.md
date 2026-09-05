@@ -67,6 +67,16 @@ The `prefer=` direction is unchanged and reads better for it: the loot lane
 prefers the route lane's edges, so cyan is the walk you would make anyway and
 purple is what the loot costs you on top.
 
+**The rows were shortened to `Route` and `Route for Loot` on 2026-09-05, and
+the reasoning below still holds.** The pixels were not the reason and would not
+have been a good one. What changed is that a region can now carry several route
+lanes, one per door pair, so the adjective was making a claim about the set
+rather than about each line. The objective function further down is untouched
+and is where "optimal" is still asserted. The analysis below is kept at the old
+names, which are the ones it argues about -- the rows it calls "Optimal Route"
+and "Optimal w Key" are the two it is arguing were the wrong pair, not rows the
+Map Key draws today.
+
 Two measured consequences. A loot lane now appears wherever there is loot
 rather than only on a gated floor, so 29 of the 39 lanes on the duck cartridge
 are a pair where most were a single line, and 28 maps grow a legend row. And

@@ -1204,12 +1204,28 @@ Nothing here is urgent unless it says so.
   `bahamutB2` fits at scale 1 with nothing to spare, since the row is exactly
   208px.
 
-  Taken rather than worked around. The name is the reference's own, and
-  inventing a shorter one to protect a font size is this page's "Our trap
-  letters are not DarkmoonEX's" in a new place. The fallback exists precisely
-  for this and a small key still reads. What would actually buy room is letting
-  `KEY_SWATCH` shrink with the scale, which recovers 12px and is not enough
-  alone.
+  **Mostly gone since 2026-09-05, as a side effect rather than a fix.** The
+  rows now read `Route` and `Route for Loot`; the reason was what a route lane
+  became once a region could carry more than one of them, and is on
+  `LANE_KEY_TEXT`. The longest row went 22 characters to 14, so scale 2 needs
+  256px rather than 384.
+
+  Re-measured against the labels each map actually draws -- which is what
+  `draw_map_key` scales from, and what the 2026-09-03 figures above did not
+  separate: `MatoyasCave` (288px) and `TitansTunnel` (304px) go to scale 2 on
+  both cartridges, `BahamutCaveB2` (208px) does on the No-Overworld one, where
+  it draws no loot row. Nothing clips at the scale it lands on. `BahamutCaveB1`
+  at 96px cannot fit the longest row at any scale and never could; it does not
+  draw that row.
+
+  Mostly, and not gone -- three drawn keys still halve, in the `authored` lane
+  mode the override ships. `BahamutCaveB1` (96px) halves on both cartridges,
+  where its single `Route` row then fits at scale 1 with 24px to spare, and
+  `BahamutCaveB2` (208px) halves on the standard cartridge, where it does draw
+  the loot row. Which is why the rest stands: the fallback is still what makes
+  it safe to name a row for what it is rather than for what fits, and letting
+  `KEY_SWATCH` shrink with the scale would still recover 12px if a longer row
+  ever wants it.
 
 - **A lane file's `region` is an index the digest does not guard.** A stop is
   typed so it can outlive the seed it was drawn on, and the layout digest
@@ -1494,7 +1510,7 @@ Nothing here is urgent unless it says so.
 
   Recorded for players in `README.md`, "What the pin shapes mean", rather than in
   the Map Key that `docs/ROADMAP.md` section 3 asked for. The Map Key is rendered
-  art: `draw_map_key` (`tools/render_maps.py:1024`) draws lane bars and trap
+  art: `draw_map_key` (`tools/render_maps.py:1035`) draws lane bars and trap
   letters into a per-map band that is reserved only where there is something to
   say, so shape rows would reserve a band on all 61 maps, change every crop
   height and move every marker coordinate.
