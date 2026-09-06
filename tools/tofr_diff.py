@@ -53,9 +53,9 @@ import noverworld_rules
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "ffr_flags"))
 import ffr_flags
 
-# The gauntlet plus Chaos's own room. TOFR_INTERIOR is the seven floors that the
-# No-Overworld shortcut orphans; Chaos is reachable and is where a Short seed
-# puts its chests, so a diff that left it out would miss the half that moves.
+# The gauntlet plus Chaos's own room. TOFR_INTERIOR is the seven floors a Short
+# seed orphans; Chaos is reachable and is where that seed puts its chests, so a
+# diff that left it out would miss the half that moves.
 TOFR_MAPS = eg.TOFR_INTERIOR + ("TempleOfFiendsRevisitedChaos",)
 
 KIND_NAME = {eg.TP_TELE_NORM: "norm", eg.TP_TELE_EXIT: "exit",
@@ -204,10 +204,25 @@ def live_chest_tiles(raw, g):
     ToFR maps only. The walk is seeded at ToFR arrivals and answers one
     question -- what this cartridge wired -- so it has nothing to say about any
     other floor, and a caller must not read a tile's absence here as a verdict
-    on one. Cartridge and not ToFRMode: GameMode decides the wiring as well, and
-    No-Overworld repoints TempleOfFiends at Chaos and orphans the seven interior
-    floors on its own (docs/NOVERWORLD.md). A floor missing from this walk is
-    not a fact about ToFRMode alone.
+    on one.
+
+    Cartridge and not ToFRMode, but not for the reason this used to give. It
+    said No-Overworld repoints TempleOfFiends at Chaos and orphans the seven
+    interior floors on its own; it does not. That repoint is `ShortenToFR`
+    (`FF1Lib/TempleOfFiends.cs:186-189`), gated on ToFRMode.Short, and
+    `Randomize.cs:172-173` runs `NoOverworld` first and `UpdateToFR` after it
+    with nothing in between touching TeleportIndex.TempleOfFiends2. Measured
+    2026-09-06 on two No-Overworld cartridges rolled at `oracle_nov`'s seed with
+    only ToFRMode changed: Long reaches all eight floors and strands nothing,
+    Mid strands the two 3F copies of 253/254 and no more -- the standard-mode
+    figures exactly. Every No-Overworld cartridge in the corpus is Short, which
+    is what made the two look like one fact.
+
+    The reason to read the cartridge is still good, and it is the shuffle:
+    entrance and floor shuffle rewire the ways in, Mid's walls are not
+    table-visible, and No-Overworld lays two more copies of ToFR chest indices
+    outside ToFR entirely (`MetroidVaniaMap.cs:751,755`). A floor missing from
+    this walk is not a fact about ToFRMode alone.
 
     The walk itself is `reached`, called rather than repeated. Two copies of the
     seeding would be two answers to "what did this cartridge wire" -- `--dump`'s
@@ -246,9 +261,10 @@ def comparable(a, b):
     answer dressed as a finding.
     """
     if a["game_mode"] != b["game_mode"]:
-        # No-Overworld does not merely reach ToFR differently, it repoints
-        # TempleOfFiends straight at Chaos and orphans the seven interior
-        # floors (docs/NOVERWORLD.md). `inbound` then differs by construction.
+        # Not because No-Overworld orphans the gauntlet -- it does not, see
+        # live_chest_tiles -- but because it builds the ways in itself
+        # (`MetroidVaniaMap.CreateTeleporters`) and lays two more copies of ToFR
+        # chest indices outside ToFR. `inbound` then differs by construction.
         return (f"GameMode differs ({a['game_mode']} vs {b['game_mode']}) -- the "
                 "mode decides how ToFR is wired into the rest of the cartridge.")
     if a["tofr_mode"] != b["tofr_mode"]:

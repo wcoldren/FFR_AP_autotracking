@@ -2404,9 +2404,11 @@ def main():
     # than the list -- a number that changes is the thing to notice.
     #
     # "this cartridge" and not "this ToFRMode": the walk behind the filter reads
-    # what is wired, and GameMode wires ToFR too (No-Overworld orphans the seven
-    # interior floors). Naming ToFRMode here would be attributing the drop to
-    # one of the two flags that can cause it.
+    # what is wired, and the flag is not the only thing that wires it -- the
+    # entrance and floor shuffle moves the ways in, and No-Overworld builds them
+    # itself. (It does not orphan the gauntlet, which this comment used to say;
+    # see tofr_diff.live_chest_tiles for the measurement.) Naming ToFRMode here
+    # would be attributing the drop to one of several causes.
     stranded = [d for d in dropped if d[5] == "stranded"]
     if stranded:
         floors = sorted({render_maps.MAP_FILES.get(d[2], d[2]) for d in stranded})

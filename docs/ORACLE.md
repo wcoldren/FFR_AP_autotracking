@@ -328,6 +328,25 @@ both copies of 248, 249 and 250 are open — the stranded ones are 253 and 254 o
 locations after the vanilla floors and pins each to one map, which is the shape
 this measurement is against.
 
+**The mode does this on its own, and GameMode does not join in.** Every
+No-Overworld cartridge in the corpus is Short, so "No-Overworld orphans the seven
+interior floors" was written into this page, into `tofr_diff.py` and into
+`docs/NOVERWORLD.md` as though the game mode caused it. It does not. The repoint
+is `ShortenToFR` (`FF1Lib/TempleOfFiends.cs:186-189`) under `ToFRMode.Short`, and
+`Randomize.cs:172-173` runs `NoOverworld` before `UpdateToFR` without touching
+`TeleportIndex.TempleOfFiends2`. Measured 2026-09-06 on two throwaway cartridges
+rolled from `flags/oracle_nov.json` at seed `F2585541` with `ToFRMode` alone
+changed:
+
+| GameMode 2, ToFRMode | floors reached | stranded chest copies |
+|---|---|---|
+| 0 Long | all eight | none |
+| 1 Mid | six — 2F and 3F walled off | 2, both on 3F |
+
+Which is the standard-mode column exactly. `regen_maps.py` draws both without
+complaint. They are not corpus members and were not kept; the recipe above
+rebuilds either in about a minute.
+
 **The derived-rule files in the corpus were regenerated on 2026-08-30**, when
 the SubEngineer and Titan rows widened the sweep to 2^12. They had been behind
 the page for a while before that — the committed pair predated the NPC-location
@@ -855,9 +874,11 @@ everything else is fast.
 It refuses to compare rather than report a shape difference as a shuffle
 difference, and there are three ways it refuses:
 
-- `GameMode` differs. No-Overworld repoints TempleOfFiends straight at Chaos and
-  orphans the seven interior floors, so `inbound` differs by construction. This
-  is what `std` against `nov` hits first.
+- `GameMode` differs. No-Overworld builds ToFR's ways in itself and lays two more
+  copies of ToFR chest indices outside ToFR, so `inbound` differs by
+  construction. This is what `std` against `nov` hits first. (It does *not*
+  orphan the gauntlet — that is Short's doing, and this page said otherwise
+  until it was measured; see the ToFRMode table above.)
 - `ToFRMode` differs. The mode decides which floors exist at all.
 - `ToFRMode` is 3 (**Random**) on both sides. The cartridge records the setting,
   never the roll — `FF1Lib/TempleOfFiends.cs:52` collapses Random with `rng` and

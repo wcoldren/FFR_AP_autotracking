@@ -114,7 +114,7 @@ One thing deliberately left alone: `Talk_Nerrick` is the *vanilla* routine
 and `SCMap.cs:214` gates it on TNT for every mode. So a standard cartridge's
 router walks through Nerrick too. Changing that moves standard-mode answers.
 
-## The Temple of Fiends Revisited is orphaned
+## The Temple of Fiends Revisited is orphaned on the corpus's seeds
 
 Seven maps cannot be reached from the doors while holding every item: ToFR 1F,
 2F, 3F, Earth, Fire, Water and Air. This is the cartridge, not a bug in the walk.
@@ -122,11 +122,25 @@ Seven maps cannot be reached from the doors while holding every item: ToFR 1F,
 - On a **vanilla** cartridge `TempleOfFiends (20,17)` carries both a
   `TP_SPEC_4ORBS` special and a normal teleport. That pair is the time warp: the
   special gates on the four Orbs, the teleport moves you.
-- On a **No-Overworld** seed the special is **stripped** and the teleport points
-  straight at `TempleOfFiendsRevisitedChaos`. The mode skips the gauntlet and
-  drops you at the Chaos fight.
+- On an **FFR** cartridge the special is **stripped** — `UpdateToFR` writes the
+  warp tile's requirement down to None for every seed it touches
+  (`FF1Lib/TempleOfFiends.cs:81`), because the Black Orb gates the access
+  instead.
+- On a **`ToFRMode = Short`** seed the teleport points straight at
+  `TempleOfFiendsRevisitedChaos`, skipping the gauntlet and dropping you at the
+  Chaos fight (`ShortenToFR`, `:186-189`).
 
-Nothing else on the cartridge teleports into those seven, of any teleport kind.
+**That last one is ToFRMode's doing, not No-Overworld's**, and this page said
+otherwise until 2026-09-06. Every No-Overworld cartridge in the corpus is Short,
+which made the two read as one fact. `Randomize.cs:172-173` runs `NoOverworld`
+and then `UpdateToFR`, and nothing in between repoints
+`TeleportIndex.TempleOfFiends2`: a No-Overworld seed rolled Long reaches all
+eight floors and strands no chest, and one rolled Mid strands the two 3F copies
+and no more — the standard-mode figures. `docs/ORACLE.md` carries the
+measurement. So the paragraph below describes these seeds, and the oracle's
+exception is written to allow the other kind.
+
+Nothing else on these cartridges teleports into those seven, of any teleport kind.
 `MetroidVaniaMap.cs` gives them a backdrop (`:942-948`) and a tileset
 (`:1108-1114`) but no entry in its teleporter table. The chain runs
 1F → Earth → Fire → Water → Air → Chaos and 1F → 2F → 3F, all of it flowing
