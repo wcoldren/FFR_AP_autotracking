@@ -52,7 +52,20 @@
   "One more thing the overlay makes obvious: images/maps/*.png are DarkmoonEX's",
   "annotated maps, carrying a title bar, a Map Key and his own drawn route. The",
   "content box therefore includes furniture that is not the room, which is why",
-  "the far edge is the anchor and the near edge is not."
+  "the far edge is the anchor and the near edge is not.",
+  "",
+  "Three ways of confirming an offset without a person looking were tried on",
+  "2026-09-05 and all three failed. Do not spend the afternoon on a fourth",
+  "without reading these first:",
+  "  - edge energy over the whole image: dominated by the title bar and the",
+  "    frame, and it ranks no known offset first.",
+  "  - edge energy restricted to the room: still ranks the true phase only 2nd",
+  "    to 5th of 16 on the four floors whose offset is known.",
+  "  - saturated-sprite centroids against tile centres: the clustering splits",
+  "    sprites across cells, and tofrFire, which is correct, scores worse than",
+  "    proposals that are wrong.",
+  "The reason is the same each time: hand-drawn tiles carry more contrast",
+  "inside them than at their edges. The overlay and a person is the test."
  ],
  "cardia": {
   "rom_map_id": 16,
