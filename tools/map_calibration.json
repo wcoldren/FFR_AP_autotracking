@@ -14,7 +14,45 @@
   "",
   "Each offset here was solved from the centroid of the drawn chest sprites",
   "(the chest body is exactly RGB(200,76,12)) against the ROM tile coordinates,",
-  "then checked on the overlay. See tools/overlay_preview.py."
+  "then checked on the overlay. See tools/overlay_preview.py.",
+  "",
+  "tofrChaos was solved a different way on 2026-09-05, because a floor the",
+  "vanilla game gives no chest offers no centroid to solve from -- the seven",
+  "chests there are laid by ShortToFR, and the hand art predates them. The",
+  "room's own extent works instead: every ToFR map lays its room from ROM tile",
+  "(0,0), and the drawn room is the same size as the ROM room, so the offset is",
+  "the far content edge minus the room's pixel width plus one. That rule",
+  "reproduces tofr3F (32,22), tofrFire (10,9) and tofrAir (12,12) exactly,",
+  "which is why it is trusted here; the near edge does NOT reproduce tofrAir,",
+  "whose art carries three rows of something above the room.",
+  "",
+  "Do not use edge energy to find the grid phase. It was tried and it does not",
+  "reproduce any of the three known offsets -- the strongest edges in hand-drawn",
+  "art are inside the tiles, not on their boundaries.",
+  "",
+  "tofrChaos was then confirmed twice over: the implied 16px grid lines up with",
+  "the drawn tile boundaries across the landmark area, and the one teal object",
+  "in the room centres at (259,132), which under (13,13) is col 14.88 row 6.94",
+  "-- ROM tile (15,7), the only special tile in that column (0x3B, b1 0xBF).",
+  "Note (15,7), not (15,5): the ToFR handoff named the wrong row.",
+  "",
+  "tofr1F, tofrEarth and tofrWater have no entry yet, and tofr1F is the reason",
+  "to distrust the other two rather than to hurry them. The rule proposes",
+  "(54,39) for it and the overlay says that is WRONG -- the grid does not line",
+  "up anywhere on the map. The cause is room_tiles(): it calls the most common",
+  "tile the void, and tofr1F is the one Temple floor drawn with the outdoors",
+  "around it, so the commonest tile is grass and the box it returns is the",
+  "temple rather than the drawn area. A floor with outdoor tiles needs its",
+  "offset solved some other way.",
+  "",
+  "tofrEarth (13,18) and tofrWater (31,22) are still only proposals. They are",
+  "interior floors so the void heuristic should hold, but neither has been",
+  "confirmed on the overlay and one confirmed floor is not three.",
+  "",
+  "One more thing the overlay makes obvious: images/maps/*.png are DarkmoonEX's",
+  "annotated maps, carrying a title bar, a Map Key and his own drawn route. The",
+  "content box therefore includes furniture that is not the room, which is why",
+  "the far edge is the anchor and the near edge is not."
  ],
  "cardia": {
   "rom_map_id": 16,
@@ -399,6 +437,16 @@
    {
     "offset_x": 32,
     "offset_y": 22
+   }
+  ]
+ },
+ "tofrChaos": {
+  "rom_map_id": 59,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 13,
+    "offset_y": 13
    }
   ]
  },
