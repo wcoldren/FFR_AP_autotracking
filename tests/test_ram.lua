@@ -376,6 +376,55 @@ check("lit orb still provides base 'earthorb'", provided("earthorb"), true)
 check("canBreakOrb 1 with all four lit", canBreakOrb(), 1)
 check("I: Earth Orb incentive marker clears", markerCleared("earthorblit"), true)
 
+-- The seven, split by what they actually ask for. The two Lute Plate rooms are
+-- in front of the lute plate rather than behind it, which is what their names
+-- say and what the cartridge says: walking ToFR from the Black Orb landing on
+-- 6BF0DEA9 (Long) and C189A0EF (Mid) holding the orbs alone opens chest indices
+-- 253 and 254 and nothing else, and neither the Lute nor the Key alone adds a
+-- thing -- both together open the other five. FFR agrees independently:
+-- ItemLocations.cs:391-393 chains TempleOfFiendsPhantom off None, and :262-263
+-- puts ToFRevisited6 and 7 on it.
+local TOFR_PLATE = {
+  "ToFR Lute Plate Room 1", "ToFR Lute Plate Room 2",
+}
+local TOFR_GAUNTLET = {
+  "ToFR Kary Floor 1", "ToFR Kary Floor 2", "ToFR Kary Floor 3",
+  "ToFR Kary Floor 4", "ToFR Vanilla Masa",
+}
+local TOFR_CHESTS = {}
+for _, t in ipairs({TOFR_PLATE, TOFR_GAUNTLET}) do
+  for _, name in ipairs(t) do TOFR_CHESTS[#TOFR_CHESTS + 1] = name end
+end
+
+-- Chaos is a section of the ToFR node, so its gate is the node's alternatives
+-- crossed with its own. Read them out of the tree rather than restating them,
+-- so this tracks the file.
+local function chaosRules()
+  local node = findLocation(OVERWORLD, "ToFR")
+  for _, sec in ipairs(node.sections or {}) do
+    if sec.name == "Chaos" then return sec.access_rules end
+  end
+  error("no Chaos section on the ToFR node")
+end
+
+local function allOf(names)
+  for _, name in ipairs(names) do
+    if not inLogic(name) then return false end
+  end
+  return true
+end
+
+local function anyOf(names)
+  for _, name in ipairs(names) do
+    if inLogic(name) then return true end
+  end
+  return false
+end
+
+local function allChests()
+  return allOf(TOFR_CHESTS)
+end
+
 ------------------------------------------------------------------
 -- ChaosRush. ToFR's chests and the Chaos fight sit behind the lute plate and
 -- a key-locked door; EnableChaosRush rewrites that door's tile properties as
@@ -387,16 +436,20 @@ reset()
 MEM[0x6031], MEM[0x6032], MEM[0x6033], MEM[0x6034] = 1, 1, 1, 1   -- four orbs lit
 MEM[0x6021] = 1                                  -- Lute
 applyRamRules(byteAt)
-check("orbs and lute, no key: ToFR out of logic", inLogic("ToFR"), false)
+-- Asserted on the five chests behind the door rather than on the ToFR node.
+-- The node means "you are inside the Temple", which the orbs alone buy on every
+-- mode; the gate this flag lifts lives on what is past the plate, and a check
+-- pointed at the node would pass on every seed whatever ChaosRush did.
+check("orbs and lute, no key: nothing past the plate", anyOf(TOFR_GAUNTLET), false)
 byCode["chaosRush"].Active = true
-check("chaosRush opens ToFR without the key", inLogic("ToFR"), true)
+check("chaosRush opens them without the key", allOf(TOFR_GAUNTLET), true)
 
 -- And the ordinary route is untouched: the Key still opens it on a seed that
 -- did not roll the flag.
 byCode["chaosRush"].Active = false
 MEM[0x6025] = 1                                  -- Key
 applyRamRules(byteAt)
-check("the key still opens ToFR without chaosRush", inLogic("ToFR"), true)
+check("the key still opens them without chaosRush", allOf(TOFR_GAUNTLET), true)
 
 -- The Lute is not what ChaosRush buys, so it is still required either way.
 reset()
@@ -404,7 +457,7 @@ MEM[0x6031], MEM[0x6032], MEM[0x6033], MEM[0x6034] = 1, 1, 1, 1
 MEM[0x6025] = 1                                  -- Key but no Lute
 applyRamRules(byteAt)
 byCode["chaosRush"].Active = true
-check("chaosRush does not replace the lute", inLogic("ToFR"), false)
+check("chaosRush does not replace the lute", anyOf(TOFR_GAUNTLET), false)
 byCode["chaosRush"].Active = false
 
 ------------------------------------------------------------------
@@ -418,37 +471,19 @@ byCode["chaosRush"].Active = false
 -- The oracle agrees and needs no new cartridge: oracle-4.9.2/nov rolls
 -- ToFRMode 2, and its derived_nov.json gives all seven [["orbs"]].
 ------------------------------------------------------------------
-local TOFR_CHESTS = {
-  "ToFR Kary Floor 1", "ToFR Kary Floor 2", "ToFR Kary Floor 3",
-  "ToFR Kary Floor 4", "ToFR Lute Plate Room 1", "ToFR Lute Plate Room 2",
-  "ToFR Vanilla Masa",
-}
-
--- Chaos is a section of the ToFR node, so its gate is the node's alternatives
--- crossed with its own. Read them out of the tree rather than restating them,
--- so this tracks the file.
-local function chaosRules()
-  local node = findLocation(OVERWORLD, "ToFR")
-  for _, sec in ipairs(node.sections or {}) do
-    if sec.name == "Chaos" then return sec.access_rules end
-  end
-  error("no Chaos section on the ToFR node")
-end
-
-local function allChests()
-  for _, name in ipairs(TOFR_CHESTS) do
-    if not inLogic(name) then return false end
-  end
-  return true
-end
 
 reset()
 MEM[0x6031], MEM[0x6032], MEM[0x6033], MEM[0x6034] = 1, 1, 1, 1   -- four orbs lit
 applyRamRules(byteAt)
-check("orbs alone: no ToFR chest is in logic", allChests(), false)
+check("orbs alone: the two Lute Plate rooms are in logic", allOf(TOFR_PLATE), true)
+check("and none of the five behind the plate is", anyOf(TOFR_GAUNTLET), false)
+check("so not every ToFR chest is", allChests(), false)
 check("and Chaos is not either", inLogic("ToFR", chaosRules()), false)
 
-byCode["shortToFR"].CurrentStage = 1
+-- ToFR Mode is a three-stage progressive now: allow_disabled puts a synthetic
+-- 0 below stages[], so Long/Mid/Short are 1/2/3 and 0 is "the cartridge did
+-- not say". shortToFR rides on the Short stage, which is why this is 3.
+byCode["shortToFR"].CurrentStage = 3
 check("Short: the orbs alone reach all seven chests", allChests(), true)
 check("but Short does not open Chaos", inLogic("ToFR", chaosRules()), false)
 
@@ -461,7 +496,8 @@ reset()
 MEM[0x6031], MEM[0x6032], MEM[0x6033], MEM[0x6034] = 1, 1, 1, 1
 applyRamRules(byteAt)
 byCode["shortToFR"].CurrentStage = 0
-check("not Short: the orbs alone still reach nothing", allChests(), false)
+check("not Short: the orbs alone reach the two rooms and no more",
+      allOf(TOFR_PLATE) and not anyOf(TOFR_GAUNTLET), true)
 byCode["shortToFR"].CurrentStage = 0
 
 ------------------------------------------------------------------

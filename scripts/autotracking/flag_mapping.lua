@@ -443,20 +443,37 @@ local PROGRESSIVES = {
     -- setToggle would write 2 into Active, and check_logic's flag_codes tests
     -- `is True`, which an integer fails.
     --
-    -- Only Short moves a rule. MidToFR rewrites the lock door at [0x16,0x14]
-    -- and still calls AddLutePlateToFloor1F, so Mid asks for exactly what Long
-    -- asks for and reads as 0 here. Short is the one that repoints the Black
-    -- Orb warp at Chaos and lays the seven chests in front of the landing tile,
-    -- with the lute gate two tiles past it.
+    -- One item with three stages rather than a switch per mode, because the
+    -- mode is one fact and two booleans could contradict each other. The item
+    -- is `ToFR Mode` in items/flags.json, `inherit_codes` is off so a stage
+    -- provides only its own code, and `shortToFR` rides on the Short stage so
+    -- every access rule and check_logic keep reading exactly what they read
+    -- before this became an enum.
+    --
+    -- Only Short moves an access rule. MidToFR rewrites the lock door at
+    -- [0x16,0x14] and still calls AddLutePlateToFloor1F, so Mid asks for
+    -- exactly what Long asks for. Short is the one that repoints the Black Orb
+    -- warp at Chaos and lays the seven chests in front of the landing tile,
+    -- with the lute gate two tiles past it. What Mid and Long do differ on is
+    -- which FLOORS exist, which is why the mode is now worth naming: the pins
+    -- are per mode-floor even where the logic is not.
     --
     -- Random is rolled at generation -- FF1Lib picks the mode with rng and the
     -- flag string still records "Random" -- so the cartridge cannot say where
-    -- it landed, and strict is the only honest answer. An absent flag reads
-    -- false from get(), which is not 2, so that lands strict too.
+    -- it landed. That lands on stage 0, which provides no mode code at all,
+    -- and showPin draws every mode's pin from there rather than guessing. An
+    -- absent flag reads false from get() and lands on 0 the same way.
     stage = function(get)
       local mode = get("ToFRMode")
       if mode == nil then return nil, "ToFRMode" end
-      return mode == 2 and 1 or 0
+      -- allow_disabled puts a synthetic 0 below stages[], so Long/Mid/Short
+      -- are 1/2/3 and 0 is "the cartridge did not say". Random lands on 0 for
+      -- the reason above, which is the honest answer rather than a guess, and
+      -- showPin draws every mode's pin from there.
+      if mode == 0 then return 1 end
+      if mode == 1 then return 2 end
+      if mode == 2 then return 3 end
+      return 0
     end,
   },
   {

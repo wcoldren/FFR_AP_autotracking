@@ -408,9 +408,7 @@
                     {
                         "name": "ToFR",
                         "access_rules": [
-                            "$canBreakOrb,lute,key",
-                            "chaosRush,$canBreakOrb,lute",
-                            "shortToFR,$canBreakOrb"
+                            "$canBreakOrb"
                         ],
                         "sections": [
                             {
@@ -474,7 +472,17 @@
                                         "size": 16,
                                         "border_thickness": 2,
                                         "restrict_visibility_rules": [
-                                            "$showPin|chest"
+                                            "$showPin|chest|tofrLong"
+                                        ]
+                                    },
+                                    {
+                                        "map": "tofrChaos",
+                                        "x": 213,
+                                        "y": 53,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrShort"
                                         ]
                                     }
                                 ]
@@ -495,13 +503,28 @@
                                         "size": 16,
                                         "border_thickness": 2,
                                         "restrict_visibility_rules": [
-                                            "$showPin|chest"
+                                            "$showPin|chest|tofrLong"
+                                        ]
+                                    },
+                                    {
+                                        "map": "tofrChaos",
+                                        "x": 309,
+                                        "y": 53,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrShort"
                                         ]
                                     }
                                 ]
                             },
                             {
                                 "name": "ToFR Vanilla Masa",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute",
+                                    "shortToFR"
+                                ],
                                 "sections": [
                                     {
                                         "name": "Chest",
@@ -516,13 +539,28 @@
                                         "size": 16,
                                         "border_thickness": 2,
                                         "restrict_visibility_rules": [
-                                            "$showPin|chest"
+                                            "$showPin|chest|tofrLong|tofrMid"
+                                        ]
+                                    },
+                                    {
+                                        "map": "tofrChaos",
+                                        "x": 229,
+                                        "y": 37,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrShort"
                                         ]
                                     }
                                 ]
                             },
                             {
                                 "name": "ToFR Kary Floor 1",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute",
+                                    "shortToFR"
+                                ],
                                 "sections": [
                                     {
                                         "name": "Chest",
@@ -537,13 +575,28 @@
                                         "size": 16,
                                         "border_thickness": 2,
                                         "restrict_visibility_rules": [
-                                            "$showPin|chest"
+                                            "$showPin|chest|tofrLong|tofrMid"
+                                        ]
+                                    },
+                                    {
+                                        "map": "tofrChaos",
+                                        "x": 277,
+                                        "y": 37,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrShort"
                                         ]
                                     }
                                 ]
                             },
                             {
                                 "name": "ToFR Kary Floor 2",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute",
+                                    "shortToFR"
+                                ],
                                 "sections": [
                                     {
                                         "name": "Chest",
@@ -558,13 +611,28 @@
                                         "size": 16,
                                         "border_thickness": 2,
                                         "restrict_visibility_rules": [
-                                            "$showPin|chest"
+                                            "$showPin|chest|tofrLong|tofrMid"
+                                        ]
+                                    },
+                                    {
+                                        "map": "tofrChaos",
+                                        "x": 293,
+                                        "y": 37,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrShort"
                                         ]
                                     }
                                 ]
                             },
                             {
                                 "name": "ToFR Kary Floor 3",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute",
+                                    "shortToFR"
+                                ],
                                 "sections": [
                                     {
                                         "name": "Chest",
@@ -579,13 +647,28 @@
                                         "size": 16,
                                         "border_thickness": 2,
                                         "restrict_visibility_rules": [
-                                            "$showPin|chest"
+                                            "$showPin|chest|tofrLong|tofrMid"
+                                        ]
+                                    },
+                                    {
+                                        "map": "tofrChaos",
+                                        "x": 245,
+                                        "y": 37,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrShort"
                                         ]
                                     }
                                 ]
                             },
                             {
                                 "name": "ToFR Kary Floor 4",
+                                "access_rules": [
+                                    "lute,key",
+                                    "chaosRush,lute",
+                                    "shortToFR"
+                                ],
                                 "sections": [
                                     {
                                         "name": "Chest",
@@ -600,7 +683,17 @@
                                         "size": 16,
                                         "border_thickness": 2,
                                         "restrict_visibility_rules": [
-                                            "$showPin|chest"
+                                            "$showPin|chest|tofrLong|tofrMid"
+                                        ]
+                                    },
+                                    {
+                                        "map": "tofrChaos",
+                                        "x": 261,
+                                        "y": 37,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrShort"
                                         ]
                                     }
                                 ]

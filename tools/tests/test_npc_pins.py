@@ -202,10 +202,13 @@ def main():
         dropped = []
         tiles = rg.marker_tiles(rom, rel, dropped)
 
+        # `why`, not `kind`: marker_tiles drops ToFR copies the cartridge
+        # never wires as well, and those are chests too. Filtering on the kind
+        # alone would leave this passing while every chest on a floor fell out.
         check(f"{tag}: no chest placement is dropped as backdrop",
-              [d for d in dropped if d[1] == "chest"], [])
+              [d for d in dropped if d[1] == "chest" and d[5] == "backdrop"], [])
         check(f"{tag}: the fairy's void copy is the one placement dropped",
-              dropped, [("Gaia", "NPC", 15, 47, 30)])
+              dropped, [("Gaia", "NPC", 15, 47, 30, "backdrop")])
 
         # Every assertion below reaches for a node by name, so a duplicate name
         # would decide which node got tested. Rule it out first rather than

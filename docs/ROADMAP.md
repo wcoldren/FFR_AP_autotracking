@@ -190,13 +190,54 @@ its oracle seed is a hand transcription, which is what section 5 is meant to end
 
 Things a bridge-only player checks that the board has no cell for.
 
-- **ToFR floor modelling.** The rules are *not* unwritten:
-  `locations/overworld.json:410` carries three alternatives on the `ToFR` node
-  and the seven chests inherit them. What is unwritten is the *floors* — Mid
-  ToFR deletes 2F and 3F outright and the tree does not know, and nothing
-  distinguishes the Lute Plate rooms or the Kary floors from the entrance. The
-  AP export drops ToFR unconditionally, so `tofr_diff.py` stays the only check
-  and any change here needs its own measured cartridge pair.
+- **ToFR floor modelling.** All three halves this bullet named are done. What
+  is left is three calibration offsets, which is a drawing problem rather than
+  a modelling one.
+
+  **The rules now distinguish the rooms from the gauntlet, 2026-09-05.** The
+  whole gate used to sit on the `ToFR` node where a child could not widen it,
+  and the two Lute Plate rooms are in front of the lute plate rather than
+  behind it, so they were red on every Long and Mid seed — 31 of the 37
+  cartridges on this machine. The node keeps `$canBreakOrb` and the five chests
+  past the plate carry the rest themselves. `docs/ISSUES.md`, "Two ToFR chests
+  were held red on every standard seed".
+
+  **And each mode has been read, 2026-09-05.** `tofr_diff.py --dump` walks one
+  cartridge instead of comparing two, because the diff refuses across modes on
+  purpose. Long wires eight floors, Mid six, Short one; no mode erases a chest
+  tile, so five of the seven indices sit on two tiles on Mid and all seven do
+  on Short; and membership is stable within a mode across all 37 cartridges.
+  `docs/ORACLE.md`, "What each mode builds".
+
+  **And the pins now know the mode, 2026-09-06.** `ToFR Mode` is one item with
+  three stages rather than a switch per mode, so the mode cannot contradict
+  itself, and stage 0 — no cartridge read, or a flag string that says Random
+  without resolving it — draws every mode's pin, which is what the board did
+  before it could tell the modes apart. Each chest names the floor its mode
+  puts it on. `tofrChaos` is calibrated to (13,13), solved from the room's
+  extent because `ShortToFR` lays its seven chests onto art that predates them
+  and there is no centroid to fit. And `regen_maps.py` drops the copies a
+  cartridge lays and never wires, so a Mid regen no longer draws two markers on
+  `ToFR 3F`.
+
+  **What is left is three offsets.** `tofr1F`, `tofrEarth` and `tofrWater` have
+  no `tools/map_calibration.json` entry, so the second copies Mid lays on those
+  three floors have nowhere to go on the hand-drawn art. The art `regen_maps.py`
+  redraws from the cartridge carries them, so this is the shipped art's gap and
+  not the board's.
+
+  Four ways of finding an offset without a person looking have been tried and
+  written down as failures, because the next person to want this will reach for
+  one of them: edge energy over the image, edge energy restricted to the room,
+  saturated-sprite centroids against tile centres, and the ROM wall mask
+  correlated against per-tile brightness — that last peaks 3 to 5 pixels off the
+  known answer on all four calibrated floors, so it is a high correlation on the
+  wrong grid. The chest-centroid method the file documents cannot reach these
+  three at all: none of them carries a chest tile, and the four chests the
+  `tofr1F` art draws answer to nothing on the cartridge.
+  `tools/overlay_preview.py --solve` proposes an offset and refuses to write it
+  anywhere, because on `tofr1F` — the one Temple floor drawn with the outdoors
+  around it — the box it returns is the temple rather than the drawn area.
 
 **Closed.**
 

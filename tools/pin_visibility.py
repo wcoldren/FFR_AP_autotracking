@@ -85,6 +85,39 @@ ENABLED_KINDS = frozenset({"chest", "npc", "slot", "entrance"})
 ENTRANCES_GROUP = "Entrances"
 ENTRANCE_RULE = "$showPin|entrance"
 
+# Which ToFR floors a chest sits on, per mode. ToFRMode decides which floors
+# exist, so a pin drawn for every mode at once puts markers where the cartridge
+# never wires them: two on ToFR 3F for a Mid seed, all seven on floors a Short
+# seed's warp never reaches.
+#
+# Measured with tools/tofr_diff.py --dump on 6BF0DEA9 (Long), C189A0EF (Mid)
+# and 72A52C25 (Short), and recorded in docs/ORACLE.md, "What each mode builds".
+# One chest layout per mode across all 37 cartridges here, so this is static
+# rather than derived per seed -- which is also why it is a table and not a
+# cartridge read: this tool answers from the checkout and takes no ROM.
+#
+# Node names rather than chest indices because that is what the tree offers a
+# rule. The pairing was checked rather than assumed: every committed pin's x/y
+# reproduces its measured ROM tile through map_calibration.json's transform,
+# which is what identifies "ToFR Kary Floor 3" as chest 249 and not 251.
+#
+# What is deliberately absent: Mid lays second copies of 248 on Water and of
+# 249/250 on Earth, and moves 253/254 to 1F. Those three floors have no entry
+# in tools/map_calibration.json, so there is no pixel to put a marker on and
+# the hand art simply carries no pin for them. tools/regen_maps.py rebuilds
+# markers from the cartridge and is where those belong; see docs/ROADMAP.md.
+LONG_MID = ("tofrLong", "tofrMid")
+SHORT = ("tofrShort",)
+TOFR_MODES = {
+    "ToFR Vanilla Masa": {"tofrAir": LONG_MID, "tofrChaos": SHORT},
+    "ToFR Kary Floor 1": {"tofrFire": LONG_MID, "tofrChaos": SHORT},
+    "ToFR Kary Floor 2": {"tofrFire": LONG_MID, "tofrChaos": SHORT},
+    "ToFR Kary Floor 3": {"tofrFire": LONG_MID, "tofrChaos": SHORT},
+    "ToFR Kary Floor 4": {"tofrFire": LONG_MID, "tofrChaos": SHORT},
+    "ToFR Lute Plate Room 1": {"tofr3F": ("tofrLong",), "tofrChaos": SHORT},
+    "ToFR Lute Plate Room 2": {"tofr3F": ("tofrLong",), "tofrChaos": SHORT},
+}
+
 FIELD = "restrict_visibility_rules"
 
 # The maps regen_maps.py draws, by name. `overworld` is not among them, which is
@@ -173,9 +206,12 @@ def rules_for(map_name, node, in_entrances=False):
         return [ENTRANCE_RULE]
     if map_name in DRAWN_MAPS:
         kind = kind_of(node)
-        if kind in ENABLED_KINDS:
-            return ["$showPin|%s" % kind]
-        return None
+        if kind not in ENABLED_KINDS:
+            return None
+        modes = TOFR_MODES.get(node.get("name"), {}).get(map_name)
+        if modes and kind == "chest":
+            return ["$showPin|%s|%s" % (kind, "|".join(modes))]
+        return ["$showPin|%s" % kind]
     if map_name == INCENTIVE_MAP and "slot" in ENABLED_KINDS:
         groups = flags_of(node)
         if not groups:

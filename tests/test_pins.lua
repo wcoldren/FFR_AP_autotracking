@@ -132,8 +132,10 @@ end
 ------------------------------------------------------------------
 -- 2. The counts, per tree.
 --
--- 251 chest pins rather than 241 because ten chest ids carry two pins -- the
--- Ordeals 2F chest and friends, where one chest is reachable from two floors.
+-- 258 chest pins rather than 241 because ten chest ids carry two pins -- the
+-- Ordeals 2F chest and friends, where one chest is reachable from two floors --
+-- and because the seven ToFR chests each carry a second pin on tofrChaos, where
+-- ShortToFR lays them. Those seven are mode-gated; the ten are not.
 -- The 3 NPC pins are Nerrick, the Smith and Sarda: the only three the shipped
 -- tree places on a dungeon map rather than on the overworld. The 29 unruled are
 -- the overworld pins.
@@ -145,7 +147,7 @@ for _, rel in ipairs(DUNGEON_TREES) do
     local kind = rules and rules[1]:match("^%$showPin|([a-z]+)")
     n[kind or "none"] = (n[kind or "none"] or 0) + 1
   end)
-  check(rel .. ": chest pins", n.chest, 251)
+  check(rel .. ": chest pins", n.chest, 258)
   check(rel .. ": npc pins", n.npc, 3)
   check(rel .. ": pins with no rule", n.none, 29)
 end
@@ -428,14 +430,54 @@ end
 
 for _, rel in ipairs(DUNGEON_TREES) do
   provided = { show_chests = 1, show_npcs = 1 }
-  check(rel .. ": drawn, both toggles on", drawn(rel), 283)
+  check(rel .. ": drawn, both toggles on", drawn(rel), 290)
   provided = { show_npcs = 1 }
   check(rel .. ": drawn, chests off", drawn(rel), 32)
   provided = { show_chests = 1 }
-  check(rel .. ": drawn, npcs off", drawn(rel), 280)
+  check(rel .. ": drawn, npcs off", drawn(rel), 287)
   provided = {}
   check(rel .. ": drawn, both off", drawn(rel), 29)
 end
+
+------------------------------------------------------------------
+-- The ToFR mode gate, shown to bite in both directions.
+--
+-- The counts above are all taken with no mode code provided, which is the
+-- "cartridge did not say" state -- Random, or no seed read -- and every mode's
+-- pin draws there. That is fail-open, and a gate that only ever fails open is
+-- not a gate, so each mode is checked for what it hides as well as what it
+-- shows.
+--
+-- 7 ToFR chests. Long puts 2 on tofr3F, 1 on tofrAir and 4 on tofrFire; Short
+-- moves all 7 to tofrChaos; Mid keeps Air and Fire and loses the two 3F pins,
+-- because Mid moves 253/254 to tofr1F, which has no calibration entry and so
+-- carries no pin on the hand art at all.
+------------------------------------------------------------------
+local function tofrDrawn(rel, mode)
+  local n = 0
+  eachPin(trees[rel], function(_, marker)
+    local rules = marker.restrict_visibility_rules
+    if not rules then return end
+    if not tostring(rules[1]):find("tofr", 1, true) then return end
+    if pinDraws(marker) then n = n + 1 end
+  end)
+  return n
+end
+
+for _, rel in ipairs(DUNGEON_TREES) do
+  provided = { show_chests = 1, show_npcs = 1 }
+  check(rel .. ": ToFR, mode unknown, every pin draws", tofrDrawn(rel), 14)
+
+  provided = { show_chests = 1, show_npcs = 1, tofrLong = 1 }
+  check(rel .. ": ToFR Long draws its seven", tofrDrawn(rel), 7)
+
+  provided = { show_chests = 1, show_npcs = 1, tofrShort = 1 }
+  check(rel .. ": ToFR Short draws its seven", tofrDrawn(rel), 7)
+
+  provided = { show_chests = 1, show_npcs = 1, tofrMid = 1 }
+  check(rel .. ": ToFR Mid draws five, not seven", tofrDrawn(rel), 5)
+end
+provided = {}
 
 -- The sheets, on a seed that incentivized nothing -- the worst case, and the
 -- one where the toggle is worth most. Then with the NPC flag set, where the

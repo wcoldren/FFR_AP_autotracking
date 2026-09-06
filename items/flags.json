@@ -42,12 +42,24 @@
 		"codes" : "chaosRush"
 	},
 	{
-		"name" : "Short ToFR",
+		"name" : "ToFR Mode",
 		"type" : "progressive",
+		"inherit_codes" : false,
 		"stages" : [
 			{
+				"name" : "ToFR: Long",
 				"img" : "images/misc/chaos.png",
-				"codes" : "shortToFR"
+				"codes" : "tofrLong"
+			},
+			{
+				"name" : "ToFR: Mid",
+				"img" : "images/misc/chaos.png",
+				"codes" : "tofrMid"
+			},
+			{
+				"name" : "ToFR: Short",
+				"img" : "images/misc/chaos.png",
+				"codes" : "tofrShort,shortToFR"
 			}
 		]
 	},

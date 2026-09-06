@@ -45,6 +45,38 @@ Nothing here is urgent unless it says so.
 
 ## Known wrong
 
+- **Two ToFR chests were held red on every standard seed, because the whole
+  gate sat on the parent.** Fixed 2026-09-05. `ToFR Lute Plate Room 1` and `2`
+  are chest indices 253 and 254, and they are in front of the lute plate rather
+  than behind it -- which is what their names say. The node carried
+  `$canBreakOrb,lute,key` and the seven chests hung off it with no rules of
+  their own, so a child could not widen what the parent had already narrowed.
+
+  **Measured rather than reasoned.** Walking ToFR from the Black Orb landing
+  with `tools/tofr_diff.py`'s reader on `6BF0DEA9` (Long) and `C189A0EF` (Mid),
+  holding the orbs alone, opens 253 and 254 and nothing else; adding the Lute
+  alone or the Key alone opens nothing further; both together open the other
+  five. FFR says the same independently -- `ItemLocations.cs:391-393` chains
+  `TempleOfFiendsPhantom` off `None` while `Lute` enters at
+  `TempleOfFiendsEarth` and `Key` at `TempleOfFiendsFire`, and `:262-263` puts
+  `ToFRevisited6` and `7` on the Phantom floor. 26 of the 37 cartridges on this
+  machine are Long and 5 are Mid, so this was wrong on nearly every standard
+  seed.
+
+  **The fix is where the gate lives, not what it says.** The node keeps
+  `$canBreakOrb` -- being inside the Temple is what the orbs buy -- and the five
+  chests past the plate carry `lute,key` / `chaosRush,lute` / `shortToFR`
+  themselves. Every alternative PopTracker builds by crossing parent with child
+  comes out exactly as before for those five and for Chaos; only the two rooms
+  move. The incentive trees got the same node collapse, which is
+  behaviour-preserving there because they host nothing but Chaos.
+
+  **The old checks could not have caught it, and now they can.** Both ChaosRush
+  checks in `tests/test_ram.lua` asserted on the *node*, which the orbs alone
+  now satisfy on every mode, so they would have passed whatever the flag did;
+  they are pointed at the five chests instead. The new checks fail against the
+  pre-fix tree, which is the demonstration a gate row owes.
+
 - **A pinned control cannot survive Reset, and no pack-side change can make it.**
   Found 2026-09-04 while making the `Overworld Tab` choice stick. A stage pinned
   by hand does survive a *restart*: PopTracker autosaves item state and restores
@@ -413,7 +445,7 @@ Nothing here is urgent unless it says so.
 
   So `regen_maps.py` records which working tree drew each mode's art --
   `branch`, `head` and `dirty`, in that mode's cache slot beside `inputs`
-  (`tools/regen_maps.py:207`, `checkout_id`) -- and `start_session.sh` compares
+  (`tools/regen_maps.py:214`, `checkout_id`) -- and `start_session.sh` compares
   before it redraws (`start_session.sh:87`, `regen_ok`). On a mismatch it skips
   step 1 and counts a problem rather than aborting, so the emulator and the
   tracker still open on the art already on disk, and `FF1_REGEN_ANYWAY=1` goes
@@ -1093,7 +1125,7 @@ Nothing here is urgent unless it says so.
   a slot FFR cannot incentivize on any flagset does not belong on it.
 
   **`slabTranslated` did not move, which is why the cut is this clean.** The
-  board's own `Melmond/Dr Unne` in `locations/overworld.json:2641` is the same
+  board's own `Melmond/Dr Unne` in `locations/overworld.json:2740` is the same
   section with the two incentive conjuncts stripped from every rule, and it
   hosts `slabTranslated` already, so reachability, the marker clear and
   `tests/test_ram.lua`'s Unne cases all read the board copy and are untouched.

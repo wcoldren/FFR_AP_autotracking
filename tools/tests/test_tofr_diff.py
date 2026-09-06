@@ -14,13 +14,47 @@ The three ways this tool could quietly be wrong:
     agreement, when GameMode and ToFRMode decide which floors exist in the
     first place and how they are wired in -- including ToFRMode Random, which
     records the setting and not the roll, so equal flags mean nothing.
+
+`--dump` is the fourth way, and it is the one that reads a cartridge. What it
+prints is only worth having if the walk and the teleport census can disagree,
+because they do: Mid walls 2F and 3F off with map tiles and leaves every table
+entry they had. So the cartridge half below asserts the mode's own shape --
+Long reaches eight floors, Mid reaches six, Short reaches one -- and on a Mid
+cartridge asserts the disagreement itself, since a dump whose two columns always
+agreed would be a column nobody needs.
 """
 import collections
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import entrance_graph as eg                                    # noqa: E402
 import tofr_diff as td                                         # noqa: E402
+
+TWO_UPPER = ("TempleOfFiendsRevisited2F", "TempleOfFiendsRevisited3F")
+
+# What each mode builds, as the set of floors you can stand on entering from
+# outside with every item in hand. Random is absent on purpose: the flag records
+# the setting and not the roll, so there is nothing to assert.
+MODE_FLOORS = {
+    0: set(td.TOFR_MAPS),
+    1: set(td.TOFR_MAPS) - set(TWO_UPPER),
+    2: {"TempleOfFiendsRevisitedChaos"},
+}
+
+# How many ToFR chest tiles each mode actually wires, and how many of the
+# tiles it lays it strands. Long lays seven and wires all seven, so it is the control:
+# a filter that dropped something there would be dropping a live chest.
+#
+# Mid and Short are where it bites, and they bite differently -- Mid keeps the
+# Fire and Air copies and strands only the two on 3F, Short strands all seven
+# vanilla copies and wires seven fresh ones on Chaos. A filter that reported the
+# same number for both would be counting placements, not walking.
+MODE_CHESTS = {
+    0: {"live": 7, "stranded": 0},
+    1: {"live": 10, "stranded": 2},
+    2: {"live": 7, "stranded": 7},
+}
 
 
 def cart(tofr_mode=2, game_mode=2, teleports=None, chests=None, inbound=None):
@@ -114,6 +148,56 @@ def main():
     check("no ToFRMode at all is incomparable",
           td.report(cart(**dict(BASE, tofr_mode=None)),
                     cart(**dict(BASE, tofr_mode=None)), "a", "b"), None)
+
+    # ---- the cartridge half: what --dump reads off a real seed ----
+    rom = os.environ.get("FF1_ROM")
+    if not rom:
+        print("SKIP  set FF1_ROM to a cartridge to check the dump's walk")
+    else:
+        state = td.read(rom)
+        mode = state["tofr_mode"]
+        tiles = td.reached(state["graph"], state)
+        walked = {n for n in td.TOFR_MAPS
+                  if tiles.get(eg.MAP_NAMES.index(n))}
+        want = MODE_FLOORS.get(mode)
+        if want is None:
+            print(f"SKIP  FF1_ROM rolled ToFRMode {mode}, which states no shape")
+        else:
+            check(f"ToFRMode {mode} reaches the floors that mode builds",
+                  sorted(walked), sorted(want))
+        if mode == 1:
+            # The finding the walk exists for. Mid blocks the passages to
+            # Stairs B with map tiles, so both upper floors keep their table
+            # entries -- a census of ways in calls them wired, and they are not.
+            ways = td.wiring(state)
+            check("Mid still shows a way into both upper floors",
+                  all(ways[n][0] for n in TWO_UPPER), True)
+            check("and the walk reaches neither",
+                  any(n in walked for n in TWO_UPPER), False)
+
+        # live_chest_tiles is what regen_maps.marker_tiles filters on, so these
+        # numbers are pins on somebody's board. Asserted per mode because the
+        # whole point is that the three differ: a Mid regen drew two markers on
+        # ToFR 3F before this existed, on a floor that mode walls off.
+        want_chests = MODE_CHESTS.get(mode)
+        if want_chests is None:
+            print(f"SKIP  ToFRMode {mode} states no chest layout")
+        else:
+            raw = open(rom, "rb").read()
+            live = td.live_chest_tiles(raw, state["graph"])
+            # Tiles on both sides of the subtraction. Summing the Counter's
+            # values instead would put placements against tiles, and the two
+            # agree only while no two treasure indices share a ToFR tile --
+            # nothing in FFR stops that, and the check would then report
+            # strandings that are not there.
+            laid = {(eg.MAP_NAMES.index(m), col, row) for m in td.TOFR_MAPS
+                    for _, col, row in state["maps"][m]["chests"]}
+            check(f"ToFRMode {mode} wires the chest tiles that mode opens",
+                  len(live), want_chests["live"])
+            check(f"ToFRMode {mode} strands the copies it does not wire",
+                  len(laid - live), want_chests["stranded"])
+            check("every wired tile is on a floor the walk reached",
+                  sorted({eg.MAP_NAMES[m] for m, _, _ in live} - walked), [])
 
     for f in fails:
         print("     " + f)
