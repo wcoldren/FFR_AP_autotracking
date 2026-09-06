@@ -90,6 +90,7 @@ import render_maps
 import render_overworld
 import split_locations
 import sprites
+import tofr_diff
 
 TILE_PX = render_maps.TILE_PX
 CACHE_NAME = ".regen_cache.json"
@@ -851,7 +852,7 @@ def stands_on_map(rom, map_id, col, row, cache=None):
     return (col, row) not in cache[map_id]
 
 
-def marker_tiles(rom, locations, dropped=None):
+def marker_tiles(rom, locations, dropped=None, graph=None):
     """{location name: [(map_id, col, row)]} for every marker on a dungeon map.
 
     Forward, out of the cartridge, rather than by inverting the pixel the
@@ -890,17 +891,40 @@ def marker_tiles(rom, locations, dropped=None):
     hand-art pins and the three map_calibration.json entries derived from a
     fiend's tile, on floors that hold no chest to calibrate from.
 
-    `dropped`, if given, collects (name, kind, map_id, col, row) for every
-    placement stands_on_map rejected. Filtering silently would be a marker that
-    quietly disappears, which place_locations already refuses to do: a node
+    `graph`, if given, also drops the ToFR chest copies the cartridge lays but
+    never wires. No ToFR mode erases a chest tile: Mid and Short lay fresh
+    copies on the floors they put you on and leave the originals where they
+    were, so a chest index resolves to two tiles and only one can be opened.
+    Without this a Mid regen draws two markers on ToFR 3F, a floor that mode
+    does not wire at all. tofr_diff.live_chest_tiles is the walk that tells the
+    live copy from the stranded one, and it is a walk because Mid's change is
+    not table-visible -- it writes walls and leaves every teleport entry alone.
+
+    Passing no graph skips that filter rather than guessing, which is what the
+    tests that have no cartridge do; the regen path always passes one.
+
+    `dropped`, if given, collects (name, kind, map_id, col, row, why) for every
+    placement either filter above removed. Filtering silently would be a marker
+    that quietly disappears, which place_locations already refuses to do: a node
     resolving to several tiles -- the Marsh Cave and ToFR floors, Ordeals
     Chests 2 -- stays placeable after losing one, so the loss reaches nothing
-    downstream that could notice it. The caller decides what to make of each
-    kind; today exactly one NPC placement is rejected and no chest is.
+    downstream that could notice it.
+
+    `why` is "backdrop" for a stands_on_map rejection and "stranded" for a ToFR
+    copy the cartridge lays and never wires. It is its own field rather than a
+    value written into `kind`, because the two reasons say different things
+    about the same kind of placement: a caller asking "was a chest dropped as
+    backdrop?" has to read `why`, and one that reads `kind` instead would go on
+    passing while every chest on a floor fell out. Today one NPC placement is
+    rejected as backdrop and no chest is, and the stranded count is 0 on Long,
+    2 on Mid and 7 on Short.
     """
     ids = split_locations.load_mapping(limit=512)
     chests, _ = extract_chests.extract(rom)
     npcs = extract_npcs.extract(rom)
+
+    tofr_ids = set(tofr_diff.tofr_map_ids())
+    live = tofr_diff.live_chest_tiles(rom, graph) if graph is not None else None
 
     out = {}
     outside = {}
@@ -908,10 +932,19 @@ def marker_tiles(rom, locations, dropped=None):
     def add(name, kind, places):
         for q in places:
             cell = (q["map_id"], q["tile_col"], q["tile_row"])
-            if stands_on_map(rom, *cell, cache=outside):
-                out.setdefault(name, []).append(cell)
-            elif dropped is not None:
-                dropped.append((name, kind) + cell)
+            if not stands_on_map(rom, *cell, cache=outside):
+                if dropped is not None:
+                    dropped.append((name, kind) + cell + ("backdrop",))
+                continue
+            # Reported rather than filtered quietly, for the reason the
+            # docstring gives: a node resolving to several tiles stays placeable
+            # after losing one, so nothing downstream would notice.
+            if (live is not None and kind == "chest"
+                    and cell[0] in tofr_ids and cell not in live):
+                if dropped is not None:
+                    dropped.append((name, kind) + cell + ("stranded",))
+                continue
+            out.setdefault(name, []).append(cell)
 
     for ap, (path, _) in sorted(ids.items()):
         places = chests.get(ap - 256)
@@ -1895,14 +1928,19 @@ def main():
                          else "locations/NOverworld/overworld.json")
     incentive_locations = ("locations/incentives.json" if mode == "std"
                            else "locations/NOverworld/incentives.json")
-    dropped = []
-    tiles_by_name = marker_tiles(rom, dungeon_locations, dropped)
-
     # The overworld pins, which stand on doors rather than on chests and so are
     # a different question from the dungeon ones. Resolved once, here, and the
     # incentive sheet mirrors the board: the two trees are built name for name.
+    #
+    # Built before the markers rather than after because marker_tiles wants it
+    # too -- the ToFR wired-floor filter is a walk over this same graph, and
+    # reading the cartridge twice to answer one question would be the waste
+    # tofr_diff's own `graph` key exists to avoid.
     ow_reader = entrance_graph.Rom.of(rom, args.rom)
     ow_graph = graph or entrance_graph.Graph(ow_reader)
+
+    dropped = []
+    tiles_by_name = marker_tiles(rom, dungeon_locations, dropped, ow_graph)
     board_doc = lenient(os.path.join(PACK, dungeon_locations))
     if mode == "std":
         ow_placed, ow_unplaced, ow_anchors = overworld_pins.resolve(
@@ -2232,7 +2270,8 @@ def main():
     # ever grows a second rule, this is where a chest would fall through.
     voided = [(f"chest {name}", render_maps.MAP_FILES.get(map_id, map_id),
                f"tile {col}", row)
-              for name, kind, map_id, col, row in dropped if kind == "chest"]
+              for name, kind, map_id, col, row, why in dropped
+              if kind == "chest" and why == "backdrop"]
 
     if unplaceable:
         report("locations carry a marker on a redrawn map but resolve to no "
@@ -2341,10 +2380,28 @@ def main():
     # Expected -- the Ice Cave B1 fairy is a copy of the Gaia object in the
     # black outside the cave -- but said out loud, so a second one appearing
     # is a number that changed rather than a pin nobody missed.
-    for name, kind, map_id, col, row in dropped:
+    for name, kind, map_id, col, row, why in dropped:
+        if why != "backdrop":
+            continue
         print(f"  {name}'s {kind} placement on "
               f"{render_maps.MAP_FILES.get(map_id, map_id)} at {col},{row} is "
               "outside the map's content and gets no pin")
+    # Their own line, because "outside the map's content" is the wrong reason
+    # and a wrong reason is worse than none: these tiles are inside the art and
+    # perfectly drawable. What is wrong with them is that this cartridge never
+    # wires the floor, so the chest sitting there cannot be opened. Expected on
+    # Mid and Short and absent on Long, which is why the count is printed rather
+    # than the list -- a number that changes is the thing to notice.
+    #
+    # "this cartridge" and not "this ToFRMode": the walk behind the filter reads
+    # what is wired, and GameMode wires ToFR too (No-Overworld orphans the seven
+    # interior floors). Naming ToFRMode here would be attributing the drop to
+    # one of the two flags that can cause it.
+    stranded = [d for d in dropped if d[5] == "stranded"]
+    if stranded:
+        floors = sorted({render_maps.MAP_FILES.get(d[2], d[2]) for d in stranded})
+        print(f"  {len(stranded)} chest copies this cartridge lays but never "
+              f"wires get no pin, on {', '.join(floors)}")
     if graph is not None:
         # Counted rather than eyeballed: a square pin is opaque and exactly one
         # tile, so every one of these would have hidden the sprite it sits on.

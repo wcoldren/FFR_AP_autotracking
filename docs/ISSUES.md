@@ -445,7 +445,7 @@ Nothing here is urgent unless it says so.
 
   So `regen_maps.py` records which working tree drew each mode's art --
   `branch`, `head` and `dirty`, in that mode's cache slot beside `inputs`
-  (`tools/regen_maps.py:207`, `checkout_id`) -- and `start_session.sh` compares
+  (`tools/regen_maps.py:214`, `checkout_id`) -- and `start_session.sh` compares
   before it redraws (`start_session.sh:87`, `regen_ok`). On a mismatch it skips
   step 1 and counts a problem rather than aborting, so the emulator and the
   tracker still open on the art already on disk, and `FF1_REGEN_ANYWAY=1` goes

@@ -42,6 +42,20 @@ MODE_FLOORS = {
     2: {"TempleOfFiendsRevisitedChaos"},
 }
 
+# How many ToFR chest tiles each mode actually wires, and how many of the
+# tiles it lays it strands. Long lays seven and wires all seven, so it is the control:
+# a filter that dropped something there would be dropping a live chest.
+#
+# Mid and Short are where it bites, and they bite differently -- Mid keeps the
+# Fire and Air copies and strands only the two on 3F, Short strands all seven
+# vanilla copies and wires seven fresh ones on Chaos. A filter that reported the
+# same number for both would be counting placements, not walking.
+MODE_CHESTS = {
+    0: {"live": 7, "stranded": 0},
+    1: {"live": 10, "stranded": 2},
+    2: {"live": 7, "stranded": 7},
+}
+
 
 def cart(tofr_mode=2, game_mode=2, teleports=None, chests=None, inbound=None):
     """A read() result, built by hand rather than off a cartridge."""
@@ -160,6 +174,30 @@ def main():
                   all(ways[n][0] for n in TWO_UPPER), True)
             check("and the walk reaches neither",
                   any(n in walked for n in TWO_UPPER), False)
+
+        # live_chest_tiles is what regen_maps.marker_tiles filters on, so these
+        # numbers are pins on somebody's board. Asserted per mode because the
+        # whole point is that the three differ: a Mid regen drew two markers on
+        # ToFR 3F before this existed, on a floor that mode walls off.
+        want_chests = MODE_CHESTS.get(mode)
+        if want_chests is None:
+            print(f"SKIP  ToFRMode {mode} states no chest layout")
+        else:
+            raw = open(rom, "rb").read()
+            live = td.live_chest_tiles(raw, state["graph"])
+            # Tiles on both sides of the subtraction. Summing the Counter's
+            # values instead would put placements against tiles, and the two
+            # agree only while no two treasure indices share a ToFR tile --
+            # nothing in FFR stops that, and the check would then report
+            # strandings that are not there.
+            laid = {(eg.MAP_NAMES.index(m), col, row) for m in td.TOFR_MAPS
+                    for _, col, row in state["maps"][m]["chests"]}
+            check(f"ToFRMode {mode} wires the chest tiles that mode opens",
+                  len(live), want_chests["live"])
+            check(f"ToFRMode {mode} strands the copies it does not wire",
+                  len(laid - live), want_chests["stranded"])
+            check("every wired tile is on a floor the walk reached",
+                  sorted({eg.MAP_NAMES[m] for m, _, _ in live} - walked), [])
 
     for f in fails:
         print("     " + f)

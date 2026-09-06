@@ -141,27 +141,7 @@ def read(path):
     # (source, destination map, arrival x, arrival y) with the source spelled out
     # as text, so a door and a staircase can share one counter without a tuple
     # whose fields mean different things in different rows.
-    inbound = collections.Counter()
-    for m in range(eg.MAP_COUNT):
-        if m in ids:
-            continue
-        for x, y, kind, pay in g.teleports(m):
-            if kind != eg.TP_TELE_NORM:
-                continue
-            dest = g.norm_map[pay]
-            if dest in ids:
-                inbound[(f"{eg.MAP_NAMES[m]} ({x},{y})", ids[dest],
-                         eg.coord(g.norm_x[pay]), eg.coord(g.norm_y[pay]))] += 1
-
-    # All 32 entrance slots, not just the ones some overworld tile currently
-    # points at: this is a census of the table, the same way the rest of the tool
-    # reads tables rather than walking. No entrance lands in ToFR on a stock
-    # seed; entrance shuffle is what makes this worth reading.
-    for i in range(eg.ENTR_COUNT):
-        dest = g.entr_map[i]
-        if dest in ids:
-            inbound[(f"door {eg.DOOR_NAMES[i]} (#{i})", ids[dest],
-                     eg.coord(g.entr_x[i]), eg.coord(g.entr_y[i]))] += 1
+    inbound = inbound_rows(g, ids)
 
     return {
         "game_mode": flags.get("GameMode"),
@@ -173,6 +153,87 @@ def read(path):
         # handing the graph on is cheaper than reading the cartridge twice.
         "graph": g,
     }
+
+
+def inbound_rows(g, ids):
+    """Counter of (source, ToFR map name, arrival x, arrival y) -- every way in.
+
+    Two tables reach a map, and only one of them is staircases. Rows spell the
+    source out as text so a door and a staircase can share one counter without a
+    tuple whose fields mean different things in different rows.
+
+    All 32 entrance slots, not just the ones some overworld tile currently
+    points at: this is a census of the table, the same way the rest of the tool
+    reads tables rather than walking. No entrance lands in ToFR on a stock seed;
+    entrance shuffle is what makes this worth reading.
+    """
+    inbound = collections.Counter()
+    for m in range(eg.MAP_COUNT):
+        if m in ids:
+            continue
+        for x, y, kind, pay in g.teleports(m):
+            if kind != eg.TP_TELE_NORM:
+                continue
+            dest = g.norm_map[pay]
+            if dest in ids:
+                inbound[(f"{eg.MAP_NAMES[m]} ({x},{y})", ids[dest],
+                         eg.coord(g.norm_x[pay]), eg.coord(g.norm_y[pay]))] += 1
+    for i in range(eg.ENTR_COUNT):
+        dest = g.entr_map[i]
+        if dest in ids:
+            inbound[(f"door {eg.DOOR_NAMES[i]} (#{i})", ids[dest],
+                     eg.coord(g.entr_x[i]), eg.coord(g.entr_y[i]))] += 1
+    return inbound
+
+
+def live_chest_tiles(raw, g):
+    """{(map_id, col, row)} -- the ToFR chest tiles this cartridge really wires.
+
+    No mode erases a chest tile. `MidToFR` and `ShortToFR` lay fresh copies on
+    the floors they put you on and leave the originals exactly where they were,
+    so a chest index sits on two tiles and only one of them can be opened. A
+    tool that draws every tile a chest resolves to therefore draws the stranded
+    copy as well -- on a Mid cartridge, two markers on ToFR 3F, a floor that
+    mode does not wire at all.
+
+    The walk is the only thing that can tell them apart, and `reached` says why:
+    Mid blocks the passages with wall tiles and leaves every teleport table
+    entry in place, so a census of ways in still reports 2F and 3F wired. Only
+    Short's change is table-visible.
+
+    ToFR maps only. The walk is seeded at ToFR arrivals and answers one
+    question -- what this cartridge wired -- so it has nothing to say about any
+    other floor, and a caller must not read a tile's absence here as a verdict
+    on one. Cartridge and not ToFRMode: GameMode decides the wiring as well, and
+    No-Overworld repoints TempleOfFiends at Chaos and orphans the seven interior
+    floors on its own (docs/NOVERWORLD.md). A floor missing from this walk is
+    not a fact about ToFRMode alone.
+
+    The walk itself is `reached`, called rather than repeated. Two copies of the
+    seeding would be two answers to "what did this cartridge wire" -- `--dump`'s
+    walk column and the regen's pin filter -- that could drift apart while both
+    still claimed to be the same walk.
+    """
+    ids = tofr_map_ids()
+    inbound = inbound_rows(g, ids)
+    if not inbound:
+        # reachable_tiles falls back to the doors only when `seeds` is None; an
+        # empty list is taken at face value and walks nothing. That would class
+        # every ToFR chest stranded and clear the floors of pins, with a count
+        # line as the only signal. No cartridge is really like that -- a
+        # beatable seed has to reach Chaos, and the sample cartridges each carry
+        # exactly one inbound row -- so an empty census is this tool having
+        # misread the tables, and it should say so rather than answer.
+        raise ValueError("no teleport or door lands in ToFR on this cartridge; "
+                         "the entrance and teleport tables did not read")
+    tiles = reached(g, {"inbound": inbound})
+    live = set()
+    for idx, spots in extract_chests.extract(raw)[0].items():
+        for spot in spots:
+            cell = (spot["map_id"], spot["tile_col"], spot["tile_row"])
+            if cell[0] in ids and noverworld_rules.bump(*cell)(tiles):
+                live.add(cell)
+    return live
 
 
 def comparable(a, b):
@@ -238,10 +299,12 @@ def reached(g, state):
     Seeded at the arrivals `read` already found rather than at the doors, which
     is what makes this answerable on a standard cartridge at all: the walk does
     not model an overworld, but it does not have to -- entering ToFR is the only
-    question, and `inbound` is the census of every way in.
+    question, and `inbound` is the census of every way in. That is the only
+    key `state` has to carry, so a caller holding just a census can walk without
+    reading the whole cartridge a second time -- `live_chest_tiles` does.
 
-    Every item is in hand on purpose. What is being asked is what the mode
-    built, not what the seed gates, and holding everything separates the two: a
+    Every item is in hand on purpose. What is being asked is what the cartridge
+    wired, not what the seed gates, and holding everything separates the two: a
     floor missing from this walk is missing because there is no way in.
     """
     seeds = [(None, eg.MAP_NAMES.index(row[1]), (row[2], row[3]))
