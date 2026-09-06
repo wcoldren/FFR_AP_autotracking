@@ -1298,19 +1298,37 @@ was already reading `--npcs` and `--lanes` back out of the cache and had simply
 not grown the third one when retrace arrived, so a session redraw could quietly
 collapse a lane the author had decided to keep.
 
-## The seven towns got the route lanes the carry refused
+## A new weekly cartridge arrived with no paths through its towns
 
-`tools/port_lanes.py` refused ten No-Overworld floors, and the refusals were
-never a copying problem -- six towns plus `tofr1F` lose the arrival outright,
-because No-Overworld seals and re-stamps town entrances. Those seven were drawn
-by hand 2026-09-05; `elf_castle`, `nw_castle` and `bahamutB2` had been drawn
-just before. **The No-Overworld authoring pass is closed**: every floor with a
-lane file now has an entry for that cartridge.
+Seven layouts on the standard cartridge `8D5DD816` -- `weekly-async-20260905`,
+rolled that day -- had no authored route: five towns, Gaia's two lanes, and the
+first floor of the Temple of Fiends revisited, whose route leaves one region and
+arrives in the next. They were drawn 2026-09-05.
 
-`bahamutB2` is the one to remember, because it is the only floor where the two
-cartridges disagree about what kind of lane belongs there. The standard twin
-carries a loot round; the No-Overworld floor carries a route lane. That is a
-difference in the floor, not a gap in the pass.
+**This is the recurring cost of keying a lane to a layout, and it is worth
+stating plainly because it reads as a bug from the board.** A lane resolves
+through `lane_file.digest`; a layout with no entry draws nothing and says
+nothing, so a fresh roll shows a town with no path through it and nothing
+anywhere reports a problem. Towns are the worst affected because their layouts
+move most between seeds.
+
+Measured across the 14 cartridges on this machine: resolution runs **47 to 57 of
+57**, `gaia` alone fails on **11 of the 14**, and one standard roll loses **six
+of its seven towns**. The digest narrowing on 2026-09-04 already bought most of
+what there is to buy here (`docs/ISSUES.md`, "The layout digest refuses a floor
+over which enemies a trap tile spawns") -- a standard reroll went from 10 of 57
+to 51. What is left is not a digest problem but an authoring one: somebody has
+to draw a lane for a layout nobody has seen before.
+
+Not to be confused with the No-Overworld pass, which is a different set of ten
+floors and closed 2026-09-04.
+
+**A note on how not to check this.** Counting lane-coloured pixels in the drawn
+art does not answer "does this map carry a lane" -- the lane colours are
+ordinary NES palette ids that occur throughout tile art, and the count comes
+back large for a map with no lane at all. Ask `lane_file.pick` with the
+cartridge's digest, which is the same call the renderer makes.
+`FINDINGS.local.md` already carried that warning, and it went unread once.
 
 ## A test that passed while the page it guards was wrong
 

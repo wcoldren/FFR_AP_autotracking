@@ -325,19 +325,26 @@ Things a bridge-only player checks that the board has no cell for.
   running the grep, not so it can be cited — a count in prose beside a count in
   the files is the one that goes stale.
 
-  **The ten that refused the carry were authored by hand, and the pass closed
-  2026-09-05.** They refused for three different reasons -- six towns plus
-  `tofr1F` lost the arrival outright, `elf_castle` and `nw_castle` kept an
-  arrival they could not walk from, and `bahamutB2` failed on a chest index --
-  and none of the three was a copying problem: the arrivals are No-Overworld
-  sealing and re-stamping town entrances, which wants a cartridge in front of
-  you. `elf_castle` and `nw_castle` came back with more than one route lane
-  each, which `STATUS-2.md`, "A region can carry more than one route lane", is
-  the entry for.
+  **The ten that refused the carry were authored by hand 2026-09-04**, in "Author
+  the ten No-Overworld floors that refused, and review six of the drafts". They
+  refused for three different reasons -- six towns plus `tofr1F` lost the
+  arrival outright, `elf_castle` and `nw_castle` kept an arrival they could not
+  walk from, and `bahamutB2` failed on a chest index -- and none of the three
+  was a copying problem: the arrivals are No-Overworld sealing and re-stamping
+  town entrances, which wants a cartridge in front of you.
   `bahamutB2` is the odd one and worth knowing about: its standard twin carries
   a loot round, and the No-Overworld floor carries a route lane instead, so the
   two cartridges draw that floor differently on purpose.
   `tools/tests/test_port_lanes.py` walks the pairing.
+
+  **Authoring a floor is per cartridge, and a fresh standard roll is where that
+  bites.** A lane resolves through `lane_file.digest`, so a layout the files
+  have no entry for draws nothing and says nothing. Towns are the worst affected
+  because their layouts move most: measured across 14 cartridges on 2026-09-05,
+  resolution runs 47 to 57 of 57, `gaia` fails on 11 of the 14, and one standard
+  roll loses six of its seven towns. That is what "Author route lanes for seven
+  more floors" was for -- seven layouts on one new weekly cartridge -- and it is
+  a recurring cost per cartridge rather than a pass that ends.
 
   **The by-eye pass against DarkmoonEX's 58 drawn images has not started.** The
   reference is the acceptance test, not the input: his lanes are drawn on

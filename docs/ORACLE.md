@@ -69,15 +69,21 @@ graded against them -- a figure taken here is a measurement, never a grade.
 |---|---|---|---|---|
 | `F258553F` | `duck-104` | 4.9.2 | GameMode 2, ToFRMode 2 (Short) | the reference No-Overworld cartridge; the source of the `nov` art and of most No-Overworld measurements in the log |
 | `8EF791AA` | `duck-weekly-0831` | 4.9.7 | GameMode 0 | the seed the Cardia pins were reported wrong on; the source of the `std` art until 2026-09-04 |
-| `05436F8E` | `duck-weekly-0831-v2` | 4.9.7 | GameMode 0 | the replay of that flag set, rolled with `Spoilers` on. One setting of 568 differs from `8EF791AA`, and it is `Spoilers`. The source of the `std` art since 2026-09-04, and the cartridge every lane file was drawn on |
+| `05436F8E` | `duck-weekly-0831-v2` | 4.9.7 | GameMode 0 | the replay of that flag set, rolled with `Spoilers` on. One setting of 568 differs from `8EF791AA`, and it is `Spoilers`. The cartridge every lane file was first drawn on, and all 57 still resolve on it |
+| `8D5DD816` | `weekly-async-20260905` | 4.9.7 | GameMode 0 | a weekly async rolled to be played. Seven of its layouts -- five towns, Gaia and `tofr1F` -- hashed to digests no lane file had an entry for, so they drew no path until they were authored on 2026-09-05. The second cartridge any lane file has been drawn on |
 | `C189A0EF` | `duck-102` | 4.9.2 | GameMode 0 | the standard seed the sprite and Crown-gate counts were taken on |
 | `2CCBA52F` | `duck-103` | 4.9.2 | GameMode 0 | the second standard seed, so a count has two cartridges behind it |
 | `72A52C25` | `practice-72A52C25` | 4.9.2 | GameMode 0 | the standard control for the Temple of Fiends floor comparison |
 | `F2585540` | not kept | 4.9.8 | GameMode 2, ToFRMode 2 (Short) | rolled once to measure version drift against `F258553F`, then discarded |
 
-`duck-weekly-0831-v2` and `duck-104` are the pair the installed override is
-rendered from, standard and No-Overworld. Replacing either means a regen for
-that mode, not a file swap.
+**Which cartridge the installed override was rendered from is not written down
+here, on purpose.** It changes on every regen, and a line naming a pair went
+wrong the first time it was checked: it named `duck-weekly-0831-v2` while the
+override had been drawn from a beginner-practice seed. Ask the install instead
+-- `.regen_cache.json` records a `rom_path` and a `rom` sha256 per mode, and the
+hash is the authority because seed directories get reused. `tools/regen_maps.py
+--verify` reads it. Replacing a cartridge for a mode means a regen for that
+mode, not a file swap.
 
 **The standard half moved from `duck-weekly-0831` to `duck-weekly-0831-v2` on
 2026-09-04**, when the authored lanes landed. A lane file is keyed by the map's
