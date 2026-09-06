@@ -1266,3 +1266,76 @@ draw. The numbers do not carry that judgement and never will, on either
 cartridge: the standard entry differs over the same eight tiles, so a
 cartridge-by-cartridge pass finds the same argument twice. Read that entry
 before touching a town's flag.
+
+## The refresh runs the remedy the gate was printing
+
+Stage 4 fails on every lane edit and on every change to a file in
+`INPUT_FILES`, which is often, and what it printed was not a command but a
+reconstruction: re-run the regen once per mode, having first read `--npcs` and
+`--lanes` back out of the cache yourself. `tools/regen_maps.py --refresh`
+(2026-09-05) does that instead, redrawing every mode `--verify` calls stale
+from the cartridge and settings that mode already recorded.
+
+**The gate itself stays read-only, and that was the design decision.** A check
+that repairs what it measures can never report the state it was written to
+catch. The override is also one shared resource keyed by pack uid, so a verify
+run that quietly redrew would change what another worktree serves -- the same
+property that makes "regen to make stage 4 green" the wrong move by hand is
+what makes it the wrong move in the tool.
+
+The comparison is computed once, in `stale_modes`, so the reporting half and
+the acting half cannot disagree about which modes are stale. The cartridge's
+path is now recorded beside its sha256 and **the hash stays the authority**:
+seed directories get reused, and redrawing from whatever now sits at a
+remembered path would swap in another seed's art without saying so. Four
+refusals -- no recorded path, cartridge moved, path holds another cartridge,
+art drawn on another branch -- are reported and skipped with the exit status
+left at 1, because a stale override that reads as refreshed is worse than one
+that reads as stale.
+
+`start_session.sh` carries `--retrace` through its own redraw the same day. It
+was already reading `--npcs` and `--lanes` back out of the cache and had simply
+not grown the third one when retrace arrived, so a session redraw could quietly
+collapse a lane the author had decided to keep.
+
+## The seven towns got the route lanes the carry refused
+
+`tools/port_lanes.py` refused ten No-Overworld floors, and the refusals were
+never a copying problem -- six towns plus `tofr1F` lose the arrival outright,
+because No-Overworld seals and re-stamps town entrances. Those seven were drawn
+by hand 2026-09-05; `elf_castle`, `nw_castle` and `bahamutB2` had been drawn
+just before. **The No-Overworld authoring pass is closed**: every floor with a
+lane file now has an entry for that cartridge.
+
+`bahamutB2` is the one to remember, because it is the only floor where the two
+cartridges disagree about what kind of lane belongs there. The standard twin
+carries a loot round; the No-Overworld floor carries a route lane. That is a
+difference in the floor, not a gap in the pass.
+
+## A test that passed while the page it guards was wrong
+
+`test_docs.py` grew a row 2026-09-05 holding the open-work index to the page's
+own section declarations: no row for a section that says nothing is open, and
+no row for a section the page does not have.
+
+**Two of the rows it passed over went false within the same hour**, which is
+worth writing down because it is a limit of the check rather than a bug in it.
+The row compares the index against the bullets, and a bullet that describes
+finished work as open agrees with an index row that says the same thing, so
+both can be wrong together and the check still holds. The page was internally
+consistent and externally wrong: the ten authored floors landed ten seconds
+after the test, and the regen's execution half twenty-eight seconds after that.
+Both rows were corrected later the same evening by reading `git log
+origin/trunk..trunk` against the index rather than by any test.
+
+The cause was narrower than "docs drift". Four commits landed their
+documentation in `docs/ISSUES.md`, `docs/ARCHITECTURE.md` and `docs/BRIDGE.md`
+and touched neither `docs/ROADMAP.md` nor this file -- the two pages that say
+what is open and what happened. **A commit that closes a bullet has to visit
+the page that lists it**, and no test can supply that, because the roadmap
+cannot tell a finished bullet from an open one without being told.
+
+The `47 of 57` figure went stale in the same window, four lines above a
+paragraph that had already declined to be citable for exactly this reason. It
+is a pointer to `tools/port_lanes.py` now, which prints the tally and writes
+nothing without `--apply`.

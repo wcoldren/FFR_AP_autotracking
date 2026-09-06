@@ -62,9 +62,8 @@ work it is, not how much it matters.
 | §3 | Whether Inspect survives `hide unreachable locations` |
 | §3 | Warn once when a stale override shadows pack edits |
 | §3 | Room-level zoom, after the towns |
-| §3 | The regen's execution half, after the detection half |
 | §4 | Entrance markers: where a door now goes |
-| §4 | The lanes still to draw: ten No-Overworld floors, the ported drafts, the by-eye pass, the run-wide order |
+| §4 | The lanes still to draw: the ported drafts, the by-eye pass, the run-wide order |
 | §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
 | §4 | Boss names in the Map Key |
@@ -248,12 +247,16 @@ Things a bridge-only player checks that the board has no cell for.
 
 ## 3. Clicks and confusion
 
-- **The regen's execution half.** The detection half landed 2026-08-31
-  (`STATUS.md`, "The art on disk now says what it was drawn for"):
-  `regen_maps.py` writes `.regen_stamp`, the bridge compares it against the
-  cartridge and publishes `ff1/art`, and the `artStale` light says so on the
-  board. Left: running the regen, which no longer gates on a measurement now
-  that `os.execute` is known to run and detach.
+- **The regen's execution half. Landed 2026-09-05**: `tools/regen_maps.py
+  --refresh` redraws every mode `--verify` calls stale, reading that mode's
+  cartridge, `--npcs`, `--lanes`, `--retrace` and marker size back out of the
+  cache rather than asking for them again, so the remedy is run rather than
+  reconstructed by hand. It refuses where it would have to guess -- a mode
+  whose cartridge moved, or whose art was drawn on another branch, is reported
+  and skipped with the exit status left at 1. The detection half landed
+  2026-08-31 (`STATUS.md`, "The art on disk now says what it was drawn for").
+  `docs/ISSUES.md`, "A stale override silently shadows pack edits", holds both
+  halves and the reason the gate itself stays read-only.
 - **Room-level zoom.** The towns half landed 2026-08-31 (`STATUS.md`, "The towns
   got tabs the party can walk into"): `regen_maps.py` writes its own
   `mapValues.lua` into the override, so the tree that has the town art is the
@@ -297,12 +300,16 @@ Things a bridge-only player checks that the board has no cell for.
 - **The lanes still to draw.** Three things, in the order they cost a player
   something:
 
-  **No-Overworld has 47 of 57, and the ten left are authoring rather than
-  copying.** Narrowing the layout digest on 2026-09-04 handed back the 15 floors
+  **Every floor with a lane file now has a No-Overworld entry, as of
+  2026-09-05.** Narrowing the layout digest on 2026-09-04 handed back the floors
   tile-identical to their standard twins, and `tools/port_lanes.py` carried the
-  other 32 across the same day (`docs/ISSUES.md`, "The layout digest refuses a
-  floor over which enemies a trap tile spawns"). The carry is **verbatim** and
-  has to stay that way: dropping the `at` hints from `arrival` and `exit` stops
+  rest across the same day (`docs/ISSUES.md`, "The layout digest refuses a floor
+  over which enemies a trap tile spawns"); the floors it refused were authored
+  by hand over the two days after. Ask the tool rather than this page for the
+  tally -- `tools/port_lanes.py --from <std> --to <nov>` writes nothing without
+  `--apply` and prints the count either way, which is the same reason the
+  ported-draft figure below is not citable. The carry is **verbatim** and has to
+  stay that way: dropping the `at` hints from `arrival` and `exit` stops
   collapses a route lane to the cheapest pair of ends the floor offers, on 23 of
   them.
 
@@ -318,12 +325,19 @@ Things a bridge-only player checks that the board has no cell for.
   running the grep, not so it can be cited — a count in prose beside a count in
   the files is the one that goes stale.
 
-  **The ten that refuse are the authoring pass.** Six towns plus `tofr1F` lose
-  the arrival outright; `elf_castle` and `nw_castle` keep an arrival they cannot
-  walk from; `bahamutB2` fails on a chest index. The arrivals are No-Overworld
-  sealing and re-stamping town entrances, so they want a cartridge in front of
-  you rather than a copy. The same ten refuse on the nov oracle, which is the
-  pairing `tools/tests/test_port_lanes.py` walks.
+  **The ten that refused the carry were authored by hand, and the pass closed
+  2026-09-05.** They refused for three different reasons -- six towns plus
+  `tofr1F` lost the arrival outright, `elf_castle` and `nw_castle` kept an
+  arrival they could not walk from, and `bahamutB2` failed on a chest index --
+  and none of the three was a copying problem: the arrivals are No-Overworld
+  sealing and re-stamping town entrances, which wants a cartridge in front of
+  you. `elf_castle` and `nw_castle` came back with more than one route lane
+  each, which `STATUS-2.md`, "A region can carry more than one route lane", is
+  the entry for.
+  `bahamutB2` is the odd one and worth knowing about: its standard twin carries
+  a loot round, and the No-Overworld floor carries a route lane instead, so the
+  two cartridges draw that floor differently on purpose.
+  `tools/tests/test_port_lanes.py` walks the pairing.
 
   **The by-eye pass against DarkmoonEX's 58 drawn images has not started.** The
   reference is the acceptance test, not the input: his lanes are drawn on
