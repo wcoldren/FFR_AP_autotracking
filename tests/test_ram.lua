@@ -480,7 +480,10 @@ check("and none of the five behind the plate is", anyOf(TOFR_GAUNTLET), false)
 check("so not every ToFR chest is", allChests(), false)
 check("and Chaos is not either", inLogic("ToFR", chaosRules()), false)
 
-byCode["shortToFR"].CurrentStage = 1
+-- ToFR Mode is a three-stage progressive now: allow_disabled puts a synthetic
+-- 0 below stages[], so Long/Mid/Short are 1/2/3 and 0 is "the cartridge did
+-- not say". shortToFR rides on the Short stage, which is why this is 3.
+byCode["shortToFR"].CurrentStage = 3
 check("Short: the orbs alone reach all seven chests", allChests(), true)
 check("but Short does not open Chaos", inLogic("ToFR", chaosRules()), false)
 

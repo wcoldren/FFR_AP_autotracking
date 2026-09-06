@@ -1125,7 +1125,7 @@ Nothing here is urgent unless it says so.
   a slot FFR cannot incentivize on any flagset does not belong on it.
 
   **`slabTranslated` did not move, which is why the cut is this clean.** The
-  board's own `Melmond/Dr Unne` in `locations/overworld.json:2670` is the same
+  board's own `Melmond/Dr Unne` in `locations/overworld.json:2740` is the same
   section with the two incentive conjuncts stripped from every rule, and it
   hosts `slabTranslated` already, so reachability, the marker clear and
   `tests/test_ram.lua`'s Unne cases all read the board copy and are untouched.

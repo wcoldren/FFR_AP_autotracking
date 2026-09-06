@@ -242,14 +242,24 @@ if badRef == 0 then print("ok   every section ref resolves") end
 do
   local mk = json.load(PACK .. "/tools/marker_positions.json")
   dofile(PACK .. "/scripts/autotracking/location_mapping.lua")
-  -- location node name -> its single non-overworld marker
+  -- location node name -> its non-overworld markers, ALL of them.
+  --
+  -- One per node until the ToFR chests became mode-gated. ToFRMode decides
+  -- which floor a chest sits on, so those seven nodes carry a marker per mode
+  -- and the snapshot below holds only the one the frozen cartridge had. Taking
+  -- "the last marker" would compare Chaos against a tofr3F snapshot and call
+  -- the pack wrong; what the guarantee actually says is that the snapshot's
+  -- position is still one of the positions the pack draws.
   local own = {}
   local function collect(nodes)
     for _, n in ipairs(nodes) do
       local secs = n.sections or {}
       if #secs == 1 and secs[1].item_count == 1 then
         for _, ml in ipairs(n.map_locations or {}) do
-          if ml.map ~= "overworld" then own[n.name] = ml end
+          if ml.map ~= "overworld" then
+            own[n.name] = own[n.name] or {}
+            table.insert(own[n.name], ml)
+          end
         end
       end
       collect(n.children or {})
@@ -261,14 +271,19 @@ do
   for id, v in pairs(LOCATION_MAPPING) do
     if id < 512 and v[1] then
       local node = v[1]:match("^@(.*)/[^/]+$")
-      local ml = node and own[node]
+      local mls = node and own[node]
       local want = mk[tostring(id - 256)]
-      if ml and want and #want == 1 then
+      if mls and want and #want == 1 then
         checked = checked + 1
         local w = want[1]
-        if ml.map ~= w.map or ml.x ~= w.x or ml.y ~= w.y then
-          fails(string.format("%s is at %s(%d,%d) but chest %d belongs at %s(%d,%d)",
-            node, ml.map, ml.x, ml.y, id - 256, w.map, w.x, w.y))
+        local found, drew = false, {}
+        for _, ml in ipairs(mls) do
+          drew[#drew + 1] = string.format("%s(%d,%d)", ml.map, ml.x, ml.y)
+          if ml.map == w.map and ml.x == w.x and ml.y == w.y then found = true end
+        end
+        if not found then
+          fails(string.format("%s draws %s but chest %d belongs at %s(%d,%d)",
+            node, table.concat(drew, " "), id - 256, w.map, w.x, w.y))
           wrong = wrong + 1
         end
       end

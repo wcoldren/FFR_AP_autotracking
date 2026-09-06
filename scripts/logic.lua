@@ -447,6 +447,34 @@ function showPin(kind, ...)
       return 1
     end
   end
+  if kind == "chest" and select("#", ...) > 0 then
+    -- A ToFR chest pin names the mode whose floor it sits on. The seven chests
+    -- move between floors with ToFRMode and no mode erases a tile, so a pin
+    -- drawn for every mode at once puts markers on floors the cartridge never
+    -- wires -- two on ToFR 3F for a Mid seed, all seven for a Short one.
+    --
+    -- Fails open in the direction that matters. Stage 0 of `ToFR Mode` is "the
+    -- cartridge did not say" -- no seed read yet, or ToFRMode rolled Random,
+    -- which the flag string cannot resolve -- and it provides no mode code, so
+    -- none of these rules matches and every mode's pin is drawn. That is what
+    -- the board did before it could tell the modes apart, and it is the right
+    -- answer for a session that genuinely does not know.
+    local known = false
+    for _, mode in ipairs({ ... }) do
+      if Tracker:ProviderCountForCode(mode) > 0 then
+        known = true
+        break
+      end
+    end
+    if not known then
+      for _, mode in ipairs({ "tofrLong", "tofrMid", "tofrShort" }) do
+        if Tracker:ProviderCountForCode(mode) > 0 then
+          -- A mode is known and it is not this pin's: hide it.
+          return 0
+        end
+      end
+    end
+  end
   if toggleOn(code) then
     return 1
   end
