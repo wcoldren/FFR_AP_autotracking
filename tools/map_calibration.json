@@ -65,7 +65,21 @@
   "    sprites across cells, and tofrFire, which is correct, scores worse than",
   "    proposals that are wrong.",
   "The reason is the same each time: hand-drawn tiles carry more contrast",
-  "inside them than at their edges. The overlay and a person is the test."
+  "inside them than at their edges. The overlay and a person is the test.",
+  "",
+  "A fourth was tried and failed differently, and is the most tempting of the",
+  "lot: correlating the ROM's wall/floor mask against the art's per-tile",
+  "brightness. The correlation is genuinely high -- 0.70 to 0.83 -- and its peak",
+  "is 3 to 5 pixels away from the known answer on all four floors that have one.",
+  "It finds the room, not the grid.",
+  "",
+  "Do not try to solve tofr1F, tofrEarth or tofrWater from chest sprites. The",
+  "art draws four chests on tofr1F and none on the other two, and chest_tiles()",
+  "puts NO chest tile on any of the three -- on a Long cartridge only tofr3F has",
+  "any, at (17,15) and (23,15), which is exactly what its committed offset",
+  "implies and is a good check that the transform above is right. Whatever",
+  "tofr1F's drawn chests depict, the cartridge does not agree, so they cannot",
+  "anchor an offset."
  ],
  "cardia": {
   "rom_map_id": 16,
