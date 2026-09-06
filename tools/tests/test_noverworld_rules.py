@@ -472,3 +472,7 @@ else:
     closed = [n for n in PLATE if not opens(n, {"orbs"})]
     ok(not closed, "the two in front of it need nothing but the orbs",
        ", ".join(closed) if closed else "both open")
+
+
+print("\n" + ("FAILURES: " + ", ".join(fails) if fails else "ALL PASS"))
+sys.exit(1 if fails else 0)

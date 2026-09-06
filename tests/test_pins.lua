@@ -453,7 +453,10 @@ end
 -- because Mid moves 253/254 to tofr1F, which has no calibration entry and so
 -- carries no pin on the hand art at all.
 ------------------------------------------------------------------
-local function tofrDrawn(rel, mode)
+-- No mode parameter: the mode is set in `provided` before each call, the same
+-- way every other flag in this file is, and a signature that took one would
+-- read as though this filtered by mode when nothing here does.
+local function tofrDrawn(rel)
   local n = 0
   eachPin(trees[rel], function(_, marker)
     local rules = marker.restrict_visibility_rules
