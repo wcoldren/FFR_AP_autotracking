@@ -1638,11 +1638,21 @@ def refresh(out_dir, dry_run):
             continue
 
         marker = was.get("marker") or [MARKER_SIZE, MARKER_BORDER]
+        # Read the slot the way flag_change reads it, key for key. These two
+        # are the only places that turn a stored slot back into flags, and a
+        # default that differs between them is this pass changing what the art
+        # shows while claiming it introduces nothing: `npcs` absent means a
+        # slot written before the key existed, which drew no sprites, so "all"
+        # here would add every sprite to art that carried none. `retrace` is
+        # worse than a wrong default -- a slot from before the setting went
+        # per-layout holds a JSON bool, and putting that in cmd raises
+        # TypeError out of subprocess.run, on exactly the old slots this pass
+        # exists to redraw.
         cmd = [sys.executable, os.path.abspath(__file__), path,
                "--mode", mode,
-               "--npcs", was.get("npcs", "all"),
+               "--npcs", was.get("npcs", "none"),
                "--lanes", was.get("lanes", "none"),
-               "--retrace", was.get("retrace", "auto"),
+               "--retrace", retrace_slot(was),
                "--marker-size", str(marker[0]),
                "--marker-border", str(marker[1]),
                "--out", out_dir]

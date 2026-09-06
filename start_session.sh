@@ -151,7 +151,13 @@ try:
     npcs = entry.get("npcs", npcs)
     lanes = entry.get("lanes", lanes)
     drawn = entry.get("rom")
-    retrace = entry.get("retrace", retrace)
+    # Through retrace_slot, because a slot written before the setting went
+    # per-layout holds a JSON bool and this field is about to be printed into a
+    # plan line and handed back as `--retrace`, where True is not a choice
+    # argparse offers. Only when the key is there: absent, the default above is
+    # this script's own intent and not the slot's.
+    if "retrace" in entry:
+        retrace = regen_maps.retrace_slot(entry)
     branch = entry.get("branch") or "-"
 except (OSError, ValueError):
     pass
@@ -189,7 +195,7 @@ PY
             ;;
         redraw)
             mode=$2 npcs=$3 lanes=$4 retrace=$5 drawn_branch=$6
-            shift 5
+            shift 6
             # Printed before the guard rather than inside it. On the blocked
             # path this line is the whole story, and the reason that usually
             # brings us here is "drawn from another cartridge" -- so a guard
