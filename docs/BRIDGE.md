@@ -90,6 +90,39 @@ fight happened, so the bridge watches for the frame the game sets Chaos's battle
 result instead. Both routes land on the same frame, so an Archipelago seed's time
 is unchanged.
 
+## The doors you have walked are remembered
+
+A door you have been through fades on the map tabs, and it stays faded across a
+reset, a power cycle and picking the seed up next week. That is the third file
+the bridge writes beside the ROM, after `ffr_times.log` and
+`ffr_timer.<cartridge>.state`:
+
+    ffr_edges.<cartridge>.state
+
+One line per door, six numbers -- the map, column and row it was entered from,
+and the same three for where the party came out, with `-1` for the overworld.
+The first line names the cartridge, and a file whose first line names a
+different one is not adopted, so a log copied or renamed by hand cannot put pins
+on doors nobody walked.
+
+It holds nothing the play session did not already give away. The bridge never
+reads the seed's teleport tables -- it watches which map you are on and which
+tile you are standing on, and a door is two trusted scans that disagree about
+the first. So the file is a record of where you have been, which is why writing
+it down costs an entrance-randomised seed nothing.
+
+**Deleting the file is how you take a door back.** Nothing un-learns: a record
+is keyed on the tile it was entered from, so re-walking a door rewrites it in
+place, but nothing removes one, and the file is rewritten whole from what the
+bridge is holding in memory. If a record is wrong -- an emulator hiccup, or a
+save state loaded across a doorway -- close the script, delete
+`ffr_edges.<cartridge>.state`, and start it again. Everything you walk after
+that is learned back.
+
+`tools/entrance_graph.py --grade <log>` checks a log against the cartridge's own
+teleport tables, which is the reading the bridge is forbidden to make. Run it at
+a terminal rather than while playing, for the obvious reason.
+
 ## The flags grid fills itself in
 
 FFR stamps the flag string it rolled with into the cartridge, so the settings

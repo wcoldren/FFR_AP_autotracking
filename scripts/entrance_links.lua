@@ -1,0 +1,15 @@
+-- Which entrance pin stands on which tile. Empty here on purpose.
+--
+-- The entrance pins are drawn from the cartridge and exist only in the
+-- regenerated user-override, so the table that resolves a tile to one of them
+-- is written there too, by tools/regen_maps.py. This copy is what the base pack
+-- ships: it keeps the load in scripts/init.lua honest on a tracker with no
+-- override installed, and leaves the door-marking inert there, which is already
+-- what happens to the pins.
+--
+-- scripts/autotracking/mapValues.lua is the same arrangement for the same
+-- reason. PopTracker serves an override copy ahead of this one because
+-- ScriptHost:LoadScript reads through Pack::ReadFile, which consults the
+-- override -- unlike Pack::hasFile, which does not and which is why the door
+-- icons had to be committed instead.
+ENTRANCE_LINKS = {}

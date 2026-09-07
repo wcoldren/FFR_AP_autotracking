@@ -30,13 +30,26 @@ What is checked:
     thousands it drops, and the two conditions it keeps a tile on, each shown
     failing on a grid built here
   * a link on a tile that also holds a drawn sprite stays a trapezoid
+  * every tile of a doorway or a town blob resolves back to the one pin that
+    stands on it, and every entry in that table names a section the group has.
+    This is what scripts/autotracking/edges.lua reads to mark a door the party
+    walked through, and the tiles that are *not* the pin's own are the whole
+    reason it exists
+  * entrance_graph --grade agrees with a log built from the cartridge's own
+    tables, and disagrees the moment one destination is moved. That grader is
+    the only independent reading of the observation channel there is: the
+    bridge learns the permutation by watching the party walk and never opens a
+    teleport table, and the grader opens nothing else
 
 Set FF1_ROM to a cartridge; without one the cartridge half skips.
 """
 
+import io
 import os
+import re
 import struct
 import sys
+import tempfile
 import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -75,6 +88,46 @@ def markers(nodes, out=None):
             out.append((node.get("name"), marker))
         markers(node.get("children") or [], out)
     return out
+
+
+def section_ids(nodes, parent=""):
+    """Every section's `@id`, built the way PopTracker builds them.
+
+    Transcribed from `src/core/location.cpp:183-231`: a node's id is its
+    parent's id plus its name, a child inherits that as its parent, and a
+    section's full id is its location's id plus its own name. Written out here
+    rather than imported so it can disagree with the tool under test.
+    """
+    out = set()
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        name = node.get("name", "")
+        loc_id = name if not parent else parent + "/" + name
+        for sec in node.get("sections") or []:
+            out.add("@" + loc_id + "/" + sec.get("name", ""))
+        kids = node.get("children")
+        if isinstance(kids, list):
+            out |= section_ids(kids, loc_id)
+    return out
+
+
+def err_of(fn, *args):
+    """The exception `fn` raised, or None. Rows below read the failure itself."""
+    try:
+        fn(*args)
+    except Exception as e:      # noqa: BLE001 -- the row is "did it refuse"
+        return e
+    return None
+
+
+def quiet(fn, *args):
+    """Call `fn` with its report swallowed -- the rows below read the verdict."""
+    out, sys.stdout = sys.stdout, io.StringIO()
+    try:
+        return fn(*args)
+    finally:
+        sys.stdout = out
 
 
 def teleport_tiles(reader):
@@ -258,7 +311,8 @@ def main():
         return 0
     rom = open(path, "rb").read()
     reader = entrance_graph.Rom(path)
-    doors = op.entrance_door_pins(reader)
+    graph = entrance_graph.Graph(reader)
+    doors = op.entrance_door_pins(graph.doors)
     print(f"-- {os.path.basename(path)}: {len(doors)} doors carry a tile")
 
     on_a_door = teleport_tiles(reader)
@@ -275,7 +329,6 @@ def main():
     # The floor links. The filter is the whole thing here, so it is asserted
     # from the other side as well: what the kinds are, and what including the
     # wrong one would cost.
-    graph = entrance_graph.Graph(reader)
     links = regen_maps.entrance_tiles(graph)
     kinds = {}
     warps = 0
@@ -435,6 +488,140 @@ def main():
           sorted(rules), [(pin_visibility.ENTRANCE_RULE,)])
     check("  and the group holds both halves",
           len(group["children"]), len(doors) + len(kids))
+
+    # The table that turns an observed tile back into a pin. The bridge sees
+    # whichever tile of a doorway the party stepped on; the pin is named for the
+    # middle of the cluster. So the interesting property is not that the pin's
+    # own tile is in the table -- it is that the others are, and that every
+    # entry names a section the tree actually has.
+    door_members = op.entrance_door_members(graph.doors)
+    link_members = regen_maps.entrance_members(graph)
+    members = {**door_members, **link_members}
+    lua = regen_maps.build_entrance_links(group["children"], members)
+    table = dict(re.findall(r'\["([^"]+)"\] = "([^"]+)"', lua))
+
+    # Derived by walking the tree the way PopTracker builds ids
+    # (location.cpp:183-231: a child's parent is its parent's full id, and a
+    # section's full id is that plus its own name), not by rebuilding the same
+    # f-string build_entrance_links uses. That distinction is the whole value of
+    # these two rows: a table and a check that agree because they share one
+    # assumption cannot test the assumption, and this one is the format
+    # Tracker:FindObjectForCode has to resolve at run time.
+    sections = section_ids([group])
+    check("every entry names a section the tree really has",
+          sorted(set(table.values()) - sections), [])
+    check("and every placed pin is reachable from some tile",
+          sorted(sections - set(table.values())), [])
+
+    # The pin's own tile resolves to its own pin, which is the row that would
+    # catch the two halves being keyed differently.
+    named = []
+    for kid in group["children"]:
+        cells = members.get(kid["name"]) or []
+        want = (f'@{pin_visibility.ENTRANCES_GROUP}/{kid["name"]}'
+                f'/{kid["sections"][0]["name"]}')
+        if cells and table.get("%d,%d,%d" % cells[0]) != want:
+            named.append(kid["name"])
+    check("a pin's own tile resolves to it", sorted(named), [])
+
+    # And the point of the table: a cluster is more than its middle. Counted
+    # rather than asserted true, because a cartridge whose every link happened
+    # to be one tile wide would make this vacuous without saying so.
+    extra = sum(len(cells) - 1 for cells in members.values())
+    print(f"-- {len(table)} tiles resolve to {len(sections)} pins, "
+          f"{extra} of them a tile the pin is not named after")
+    check("a doorway is wider than its pin somewhere", extra > 0, True)
+
+    # The grader that stands behind the observation channel. It reads the
+    # cartridge's own teleport tables, which is the reading the bridge is
+    # forbidden to make, so the two answers are independent -- and that
+    # independence is the only thing agreement is worth anything for.
+    log, ungradeable = [], []
+    for door, cells in sorted(graph.doors.items()):
+        if cells:
+            log.append((-1, cells[0][0], cells[0][1], graph.entr_map[door],
+                        entrance_graph.coord(graph.entr_x[door]),
+                        entrance_graph.coord(graph.entr_y[door])))
+    for map_id in range(entrance_graph.MAP_COUNT):
+        for x, y, kind, pay in graph.teleports(map_id):
+            if kind == entrance_graph.TP_TELE_NORM:
+                log.append((map_id, x, y, graph.norm_map[pay],
+                            entrance_graph.coord(graph.norm_x[pay]),
+                            entrance_graph.coord(graph.norm_y[pay])))
+            elif (kind == entrance_graph.TP_TELE_EXIT
+                  and pay < entrance_graph.EXIT_COUNT):
+                log.append((map_id, x, y, -1,
+                            graph.exit_x[pay], graph.exit_y[pay]))
+            else:
+                ungradeable.append((map_id, x, y))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        good = os.path.join(tmp, "edges.state")
+        with open(good, "w") as f:
+            f.write("sha-fixture\n")
+            f.writelines("%d,%d,%d,%d,%d,%d\n" % rec for rec in log)
+        check("a log of every door agrees with the cartridge",
+              quiet(entrance_graph.grade_edges, graph, good), True)
+        check("  and it was not a handful of doors",
+              len(entrance_graph.read_edge_log(good)), len(log))
+
+        # The row that makes the one above mean something. A grader that only
+        # ever agrees is worth nothing, so one destination is moved and the
+        # same call has to come back false.
+        moved = list(log)
+        moved[0] = moved[0][:3] + ((moved[0][3] + 1) % entrance_graph.MAP_COUNT,
+                                   moved[0][4], moved[0][5])
+        bad = os.path.join(tmp, "bad.state")
+        with open(bad, "w") as f:
+            f.write("sha-fixture\n")
+            f.writelines("%d,%d,%d,%d,%d,%d\n" % rec for rec in moved)
+        check("one destination moved is caught",
+              quiet(entrance_graph.grade_edges, graph, bad), False)
+
+        # And the row that keeps the two above honest. A grader that skips what
+        # it cannot parse reports a clean sheet over zero doors, which is what
+        # pointing it at the wrong file gets you -- the bridge writes
+        # ffr_timer.<cartridge>.state beside the ROM, one tab-separated line,
+        # and a shell completes to it from the same prefix. There is no oracle
+        # behind the observation channel other than this call, so reading
+        # nothing has to come back false rather than green.
+        timer = os.path.join(tmp, "ffr_timer.sha-fixture.state")
+        with open(timer, "w") as f:
+            f.write("FFR_fixture.nes\t1234\trunning\n")
+        check("the run clock's state file is not graded clean",
+              quiet(entrance_graph.grade_edges, graph, timer), False)
+        check("  and reading it says why",
+              quiet(err_of, entrance_graph.read_edge_log, timer) is not None, True)
+
+        # A record the bridge could not have written is the same problem one
+        # line at a time: half a log parsed is not a log.
+        torn = os.path.join(tmp, "torn.state")
+        with open(torn, "w") as f:
+            f.write("sha-fixture\n")
+            f.write("%d,%d,%d,%d,%d,%d\n" % log[0])
+            f.write("-1\t1\t1\t2\t2\t2\n")
+        check("a line that is not a record fails the whole log",
+              quiet(entrance_graph.grade_edges, graph, torn), False)
+
+        # An empty log is the shape a fresh cartridge leaves on disk before any
+        # door is walked, and it is still nothing to grade.
+        header = os.path.join(tmp, "header.state")
+        with open(header, "w") as f:
+            f.write("sha-fixture\n")
+        check("a log with no doors in it is not a pass",
+              quiet(entrance_graph.grade_edges, graph, header), False)
+
+    # Exit and Warp cast off a door are the shape that must read as ungradeable
+    # rather than as wrong: a tile that is no teleport at all has no answer on
+    # the cartridge to disagree with.
+    want, why = entrance_graph.expected_edge(graph, 5, 40, 40)
+    check("a tile that is no teleport has no expected destination", want, None)
+    check("  and says why", "no teleport tile there" in (why or ""), True)
+    if ungradeable:
+        map_id, x, y = ungradeable[0]
+        _, why = entrance_graph.expected_edge(graph, map_id, x, y)
+        check("a warp tile is ungradeable, not wrong",
+              "stack" in (why or ""), True)
 
     return 1 if fail else 0
 

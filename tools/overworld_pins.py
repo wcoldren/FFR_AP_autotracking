@@ -113,14 +113,19 @@ def floater(rom):
             sum(c[1] for c in flat) // len(flat))
 
 
-def door_cells(reader):
+def door_cells(doors):
     """{door id: (x, y)} -- a door's first overworld tile.
 
     Towns are a blob of several tiles and caves are one; the first is the
     north-west corner of the blob, which is where a single pin belongs.
+
+    `doors` is entrance_graph.door_positions' answer, which every caller here
+    already holds as Graph.doors. Passed in rather than read, the way
+    regen_maps.entrance_members takes its graph: reading it costs a full
+    overworld decompress and a 65,536-cell scan, and this file used to spend
+    three of those where one would do.
     """
-    return {d: cells[0] for d, cells in
-            entrance_graph.door_positions(reader).items() if cells}
+    return {d: cells[0] for d, cells in doors.items() if cells}
 
 
 # The prefix every entrance node's name carries. Namespaced because
@@ -129,7 +134,7 @@ def door_cells(reader):
 ENTRANCE_PREFIX = "Entrance: "
 
 
-def entrance_door_pins(reader):
+def entrance_door_pins(doors):
     """{node name: (x, y)} -- one trapezoid pin per overworld door.
 
     A door's *position* is not part of the shuffle. Entrances rewrites where a
@@ -141,7 +146,30 @@ def entrance_door_pins(reader):
     corner of a town's blob, which is where a single marker belongs.
     """
     return {ENTRANCE_PREFIX + entrance_graph.DOOR_NAMES[door]: cell
-            for door, cell in sorted(door_cells(reader).items())}
+            for door, cell in sorted(door_cells(doors).items())}
+
+
+def entrance_door_members(doors):
+    """{node name: [(-1, x, y), ...]} -- every overworld tile that opens a door.
+
+    entrance_door_pins keeps one tile per door, the north-west corner of a
+    town's blob, because that is where a single marker belongs. A party walks
+    onto whichever tile of the blob it reached, so the tile the bridge sees is
+    usually not the tile the pin is named after; this is the table that puts
+    them back together, and -1 is the map id the overworld publishes.
+
+    The pin's own tile comes first, matching regen_maps.entrance_members.
+    """
+    first = door_cells(doors)
+    out = {}
+    for door, cells in sorted(doors.items()):
+        if not cells:
+            continue
+        head = first[door]
+        out[ENTRANCE_PREFIX + entrance_graph.DOOR_NAMES[door]] = (
+            [(-1, head[0], head[1])]
+            + [(-1, x, y) for x, y in sorted(cells) if (x, y) != head])
+    return out
 
 
 # The tooltip icons the entrance group hands its children. Written by a regen
@@ -324,7 +352,7 @@ def named_map(name):
     return None
 
 
-def resolve(rom, reader, graph, doc, tiles_by_name, mirror=None, report=None):
+def resolve(rom, graph, doc, tiles_by_name, mirror=None, report=None):
     """-> (placed, unplaced, anchors), all keyed by the pack's pin name.
 
     `placed` is where the pin goes and `anchors` where it resolved to before
@@ -343,7 +371,7 @@ def resolve(rom, reader, graph, doc, tiles_by_name, mirror=None, report=None):
     shortcut -- the two trees are built to agree -- and it is what puts a pin
     on the twelve incentive slots that hold no chest of their own.
     """
-    doors = door_cells(reader)
+    doors = door_cells(graph.doors)
     car = render_overworld.caravan(rom)
     props = {"caravan": car[0] if car else None, "floater": floater(rom)}
     placed, unplaced, anchors = {}, [], {}

@@ -216,8 +216,15 @@ Render the maps without sprites and nothing is left for a pin to collide with,
 so every diamond on the board is an incentive slot. The trapezoid is not like
 that: doors come off the cartridge's own teleport tables and are the same under
 every render setting. It says where a door is, not where it now goes -- on a
-shuffled seed those are different questions, and only the first one can be
-answered without watching you walk through it.
+shuffled seed those are different questions.
+
+A door you have walked through fades, the way a chest you have opened does. With
+the emulator feed attached that happens on its own: the bridge watches which map
+you are on and which tile you are standing on, and when the two stop agreeing it
+has just seen you use a door. Nothing on the tracker's side reads the seed's
+teleport tables, so a door you have not been through stays shut -- which is the
+whole point on a seed that shuffled them. Where a door comes out is still not
+written anywhere on the board; that is the next piece of this.
 
 Shape and colour are separate channels: the shape says what kind of thing a pin
 is, the colour says how it stands. PopTracker has three shapes and no more, so

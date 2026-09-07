@@ -309,6 +309,15 @@ Four things to know before trusting any tool that reads maps:
   maps, so the all-items oracle below could not see it and neither could any
   tool suite — every number stayed internally consistent. It took someone who
   had walked the room.
+- **The party is the scroll plus seven.** `ow_scroll_x/y` are `$27/$28` and
+  `sm_scroll_x/y` are `$29/$2A` (`variables.inc:22-26`), and neither is where
+  the party is standing: the party is drawn at the middle of the window, so the
+  engine adds 7 on both axes to get its tile (`bank_0F.asm:3744`, on entering a
+  standard map). Every teleport writes its destination back as `coord - 7`, so
+  the two halves agree by construction — and masks that subtraction `AND #$3F`
+  on a standard map and not on the overworld, which is the torus above arriving
+  from the other direction. The bridge reads this to watch the party walk
+  through a door; nothing else in the pack has needed it.
 - **NPC positions are per seed.** FFR randomizes where an NPC stands, not only
   what it hands over: `titan` moves `(60,8,7)` → `(60,4,8)` and `nerrick`
   `(19,16,45)` → `(19,15,47)`. `npc_positions.json` is the vanilla reference and
@@ -450,7 +459,7 @@ that fails the run. That is the thing to run before
 calling anything done; what follows is what it runs.
 
 ```
-tests/run.sh         15 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
+tests/run.sh         16 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
 tools/tests/run.sh   34 Python suites for the cartridge-reading tools.
                      Twenty of them skip, wholly or in part, unless FF1_ROM

@@ -442,6 +442,13 @@ function resetForNewGame()
     clearRamDerivedItems()
   end
   clearHostedItems()
+  -- The entrance pins are not in SECTION_PATHS -- that index is built from
+  -- LOCATION_MAPPING, which is Archipelago location ids, and a door is not one.
+  -- So nothing else here reaches them, and a new cartridge would otherwise open
+  -- on the previous seed's doors.
+  if clearEntranceMarks then
+    clearEntranceMarks()
+  end
   Tracker.BulkUpdate = false
   applyAll()
 end

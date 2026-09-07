@@ -93,7 +93,7 @@ the whole story.
   at once. Written down after the bank bug and never run until now -- and it
   earned itself immediately, by failing on its own stated invariant. See
   `STATUS.md`, "The gauntlet the mode skips".
-- `tests/run.sh` — 15 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
+- `tests/run.sh` — 16 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
   — the cartridge-reading tools' own tests, Python and nothing else; the ones
   that need a cartridge skip unless `FF1_ROM` points at one.
 - `tools/regen_maps.py --verify` — not part of either suite, because it asks
@@ -1568,3 +1568,106 @@ originals, and both copies open. The five tiles those pins are placed on were
 read off all six Mid cartridges on this machine rather than the one the
 placement table was measured on, because a hardcoded tile is worth the second
 reading.
+
+## The doors open themselves now
+
+Since the pins landed, the open-door icon has meant "I have been in here" and
+only a mouse could set it. The bridge watches the party walk through a door now,
+and the pin opens itself.
+
+**Nothing on the tracker's side of the wire reads a teleport table, and that is
+the design rather than a limitation.** `entrance_graph` reads the whole
+permutation off the cartridge in a second, which is exactly why the bridge must
+not: a tracker told where every door goes has spoiled an entrance-randomised
+seed before the first town. So the bridge learns it by watching. Two trusted
+scans that disagree about which map the party is on are a door; the tile before
+it is where that door was entered and the tile after it is where it came out.
+Every record is something the player has already seen from inside the game.
+
+**Four measurements, three of which had been asserted here for months without
+one.** `ow_scroll_x/y` are `$27/$28` and `sm_scroll_x/y` are `$29/$2A`
+(`variables.inc:22-26`). The party is not the scroll -- it is drawn at the middle
+of the window, and `bank_0F.asm:3744` adds 7 on both axes to get its tile, with
+every teleport writing its destination back as `coord - 7` so the two halves
+agree by construction. A standard map masks that `AND #$3F` and the overworld
+does not, which is the 64-tile torus the floor walk already knew, arriving from
+the other direction. All three traced to one design paragraph in `STATUS.md` and
+no further; `docs/ARCHITECTURE.md` has them now, beside the torus.
+
+**The fourth settled the sampling, and either answer would have made this a
+different job.** Every transition calls `ScreenWipe_Close` before it touches
+anything (`bank_0F.asm:388-390`, `:2216-2232`, `:2281-2284`), so at the 10Hz
+scan cadence the departure tile is sampled many times over. And the destination
+scroll is written *before* `cur_map`, with `mapflags` bit 0 flipping last inside
+`EnterStandardMap` -- so the first scan that sees a new map already sees that
+map's arrival tile. There was no race to engineer around, and finding that out
+cost less than building for one would have.
+
+**`invalidate()` dropping the previous tile is the load-bearing line.** It is
+wired to reset and `stateLoaded`, and a state load moves the party across the
+world between two frames. Comparing across that gap invents a door nobody walked
+through. An edge is only real when both of its ends were seen in one unbroken
+run of trusted scans.
+
+**The tile the bridge sees is usually not the tile the pin is named after.** A
+pin is named for the middle of its cluster, because a doorway is as wide as the
+art draws it and a town is a blob of tiles; the four cells that lost are still
+cells a party can stand on. On the measured cartridge **220 tiles resolve to 177
+pins**, so 43 of them would miss. `entrance_members` and `entrance_door_members`
+hand back every cell of a link and `build_entrance_links` writes the table that
+puts them back together -- into the override beside the art, because that is
+where the pins are, with an empty copy committed so `init.lua`'s load is honest
+on a tracker that has no override. That works because `ScriptHost:LoadScript`
+reads through `Pack::ReadFile`, which consults the override; `Pack::hasFile` does
+not, which is why the door icons had to be committed instead. The two are not
+interchangeable and the difference has now bitten once in each direction.
+
+The table is positions only. Which pin a tile belongs to is what the board
+already draws.
+
+**Both ends are looked up and usually only one resolves**, which is correct
+rather than a gap. Entering a town lands the party on a plain tile inside the
+border, which carries no pin; the way back out departs from a border warp tile,
+which does. So each direction marks itself from its own departure, and the
+arrival lookup is the bonus that fires on a staircase where both ends really are
+teleport tiles. The same lookup is the filter on `Exit` and `Warp`: neither
+leaves from a staircase, so an edge with no pin at its departure is dropped. One
+cast standing *on* a staircase would record a wrong edge; walking the real door
+later overwrites it, and that is written into the commit rather than hidden.
+
+**A cartridge swap is handled twice on purpose.** The edge watch notices it
+itself, and `reconcile.resetForNewGame` calls `clearEntranceMarks`, because the
+entrance pins are not in `SECTION_PATHS` -- that index is built from
+`LOCATION_MAPPING`, which is Archipelago location ids, and a door is not one.
+PopTracker does not define which watch fires first, so the hook re-applies rather
+than only clearing: whichever order they arrive in, the board ends up showing the
+cartridge in the slot. `tests/test_edges.lua` drives both orders.
+
+**The channel is graded, and the grader demonstrates a failure.**
+`entrance_graph --grade` reads the cartridge's own tables -- the reading the
+bridge is forbidden to make -- so the two answers are independent, and that is
+the only thing agreement is worth anything for. The suite builds a log of every
+door and staircase, grades it at 129 records all agreeing, then moves one
+destination and asserts the same call comes back false.
+
+Its third verdict is not a hedge. A warp tile pops the scroll, map and tileset
+the last normal teleport pushed (`bank_0F.asm:2214-2217`), so where it comes out
+is on the 6502 stack and in no table: **ungradeable by construction rather than
+unmeasured.** A spell cast on an ordinary tile is the other shape -- there is no
+teleport there to disagree with, and calling that wrong would report a Warp as a
+broken reader.
+
+**And the corpus gained a cartridge whose doors move**, which it did not have.
+Every seed in both corpora had `Entrances`, `Towns` and `Floors` false, so
+anything about where a door goes could only ever have been graded against the
+identity permutation. `oracle_entrances` is `oracle_std` with those three set
+true and nothing else. On it Pravoka opens into Onrac, Elfland into Lefein,
+Melmond into Pravoka, and the entrance-pin suite passes at 178 pins.
+
+**One thing this cost that is worth knowing before the next change to the
+bridge.** The first cut of it put the file eight names over Lua's 200-local
+ceiling in the main chunk, which is a load-time syntax error and not something
+any suite would have caught -- the suites load the file, so they would all have
+failed at once with a message about local variables. The edge log's state is one
+table and the scroll addresses are one table for that reason, and there are six
+names of headroom left.
