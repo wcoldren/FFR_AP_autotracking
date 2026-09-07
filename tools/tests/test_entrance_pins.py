@@ -112,6 +112,15 @@ def section_ids(nodes, parent=""):
     return out
 
 
+def err_of(fn, *args):
+    """The exception `fn` raised, or None. Rows below read the failure itself."""
+    try:
+        fn(*args)
+    except Exception as e:      # noqa: BLE001 -- the row is "did it refuse"
+        return e
+    return None
+
+
 def quiet(fn, *args):
     """Call `fn` with its report swallowed -- the rows below read the verdict."""
     out, sys.stdout = sys.stdout, io.StringIO()
@@ -568,6 +577,39 @@ def main():
             f.writelines("%d,%d,%d,%d,%d,%d\n" % rec for rec in moved)
         check("one destination moved is caught",
               quiet(entrance_graph.grade_edges, graph, bad), False)
+
+        # And the row that keeps the two above honest. A grader that skips what
+        # it cannot parse reports a clean sheet over zero doors, which is what
+        # pointing it at the wrong file gets you -- the bridge writes
+        # ffr_timer.<cartridge>.state beside the ROM, one tab-separated line,
+        # and a shell completes to it from the same prefix. There is no oracle
+        # behind the observation channel other than this call, so reading
+        # nothing has to come back false rather than green.
+        timer = os.path.join(tmp, "ffr_timer.sha-fixture.state")
+        with open(timer, "w") as f:
+            f.write("FFR_fixture.nes\t1234\trunning\n")
+        check("the run clock's state file is not graded clean",
+              quiet(entrance_graph.grade_edges, graph, timer), False)
+        check("  and reading it says why",
+              quiet(err_of, entrance_graph.read_edge_log, timer) is not None, True)
+
+        # A record the bridge could not have written is the same problem one
+        # line at a time: half a log parsed is not a log.
+        torn = os.path.join(tmp, "torn.state")
+        with open(torn, "w") as f:
+            f.write("sha-fixture\n")
+            f.write("%d,%d,%d,%d,%d,%d\n" % log[0])
+            f.write("-1\t1\t1\t2\t2\t2\n")
+        check("a line that is not a record fails the whole log",
+              quiet(entrance_graph.grade_edges, graph, torn), False)
+
+        # An empty log is the shape a fresh cartridge leaves on disk before any
+        # door is walked, and it is still nothing to grade.
+        header = os.path.join(tmp, "header.state")
+        with open(header, "w") as f:
+            f.write("sha-fixture\n")
+        check("a log with no doors in it is not a pass",
+              quiet(entrance_graph.grade_edges, graph, header), False)
 
     # Exit and Warp cast off a door are the shape that must read as ungradeable
     # rather than as wrong: a tile that is no teleport at all has no answer on

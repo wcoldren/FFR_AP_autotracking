@@ -1321,17 +1321,39 @@ def read_edge_log(path):
     after it, six integers each, -1 for the overworld. Written by
     bridge/ffr_uat_bridge.lua; the id is not checked here, because a log handed
     to this tool by name is a log somebody meant to grade against this ROM.
+
+    Raises ValueError when the file is not that. Skipping what will not parse
+    is how a file that is not an edge log at all grades clean: the bridge writes
+    two other files beside the ROM, and ffr_timer.<cartridge>.state is one
+    tab-separated line with a name a shell completes to from the same prefix.
+    Read loosely it is a log of nothing, nothing disagrees with the cartridge,
+    and the grader -- the only independent check the observation channel has --
+    exits 0 having read no doors.
     """
-    out = []
+    out, bad = [], []
     with open(path) as f:
-        for line in f:
-            fields = line.strip().split(",")
-            if len(fields) != 6:
+        for n, line in enumerate(f, 1):
+            text = line.strip()
+            if not text:
                 continue
+            fields = text.split(",")
             try:
+                if len(fields) != 6:
+                    raise ValueError(text)
                 out.append(tuple(int(v) for v in fields))
             except ValueError:
-                continue
+                # The first line is the cartridge id, which is the one line
+                # that is meant not to parse.
+                if n != 1:
+                    bad.append(n)
+    if bad:
+        shown = ", ".join(str(n) for n in bad[:5])
+        more = f" (and {len(bad) - 5} more)" if len(bad) > 5 else ""
+        raise ValueError(f"{path}: line {shown}{more} is not six comma-separated "
+                         f"integers -- this does not look like a bridge edge log")
+    if not out:
+        raise ValueError(f"{path}: no door records -- this does not look like a "
+                         f"bridge edge log (ffr_edges.<cartridge>.state)")
     return out
 
 
@@ -1372,12 +1394,19 @@ def expected_edge(g, fm, fc, fr):
 def grade_edges(g, path):
     """Grade a played edge log against the cartridge. True when nothing disagreed.
 
+    False when the file could not be read as one, too. A grader with no oracle
+    behind it has to say so rather than report a clean sheet over zero doors.
+
     The observation channel has no other oracle. The bridge learns the
     permutation by watching the party walk and never reads a teleport table;
     this tool reads nothing else, so the two answers are independent, which is
     the only thing that makes agreement worth anything.
     """
-    log = read_edge_log(path)
+    try:
+        log = read_edge_log(path)
+    except (OSError, ValueError) as e:
+        print(f"grading FAILED: {e}")
+        return False
     agree, wrong, ungradeable = 0, [], []
     for fm, fc, fr, tm, tc, tr in log:
         want, why = expected_edge(g, fm, fc, fr)
