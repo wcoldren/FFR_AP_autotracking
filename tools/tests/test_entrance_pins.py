@@ -262,6 +262,31 @@ def main():
 
     check("a lone warp tile inside the content is a door",
           sorted(regen_maps.floor_exits(Grid(), 0)), [(28, 28)])
+
+    # And the third condition, which is the crop's rather than this rule's. A
+    # room small enough to be a speck is dropped by drop_specks, taking its warp
+    # with it -- but the crop keeps that room whenever anything protected stands
+    # in it, and protected_cells shields every teleport except a warp. So a
+    # sealed room holding a staircase and a warp is drawn and then has no pin on
+    # its way out, which is what Sea Shrine B3's bottom-right corner did on
+    # every standard cartridge until floor_exits was given the crop's `keep`.
+    speck = list(tiles)              # the 11x11 block, plus a room off on its own
+    for row in range(40, 43):
+        for col in range(40, 43):
+            speck[row * dim + col] = 1
+
+    class Speck:
+        def teleports(self, map_id):
+            return [(41, 41, entrance_graph.TP_TELE_WARP, 0)]
+
+        def grid(self, map_id):
+            return speck, None, None
+
+    check("a warp in a speck the crop dropped is not a door",
+          sorted(regen_maps.floor_exits(Speck(), 0)), [])
+    check("  and is one as soon as the crop keeps that speck",
+          sorted(regen_maps.floor_exits(Speck(), 0, keep=[(42, 42)])),
+          [(41, 41)])
     check("  the one out in the filler is not, whatever its cluster",
           (5, 5) in render_maps.content_cells(tiles), False)
     was = regen_maps.FLOOR_EXIT_CLUSTER
@@ -352,8 +377,10 @@ def main():
     check("every link is a norm or an exit",
           sorted({k for k in kinds if k in regen_maps.FLOOR_LINK_KINDS}),
           sorted(regen_maps.FLOOR_LINK_KINDS))
-    floor_doors = sum(len(regen_maps.floor_exits(graph, m))
-                      for m in render_maps.MAP_FILES)
+    npc_cells = regen_maps.npc_cells_of(rom)
+    floor_doors = sum(len(regen_maps.floor_exits(
+        graph, m, regen_maps.crop_keep(graph, m, npc_cells.get(m, ()))))
+        for m in render_maps.MAP_FILES)
     print(f"-- {floor_doors} of the warp tiles are a floor's door")
 
     # Every tile the filter lets through, per map, with what link it is part
@@ -365,7 +392,9 @@ def main():
         cells = {(col, row): (kind, pay)
                  for col, row, kind, pay in graph.teleports(map_id)
                  if kind in regen_maps.FLOOR_LINK_KINDS}
-        for cell in regen_maps.floor_exits(graph, map_id):
+        for cell in regen_maps.floor_exits(
+                graph, map_id,
+                regen_maps.crop_keep(graph, map_id, npc_cells.get(map_id, ()))):
             cells[cell] = (entrance_graph.TP_TELE_WARP, 0)
         eligible[map_id] = cells
     check("  and the border warps are all left out",
@@ -457,7 +486,9 @@ def main():
     for name, (map_id, col, row) in links.items():
         table = {(x, y) for x, y, k, _ in graph.teleports(map_id)
                  if k in regen_maps.FLOOR_LINK_KINDS}
-        table |= regen_maps.floor_exits(graph, map_id)
+        table |= regen_maps.floor_exits(
+            graph, map_id,
+            regen_maps.crop_keep(graph, map_id, npc_cells.get(map_id, ())))
         if (col, row) not in table:
             astray.append(name)
     check("every link sits on a tile its map's table names", sorted(astray), [])

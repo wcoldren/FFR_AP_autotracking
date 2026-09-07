@@ -1066,7 +1066,20 @@ def _clusters(cells):
     return out
 
 
-def floor_exits(graph, map_id):
+def crop_keep(graph, map_id, npc_cells=()):
+    """The cells the crop will not discard on this map, for floor_exits' `keep`.
+
+    A named function rather than four lines at each site, because the crop and
+    the floor-door rule disagreeing about what a speck is has already cost a
+    pin -- render_maps.protected_cells says the same thing about crop_violations
+    and content_crop deriving it separately.
+    """
+    rom = graph.rom.data
+    return [cell for _, cell in render_maps.protected_cells(
+        rom, map_id, render_maps.map_tiles(rom, map_id), graph, npc_cells)]
+
+
+def floor_exits(graph, map_id, keep=()):
     """{(col, row)} -- the warp tiles on a map that are a door, not a border.
 
     See FLOOR_EXIT_CLUSTER for the two conditions and what each one is for.
@@ -1074,22 +1087,31 @@ def floor_exits(graph, map_id):
     and the content off render_maps' own flood and speck rule, so this answers
     the same way for a cartridge nobody has drawn yet.
 
-    The specks are dropped without `keep`, which regen passes to content_crop
-    and this cannot see. That direction is the safe one: a speck the crop saves
-    for a chest loses its floor door here, which is a pin missing from art that
-    was drawn, rather than a pin on art that was not.
+    **`keep` is the crop's, and passing it is not optional for a real
+    cartridge.** This used to drop specks without one while regen passed the
+    crop's `keep` to content_crop, and the mismatch cost a pin on every standard
+    seed: Sea Shrine B3's bottom-right room is thirteen cells, sealed, holding a
+    staircase and a warp. render_maps.protected_cells shields every teleport
+    from the crop *except* a warp (`:711-713`), so the room survived the crop on
+    the staircase's account and then lost its warp here, and the way back out of
+    that room was drawn on the art with no pin on it. The comment that stood
+    here called that "the safe direction". It is not: a pin missing from art
+    that was drawn is a door a player cannot see.
+
+    An empty `keep` still answers, for a caller with no cartridge behind its
+    grid -- the suite's synthetic one -- and that is the only thing it is for.
     """
     warp = {(col, row) for col, row, kind, _ in graph.teleports(map_id)
             if kind == entrance_graph.TP_TELE_WARP}
     if not warp:
         return set()
     content, _ = render_maps.drop_specks(
-        render_maps.content_cells(graph.grid(map_id)[0]))
+        render_maps.content_cells(graph.grid(map_id)[0]), keep=keep)
     return {cell for group in _clusters(warp) if len(group) <= FLOOR_EXIT_CLUSTER
             for cell in group & content}
 
 
-def entrance_tiles(graph):
+def entrance_tiles(graph, npc_cells=None):
     """{node name: (map_id, col, row)} -- every staircase and hole.
 
     Read straight off each map's own teleport table, which is the table the
@@ -1110,10 +1132,11 @@ def entrance_tiles(graph):
     shape as a staircase, because leaving a floor by the front is the same kind
     of thing to a player as leaving it by the stairs.
     """
-    return {name: cells[0] for name, cells in entrance_members(graph).items()}
+    return {name: cells[0]
+            for name, cells in entrance_members(graph, npc_cells).items()}
 
 
-def entrance_members(graph):
+def entrance_members(graph, npc_cells=None):
     """{node name: [(map_id, col, row), ...]} -- every tile that *is* this link.
 
     The pin's own cell comes first and the rest follow in tile order, so
@@ -1126,12 +1149,20 @@ def entrance_members(graph):
     here says where anything goes: it is positions, which is what the pins
     already draw.
     """
+    rom = graph.rom.data
+    # Derived here rather than defaulted inside floor_exits, because the crop
+    # derives it from the same helper and the two sets have to be the one set.
+    # Computed once for the whole cartridge when a caller has not already got
+    # it: npc_cells_of walks every map's object table.
+    npc_cells = npc_cells_of(rom) if npc_cells is None else npc_cells
     out = {}
     for map_id in render_maps.MAP_FILES:
         link = {(col, row): (kind, pay)
                 for col, row, kind, pay in graph.teleports(map_id)
                 if kind in FLOOR_LINK_KINDS}
-        for cell in floor_exits(graph, map_id):
+        for cell in floor_exits(graph, map_id,
+                                crop_keep(graph, map_id,
+                                          npc_cells.get(map_id, ()))):
             link[cell] = (entrance_graph.TP_TELE_WARP, 0)
         for (col, row), group in sorted(_one_per_link(link).items()):
             name = (overworld_pins.ENTRANCE_PREFIX
@@ -2343,7 +2374,8 @@ def main():
         if rel is dungeon_locations:
             group = overworld_pins.entrance_group(ow_doors, origin=ow_box[:2])
             kids, link_lost, link_shade = entrance_children(
-                maps_by_rom_id(cal), entrance_tiles(ow_graph), sprite_cells)
+                maps_by_rom_id(cal), entrance_tiles(ow_graph, npc_cells),
+                sprite_cells)
             group["children"] += kids
             links += len(kids)
             link_unplaceable += link_lost
@@ -2356,7 +2388,7 @@ def main():
             files[ENTRANCE_LINKS_FILE] = build_entrance_links(
                 group["children"],
                 {**overworld_pins.entrance_door_members(ow_graph.doors),
-                 **entrance_members(ow_graph)}).encode()
+                 **entrance_members(ow_graph, npc_cells)}).encode()
         pin_visibility.stamp(doc)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
         placed += pl
