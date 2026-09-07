@@ -1840,3 +1840,64 @@ from the shape of the map, and the two are easy to say interchangeably.
 holds every walkable tile, and the box a pin rule alone would build does not.
 The second is what stops the first from going vacuous on some future cartridge
 whose pins happen to reach the corners.
+
+## The door rules can be derived, and they agree
+
+Built 2026-09-07, as a spike that came back green enough to keep. The tool is
+`tools/door_reach.py`: it walks the overworld from the party's start under
+every subset of {bridge, canal, canoe, ship, airship} and reports the minimal
+sets that put the party on each of the 30 doors.
+
+**Why it is worth having when the pack already has rules for this.** The
+hand-written region rules are attached to destinations -- "here is every way to
+reach the marsh cave's door" -- and an entrance-shuffled seed repoints that door
+without moving it, so the rule stays attached to the wrong contents. Where a
+door *is* does not move. Measured rather than argued: `oracle_std` and
+`oracle_entrances` are one seed three flags apart and produce byte-identical
+output for all 30 doors.
+
+**It agrees with the hand-written rules on 20 of 21 mapped doors**, on
+`std497`, `dock497`, `landbridge497`, `extended497`, `drydock497`,
+`airship497`, `gaia497`, `gaiahwy497` and the play cartridge -- exactly, including
+`Ordeals` at `airship+canoe OR canal+canoe+ship` and `Waterfall` at
+`airship+canoe`. `drydock497` agrees on all 21.
+
+**The map-edit flags come for free**, which was the surprise. `openProgression`,
+`extendedOpen`, `melmondRiver` and the rest are applied at generation, so they
+are in the stored map already and the walk picks them up with no flag vocabulary
+at all: the Marsh Cave door derives as free on a seed with open progression and
+as canoe-or-ship-or-airship on `std497`.
+
+**The one disagreement is a door reachable through a dungeon**, and both sides
+are right. Sarda's Cave sits on a strip with no overworld route; the pack writes
+`ruby` conjoined with travel to Titan's Tunnel East, because feeding Titan is
+what opens the way. The walk sees the overworld and says "no route". On the play
+cartridge, which has `noSardasForest` off, the walk independently reproduces the
+reason the rule needs the ruby -- the airship cannot land there either.
+
+**Three modelling points were wrong in the first cut and each moved the
+answer.** They are in the tool's docstring and each has a synthetic map in
+`tools/tests/test_door_reach.py` built to fail without it, because a cartridge
+can only show the walk agreeing with itself:
+
+  * The ship stays in its own sea. `overworld_reach.reach` boards at any dock
+    the party can walk to, which is safe for its question because it starts at
+    sea; starting on land the party docks, crosses the isthmus on foot and
+    re-boards on the far side, carrying the ship past the canal -- and the
+    `canal` term vanished from every rule. FFR gates the same step on the ship's
+    own area (`SanityCheckerV2.cs:428`).
+  * The airship lands and then the party walks. Landable tiles are seeds, not
+    the answer; treating them as the answer left eight doors unreachable.
+  * A door can be entered from a vehicle. The Waterfall is entered from the
+    canoe, so keeping only the tiles the party stands on called it unreachable
+    with every item in the game.
+
+**The bridge and the canal are read off the cartridge, not hardcoded** --
+`0x3000 + UnsramIndex.BridgeX`/`CanalX` -- and they are gates rather than tiles,
+which is FFR's own model: it replaces the classification at those two cells and
+crosses them with `CheckLink`. Same coordinates on all 14 cartridges here, and
+the walk would follow a seed that moved them.
+
+Nothing is wired into `regen_maps` yet. What this closes is the question of
+whether the derivation is trustworthy enough to build on, and the answer is on
+the record now rather than in a session.
