@@ -36,18 +36,35 @@
   "-- ROM tile (15,7), the only special tile in that column (0x3B, b1 0xBF).",
   "Note (15,7), not (15,5): the ToFR handoff named the wrong row.",
   "",
-  "tofr1F, tofrEarth and tofrWater have no entry yet, and tofr1F is the reason",
-  "to distrust the other two rather than to hurry them. The rule proposes",
-  "(54,39) for it and the overlay says that is WRONG -- the grid does not line",
-  "up anywhere on the map. The cause is room_tiles(): it calls the most common",
-  "tile the void, and tofr1F is the one Temple floor drawn with the outdoors",
-  "around it, so the commonest tile is grass and the box it returns is the",
-  "temple rather than the drawn area. A floor with outdoor tiles needs its",
-  "offset solved some other way.",
+  "tofr1F, tofrEarth and tofrWater were solved on 2026-09-06 and each entry",
+  "carries the reading it was solved from. The method that reached the two",
+  "interior floors is a landmark and not a heuristic: every ToFR floor but 1F,",
+  "2F and Chaos carries exactly one fixed-formation battle tile -- the fiend --",
+  "at the same ROM coordinates on all five cartridges measured here, vanilla",
+  "included, and DarkmoonEX draws a yellow boss plate on it. Read the plate's",
+  "blob (RGB(242,201,11)), read the tile off the cartridge with",
+  "render_maps.map_trap_marks, and the offset is the difference.",
   "",
-  "tofrEarth (13,18) and tofrWater (31,22) are still only proposals. They are",
-  "interior floors so the void heuristic should hold, but neither has been",
-  "confirmed on the overlay and one confirmed floor is not three.",
+  "It reproduces tofrFire (10,9) and tofrAir (12,12) to within a pixel in x and",
+  "exactly in y. On tofr3F it lands 4 px high -- that art draws its plate 4 px",
+  "above the tile centre, which is an idiosyncrasy of the one map rather than a",
+  "wrong entry: the two drawn chest sprites there sit at the same (-2,-3.5) from",
+  "their tile centres that they do on tofrFire and tofrAir, so 22 is right and",
+  "the plate is high. Read that as the method's error bar. Never take a plate as",
+  "the only evidence for a y.",
+  "",
+  "Why the room-extent rule did not answer these three. On tofr1F it proposes",
+  "(54,39), and the overlay says WRONG -- the grid lines up nowhere. The cause",
+  "is room_tiles(): it calls the most common tile the void, and tofr1F is the",
+  "one Temple floor drawn with the outdoors around it, so the commonest tile is",
+  "grass and the box it returns is the temple rather than the drawn area. Ask",
+  "the same question about the temple instead and it answers: the temple spans",
+  "42x37 ROM tiles and the art's non-grass box is 673x592, so y is 20 on both",
+  "edges and x is 27 or 28. On tofrWater it proposes (31,22), and 31 is the Map",
+  "Key panel rather than the room -- exclude the rows the panel occupies and the",
+  "room measures exactly 496 px from x 22, which is what the boss plate says",
+  "too. On tofrEarth it proposes (13,18), the plate agrees, and that one was",
+  "right all along.",
   "",
   "One more thing the overlay makes obvious: images/maps/*.png are DarkmoonEX's",
   "annotated maps, carrying a title bar, a Map Key and his own drawn route. The",
@@ -72,6 +89,12 @@
   "brightness. The correlation is genuinely high -- 0.70 to 0.83 -- and its peak",
   "is 3 to 5 pixels away from the known answer on all four floors that have one.",
   "It finds the room, not the grid.",
+  "",  "A fifth, tried 2026-09-06 and worth naming because it looks like the",
+  "landmark method and is not: scoring an offset by how often the art agrees",
+  "with the cartridge about which tiles are void, sampled at every tile centre.",
+  "It scores 0.97 to 1.00 on offsets that are demonstrably wrong -- a mostly",
+  "empty mask agrees with itself at many phases -- and recovers none of the five",
+  "known offsets. A high score over a uniform region says nothing.",
   "",
   "Do not try to solve tofr1F, tofrEarth or tofrWater from chest sprites. The",
   "art draws four chests on tofr1F and none on the other two, and chest_tiles()",
@@ -496,6 +519,48 @@
     "offset_y": 9
    }
   ]
+ },
+ "tofr1F": {
+  "rom_map_id": 52,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 27,
+    "offset_y": 20
+   }
+  ],
+  "_solved_from": {
+   "how": "the temple outline, cross-checked against the four corner stair glyphs",
+   "note": "The one Temple floor with no fiend to anchor on. The ROM map's own grass is the void, so the temple spans ROM cols 0-41 and rows 0-36 (42x37 tiles = 672x592 px) and the art's non-grass box is x 27-699, y 20-611. The y span is 592 exactly and both edges agree on 20. The x span is 673, one pixel wider than the grid, so the near edge gives 27 and the far edge 28; the four cyan stair glyphs, at ROM (1,1), (40,1), (1,35) and (40,35), imply 26, 27, 28.5 and 28.5 -- the art runs about 1.5 px wide across its width. 27 is the near-edge answer and the chest copies Mid lays here, 253 at (16,16) and 254 at (24,16), sit mid-map where the stretch is smallest."
+  }
+ },
+ "tofrEarth": {
+  "rom_map_id": 55,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 13,
+    "offset_y": 18
+   }
+  ],
+  "_solved_from": {
+   "how": "Lich's battle tile, cross-checked against the room extent",
+   "note": "The drawn boss badge (the yellow LI plate, RGB(242,201,11)) centres at (596.5,506.0) and the map's one fixed-formation tile is ROM (36,30) on every cartridge measured, vanilla included, which gives (12.5,18.0). The room's own extent gives (13,18) on both edges -- 39x34 tiles against a 624x544 art box -- so two independent readings agree."
+  }
+ },
+ "tofrWater": {
+  "rom_map_id": 57,
+  "tile_px": 16,
+  "regions": [
+   {
+    "offset_x": 22,
+    "offset_y": 22
+   }
+  ],
+  "_solved_from": {
+   "how": "Kraken's battle tile, cross-checked against the room extent below the Map Key",
+   "note": "The badge centres at (414.5,478.0) against ROM (24,28), which gives (22.5,22.0). The room measures exactly 496 px, x 22-517, once the rows carrying the Map Key panel are excluded -- 31 tiles, both edges hard. Taking the whole image instead puts the far edge at 526 and proposes offset_x 31, which is the Map Key and not the room: at 31 the marker box cuts the badge in half and the implied grid bisects every wall block."
+  }
  },
  "volcB2": {
   "rom_map_id": 33,
