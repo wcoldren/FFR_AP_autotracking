@@ -1739,6 +1739,127 @@ pack uid -- a regen belongs after the merge, from `trunk`, not to a topic branch
 to make a stage green. The new guard refuses one from here anyway, which is the
 demonstration rather than the obstacle.
 
+## The doors are named for what they are
+
+Built 2026-09-07 on `entrance-destinations`, and it closes `docs/ROADMAP.md`
+section 4's naming item. A floor link was called `Entrance: SeaShrineB3 49,37`,
+so the floor that bullet names was seven coordinate pairs to read off the art.
+Seven rather than the six the bullet said: six staircases and a well, counted on
+`std497` rather than taken from the page. It is
+`Entrance: SeaShrineB3 NE Upstairs` now.
+
+**The bullet said to find out what FFR carries before designing, and that is
+the part worth keeping.** FFR has three tables that could name a floor link and
+only two of them describe the door's own end:
+
+  * `ExitTeleportIndex` (`Enums.cs:167`, spelled as `Teleporters.cs:213-222`
+    spells it) names the ten exit tiles, and Titan's Tunnel finally reads as
+    `ExitTitanEast` and `ExitTitanWest` rather than as two coordinate pairs on
+    one map. Transcribed as `entrance_graph.EXIT_NAMES`.
+  * `TeleportTilesGraphics` (`MetroidVaniaMap.cs:1731`) is FFR's table for
+    *drawing* the teleporters it invents for No-Overworld. Read backwards it
+    classifies the ones already on a cartridge, which is where `Upstairs`,
+    `Hole` and `Well` come from.
+  * `TeleportIndex` names all 64 in-map teleports, covers every staircase pin,
+    and **is deliberately unused.** Its names are a teleport's vanilla
+    *destination* -- `MarshCaveTop`, `EarthCaveVampire` -- so a pin wearing one
+    would claim a destination on a seed that had moved it. The constraint the
+    bullet inherited is that a name shows in the location list and so must
+    describe the door's own end, and the obvious table is the one that breaks
+    it. Both `entrance_graph.EXIT_NAMES` and `regen_maps.entrance_qualifier`
+    say so where they live, because the temptation is to reach for it again.
+
+**The stairs-and-holes noun was written off as underivable once, wrongly, and
+the reason is worth not repeating.** `Constants.inc:300-326` has no bit that
+separates a staircase from a hole -- the teleport kind is two bits and the
+special type has no row for either -- so the first reading said the distinction
+was graphical and therefore a guess about tile ids, which is a trap this repo
+has paid for. It is graphical, and FFR wrote the table down: the four CHR
+indices per graphic per tileset, in exactly the `QUAD_BASE` order
+`render_maps.tileset_art` already reads. Looking one layer past the engine's own
+constants was the whole difference. It names 122 of the 149 pins on `std497`;
+the 27 it misses are almost all Castle of Ordeals' warp pads, and the reason is
+in the table rather than in the matching -- `TeleportTilesGraphics["Teleporter"]`
+is four zeroes on the castle tileset, so FFR never draws one there and has no
+name for the one vanilla put there. Those pins lose the noun and keep the rest.
+
+**The direction is measured in the frame the tab draws, not in rom
+coordinates.** A standard map is a torus and `content_crop` slides the ones
+whose content crosses the join, so "north" in rom coordinates is the wrong end
+of the maps that slid. `_octant` goes through `Crop.place`, which is the one
+tile-to-pixel mapping the file already insists nothing duplicates, and
+`tools/tests/test_entrance_pins.py` builds a map across the join that names a
+link at column 2 as `E` -- a row that passes on rom coordinates only by
+accident.
+
+**Ordinals only where a floor really offers two of the same thing in one
+corner.** 1,477 of 6,899 pins across 45 cartridges wear one, and the shape of
+that number is two floors rather than a spread: Castle of Ordeals 2F's warp
+maze, which has no graphic name and fifteen identical pads, and Ice Cave B2's
+pit room, which is ten holes in one quadrant. Ordered row then column, the
+tie-break `_middle` already uses, so a number does not move between runs of one
+cartridge.
+
+**Measured rather than argued, and this is the census worth keeping**: 45
+cartridges, 6,899 pins, **no two names colliding on any of them, and none
+falling back to coordinates.** The fallback is still in
+`entrance_qualifier` for a pin out of frame with no graphic, because an empty
+qualifier would collapse a floor's pins onto one name and take
+`build_entrance_links`' duplicate-code guard down with it -- but nothing in
+either oracle corpus reaches it.
+
+**The item codes move with the names**, because `entrance_code` slugs the name
+and always has. `entr_seashrineb3_49_37` is now `entr_seashrineb3_ne_upstairs`,
+which is the readable half of the point, and the cost is that a saved tracker
+state loses its cleared doors once. Worth saying out loud rather than finding in
+play.
+
+## The badge was rendering out through the side of the popup
+
+Fixed 2026-09-07, on a report that the hover tooltip "isn't quite wide enough".
+It is not a width setting anybody forgot: **there is no tooltip width in
+PopTracker's pack format at all.** A `MapTooltip` sizes itself to its widest
+*measured* child (`maptooltip.cpp:202-205`), the badge is an item *overlay*, and
+an overlay is neither measured into `getAutoSize()` nor clipped when it is drawn
+(`item.cpp:336-368`). `trackerview.cpp:993-1020` clamps the tooltip's height and
+never its width. So a destination longer than the 32px icon rendered straight
+out through the popup's dark background, with nothing anywhere complaining.
+
+**The one lever the pack has is the width of the slot the icon sits in.**
+`item_width` and `item_height` are read per section (`locationsection.cpp:70-72`)
+and `LocationSection::getItemSize` has exactly one reader, `maptooltip.cpp:133`
+-- so this widens the popup and touches nothing else on the board.
+`Item::_fixedAspect` defaults true, so the door icon letterboxes rather than
+stretches, and `_halign`/`_valign` default LEFT/TOP so it stays where it was.
+
+**Both axes have to be written, and that is the trap.** `maptooltip.cpp:135-140`
+takes its `{32, 32}` default only when *both* are unset; with a width and no
+height it warns to stderr and falls back to 32x32, silently undoing the width.
+The two go in together at both injection sites.
+
+**The width is measured, not chosen.** The widest badge line the pack can draw
+is 100.6px, read out of `DejaVuSans.ttf` at the 10px `SetOverlayFontSize`
+`entrance_items.lua` asks for, across every tab leaf in `mapValues.lua` and
+every name in `map_names.lua`. The slot is 112 rather than 103 because that
+measurement is of *this* copy of the font and a player runs the app's own;
+ten pixels is about two characters of slack.
+`tools/tests/test_badge_width.py` holds the two numbers together and fails when
+a tab is renamed longer, rather than leaving it to somebody's hover.
+
+**Abbreviating is the other half, and it is what keeps the popup from doubling.**
+The tooltip lays out a location icon *and* the hosted item at that width, so a
+popup is about twice it: fourteen names are trimmed -- the Ice Cave and Castle
+of Ordeals tabs, and the eight Revisited floors -- and without them the widest
+line is 166.6px and the popup would be half as wide again.
+
+**And the trim used to be applied on one branch of two.** `mapName` preferred
+the tab leaf and fell back to `map_names.lua`, and only the leaf went through
+the abbreviation, so `TempleOfFiendsRevisitedChaos` -- the widest string the
+pack can produce, at 166.6px against a 110px budget -- sat on the one path
+nothing checked. The guard found it on its first run, which is the argument for
+the guard: every map on the board is claimed by a tab today, so the fallback is
+a branch a person reads past and a measurement does not.
+
 ## The doors say where they went
 
 Built 2026-09-07 on `entrance-destinations`. The pins have said "somebody has

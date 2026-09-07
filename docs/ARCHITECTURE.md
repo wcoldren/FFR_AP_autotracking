@@ -471,7 +471,7 @@ calling anything done; what follows is what it runs.
 ```
 tests/run.sh         17 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   36 Python suites for the cartridge-reading tools.
+tools/tests/run.sh   37 Python suites for the cartridge-reading tools.
                      21 of them skip, wholly or in part, unless FF1_ROM
                      points at a cartridge, and three more unless FF1_SEEDS
                      points at the seed tree — so a bare run passes and checks

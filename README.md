@@ -218,6 +218,16 @@ that: doors come off the cartridge's own teleport tables and are the same under
 every render setting. It says where a door is, not where it now goes -- on a
 shuffled seed those are different questions.
 
+The name works the same way, and describes the door rather than where it leads.
+`SeaShrineB3 NE Upstairs` is the up staircase in the north-east of the floor as
+the tab draws it, and `TitansTunnel ExitTitanEast` is the east mouth of the
+tunnel -- which is the randomizer's own name for that exit rather than one this
+pack made up. What a staircase is drawn as comes from the randomizer too, so a
+hole reads as a hole. Where two of the same thing sit in the same corner the
+name ends in a number, counted top to bottom. A floor with six staircases is
+six descriptions instead of six pairs of grid coordinates, and none of it
+changes when a seed moves the doors.
+
 A door you have walked through fades, the way a chest you have opened does. With
 the emulator feed attached that happens on its own: the bridge watches which map
 you are on and which tile you are standing on, and when the two stop agreeing it

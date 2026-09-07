@@ -1704,6 +1704,46 @@ Nothing here is urgent unless it says so.
   `tests/test_maps.lua` check 7 waived `fairy` by name and now waives nothing —
   every slot the two trees share has to match.
 
+- **A hover tooltip cannot be told how wide to be, and an item badge is not
+  measured into it. Found and worked around 2026-09-07.** The report was that
+  the popup "isn't quite wide enough" on some entrance pins. There is no
+  tooltip width in PopTracker's pack format at all: a `MapTooltip` calls
+  `setSize(getAutoSize())` (`maptooltip.cpp:202-205`) and comes out as wide as
+  its widest *measured* child — the location name label, the section labels,
+  and the row of items. `trackerview.cpp:993-1020` clamps that tooltip's height
+  and repositions it horizontally, and never clamps or grows its width.
+
+  The badge is not one of those children. It is an item *overlay*
+  (`Item::setOverlay`, written from `BadgeText`), and `item.cpp:336-368` renders
+  an overlay from its own texture size with `SDL_RenderCopy` and a `NULL` clip,
+  after `getAutoSize()` has already been taken. So overlay text wider than its
+  icon draws straight out through the popup's dark background, and nothing
+  errors, warns or truncates. Word wrap exists — `BreakText`, `textutil.h:134` —
+  but its only caller is the *item* tooltip (`tooltip.cpp:27`); `MapTooltip`
+  never calls it. An explicit `\n` does work, since `_RenderText` splits on it.
+
+  The workaround is `item_width` on the section, which is the width the tooltip
+  lays the hosted item out at. Two things about it are worth knowing before
+  reaching for it again. `LocationSection::getItemSize` has exactly one reader,
+  `maptooltip.cpp:133`, so it moves the popup and nothing else on the board —
+  and it is read through `to_int` rather than `to_pixel`
+  (`locationsection.cpp:70-72`), so unlike `item_size` it is plain pixels with
+  no icon-size table in the way. But **both axes have to be set**:
+  `maptooltip.cpp:135-140` takes its `{32, 32}` default only when both are
+  unset, and a width with no height warns to stderr and falls back to 32x32,
+  silently undoing the change.
+
+  The cost is that the tooltip lays out a location icon *and* the hosted item at
+  that width, so the popup comes out about twice it. That is why the pack
+  abbreviates the badge as well as widening the slot, and why
+  `tools/tests/test_badge_width.py` measures the two against each other rather
+  than trusting a character count. `STATUS-2.md`, "The badge was rendering out
+  through the side of the popup".
+
+  Same family as the note below about pin colours: what a pack may set and what
+  only the app may set is not written down anywhere, and both were found by
+  reading `src/`.
+
 - **What a diamond means. Answered 2026-09-04: a union.** Square and diamond are
   the same size, centre, colours and click target; the only difference is that a
   diamond leaves the tile's four corners unpainted so a sprite reads behind it.
@@ -1719,13 +1759,13 @@ Nothing here is urgent unless it says so.
   reading the shape backwards; a diamond stops meaning "there is a sprite here".
   Nothing else breaks, because the rendering constraint that booked the shape is
   one-directional: a pin *on* a sprite must be a diamond or it hides it, which is
-  why `marker_pixel` emits one exactly there (`tools/regen_maps.py:1335`), and
+  why `marker_pixel` emits one exactly there (`tools/regen_maps.py:1441`), and
   adding more diamonds never violates that. It is a naming decision only —
   nothing starts emitting diamonds that did not emit them before.
 
   Recorded for players in `README.md`, "What the pin shapes mean", rather than in
   the Map Key that `docs/ROADMAP.md` section 3 asked for. The Map Key is rendered
-  art: `draw_map_key` (`tools/render_maps.py:1035`) draws lane bars and trap
+  art: `draw_map_key` (`tools/render_maps.py:1164`) draws lane bars and trap
   letters into a per-map band that is reserved only where there is something to
   say, so shape rows would reserve a band on all 61 maps, change every crop
   height and move every marker coordinate.

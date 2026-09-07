@@ -323,6 +323,41 @@ closed 2026-09-06.
   shapes mean", rather than in the Map Key this bullet asked for, because the Map
   Key is rendered art and shape rows would move every marker on every map.
   `docs/ISSUES.md`, "What a diamond means", holds the reasoning.
+- **A hint names a location the board cannot find.** Archipelago's location
+  names and this pack's are two different vocabularies, and 254 of the 255 they
+  share disagree. Both are defensible: AP's are the randomizer's own
+  player-facing set, shipped in `FF1Lib/archipelago/locations.json` and copied
+  into `worlds/ff1/data/`, and they read as route jargon plus a floor label --
+  `Marsh Cave Bottom (B2) - Tetris-Z Middle 1`. The pack's say where the thing
+  is on the drawn floor -- `Marsh Cave Bottom Floor 2,2 2`. On a map board the
+  second is the one that helps, so this is not a case for renaming either side.
+
+  **81 of the 255 end in a number that disagrees, and several are transposed**:
+  AP's `Northwest Castle - Treasury 2` is this pack's `North West Castle Chests
+  3`, and AP's `Treasury 3` is the pack's `Chests 2`. Anyone matching a hint by
+  eye lands on the wrong chest and has no reason to doubt it. That is the defect
+  here; the naming difference on its own is not.
+
+  A tooltip does not answer it, because the question is a lookup -- "a hint
+  names this, where is it?" -- and you cannot hover a pin you have not found
+  yet. What answers it is navigation, and the parts exist: `LOCATION_MAPPING`
+  already resolves an AP id to a section path, and `tabPathForMap` /
+  `activateTabPath` plus the gold highlight already do "take me there" for
+  entrance badges. A scout handler that tabs to a hinted location and lights it
+  would reuse all of it.
+
+  The cheap half first: `onLocation(location_id, location_name)`
+  (`scripts/autotracking.lua:169`) is already handed AP's exact name and drops
+  it after a debug print. Keeping it costs nothing and makes the correspondence
+  visible before any of the above is built.
+- **Twelve Deep Dungeon locations are in no mapping.** The AP world carries 267
+  locations to the randomizer's 255; the twelve extra are Deep Dungeon
+  (`DeepDungeon29B_Chest146` and friends, ids 401-404 and 443-451), and
+  `LOCATION_MAPPING` has none of them. On a Deep Dungeon seed those checks
+  arrive and land nowhere on the board. Worth knowing before deciding whether
+  the mode is in scope at all -- and those twelve are also the only entries in
+  that file that do not follow the randomizer's player-facing naming, so if
+  anything there wants renaming it is them rather than the 255.
 - **Stale user-override shadowing pack edits.** Warn once.
 
 ## 4. Maps
@@ -370,21 +405,39 @@ closed 2026-09-06.
   provide to the reveal would hold the pin open and take the hand-click clear
   away with it. This pack already has a state channel for a door; the badge is
   text. `STATUS-2.md`, "The doors say where they went".
-- **Naming an entrance for what it is, not where it stands.** A pin is called
-  `Entrance: SeaShrineB3 49,37` because position is the one thing the shuffle
-  does not move, and on a floor with six staircases that is six names a player
-  has to read as coordinates. palex00's Crystal pack reads better -- `Azalea Gym
-  Entrance` -- and the question this wants answered *first* is where those names
-  come from: **his are hand-authored in a registry**, so "Crystal does it" may
-  mean "Crystal typed them all out". Whether FFR or the cartridge carries
-  anything better has not been looked at, and guessing is how the trap-letter
-  work went wrong. Read before designing.
+- **Naming an entrance for what it is, not where it stands. Done 2026-09-07.**
+  A pin was called `Entrance: SeaShrineB3 49,37`, so the floor this bullet
+  named was seven pins a player had to read as coordinates -- six staircases and
+  a well, which is the count on `std497` rather than the six written here
+  before. It is now `Entrance: SeaShrineB3 NE Upstairs`, and the reading it asked
+  for
+  first came back mixed: FFR carries three tables that could name a floor link
+  and only two of them describe the door's own end.
 
-  Two constraints it inherits. A name shows in the location list, so a name that
-  says where a door *goes* hands over the permutation -- whatever this becomes
-  has to describe the door's own end. And the badge already carries the
-  destination once walked, so the naming problem is only about telling two
-  staircases on one floor apart, which is smaller than it first looks.
+  `ExitTeleportIndex` does, and is used -- Titan's Tunnel splits into
+  `ExitTitanEast` and `ExitTitanWest`. `TeleporterGraphic` does, through
+  `TeleportTilesGraphics`, which is FFR's table for *drawing* the teleporters it
+  invents and read backwards classifies the ones already on a cartridge: that is
+  where `Upstairs`, `Hole` and `Well` come from, and it is what keeps the noun
+  from being a guess about tile ids. **`TeleportIndex` does not, and is
+  deliberately unused** -- its 64 names are a teleport's vanilla *destination*
+  (`MarshCaveTop`, `EarthCaveVampire`), so a pin wearing one would claim a
+  destination on a seed that had moved it. That is the constraint below, and it
+  is the whole reason the obvious table is the wrong one.
+
+  The rest is the frame the tab draws: where a link sits in it, and a number
+  where two of the same thing share a corner. Measured across 45 cartridges,
+  6,899 pins, no two names colliding and none falling back to coordinates.
+  `STATUS-2.md`, "The doors are named for what they are".
+
+  The two constraints it inherited both held. A name shows in the location list,
+  so it describes the door's own end. And the badge already carries the
+  destination once walked, so this was only ever about telling two staircases on
+  one floor apart -- which is why a vocabulary that names 122 of 149 pins was
+  enough and the 27 it misses lose a noun rather than a name.
+
+  palex00's Crystal pack was the prompt and turned out not to be the model: his
+  are hand-authored in a registry, and none of these are typed out.
 - **The lanes still to draw.** Three things, in the order they cost a player
   something:
 
