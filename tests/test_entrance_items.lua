@@ -62,6 +62,14 @@ function activateTabPath(path)
   end
 end
 
+-- maptab.lua's, counted rather than stubbed away: a click moves the tab behind
+-- activateMapTab's back, and forgetting the last map is how the board is told
+-- the tab no longer shows where the party is standing.
+local forgotten = 0
+function resetMapTab()
+  forgotten = forgotten + 1
+end
+
 Highlight = { None = 0, Priority = 4 }
 
 local SECTIONS = {}
@@ -200,13 +208,22 @@ print("\n-- the clicks")
 ------------------------------------------------------------------
 
 hints = {}
+forgotten = 0
 ENTRANCE_ITEMS[WAY_OUT].item.OnLeftClickFunc()
 check("a click before the walk goes nowhere", #hints, 0)
+-- And leaves the follow alone. Nothing moved, so there is nothing to forget --
+-- resetting here would make the next report re-tab for no reason.
+check("and leaves the party's tab alone", forgotten, 0)
 
 hints = {}
+forgotten = 0
 ENTRANCE_ITEMS[DOOR].item.OnLeftClickFunc()
 check("left-click tabs to where the door led", table.concat(hints, "/"),
   "Caves & Dungeons/Marsh Cave/Marsh Cave B1")
+-- The tab now shows a floor the party is not on, and activateMapTab would go on
+-- believing otherwise: its guard drops a report for the map it thinks is
+-- showing, which after a click is the one report that would put the board back.
+check("and stops claiming the tab follows the party", forgotten, 1)
 check("and lights the pin at the far end",
   SECTIONS[STAIR_UP].Highlight, Highlight.Priority)
 check("with a frame handler to put it out",

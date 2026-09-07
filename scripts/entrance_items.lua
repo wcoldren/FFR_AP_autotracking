@@ -222,6 +222,24 @@ local function navigate(mapId, path)
   local tab = tabPathForMap and tabPathForMap(mapId)
   if tab then
     activateTabPath(tab)
+    -- activateTabPath rather than activateMapTab, because this tab move is not
+    -- the party moving -- but maptab.lua's change detection has to be told, or
+    -- it goes on believing the tab still shows the floor the party is standing
+    -- on. Its guard is `mapId == lastMapId` (maptab.lua:206), and it exists to
+    -- stop a repeat report yanking the tab from someone reading another floor;
+    -- after a click that repeat is the one thing that would put the board
+    -- back, and it is the one thing the guard swallows.
+    --
+    -- This does not conjure a report. ff1/map is published only when it
+    -- changes (bridge/ffr_uat_bridge.lua:705), so walking around the floor
+    -- clicked away from still sends nothing and the tab stays where the click
+    -- put it -- which is what a click asked for. What it fixes is the repeat:
+    -- a reconnect's forced burst, or a ff1/ready flip, both of which reach
+    -- onFF1Map with the map unchanged. Before this they arrived and did
+    -- nothing.
+    if type(resetMapTab) == "function" then
+      resetMapTab()
+    end
   end
   if path and Highlight then
     local sec = Tracker:FindObjectForCode(path)
