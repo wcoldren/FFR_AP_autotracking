@@ -45,6 +45,44 @@ Nothing here is urgent unless it says so.
 
 ## Known wrong
 
+- **A door that lands on the floor it left does not mark itself.** Reported
+  2026-09-07 from play on `entrance_test`, as interior doors staying shut after
+  being walked through. The bridge notices a door by comparing two trusted scans
+  and acting when they disagree about *which map* the party is on
+  (`noteEdge`, `bridge/ffr_uat_bridge.lua:1942-1968`). A same-floor link changes
+  the tile and not the map id, so no edge is published and neither end marks --
+  the pins are drawn, the walk happens, and the board says nothing.
+
+  **The pins for these exist on purpose**, which is what makes the gap visible:
+  same-floor links are kept because they are the same kind of tile as a real one
+  and a player wants to know (`docs/ROADMAP.md` section 4). Castle of Ordeals 2F
+  is the known set -- every same-floor link in the game is a warp pad there, 15
+  on both cartridge kinds.
+
+  **Not yet diagnosed, and the hypothesis is the reporter's rather than a
+  measurement**: confirm against the edge log before building. The obvious fix
+  -- notice a tile jump rather than only a map change -- is the one that needs
+  care, because an ordinary step also changes the tile, and `invalidate()`
+  dropping the previous tile across a state load is what keeps the channel from
+  inventing doors. A threshold on distance would be a guess; the transition's
+  own `ScreenWipe_Close` is what the map-change reader leans on and is the thing
+  to look at first.
+
+- **A pin missing from art that was drawn, wherever two rules derive the same
+  content separately.** One instance found and fixed 2026-09-07 -- see the entry
+  named "The floor-door rule dropped a speck the crop had kept" -- and the sweep
+  for the rest is open. The shape is general: a rule that decides what to *draw*
+  and a rule that decides what to *crop* each build their own content set, and
+  the one that is stricter silently loses a marker on art the other kept.
+  `render_maps.protected_cells` says this about its own two readers and the
+  warning was not applied elsewhere.
+
+  Where to look, since the fixed instance was found by a player rather than by a
+  check: every caller of `render_maps.drop_specks` and `content_cells`, and
+  every place a marker set is intersected with content. The audit wants to be a
+  test rather than a session -- one that walks the corpus and reports any tile
+  the art draws, a rule calls a marker, and no marker stands on.
+
 - **A pinned control cannot survive Reset, and no pack-side change can make it.**
   Found 2026-09-04 while making the `Overworld Tab` choice stick. A stage pinned
   by hand does survive a *restart*: PopTracker autosaves item state and restores
@@ -1295,6 +1333,32 @@ Nothing here is urgent unless it says so.
   is why it was one pass over all 57 with a `VERSION` bump behind it rather than
   a quiet edit -- and why it takes a regen per mode to reach the installed art.
 
+- **The floor-door rule dropped a speck the crop had kept. Closed 2026-09-07**,
+  reported from play as a missing door in the bottom-right corner of Sea Shrine
+  B3. That corner is a sealed thirteen-cell room -- no walking route in or out,
+  a staircase at (49,37) and a warp at (47,39) -- and thirteen cells is a speck.
+
+  `render_maps.protected_cells` shields every teleport from the crop *except* a
+  warp, so the staircase saved the room and the art was drawn; then
+  `floor_exits` ran `drop_specks` with no `keep` of its own, dropped the room,
+  and took the warp's pin with it. The comment standing on `floor_exits`
+  described this exact case and called it "the safe direction" -- it had the
+  failure right and the conclusion wrong.
+
+  `regen_maps.crop_keep` is now the one function both callers ask.
+  **One pin, on `seaB3`, on every standard cartridge measured** -- the play
+  cartridge, `duck-weekly-0831-v2`, `std497`, `oracle_std`, `oracle_entrances`
+  -- and none on No-Overworld, which has no such room. The suite rows build the
+  case rather than assert it: a warp in a dropped speck is not a door, and is
+  one the moment the keep says the crop held that speck.
+
+  **It was on the route.** On the seed it was found on, the overworld's Marsh
+  Cave door lands at (47,39) -- so the unpinned tile was the first hop of the
+  only chain to Kraken, and the board could not draw the door the player had
+  walked through. The class this belongs to is the entry named "A pin missing
+  from art that was drawn, wherever two rules derive the same content
+  separately", which is open.
+
 ## Open questions
 
 - **The gold ring stops being gold once this pack's off filter has had it.**
@@ -1640,6 +1704,46 @@ Nothing here is urgent unless it says so.
   `tests/test_maps.lua` check 7 waived `fairy` by name and now waives nothing —
   every slot the two trees share has to match.
 
+- **A hover tooltip cannot be told how wide to be, and an item badge is not
+  measured into it. Found and worked around 2026-09-07.** The report was that
+  the popup "isn't quite wide enough" on some entrance pins. There is no
+  tooltip width in PopTracker's pack format at all: a `MapTooltip` calls
+  `setSize(getAutoSize())` (`maptooltip.cpp:202-205`) and comes out as wide as
+  its widest *measured* child — the location name label, the section labels,
+  and the row of items. `trackerview.cpp:993-1020` clamps that tooltip's height
+  and repositions it horizontally, and never clamps or grows its width.
+
+  The badge is not one of those children. It is an item *overlay*
+  (`Item::setOverlay`, written from `BadgeText`), and `item.cpp:336-368` renders
+  an overlay from its own texture size with `SDL_RenderCopy` and a `NULL` clip,
+  after `getAutoSize()` has already been taken. So overlay text wider than its
+  icon draws straight out through the popup's dark background, and nothing
+  errors, warns or truncates. Word wrap exists — `BreakText`, `textutil.h:134` —
+  but its only caller is the *item* tooltip (`tooltip.cpp:27`); `MapTooltip`
+  never calls it. An explicit `\n` does work, since `_RenderText` splits on it.
+
+  The workaround is `item_width` on the section, which is the width the tooltip
+  lays the hosted item out at. Two things about it are worth knowing before
+  reaching for it again. `LocationSection::getItemSize` has exactly one reader,
+  `maptooltip.cpp:133`, so it moves the popup and nothing else on the board —
+  and it is read through `to_int` rather than `to_pixel`
+  (`locationsection.cpp:70-72`), so unlike `item_size` it is plain pixels with
+  no icon-size table in the way. But **both axes have to be set**:
+  `maptooltip.cpp:135-140` takes its `{32, 32}` default only when both are
+  unset, and a width with no height warns to stderr and falls back to 32x32,
+  silently undoing the change.
+
+  The cost is that the tooltip lays out a location icon *and* the hosted item at
+  that width, so the popup comes out about twice it. That is why the pack
+  abbreviates the badge as well as widening the slot, and why
+  `tools/tests/test_badge_width.py` measures the two against each other rather
+  than trusting a character count. `STATUS-2.md`, "The badge was rendering out
+  through the side of the popup".
+
+  Same family as the note below about pin colours: what a pack may set and what
+  only the app may set is not written down anywhere, and both were found by
+  reading `src/`.
+
 - **What a diamond means. Answered 2026-09-04: a union.** Square and diamond are
   the same size, centre, colours and click target; the only difference is that a
   diamond leaves the tile's four corners unpainted so a sprite reads behind it.
@@ -1655,13 +1759,13 @@ Nothing here is urgent unless it says so.
   reading the shape backwards; a diamond stops meaning "there is a sprite here".
   Nothing else breaks, because the rendering constraint that booked the shape is
   one-directional: a pin *on* a sprite must be a diamond or it hides it, which is
-  why `marker_pixel` emits one exactly there (`tools/regen_maps.py:1274`), and
+  why `marker_pixel` emits one exactly there (`tools/regen_maps.py:1441`), and
   adding more diamonds never violates that. It is a naming decision only —
   nothing starts emitting diamonds that did not emit them before.
 
   Recorded for players in `README.md`, "What the pin shapes mean", rather than in
   the Map Key that `docs/ROADMAP.md` section 3 asked for. The Map Key is rendered
-  art: `draw_map_key` (`tools/render_maps.py:1035`) draws lane bars and trap
+  art: `draw_map_key` (`tools/render_maps.py:1164`) draws lane bars and trap
   letters into a per-map band that is reserved only where there is something to
   say, so shape rows would reserve a band on all 61 maps, change every crop
   height and move every marker coordinate.

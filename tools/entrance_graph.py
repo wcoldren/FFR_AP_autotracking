@@ -387,6 +387,32 @@ DOOR_NAMES = [
 ]
 assert len(DOOR_NAMES) == ENTR_COUNT
 
+# FF1Lib/Enums.cs:167 -- enum ExitTeleportIndex, spelled the way
+# Teleporters.cs:213-222 spells it for its own spoiler log: that table expands
+# TitanE/TitanW and CastleConeria, which the enum abbreviates, and it is the
+# spelling a player who has read FFR's output will recognise.
+#
+# The nine named rows are the ones FFR uses; ExitUnused1-7 fill the enum out to
+# sixteen, which is EXIT_COUNT. A payload past the end of this list has
+# no name and callers fall back rather than index it -- measured across the
+# standard and entrance-shuffled oracles, every exit tile on the board carries
+# an id in 0..8, but nothing here depends on that staying true.
+#
+# Unlike DOOR_NAMES and MAP_NAMES this names the tile rather than its
+# destination, which is why it is usable for a pin name at all: "the way out of
+# the Earth Cave" is a fact about the tile you are standing on, and the shuffle
+# does not move it. TeleportIndex, the same file's 64 in-map teleport names, is
+# deliberately NOT transcribed here -- those name a teleport's vanilla
+# *destination* (MarshCaveTop, EarthCaveVampire), so a pin wearing one would
+# claim a destination on a seed that had moved it. docs/ROADMAP.md section 4 is
+# where that constraint is written down.
+EXIT_NAMES = [
+    "ExitTitanEast", "ExitTitanWest", "ExitIceCave", "ExitCastleOrdeals",
+    "ExitConeriaCastle", "ExitEarthCave", "ExitGurguVolcano", "ExitSeaShrine",
+    "ExitSkyPalace",
+]
+assert len(EXIT_NAMES) <= EXIT_COUNT
+
 # Vanilla door -> map, matched by the enum names in FF1Lib/Enums.cs
 # (OverworldTeleportIndex against MapIndex). Only ever used to flag which doors
 # did not move; the shuffle itself is always read from the ROM.

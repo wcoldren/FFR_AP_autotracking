@@ -128,6 +128,29 @@ def cells_where(rom, want):
     return out
 
 
+def land_corners(rom):
+    """The two corners of the box that holds every tile the party can walk on.
+
+    Returned as anchors rather than a box so content_box can take them beside
+    the pins and apply one rule to both. Empty where a cartridge has no land at
+    all, which is not a case any oracle has but is cheaper to answer than to
+    reason about.
+
+    Walkability is the property table's, not the art's: bit FOOT clear means the
+    party walks there (audit() checks the two agree, tile by tile). Reading the
+    map for a colour instead would call a lake land and a beach sea.
+    """
+    prop = props(rom)
+    cells = [(x, y)
+             for y, row in enumerate(overworld_reach.decompress_ow(rom))
+             for x, t in enumerate(row) if not prop[t * 2] & FOOT]
+    if not cells:
+        return []
+    xs = [x for x, _ in cells]
+    ys = [y for _, y in cells]
+    return [(min(xs), min(ys)), (max(xs), max(ys))]
+
+
 def caravan(rom):
     """[(x, y)] for the caravan, which is one tile on a standard cartridge.
 

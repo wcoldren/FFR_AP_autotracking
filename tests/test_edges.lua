@@ -11,11 +11,13 @@ local popapi = dofile(PACK .. "/tests/pop_api.lua")
 
 -- Four pins. The Coneria door is a three-tile blob on the overworld, the way
 -- out of the map below it is a two-tile doorway, and the two staircases are
--- single tiles -- which is the whole spread the real table carries.
+-- single tiles -- which is the whole spread the real table carries. The section
+-- under each is named as tools/overworld_pins.py names it: the qualifier alone
+-- where the node has one, the bare name where it does not.
 local DOOR = "@Entrances/Entrance: Coneria/Coneria"
-local WAY_OUT = "@Entrances/Entrance: Coneria Town 7,15/Coneria Town 7,15"
-local STAIR_UP = "@Entrances/Entrance: Marsh Cave B1 11,3/Marsh Cave B1 11,3"
-local STAIR_DOWN = "@Entrances/Entrance: Marsh Cave B2 5,29/Marsh Cave B2 5,29"
+local WAY_OUT = "@Entrances/Entrance: ConeriaTown S Downstairs/S Downstairs"
+local STAIR_UP = "@Entrances/Entrance: MarshCaveB1 NW Downstairs/NW Downstairs"
+local STAIR_DOWN = "@Entrances/Entrance: MarshCaveB2 SE Downstairs/SE Downstairs"
 
 ENTRANCE_LINKS = {
   ["-1,152,161"] = DOOR, ["-1,153,161"] = DOOR, ["-1,152,162"] = DOOR,
@@ -83,6 +85,28 @@ local function reset()
   EDGES_ROM, EDGES_SOURCE = nil, nil
 end
 
+-- The naming half, stubbed. What edges.lua owes it is the two ends of the
+-- record it just marked from -- tests/test_entrance_items.lua owns what the
+-- badge then says, and a stub here keeps the two files from asserting the same
+-- thing twice.
+local named = {}
+function setEntranceForward(path, mapId, destPath)
+  named[#named + 1] = { "fwd", path, mapId, destPath }
+  return true
+end
+function setEntranceReverse(path, mapId, srcPath)
+  named[#named + 1] = { "rev", path, mapId, srcPath }
+  return true
+end
+local function namings()
+  local out = {}
+  for _, n in ipairs(named) do
+    out[#out + 1] = table.concat({ n[1], n[2], tostring(n[3]),
+                                   tostring(n[4]) }, " ")
+  end
+  return table.concat(out, "; ")
+end
+
 dofile(PACK .. "/scripts/autotracking/edges.lua")
 
 local OW_TO_TOWN = "-1,153,161,1,7,16"
@@ -122,6 +146,25 @@ check("the door is marked from a tile it does not name", walked(DOOR), true)
 check("an arrival with no pin marks nothing", walked(WAY_OUT), false)
 check("re-sending the same record is not a change",
   applyFFREdges(OW_TO_TOWN, "romA"), false)
+
+-- And the badge is told the same walk. Only the departure end is named here,
+-- because only it has a pin -- the arrival's map id still travels, which is
+-- what the badge actually prints.
+reset()
+named = {}
+applyFFREdges(OW_TO_TOWN, "romA")
+check("the walk names the door it left from", namings(),
+  "fwd " .. DOOR .. " 1 nil")
+
+-- A staircase is the case where both ends carry a pin, so both get named and
+-- in opposite directions: the one you left says where it led, the one you
+-- arrived on says what led there.
+reset()
+named = {}
+applyFFREdges(STAIRS, "romA")
+check("a staircase names both of its ends", namings(),
+  "fwd " .. STAIR_UP .. " 6 " .. STAIR_DOWN
+  .. "; rev " .. STAIR_DOWN .. " 5 " .. STAIR_UP)
 
 ------------------------------------------------------------------
 print("\n-- the way back out is its own door")

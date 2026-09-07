@@ -169,6 +169,31 @@ local function switchingEnabled()
   return obj.Active == true
 end
 
+-- Which tab a map id belongs to, or nil where nothing claims it.
+--
+-- Global and separate from the switching below because two callers want it now
+-- and they want different halves: this one follows the party, and
+-- scripts/entrance_items.lua sends a person to where a door came out when they
+-- click its badge. One copy, so a tab renamed in MAP_VALUE moves both.
+function tabPathForMap(mapId)
+  local path = (mapId == -1) and overworldTab() or (MAP_VALUE and MAP_VALUE[mapId])
+  -- With the pack's own table the towns come through as "Overworld"; send them
+  -- the same way. An override's table names their tabs outright, so this is
+  -- dead there -- see the note at the top of the file.
+  if path == MAP_VALUE_OVERWORLD then
+    path = overworldTab()
+  end
+  return path
+end
+
+-- Nested tabs: "Fiend Dungeons/Earth Cave/Earth Cave B1" needs each level
+-- brought forward, outermost first.
+function activateTabPath(path)
+  for name in string.gmatch(path, "([^/]+)") do
+    Tracker:UiHint("ActivateTab", name)
+  end
+end
+
 -- mapId is a standard-map id 0..60, or -1 for the overworld. Returns true when
 -- it actually moved a tab, which is what the tests assert on.
 function activateMapTab(mapId)
@@ -190,13 +215,7 @@ function activateMapTab(mapId)
     return false
   end
 
-  local path = (mapId == -1) and overworldTab() or (MAP_VALUE and MAP_VALUE[mapId])
-  -- With the pack's own table the towns come through as "Overworld"; send them
-  -- the same way. An override's table names their tabs outright, so this is
-  -- dead there -- see the note at the top of the file.
-  if path == MAP_VALUE_OVERWORLD then
-    path = overworldTab()
-  end
+  local path = tabPathForMap(mapId)
   if not path then
     if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
       print(string.format("maptab: no tab for map id %s", tostring(mapId)))
@@ -204,11 +223,7 @@ function activateMapTab(mapId)
     return false
   end
 
-  -- Nested tabs: "Fiend Dungeons/Earth Cave/Earth Cave B1" needs each level
-  -- brought forward, outermost first.
-  for name in string.gmatch(path, "([^/]+)") do
-    Tracker:UiHint("ActivateTab", name)
-  end
+  activateTabPath(path)
   if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
     print(string.format("maptab: map %d -> %s", mapId, path))
   end

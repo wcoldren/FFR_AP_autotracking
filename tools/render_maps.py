@@ -95,6 +95,105 @@ ATTR_BASE = INES_HEADER + 0x400   # tile -> which of the four palettes
 QUAD_BASE = INES_HEADER + 0x1000  # the four CHR indices per tile
 TILES_PER_SET = 128
 
+# FF1Lib/MetroidVaniaMap.cs:1731 -- TeleportTilesGraphics, keyed by
+# TeleporterGraphic (:5) and indexed by tileset. Each row is the four CHR
+# indices that make up the 16x16 tile, in the QUAD_BASE order this file already
+# reads: top-left, top-right, bottom-left, bottom-right.
+#
+# FFR uses this table to *draw* the teleporters it invents for No-Overworld.
+# Read backwards it classifies the ones already on a cartridge, which is what
+# entrance pin names want: a staircase and a hole are the same teleport tile to
+# the engine -- Constants.inc:300-326 has no bit that separates them -- and the
+# only thing that tells them apart is the art. Taking FFR's own answer is what
+# keeps that from being a guess about tile ids, which is a trap this repo has
+# paid for before.
+#
+# A row of four zeroes means the graphic has no tile on that tileset, so it is
+# not an answer and teleport_graphic skips it. Without that guard every blank
+# tile on tileset 0 matches five graphics at once.
+TELEPORT_GRAPHICS = {
+    "Upstairs": (
+        (0x00, 0x00, 0x00, 0x00),
+        (0x26, 0x27, 0x36, 0x37),
+        (0x26, 0x27, 0x36, 0x37),
+        (0x26, 0x27, 0x36, 0x37),
+        (0x26, 0x27, 0x36, 0x37),
+        (0x26, 0x27, 0x36, 0x37),
+        (0x26, 0x27, 0x36, 0x37),
+        (0x26, 0x27, 0x36, 0x37),
+    ),
+    "Downstairs": (
+        (0x04, 0x05, 0x14, 0x15),
+        (0x28, 0x29, 0x38, 0x39),
+        (0x28, 0x29, 0x38, 0x39),
+        (0x28, 0x29, 0x38, 0x39),
+        (0x28, 0x29, 0x38, 0x39),
+        (0x28, 0x29, 0x38, 0x39),
+        (0x62, 0x63, 0x72, 0x73),
+        (0x28, 0x29, 0x38, 0x39),
+    ),
+    "LadderDown": (
+        (0x00, 0x00, 0x00, 0x00),
+        (0x2E, 0x2F, 0x3E, 0x3F),
+        (0x2E, 0x2F, 0x3E, 0x3F),
+        (0x2E, 0x2F, 0x3E, 0x3F),
+        (0x2E, 0x2F, 0x3E, 0x3F),
+        (0x2E, 0x2F, 0x3E, 0x3F),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x2E, 0x2F, 0x3E, 0x3F),
+    ),
+    "LadderUp": (
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x10, 0x6A, 0x10, 0x6A),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x10, 0x61, 0x10, 0x61),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x10, 0x6E, 0x10, 0x6E),
+    ),
+    "Hole": (
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x4C, 0x4D, 0x5C, 0x5D),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+    ),
+    "Well": (
+        (0x42, 0x43, 0x52, 0x43),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x66, 0x67, 0x76, 0x77),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x48, 0x49, 0x58, 0x59),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+    ),
+    "Teleporter": (
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x00, 0x00, 0x00, 0x00),
+        (0x2C, 0x2D, 0x3C, 0x3D),
+        (0x42, 0x43, 0x52, 0x53),
+        (0x64, 0x65, 0x74, 0x75),
+        (0x42, 0x43, 0x52, 0x53),
+    ),
+    "Door": (
+        (0x24, 0x25, 0x34, 0x35),
+        (0x22, 0x23, 0x32, 0x33),
+        (0x22, 0x23, 0x32, 0x33),
+        (0x22, 0x23, 0x32, 0x33),
+        (0x22, 0x23, 0x32, 0x33),
+        (0x22, 0x23, 0x32, 0x33),
+        (0x22, 0x23, 0x32, 0x33),
+        (0x22, 0x23, 0x32, 0x33),
+    ),
+}
+
 # Sprites.cs:23. Sixty-four entries, RGB, six hex characters each.
 _NES = (
     "7b7b7b" "0000ff" "0000bf" "472bbf" "970087" "ab0023" "ab1300" "8b1700"
@@ -406,6 +505,35 @@ def map_tiles(rom, map_id):
     base = map_data_base(rom)
     ptr = int.from_bytes(rom[base + map_id * 2:base + map_id * 2 + 2], "little")
     return decompress_map(rom, base + ptr)
+
+
+def teleport_graphic(rom, map_id, tiles, cell):
+    """What a teleport tile is drawn as -- "Downstairs", "Hole" -- or None.
+
+    Answers from FFR's own TELEPORT_GRAPHICS rather than from a tile id, so a
+    cartridge that renumbers its tiles still classifies: the four CHR indices
+    are what the player sees, and they are what FFR matches on when it builds a
+    teleporter of its own.
+
+    None where the tile's quad is in no row for this tileset, and None where it
+    is in more than one -- an ambiguous answer is not an answer, and a caller
+    that leaves the noun off a pin name is right more often than one that picks
+    the first match. Measured across the standard and entrance-shuffled oracles
+    this names 122 of 149 pins; the 27 it does not are almost all Castle of
+    Ordeals' warp pads, and the reason is in the table rather than in the
+    matching: TELEPORT_GRAPHICS["Teleporter"] is four zeroes on tileset 1, so
+    FFR never draws a teleporter on the castle tileset and has no name for the
+    one vanilla already put there.
+    """
+    tileset = rom[TILESET_LUT + map_id]
+    col, row = cell
+    tile = tiles[row * MAP_DIM + col]
+    base = QUAD_BASE + 0x200 * tileset
+    quad = tuple(rom[base + 0x80 * n + tile] for n in range(4))
+    if not any(quad):
+        return None
+    hits = [name for name, per in TELEPORT_GRAPHICS.items() if per[tileset] == quad]
+    return hits[0] if len(hits) == 1 else None
 
 
 def backdrop_tile(tiles):

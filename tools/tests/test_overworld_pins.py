@@ -179,6 +179,22 @@ def main():
     check("no two pins share a tile once stacked",
           len(set(stacked.values())), len(stacked))
 
+    # The crop holds the coastline, not just the pins. Two rows, because the
+    # first alone would pass on a cartridge whose pins happen to reach the
+    # corners and would then be saying nothing: the second shows the box a pin
+    # rule builds dropping land this one keeps.
+    land = ro.land_corners(rom)
+    x0, y0, w, h = op.content_box(list(stacked.values()) + land)
+    outside = [(x, y) for (x, y) in land
+               if not (x0 <= x < x0 + w and y0 <= y < y0 + h)]
+    check("the crop holds every tile the party can walk on", outside, [])
+    px0, py0, pw, ph = box
+    dropped = [(x, y) for (x, y) in land
+               if not (px0 <= x < px0 + pw and py0 <= y < py0 + ph)]
+    print(f"-- crop {x0},{y0} {w}x{h}; pins alone would be "
+          f"{px0},{py0} {pw}x{ph}")
+    check("  and a box measured from pins alone would not", bool(dropped), True)
+
     # The mirror is what puts a pin on the incentive slots that hold no chest
     # of their own, so it has to reach further down the tree than the pins do.
     # The two sizings of the same fraction have to agree: overworld_pins works

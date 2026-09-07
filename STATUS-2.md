@@ -93,7 +93,7 @@ the whole story.
   at once. Written down after the bank bug and never run until now -- and it
   earned itself immediately, by failing on its own stated invariant. See
   `STATUS.md`, "The gauntlet the mode skips".
-- `tests/run.sh` — 16 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
+- `tests/run.sh` — 17 Lua suites, no emulator or ROM needed. `tools/tests/run.sh`
   — the cartridge-reading tools' own tests, Python and nothing else; the ones
   that need a cartridge skip unless `FF1_ROM` points at one.
 - `tools/regen_maps.py --verify` — not part of either suite, because it asks
@@ -1738,3 +1738,344 @@ override stale by definition, and the override is one shared resource keyed by
 pack uid -- a regen belongs after the merge, from `trunk`, not to a topic branch
 to make a stage green. The new guard refuses one from here anyway, which is the
 demonstration rather than the obstacle.
+
+## The doors are named for what they are
+
+Built 2026-09-07 on `entrance-destinations`, and it closes `docs/ROADMAP.md`
+section 4's naming item. A floor link was called `Entrance: SeaShrineB3 49,37`,
+so the floor that bullet names was seven coordinate pairs to read off the art.
+Seven rather than the six the bullet said: six staircases and a well, counted on
+`std497` rather than taken from the page. It is
+`Entrance: SeaShrineB3 NE Upstairs` now.
+
+**The bullet said to find out what FFR carries before designing, and that is
+the part worth keeping.** FFR has three tables that could name a floor link and
+only two of them describe the door's own end:
+
+  * `ExitTeleportIndex` (`Enums.cs:167`, spelled as `Teleporters.cs:213-222`
+    spells it) names the ten exit tiles, and Titan's Tunnel finally reads as
+    `ExitTitanEast` and `ExitTitanWest` rather than as two coordinate pairs on
+    one map. Transcribed as `entrance_graph.EXIT_NAMES`.
+  * `TeleportTilesGraphics` (`MetroidVaniaMap.cs:1731`) is FFR's table for
+    *drawing* the teleporters it invents for No-Overworld. Read backwards it
+    classifies the ones already on a cartridge, which is where `Upstairs`,
+    `Hole` and `Well` come from.
+  * `TeleportIndex` names all 64 in-map teleports, covers every staircase pin,
+    and **is deliberately unused.** Its names are a teleport's vanilla
+    *destination* -- `MarshCaveTop`, `EarthCaveVampire` -- so a pin wearing one
+    would claim a destination on a seed that had moved it. The constraint the
+    bullet inherited is that a name shows in the location list and so must
+    describe the door's own end, and the obvious table is the one that breaks
+    it. Both `entrance_graph.EXIT_NAMES` and `regen_maps.entrance_qualifier`
+    say so where they live, because the temptation is to reach for it again.
+
+**The stairs-and-holes noun was written off as underivable once, wrongly, and
+the reason is worth not repeating.** `Constants.inc:300-326` has no bit that
+separates a staircase from a hole -- the teleport kind is two bits and the
+special type has no row for either -- so the first reading said the distinction
+was graphical and therefore a guess about tile ids, which is a trap this repo
+has paid for. It is graphical, and FFR wrote the table down: the four CHR
+indices per graphic per tileset, in exactly the `QUAD_BASE` order
+`render_maps.tileset_art` already reads. Looking one layer past the engine's own
+constants was the whole difference. It names 122 of the 149 pins on `std497`;
+the 27 it misses are almost all Castle of Ordeals' warp pads, and the reason is
+in the table rather than in the matching -- `TeleportTilesGraphics["Teleporter"]`
+is four zeroes on the castle tileset, so FFR never draws one there and has no
+name for the one vanilla put there. Those pins lose the noun and keep the rest.
+
+**The direction is measured in the frame the tab draws, not in rom
+coordinates.** A standard map is a torus and `content_crop` slides the ones
+whose content crosses the join, so "north" in rom coordinates is the wrong end
+of the maps that slid. `_octant` goes through `Crop.place`, which is the one
+tile-to-pixel mapping the file already insists nothing duplicates, and
+`tools/tests/test_entrance_pins.py` builds a map across the join that names a
+link at column 2 as `E` -- a row that passes on rom coordinates only by
+accident.
+
+**Ordinals only where a floor really offers two of the same thing in one
+corner.** 1,477 of 6,899 pins across 45 cartridges wear one, and the shape of
+that number is two floors rather than a spread: Castle of Ordeals 2F's warp
+maze, which has no graphic name and fifteen identical pads, and Ice Cave B2's
+pit room, which is ten holes in one quadrant. Ordered row then column, the
+tie-break `_middle` already uses, so a number does not move between runs of one
+cartridge.
+
+**Measured rather than argued, and this is the census worth keeping**: 45
+cartridges, 6,899 pins, **no two names colliding on any of them, and none
+falling back to coordinates.** The fallback is still in
+`entrance_qualifier` for a pin out of frame with no graphic, because an empty
+qualifier would collapse a floor's pins onto one name and take
+`build_entrance_links`' duplicate-code guard down with it -- but nothing in
+either oracle corpus reaches it.
+
+**The item codes move with the names**, because `entrance_code` slugs the name
+and always has. `entr_seashrineb3_49_37` is now `entr_seashrineb3_ne_upstairs`,
+which is the readable half of the point, and the cost is that a saved tracker
+state loses its cleared doors once. Worth saying out loud rather than finding in
+play.
+
+## The popup was printing everything on it twice
+
+Fixed 2026-09-07, on a play report: the hover carried the entrance's name and a
+door icon, and then both again, bigger and to the right. Both halves were real
+and neither was new -- but widening the slot the day before turned an adjacency
+nobody had remarked on into an obvious repeat, which is how it got noticed.
+
+**The name.** `MapTooltip` draws the location's name in the big font,
+right-aligned, and then each section's name in the small one, left-aligned
+(`maptooltip.cpp:63-80`, `:113-120`). The pack named the section for its node
+minus the `Entrance: ` prefix, so every entrance popup printed one string twice
+at two sizes. `Entrance: SeaShrineB3 49,37` and `SeaShrineB3 49,37` was quiet
+enough to live with; the same trick on `SeaShrineB3 NE Upstairs` is not.
+`overworld_pins.entrance_section_name` is now the one rule: the qualifier where
+there is one, the whole bare name where there is not, which is every overworld
+door -- `Coneria` has nothing to strip because the name *is* the door.
+Uniqueness never rested on it, since a section path is
+`@Entrances/<node>/<section>` and the node is the unique half.
+
+**The icon, and this is the part that is not redundancy.** The tooltip lays out
+`item_count` location icons and *then* every hosted item, so an entrance
+section has always been two cells: the door's state, which `edges.lua` opens
+when the party walks through, and the badge, which says where it went. Two
+different facts -- and both were drawing the same door picture, so they read as
+one thing printed twice.
+
+**The badge's cell is now blank, and it has to be blank rather than empty.**
+`TrackerView::makeItem` skips an item whose image is empty ("this allows blank
+items as placeholder"), and `Item::render` returns at `:262` -- before it
+reaches the overlay block. So a badge item with no icon draws no *text* either,
+and the cell has to hold a picture that happens to be invisible.
+`make_door_icons` writes a third file for it, `pngio.write_rgba` puts alpha in
+the encoder for the one image that needs it, and the guard that holds the
+committed icons to what the writer draws covers all three.
+
+**Neither cell could give way instead.** `item_count` has to stay 1 or the
+count `edges.lua` writes has nowhere to go, which is the trap this branch
+already paid for once; and `item_width` is per section and
+`maptooltip.cpp:133` hands the same size to both loops, so the two cells cannot
+be sized apart.
+
+**Two measurements in the section below this one were wrong, and are corrected
+there.** The badge is drawn in `DEFAULT_FONT_NAME`, which is
+`DejaVuSans-Bold.ttf` (`defaults.h:10`) by way of `trackerview.cpp:123`, and the
+first cut measured the regular face: 100.6px where the real figure is 111.3px.
+With the overlay's own two pixels of shadow that is 113.3px against a slot of
+112 -- so the constant was a pixel *under* what the badge draws, and the guard
+agreed with it because it was reading the same wrong file. The slot is 120 now
+and `test_badge_width.py` opens the bold face.
+
+**And a row in that guard's neighbour was vacuous on the first cut**, which is
+worth recording because it passed. The alpha reader took every fourth byte from
+the start of the decompressed data; a PNG carries a filter byte per row, so
+that is right for row 0 and drifts by one per row after it -- and on an
+all-transparent plate every byte is zero, so a wrong reader and a right one
+agree on the values. It is checked on its length as well now: 4,096 against the
+4,111 the broken one returns.
+
+## The badge was rendering out through the side of the popup
+
+Fixed 2026-09-07, on a report that the hover tooltip "isn't quite wide enough".
+It is not a width setting anybody forgot: **there is no tooltip width in
+PopTracker's pack format at all.** A `MapTooltip` sizes itself to its widest
+*measured* child (`maptooltip.cpp:202-205`), the badge is an item *overlay*, and
+an overlay is neither measured into `getAutoSize()` nor clipped when it is drawn
+(`item.cpp:336-368`). `trackerview.cpp:993-1020` clamps the tooltip's height and
+never its width. So a destination longer than the 32px icon rendered straight
+out through the popup's dark background, with nothing anywhere complaining.
+
+**The one lever the pack has is the width of the slot the icon sits in.**
+`item_width` and `item_height` are read per section (`locationsection.cpp:70-72`)
+and `LocationSection::getItemSize` has exactly one reader, `maptooltip.cpp:133`
+-- so this widens the popup and touches nothing else on the board.
+`Item::_fixedAspect` defaults true, so the door icon letterboxes rather than
+stretches, and `_halign`/`_valign` default LEFT/TOP so it stays where it was.
+
+**Both axes have to be written, and that is the trap.** `maptooltip.cpp:135-140`
+takes its `{32, 32}` default only when *both* are unset; with a width and no
+height it warns to stderr and falls back to 32x32, silently undoing the width.
+The two go in together at both injection sites.
+
+**The width is measured, not chosen.** The widest badge line the pack can draw
+is 111.3px, read out of `DejaVuSans-Bold.ttf` at the 10px `SetOverlayFontSize`
+`entrance_items.lua` asks for, across every tab leaf in `mapValues.lua` and
+every name in `map_names.lua`. The slot is 120 rather than 114 because that
+measurement is of *this* copy of the font and a player runs the app's own.
+`tools/tests/test_badge_width.py` holds the two numbers together and fails when
+a tab is renamed longer, rather than leaving it to somebody's hover.
+
+**Abbreviating is the other half, and it is what keeps the popup from doubling.**
+The tooltip lays out a location icon *and* the hosted item at that width, so a
+popup is about twice it: fourteen names are trimmed -- the Ice Cave and Castle
+of Ordeals tabs, and the eight Revisited floors -- and without them the widest
+line is 186.7px and the popup would be half as wide again.
+
+**And the trim used to be applied on one branch of two.** `mapName` preferred
+the tab leaf and fell back to `map_names.lua`, and only the leaf went through
+the abbreviation, so `TempleOfFiendsRevisitedChaos` -- the widest string the
+pack can produce, at 186.7px against a 118px budget -- sat on the one path
+nothing checked. The guard found it on its first run, which is the argument for
+the guard: every map on the board is claimed by a tab today, so the fallback is
+a branch a person reads past and a measurement does not.
+
+## The doors say where they went
+
+Built 2026-09-07 on `entrance-destinations`. The pins have said "somebody has
+been through here" since the edge log landed a day earlier, and could not say
+where it led -- which on an entrance-randomised seed is the fact a player is
+actually tracking. Each pin now carries an item whose badge reads
+`->Marsh Cave B1`, a left-click tabs to where the door came out and a
+right-click to what leads here, with the far pin lit gold for five seconds so
+it can be found on arrival.
+
+**The answer was already in hand and being thrown away.** An `ff1/edges` record
+is six fields -- `fromMap,fromCol,fromRow,toMap,toCol,toRow` -- and `edges.lua`
+parsed the far end only to try marking a pin there. It names both ends from the
+same record now: the departure gets a forward, the arrival a reverse where a pin
+stands there at all, which on a town is only the way back out. So nothing new is
+read off the cartridge, and reveal-on-visit still cannot spoil a seed, because
+the badge is the party's own walk.
+
+**A marker's name is fixed at load, so the text has to ride on an item.**
+`AvailableChestCount` and `Highlight` are the only things a script may write to
+a section (`locationsection.cpp:262-294`). Each entrance section now hosts one
+item, minted by `overworld_pins.entrance_code` and named in the same table that
+resolves a tile to a pin, so the code exists in one place and Lua reads it back
+rather than rebuilding it.
+
+**The hosted item must provide its code unconditionally, and that is the
+correction to the design this was built from.** The pack the idea came from
+(palex00's Crystal) ties the provide to the reveal, and the scoping carried that
+over as "a hosted item only counts as provided once the destination is known".
+Here it would have been a defect: `locationsection.cpp:236-249` clears a section
+only when its items are cleared *and* every hosted code has a provider, so an
+item withholding its code holds the pin open -- and would have taken the
+hand-click clear away with it, on a board where clicking a door has always
+worked. Crystal needs the provide because it has no other state channel for an
+entrance. This pack has one; the badge is text.
+
+**And the same paragraph of that file has a second trap in it**, which cost
+nothing only because the source was read: `locationsection.cpp:67` gives a
+section `item_count` 1 *only while it hosts nothing*, and 0 as soon as it hosts
+something. Both injection sites now spell the 1 out. Left alone, every door pin
+would have lost the count `edges.lua` writes and stopped opening -- the feature
+this one is built beside, broken by the field nobody had to think about before.
+
+**What the badge is allowed to call a map.** The tab's own leaf first, because
+that is the label the player is about to be looking at -- `Earth Cave B1`, not
+`EarthCaveB1` -- and `scripts/map_names.lua` underneath for a map no tab claims.
+That table is committed rather than written by a regen, unlike its neighbour
+`entrance_links.lua`, because it is not a fact about a seed: FFR shuffles which
+map a door leads to and never renames a map.
+`tools/tests/test_map_names.py` fails when the copy drifts from
+`entrance_graph.MAP_NAMES`.
+
+**Gold rather than red for the highlight.** PopTracker's defaults make `Avoid`
+red and `Priority` gold (`mapwidget.cpp:54-60`), and red on the pin you were
+just sent to reads as a warning about it.
+
+**One copy of the map-id-to-tab resolution.** `tabPathForMap` and
+`activateTabPath` came out of `maptab.followMap`, which had the lookup, the
+towns-fold onto `overworldTab()` and the nested-tab walk inlined. A second copy
+in the badge clicks would have gone stale the first time a tab was renamed in
+`MAP_VALUE`.
+
+**No new grader, deliberately.** The scoping asked for one that reads the
+cartridge's tables and checks the name a badge would show. It would restate
+coverage that exists: `entrance_graph --grade` already says the record's
+destination is the cartridge's, and `test_map_names.py` says the id has the
+right name, and a badge is those two composed. What the new suite
+`tests/test_entrance_items.lua` covers instead is the part nothing else could --
+what the text says with one end known, with both, and with both agreeing.
+
+## The overworld tab was cutting the coastline off
+
+Fixed 2026-09-07, on a report that islands were missing from the north, west and
+east of the map. They were: the crop box is measured from where the pins land,
+and a cartridge's outermost pins sit inside its own coastline. On the standard
+oracle the box was x 22..243, y 19..244 against land reaching x 1..253 and
+y 14..244, so 21 columns of the western landmass, 10 of the eastern islands and
+five rows off the top were land the party can walk on and the tab did not draw.
+
+`render_overworld.land_corners` reads walkability off the property table -- bit
+`FOOT` clear, which is the reading `audit()` already checks the art against tile
+by tile -- and hands the two corners to `content_box` beside the pins, so one
+margin and one clamp cover both. The box comes out (0, 6, 256, 247).
+
+**Which is close to not cropping the standard overworld at all, and that is the
+answer rather than a side effect.** The land is 12,175 of the 65,536 tiles and
+it is spread over nearly the whole field; a tab that draws the map has to draw
+that. Only the `std` branch names land, so `content_box` keeps trimming for
+every caller that does not.
+
+**A No-Overworld cartridge is not the exception it sounds like**, and this is
+the measurement worth keeping: 8,617 of its 8,786 walkable tiles are walkable on
+the standard oracle too. It is the same continents with about a third of them
+drowned, over the same span -- not a stub with the land removed. What is
+clustered on that mode is the nine reachable pads, which is a different fact
+from the shape of the map, and the two are easy to say interchangeably.
+
+`tools/tests/test_overworld_pins.py` has two rows rather than one: the crop
+holds every walkable tile, and the box a pin rule alone would build does not.
+The second is what stops the first from going vacuous on some future cartridge
+whose pins happen to reach the corners.
+
+## The door rules can be derived, and they agree
+
+Built 2026-09-07, as a spike that came back green enough to keep. The tool is
+`tools/door_reach.py`: it walks the overworld from the party's start under
+every subset of {bridge, canal, canoe, ship, airship} and reports the minimal
+sets that put the party on each of the 30 doors.
+
+**Why it is worth having when the pack already has rules for this.** The
+hand-written region rules are attached to destinations -- "here is every way to
+reach the marsh cave's door" -- and an entrance-shuffled seed repoints that door
+without moving it, so the rule stays attached to the wrong contents. Where a
+door *is* does not move. Measured rather than argued: `oracle_std` and
+`oracle_entrances` are one seed three flags apart and produce byte-identical
+output for all 30 doors.
+
+**It agrees with the hand-written rules on 20 of 21 mapped doors**, on
+`std497`, `dock497`, `landbridge497`, `extended497`, `drydock497`,
+`airship497`, `gaia497`, `gaiahwy497` and the play cartridge -- exactly, including
+`Ordeals` at `airship+canoe OR canal+canoe+ship` and `Waterfall` at
+`airship+canoe`. `drydock497` agrees on all 21.
+
+**The map-edit flags come for free**, which was the surprise. `openProgression`,
+`extendedOpen`, `melmondRiver` and the rest are applied at generation, so they
+are in the stored map already and the walk picks them up with no flag vocabulary
+at all: the Marsh Cave door derives as free on a seed with open progression and
+as canoe-or-ship-or-airship on `std497`.
+
+**The one disagreement is a door reachable through a dungeon**, and both sides
+are right. Sarda's Cave sits on a strip with no overworld route; the pack writes
+`ruby` conjoined with travel to Titan's Tunnel East, because feeding Titan is
+what opens the way. The walk sees the overworld and says "no route". On the play
+cartridge, which has `noSardasForest` off, the walk independently reproduces the
+reason the rule needs the ruby -- the airship cannot land there either.
+
+**Three modelling points were wrong in the first cut and each moved the
+answer.** They are in the tool's docstring and each has a synthetic map in
+`tools/tests/test_door_reach.py` built to fail without it, because a cartridge
+can only show the walk agreeing with itself:
+
+  * The ship stays in its own sea. `overworld_reach.reach` boards at any dock
+    the party can walk to, which is safe for its question because it starts at
+    sea; starting on land the party docks, crosses the isthmus on foot and
+    re-boards on the far side, carrying the ship past the canal -- and the
+    `canal` term vanished from every rule. FFR gates the same step on the ship's
+    own area (`SanityCheckerV2.cs:428`).
+  * The airship lands and then the party walks. Landable tiles are seeds, not
+    the answer; treating them as the answer left eight doors unreachable.
+  * A door can be entered from a vehicle. The Waterfall is entered from the
+    canoe, so keeping only the tiles the party stands on called it unreachable
+    with every item in the game.
+
+**The bridge and the canal are read off the cartridge, not hardcoded** --
+`0x3000 + UnsramIndex.BridgeX`/`CanalX` -- and they are gates rather than tiles,
+which is FFR's own model: it replaces the classification at those two cells and
+crosses them with `CheckLink`. Same coordinates on all 14 cartridges here, and
+the walk would follow a seed that moved them.
+
+Nothing is wired into `regen_maps` yet. What this closes is the question of
+whether the derivation is trustworthy enough to build on, and the answer is on
+the record now rather than in a session.

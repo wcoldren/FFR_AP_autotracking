@@ -74,6 +74,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PACK = os.path.dirname(HERE)
@@ -431,8 +432,7 @@ def crops(rom, graph, npc_cells=None):
     out = {}
     for map_id, name in render_maps.MAP_FILES.items():
         tiles = render_maps.map_tiles(rom, map_id)
-        keep = [cell for _, cell in render_maps.protected_cells(
-            rom, map_id, tiles, graph, (npc_cells or {}).get(map_id, ()))]
+        keep = crop_keep(graph, map_id, (npc_cells or {}).get(map_id, ()), tiles)
         out[name] = render_maps.content_crop(tiles, keep=keep)
     return out
 
@@ -1066,7 +1066,26 @@ def _clusters(cells):
     return out
 
 
-def floor_exits(graph, map_id):
+def crop_keep(graph, map_id, npc_cells=(), tiles=None):
+    """The cells the crop will not discard on this map, for floor_exits' `keep`.
+
+    A named function rather than four lines at each site, because the crop and
+    the floor-door rule disagreeing about what a speck is has already cost a
+    pin -- render_maps.protected_cells says the same thing about crop_violations
+    and content_crop deriving it separately.
+
+    `tiles` is the map's grid where the caller already has it. Without one the
+    graph's own is used rather than a fresh decompress: Graph.grid caches, and
+    entrance_members asks this for all 61 maps twice a regen.
+    """
+    rom = graph.rom.data
+    if tiles is None:
+        tiles = graph.grid(map_id)[0]
+    return [cell for _, cell in render_maps.protected_cells(
+        rom, map_id, tiles, graph, npc_cells)]
+
+
+def floor_exits(graph, map_id, keep=()):
     """{(col, row)} -- the warp tiles on a map that are a door, not a border.
 
     See FLOOR_EXIT_CLUSTER for the two conditions and what each one is for.
@@ -1074,22 +1093,31 @@ def floor_exits(graph, map_id):
     and the content off render_maps' own flood and speck rule, so this answers
     the same way for a cartridge nobody has drawn yet.
 
-    The specks are dropped without `keep`, which regen passes to content_crop
-    and this cannot see. That direction is the safe one: a speck the crop saves
-    for a chest loses its floor door here, which is a pin missing from art that
-    was drawn, rather than a pin on art that was not.
+    **`keep` is the crop's, and passing it is not optional for a real
+    cartridge.** This used to drop specks without one while regen passed the
+    crop's `keep` to content_crop, and the mismatch cost a pin on every standard
+    seed: Sea Shrine B3's bottom-right room is thirteen cells, sealed, holding a
+    staircase and a warp. render_maps.protected_cells shields every teleport
+    from the crop *except* a warp (`:711-713`), so the room survived the crop on
+    the staircase's account and then lost its warp here, and the way back out of
+    that room was drawn on the art with no pin on it. The comment that stood
+    here called that "the safe direction". It is not: a pin missing from art
+    that was drawn is a door a player cannot see.
+
+    An empty `keep` still answers, for a caller with no cartridge behind its
+    grid -- the suite's synthetic one -- and that is the only thing it is for.
     """
     warp = {(col, row) for col, row, kind, _ in graph.teleports(map_id)
             if kind == entrance_graph.TP_TELE_WARP}
     if not warp:
         return set()
     content, _ = render_maps.drop_specks(
-        render_maps.content_cells(graph.grid(map_id)[0]))
+        render_maps.content_cells(graph.grid(map_id)[0]), keep=keep)
     return {cell for group in _clusters(warp) if len(group) <= FLOOR_EXIT_CLUSTER
             for cell in group & content}
 
 
-def entrance_tiles(graph):
+def entrance_tiles(graph, npc_cells=None):
     """{node name: (map_id, col, row)} -- every staircase and hole.
 
     Read straight off each map's own teleport table, which is the table the
@@ -1110,10 +1138,92 @@ def entrance_tiles(graph):
     shape as a staircase, because leaving a floor by the front is the same kind
     of thing to a player as leaving it by the stairs.
     """
-    return {name: cells[0] for name, cells in entrance_members(graph).items()}
+    return {name: cells[0]
+            for name, cells in entrance_members(graph, npc_cells).items()}
 
 
-def entrance_members(graph):
+# How far off centre a pin has to sit before its name says north or west, as a
+# fraction of the frame's width or height. At 0.15 the middle three tenths of
+# each axis is the neutral band, which is what keeps a floor's one central
+# staircase from being called "NE" for sitting a tile past the midpoint.
+ENTRANCE_BAND = 0.15
+
+# What a pin in the middle band is called. A word rather than a letter, because
+# it stands where "NE" would and "Entrance: MarshCaveB1 C Downstairs" reads as
+# a typo.
+ENTRANCE_MIDDLE = "Middle"
+
+
+def _octant(crop, cell):
+    """Where a cell sits in its frame -- "NE", "S", "Middle" -- or None.
+
+    Measured in the *frame* the tab draws, not in rom coordinates, which is why
+    it goes through Crop.place: a standard map is a torus and the crop slides
+    the ones whose content crosses the join, so on those "north" in rom
+    coordinates is the wrong end of the map. Five of the 61 slide on both
+    oracles -- Melmond, Crescent Lake, Coneria Castle 1F, Elfland Castle and
+    Sky Palace 4F -- which is few enough to get away with the wrong arithmetic
+    for a long time and not few enough to leave wrong.
+
+    None where the cell is not in frame, which a caller answers by falling back
+    rather than by guessing a direction.
+    """
+    at = crop.place(*cell)
+    if at is None:
+        return None
+    cols, rows = crop.size
+    dx = (at[0] + 0.5) / cols - 0.5
+    dy = (at[1] + 0.5) / rows - 0.5
+    ns = "N" if dy < -ENTRANCE_BAND else ("S" if dy > ENTRANCE_BAND else "")
+    ew = "W" if dx < -ENTRANCE_BAND else ("E" if dx > ENTRANCE_BAND else "")
+    return (ns + ew) or ENTRANCE_MIDDLE
+
+
+def entrance_qualifier(graph, map_id, tiles, crop, cell, kind, pay):
+    """The words after the map name in a floor link's pin name.
+
+    Three sources, in this order, and every one of them describes the tile
+    rather than where it leads. That is the constraint the whole naming scheme
+    hangs on: a pin name shows in the location list, so a name that said where
+    a door went would hand over the permutation the pins exist to let you find.
+    docs/ROADMAP.md section 4 has it.
+
+      * An exit tile gets FFR's own ExitTeleportIndex name -- "ExitEarthCave",
+        and Titan's Tunnel finally splits into East and West. This is the one
+        FFR table that names a teleport by its own end.
+      * Everything else gets where it sits in the frame, plus what it is drawn
+        as, read out of FFR's TeleportTilesGraphics.
+      * A warp tile FFR has no graphic for is "Back", which is the decomp's own
+        word: Constants.inc:320 defines TP_TELE_WARP as "go back to previous
+        floor".
+
+    Coordinates remain the last resort, for a pin out of frame with no graphic.
+    Nothing in either oracle reaches it, and it is here so the qualifier is
+    never empty -- an empty one would collapse a floor's pins onto one name and
+    take build_entrance_links' duplicate-code guard with it.
+
+    **TeleportIndex is deliberately not used**, though it would name all 77
+    staircases and every id measured is in its range. Those names are a
+    teleport's *vanilla destination* -- MarshCaveTop, EarthCaveVampire -- so a
+    pin wearing one would claim a destination on a seed that had moved it.
+    entrance_graph.EXIT_NAMES says the same thing where the table lives.
+    """
+    if (kind == entrance_graph.TP_TELE_EXIT
+            and pay < len(entrance_graph.EXIT_NAMES)):
+        return entrance_graph.EXIT_NAMES[pay]
+    words = []
+    where = _octant(crop, cell)
+    if where:
+        words.append(where)
+    drawn = render_maps.teleport_graphic(graph.rom.data, map_id, tiles, cell)
+    if drawn:
+        words.append(drawn)
+    elif kind == entrance_graph.TP_TELE_WARP:
+        words.append("Back")
+    return " ".join(words) or f"{cell[0]},{cell[1]}"
+
+
+def entrance_members(graph, npc_cells=None):
     """{node name: [(map_id, col, row), ...]} -- every tile that *is* this link.
 
     The pin's own cell comes first and the rest follow in tile order, so
@@ -1126,16 +1236,43 @@ def entrance_members(graph):
     here says where anything goes: it is positions, which is what the pins
     already draw.
     """
+    rom = graph.rom.data
+    # Derived here rather than defaulted inside floor_exits, because the crop
+    # derives it from the same helper and the two sets have to be the one set.
+    # Computed once for the whole cartridge when a caller has not already got
+    # it: npc_cells_of walks every map's object table.
+    npc_cells = npc_cells_of(rom) if npc_cells is None else npc_cells
     out = {}
     for map_id in render_maps.MAP_FILES:
+        tiles = graph.grid(map_id)[0]
+        keep = crop_keep(graph, map_id, npc_cells.get(map_id, ()), tiles)
         link = {(col, row): (kind, pay)
                 for col, row, kind, pay in graph.teleports(map_id)
                 if kind in FLOOR_LINK_KINDS}
-        for cell in floor_exits(graph, map_id):
+        for cell in floor_exits(graph, map_id, keep):
             link[cell] = (entrance_graph.TP_TELE_WARP, 0)
-        for (col, row), group in sorted(_one_per_link(link).items()):
+        # The frame the tab draws, which is what _octant measures against. The
+        # same `keep` the floor-door rule used, for the reason crop_keep exists
+        # at all: the crop and the pins disagreeing about what a speck is has
+        # already cost a pin.
+        crop = render_maps.content_crop(tiles, keep=keep)
+        pins = [(entrance_qualifier(graph, map_id, tiles, crop, cell,
+                                    *link[cell]), cell, group)
+                for cell, group in sorted(_one_per_link(link).items())]
+        # An ordinal only where a floor really does offer two of the same thing
+        # in the same corner -- Ice Cave B2's pit room is ten holes in one
+        # frame quadrant and there is nothing else to say about them. Ordered
+        # row then column, the tie-break _middle already uses, so the number a
+        # pin wears does not move between runs of one cartridge.
+        repeated = Counter(qual for qual, _, _ in pins)
+        nth = Counter()
+        for qual, (col, row), group in sorted(pins, key=lambda p: (p[0], p[1][1],
+                                                                  p[1][0])):
+            if repeated[qual] > 1:
+                nth[qual] += 1
+                qual = f"{qual} {nth[qual]}"
             name = (overworld_pins.ENTRANCE_PREFIX
-                    + f"{entrance_graph.MAP_NAMES[map_id]} {col},{row}")
+                    + f"{entrance_graph.MAP_NAMES[map_id]} {qual}")
             out[name] = ([(map_id, col, row)]
                          + [(map_id, c, r) for c, r in sorted(group)
                             if (c, r) != (col, row)])
@@ -1208,7 +1345,21 @@ def entrance_children(by_rom, tiles, sprite_cells=None):
             shaded.append((name, ml["map"]))
         kids.append({
             "name": name,
-            "sections": [{"name": name[len(overworld_pins.ENTRANCE_PREFIX):]}],
+            "sections": [{
+                "name": overworld_pins.entrance_section_name(name),
+                # Spelled out because the hosted item takes the default away:
+                # locationsection.cpp:67 gives a section item_count 1 only while
+                # it hosts nothing. At 0 there is no count for edges.lua to
+                # write and the pin would stop opening when the party walks
+                # through it.
+                "item_count": 1,
+                # The tooltip slot the badge text has to fit inside; see
+                # overworld_pins.ENTRANCE_ITEM_WIDTH for why an overlay needs
+                # one and why the height has to be spelled out with it.
+                "item_width": overworld_pins.ENTRANCE_ITEM_WIDTH,
+                "item_height": overworld_pins.ENTRANCE_ITEM_HEIGHT,
+                "hosted_item": overworld_pins.entrance_code(name),
+            }],
             "map_locations": [ml],
         })
     return kids, lost, shaded
@@ -1239,25 +1390,45 @@ def build_entrance_links(nodes, members):
     nothing: an entry naming a section that does not exist would be a silent
     lookup failure rather than a visible one.
 
-    Positions only. Which pin a tile belongs to is what the board already draws,
-    so this hands over nothing the shuffle is hiding.
+    Positions and names only, in both tables. Which pin a tile belongs to and
+    what a pin is called are what the board already draws, so this hands over
+    nothing the shuffle is hiding -- where a door goes reaches the pack one
+    walk at a time, over ff1/edges, and never from here.
     """
-    lines = []
+    lines, pins, seen = [], [], {}
     for node in nodes:
         name = node["name"]
         cells = members.get(name)
         if not cells:
             continue
-        section = node["sections"][0]["name"]
-        path = f"@{pin_visibility.ENTRANCES_GROUP}/{name}/{section}"
+        section = node["sections"][0]
+        path = f"@{pin_visibility.ENTRANCES_GROUP}/{name}/{section['name']}"
+        code = section["hosted_item"]
+        if code in seen:
+            raise SystemExit(
+                f"two entrance pins mint the same item code {code!r}: "
+                f"{seen[code]} and {name}. One code, two sections, and the "
+                "badge on either would answer for both.")
+        seen[code] = name
         for map_id, col, row in cells:
             lines.append(f'  ["{map_id},{col},{row}"] = "{path}",')
+        pins.append(f'  ["{path}"] = {{ code = "{code}", '
+                    f'map = {cells[0][0]}, name = "{name}" }},')
     return ("-- Generated by tools/regen_maps.py -- do not edit.\n"
             "--\n"
             "-- Every tile that belongs to an entrance pin, and the section that\n"
             "-- pin marks. scripts/autotracking/edges.lua looks an observed tile\n"
             "-- up here; see build_entrance_links for why the two disagree.\n"
-            "ENTRANCE_LINKS = {\n" + "\n".join(lines) + "\n}\n")
+            "ENTRANCE_LINKS = {\n" + "\n".join(lines) + "\n}\n"
+            "\n"
+            "-- The other direction: one row per pin, carrying the item its\n"
+            "-- section hosts, the map it stands on and what it is called.\n"
+            "-- scripts/entrance_items.lua builds the badge items from this. It\n"
+            "-- reads the code and the name rather than rebuilding either --\n"
+            "-- overworld_pins.entrance_code is the one place a code is minted,\n"
+            "-- and a Lua-side parse of the path would be a second copy of the\n"
+            "-- id format PopTracker actually resolves.\n"
+            "ENTRANCE_PINS = {\n" + "\n".join(pins) + "\n}\n")
 
 
 def maps_by_rom_id(cal):
@@ -1843,6 +2014,18 @@ def encode(w, h, rgb):
         os.remove(tmp)
 
 
+def encode_rgba(w, h, rgba):
+    """encode's four-channel twin, for the badge's transparent plate."""
+    fd, tmp = tempfile.mkstemp(suffix=".png")
+    os.close(fd)
+    try:
+        pngio.write_rgba(tmp, w, h, rgba)
+        with open(tmp, "rb") as f:
+            return f.read()
+    finally:
+        os.remove(tmp)
+
+
 def main():
     ap = argparse.ArgumentParser(
         description="Redraw the pack's dungeon maps from a cartridge, into "
@@ -2148,8 +2331,23 @@ def main():
         # loop is settling. It reads the unnudged doors every pass, so nothing
         # compounds and the fixed-point argument above still holds.
         raw_doors = overworld_pins.entrance_door_pins(ow_graph.doors)
+        # The coastline goes in beside the pins. A cartridge's outermost pins
+        # sit inside its own coastline, so a box measured from pins alone cut
+        # the western and eastern islands and the top of the northern landmass
+        # off the tab -- land the party walks on, drawn nowhere. On the standard
+        # oracle that box was x 22..243, y 19..244 against land reaching x 1..253
+        # and y 14..244.
+        #
+        # The land is nearly the whole field, so this is close to not cropping
+        # the standard overworld at all, and that is the intended answer rather
+        # than a side effect: the tab is the map. Only this branch names land,
+        # so content_box keeps trimming for anything that does not.
+        #
+        # Measured once, outside the loop: the land does not move when the
+        # marker does.
+        ow_land = render_overworld.land_corners(rom)
         ow_box = overworld_pins.content_box(
-            list(ow_placed.values()) + list(raw_doors.values()))
+            list(ow_placed.values()) + list(raw_doors.values()) + ow_land)
         for _ in range(8):
             step_ = overworld_pins.marker_tiles(max(ow_box[2], ow_box[3]))
             ow_doors = overworld_pins.part_doors(raw_doors, step_)
@@ -2157,7 +2355,7 @@ def main():
             stacked_ = overworld_pins.spread(ow_placed, step_,
                                              taken=door_taken)
             box_ = overworld_pins.content_box(
-                list(stacked_.values()) + list(ow_doors.values()))
+                list(stacked_.values()) + list(ow_doors.values()) + ow_land)
             if box_ == ow_box:
                 # The incentive sheet gets the same pins stacked at the same
                 # step but without the doors claimed. It shares the overworld's
@@ -2299,7 +2497,8 @@ def main():
         if rel is dungeon_locations:
             group = overworld_pins.entrance_group(ow_doors, origin=ow_box[:2])
             kids, link_lost, link_shade = entrance_children(
-                maps_by_rom_id(cal), entrance_tiles(ow_graph), sprite_cells)
+                maps_by_rom_id(cal), entrance_tiles(ow_graph, npc_cells),
+                sprite_cells)
             group["children"] += kids
             links += len(kids)
             link_unplaceable += link_lost
@@ -2312,7 +2511,7 @@ def main():
             files[ENTRANCE_LINKS_FILE] = build_entrance_links(
                 group["children"],
                 {**overworld_pins.entrance_door_members(ow_graph.doors),
-                 **entrance_members(ow_graph)}).encode()
+                 **entrance_members(ow_graph, npc_cells)}).encode()
         pin_visibility.stamp(doc)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
         placed += pl

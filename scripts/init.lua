@@ -147,6 +147,12 @@ if PopVersion and PopVersion>="0.18.0" then
     -- regen into the override, beside the pins it resolves -- so the load is
     -- unconditional and the feature is inert until there is an override.
     ScriptHost:LoadScript("scripts/entrance_links.lua")
+    -- Then the badge items, which are built from that table, and the map names
+    -- they fall back on. Both before edges.lua, which fills them in: the first
+    -- record can arrive on the opening burst, and a name set on an item that
+    -- does not exist yet would be lost without a word.
+    ScriptHost:LoadScript("scripts/map_names.lua")
+    ScriptHost:LoadScript("scripts/entrance_items.lua")
     ScriptHost:LoadScript("scripts/autotracking/edges.lua")
     ScriptHost:LoadScript("scripts/autotracking/uat.lua")
   end

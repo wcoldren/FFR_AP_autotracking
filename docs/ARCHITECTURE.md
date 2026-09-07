@@ -206,6 +206,13 @@ scripts/incentives.lua        gold rings on slots this seed incentivized
 scripts/incentive_slots.lua   generated table of slot -> flags, and the hosted
                               code that joins a slot to its AP location
 scripts/settings.lua          three globals, no UI
+scripts/entrance_links.lua    generated: which pin stands on which tile, and
+                              the item each pin hosts. Empty in the pack,
+                              written into the override beside the art
+scripts/entrance_items.lua    one badge item per entrance pin -- where the
+                              door came out, and the clicks that go there
+scripts/map_names.lua         map id -> the cartridge's name for it, what a
+                              badge falls back on when no tab claims the map
 
 scripts/autotracking.lua      the Archipelago feed
 scripts/autotracking/
@@ -216,7 +223,10 @@ scripts/autotracking/
   location_mapping.lua        AP location id -> section path
   flags_decode.lua            the FFR flag string -> settings
   flag_mapping.lua            settings -> board items
-  maptab.lua                  follow the player between floors
+  maptab.lua                  follow the player between floors, and the one
+                              copy of map id -> tab path
+  edges.lua                   ff1/edges: the pins the party has walked through,
+                              and what each badge says
   mapValues.lua               map id -> tab name
 
 scripts/flags/                generated per-version flag schemas
@@ -459,10 +469,10 @@ that fails the run. That is the thing to run before
 calling anything done; what follows is what it runs.
 
 ```
-tests/run.sh         16 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
+tests/run.sh         17 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   34 Python suites for the cartridge-reading tools.
-                     Twenty of them skip, wholly or in part, unless FF1_ROM
+tools/tests/run.sh   37 Python suites for the cartridge-reading tools.
+                     21 of them skip, wholly or in part, unless FF1_ROM
                      points at a cartridge, and three more unless FF1_SEEDS
                      points at the seed tree — so a bare run passes and checks
                      a good deal less than the count suggests. One slow guard opts in

@@ -13,3 +13,10 @@
 -- override -- unlike Pack::hasFile, which does not and which is why the door
 -- icons had to be committed instead.
 ENTRANCE_LINKS = {}
+
+-- The other direction, and empty here for the same reason: one row per pin,
+-- carrying the item its section hosts and the map it stands on.
+-- scripts/entrance_items.lua builds the badge items from this, so a pack with
+-- no override creates none -- which is right, because it has no pins to hang
+-- them on either.
+ENTRANCE_PINS = {}

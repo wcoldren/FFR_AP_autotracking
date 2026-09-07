@@ -95,7 +95,19 @@ def icons(rom, graph):
         render_maps.map_palettes(rom, map_id, True))[tile]
     faded = [[_faded(px) for px in row] for row in art]
     return {overworld_pins.DOOR_SHUT_IMG: _png(art),
-            overworld_pins.DOOR_OPEN_IMG: _png(faded)}
+            overworld_pins.DOOR_OPEN_IMG: _png(faded),
+            overworld_pins.DOOR_BADGE_IMG: _blank(len(art))}
+
+
+def _blank(dim):
+    """A fully transparent square the size of the other two.
+
+    Written here rather than committed by hand so the guard that holds the
+    icons to what this writes covers all three, and sized to match so the
+    badge's cell letterboxes the same way its neighbours do.
+    """
+    return regen_maps.encode_rgba(dim * SCALE, dim * SCALE,
+                                  bytes(4 * (dim * SCALE) ** 2))
 
 
 def _faded(px):

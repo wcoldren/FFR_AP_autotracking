@@ -45,6 +45,7 @@ which is drawing a seed.
 """
 
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -134,6 +135,95 @@ def door_cells(doors):
 ENTRANCE_PREFIX = "Entrance: "
 
 
+# What an entrance section's slot in the hover tooltip is sized to, in pixels.
+#
+# The badge text is an item *overlay*, and an overlay is neither measured into
+# the tooltip's width nor clipped when it is drawn (item.cpp:336-368,
+# maptooltip.cpp:202-205). So a destination longer than the icon renders
+# straight out through the popup's dark background, and the only lever the pack
+# has is the width of the slot the icon sits in -- there is no tooltip width in
+# the pack format at all.
+#
+# The widest badge line the pack can produce is 111.3px, and the overlay is
+# drawn two pixels wider than its text for the light and shadow passes
+# (item.cpp:305), so 113.3px reaches the edge. Measured through
+# DejaVuSans-Bold.ttf -- the app's DEFAULT_FONT_NAME (defaults.h:10) -- at the
+# 10px SetOverlayFontSize entrance_items.lua asks for, across every tab leaf in
+# mapValues.lua and every name in map_names.lua with the abbreviations applied.
+#
+# The first cut of this measured the regular face and got 100.6px, which set
+# the constant one pixel *under* what the badge actually draws. The overlay
+# font is trackerview.cpp:123's, and that is the bold one.
+#
+# 120 rather than 114 because the measurement is of this copy of the font and a
+# player runs the app's own. tools/tests/test_badge_width.py holds the two
+# numbers together, so a tab renamed longer fails a suite rather than a hover.
+#
+# It cannot be smaller by leaning on the header. The tooltip is as wide as its
+# widest measured child, so a long location name would carry a badge that
+# starts at 32px -- but "Entrance: Gaia" is 91.1px against a badge reaching
+# 143.3px from there, and short-named doors are exactly the ones whose
+# destinations can be long.
+ENTRANCE_ITEM_WIDTH = 120
+
+# Spelled out beside the width because leaving it off does not do what it looks
+# like. maptooltip.cpp:135-140 takes the {32, 32} default only when *both* axes
+# are unset; with a width and no height it warns to stderr and falls back to
+# 32x32, silently undoing the width. locationsection.cpp:71-72 reads the two
+# through to_int rather than to_pixel, so these are plain pixels and not the
+# icon-size table item_size goes through.
+ENTRANCE_ITEM_HEIGHT = 32
+
+
+def entrance_section_name(name):
+    """What the section under an entrance node is called.
+
+    The qualifier alone where there is one -- "NE Upstairs" under
+    "Entrance: SeaShrineB3 NE Upstairs" -- and the whole bare name where there
+    is not, which is every overworld door: "Coneria" has no qualifier to keep
+    because the name *is* the door.
+
+    A map tooltip draws the location name in the big font and each section name
+    in the small one (maptooltip.cpp:63-80, :113-120), so a section named for
+    its node prints one string twice at two sizes. The coordinates were short
+    enough to hide that; "SeaShrineB3 NE Upstairs" is not, and the map is on
+    the line above either way.
+
+    Uniqueness does not rest on this. A section path is
+    @Entrances/<node>/<section> and the node name is the half that is unique --
+    which is why two floors may both offer an "NE Upstairs" without colliding.
+    """
+    bare = name[len(ENTRANCE_PREFIX):] if name.startswith(ENTRANCE_PREFIX) else name
+    head, sep, rest = bare.partition(" ")
+    return rest if sep else bare
+
+
+def entrance_code(name):
+    """The item code hosted on one entrance pin's section.
+
+    A pin carries an item so it can carry text: a marker's name is fixed at load
+    (locationsection.cpp:262-294 lets a script write AvailableChestCount and
+    Highlight and nothing else), so "this door came out in Melmond" has to ride
+    on an item hosted by the section. The code is minted here and nowhere else,
+    and Lua reads it back out of the table a regen writes rather than rebuilding
+    the string, so the two halves cannot drift.
+
+    Keyed on the node name rather than the tile, because the name is the thing
+    already guaranteed unique -- tiles_by_name, mirror_of and restamp are all
+    keyed on it -- while a door's pin cell is not the door's tile: part_doors
+    nudges a town half a marker south to part it from its castle, and a code
+    minted from that would name a tile the door is not on.
+
+    The prefix is what keeps it clear of every code in items/*.json. The
+    `Ruby`/`titan` clash cost a rename in three tools at once, and an entrance
+    code colliding with an item would be the same failure with 178 chances to
+    happen.
+    """
+    bare = name[len(ENTRANCE_PREFIX):] if name.startswith(ENTRANCE_PREFIX) else name
+    slug = re.sub(r"[^a-z0-9]+", "_", bare.lower()).strip("_")
+    return "entr_" + slug
+
+
 def entrance_door_pins(doors):
     """{node name: (x, y)} -- one trapezoid pin per overworld door.
 
@@ -178,6 +268,21 @@ def entrance_door_members(doors):
 # than committed here.
 DOOR_SHUT_IMG = "images/icons/door_shut.png"
 DOOR_OPEN_IMG = "images/icons/door_open.png"
+
+# The badge item's own picture, and it is deliberately a transparent one.
+#
+# The tooltip draws item_count location icons and then every hosted item
+# (maptooltip.cpp:143-158), so an entrance section is always two cells: the
+# door's state, which edges.lua opens when the party walks through, and the
+# badge, which carries where it went. Both wore the same door and read as one
+# thing printed twice.
+#
+# Blank rather than a second picture because there is nothing true to draw
+# there -- the cell is a text field. And it has to be a transparent *image*
+# rather than no image: makeItem skips an empty one entirely and
+# Item::render returns at :262 before it reaches the overlay, so a badge with
+# no icon draws no text either.
+DOOR_BADGE_IMG = "images/icons/door_badge.png"
 
 
 def part_doors(doors, step, dim=256):
@@ -232,8 +337,13 @@ def entrance_group(doors, origin=(0, 0), map_name="overworld", tile_px=16):
     sections and does not aggregate from children, so a parent carrying markers
     and no sections is hidden; and a section with item_count below 1 and no
     hosted item is skipped, which leaves a marker that draws nothing and reports
-    no error. The default item_count is 1 (locationsection.cpp:67), so the way
-    to get that right is to leave it alone.
+    no error.
+
+    `item_count` is spelled out because the hosted item takes the default away:
+    locationsection.cpp:67 defaults it to 1 only while there are no hosted
+    items, and to 0 once there is one. A door at 0 would have no count for
+    edges.lua to write, so the pin the party walked through would stop opening
+    -- the feature this one is built beside.
 
     A section also gives a door a state, which is the point: until the bridge
     watches the party walk through one, "I have been in here" is a click.
@@ -260,7 +370,11 @@ def entrance_group(doors, origin=(0, 0), map_name="overworld", tile_px=16):
         "chest_opened_img": DOOR_OPEN_IMG,
         "children": [
             {"name": name,
-             "sections": [{"name": name[len(ENTRANCE_PREFIX):]}],
+             "sections": [{"name": entrance_section_name(name),
+                           "item_count": 1,
+                           "item_width": ENTRANCE_ITEM_WIDTH,
+                           "item_height": ENTRANCE_ITEM_HEIGHT,
+                           "hosted_item": entrance_code(name)}],
              "map_locations": [{"map": map_name,
                                 "x": (cell[0] - ox) * tile_px + half,
                                 "y": (cell[1] - oy) * tile_px + half,
@@ -505,13 +619,27 @@ def marker_tiles(box_tiles, num=80, den=3096):
 
 
 def content_box(anchors, dim=256, margin=CROP_MARGIN, minimum=CROP_MIN):
-    """(x0, y0, w, h) in tiles: what the pins need to be seen, clamped to the map.
+    """(x0, y0, w, h) in tiles: what has to be seen, clamped to the map.
 
-    The rule is the pins rather than the land, because the land is not what an
-    overworld tab is for. On a standard cartridge the pins are spread over the
-    whole field and this trims ocean off the edges; on a No-Overworld one they
-    are nine doors in a fourteen-tile huddle and it is the difference between a
-    readable map and a green smudge.
+    The rule is the pins *and* whatever else the caller hands in with them.
+    Pins alone was the first rule and it cut the map: a standard cartridge's
+    outermost pins sit well inside its own coastline, so the eight-tile margin
+    left the western islands, the eastern ones and the top of the northern
+    landmass outside the crop -- land a party can stand on, drawn nowhere.
+
+    What that costs is worth knowing rather than discovering: the overworld's
+    land is nearly the whole field, 12,175 tiles spanning x 1..253 and y 14..244
+    on the standard oracle and 8,786 over the same span on a No-Overworld one,
+    so a caller that names the coastline gets an overworld tab that is
+    effectively uncropped. **A No-Overworld cartridge is not the exception it
+    sounds like**: 8,617 of its 8,786 walkable tiles are walkable on the
+    standard oracle too, so it is the same continents with about a third of
+    them drowned, spanning the same field. The huddle it is known for is its
+    nine reachable pads, not its land.
+
+    So the trim survives by the caller choosing not to name land, not by the
+    land being small, and that is the whole of it: one rule, one margin, one
+    clamp, and a caller with nothing to add simply adds nothing.
     """
     if not anchors:
         return (0, 0, dim, dim)

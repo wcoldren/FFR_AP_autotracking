@@ -108,6 +108,33 @@ def write_rgb(path, w, h, rgb):
     open(path, "wb").write(out)
 
 
+def write_rgba(path, w, h, rgba):
+    """The same as write_rgb for four-channel pixels -- colour type 6.
+
+    Here for one image: the transparent plate the entrance badge draws its text
+    on. An item whose image is empty is skipped entirely by
+    TrackerView::makeItem, and Item::render returns before it reaches the
+    overlay (item.cpp:262), so a badge with no icon draws no text either. The
+    cell has to hold *something* and the something has to be invisible.
+
+    read_rgb already accepts colour type 6, so the committed-icon guard reads
+    this back the same way it reads the other two.
+    """
+    raw = bytearray()
+    for y in range(h):
+        raw.append(0)
+        raw += rgba[y * w * 4:(y + 1) * w * 4]
+    out = bytearray(_SIG)
+    for kind, body in (
+        (b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)),
+        (b"IDAT", zlib.compress(bytes(raw), 6)),
+        (b"IEND", b""),
+    ):
+        out += struct.pack(">I", len(body)) + kind + body
+        out += struct.pack(">I", zlib.crc32(kind + body) & 0xFFFFFFFF)
+    open(path, "wb").write(out)
+
+
 def size(path):
     data = open(path, "rb").read(24)
     return struct.unpack(">II", data[16:24])

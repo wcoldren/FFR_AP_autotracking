@@ -57,7 +57,10 @@ Single sprites are a deliberate exception. A tracker cell wants an icon,
 icon lifted and recoloured for a tracker is ordinary practice in this community.
 Icons made that way may ship here. Two do: `images/icons/door_shut.png` and
 `door_open.png`, the tooltip icon for an entrance pin, written by
-`tools/make_door_icons.py` off the locked-door tile. They are committed rather
+`tools/make_door_icons.py` off the locked-door tile. The same writer produces a
+third, `door_badge.png`, which is transparent: the destination text sits in a
+cell of its own beside the door, and PopTracker draws no overlay on an item
+that has no picture at all, so that cell needs one it cannot see. They are committed rather
 than left to a regen because `Pack::hasFile` does not consult the user-override,
 so a section image that lives only there falls back to PopTracker's chest. The
 door is vanilla tile art -- byte-identical off all four measured cartridges --
@@ -218,13 +221,32 @@ that: doors come off the cartridge's own teleport tables and are the same under
 every render setting. It says where a door is, not where it now goes -- on a
 shuffled seed those are different questions.
 
+The name works the same way, and describes the door rather than where it leads.
+`SeaShrineB3 NE Upstairs` is the up staircase in the north-east of the floor as
+the tab draws it, and `TitansTunnel ExitTitanEast` is the east mouth of the
+tunnel -- which is the randomizer's own name for that exit rather than one this
+pack made up. What a staircase is drawn as comes from the randomizer too, so a
+hole reads as a hole. Where two of the same thing sit in the same corner the
+name ends in a number, counted top to bottom. A floor with six staircases is
+six descriptions instead of six pairs of grid coordinates, and none of it
+changes when a seed moves the doors.
+
 A door you have walked through fades, the way a chest you have opened does. With
 the emulator feed attached that happens on its own: the bridge watches which map
 you are on and which tile you are standing on, and when the two stop agreeing it
 has just seen you use a door. Nothing on the tracker's side reads the seed's
 teleport tables, so a door you have not been through stays shut -- which is the
-whole point on a seed that shuffled them. Where a door comes out is still not
-written anywhere on the board; that is the next piece of this.
+whole point on a seed that shuffled them.
+
+And it says where it went. Click a door pin and the tooltip carries a small
+door with the destination beside it -- `->Marsh Cave B1`, or `<-Coneria` for a
+door something else comes out of, or `<->Elfland` when both directions are the
+same map. Click that destination and the tab it names comes forward, with the
+pin at the far end lit gold for a few seconds so you can see which one it is;
+right-click goes the other way, to whatever leads here. It only ever says what
+you have already seen from inside the game: the badge is filled in from the same
+walk that opened the pin, so a seed cannot be read off the board ahead of
+playing it.
 
 Shape and colour are separate channels: the shape says what kind of thing a pin
 is, the colour says how it stands. PopTracker has three shapes and no more, so

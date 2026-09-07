@@ -16,10 +16,18 @@ What is checked:
     second-source rule test_overworld_pins.py follows
   * node names are unique across the tree, because tiles_by_name, mirror_of and
     restamp are all keyed on a bare node name and a collision is silent
-  * every node carries its own single section, and nothing sets item_count --
-    a section with item_count below 1 and no hosted item is skipped by
-    CalculateLocationState, which leaves a marker that draws nothing and says
-    nothing
+  * every node carries its own single section, that section hosts the item its
+    badge text rides on, and it spells item_count out as 1. Both halves matter
+    and they pull against each other: a section with item_count below 1 and no
+    hosted item is skipped by CalculateLocationState, and locationsection.cpp:67
+    drops the default from 1 to 0 the moment a hosted item appears -- so the
+    field that could be left alone before the item has to be written now
+  * every code is minted by overworld_pins.entrance_code, is unique across the
+    group, and collides with nothing in items/*.json. A code shared with an item
+    is the `Ruby`/`titan` clash again, and here there are 178 chances at it
+  * ENTRANCE_PINS names every pin exactly once, with the code its section hosts
+    and the map it stands on -- the table scripts/entrance_items.lua builds the
+    badge items from
   * every entrance marker is a trapezoid carrying exactly $showPin|entrance,
     and no other marker carries either
   * a place pin does not sit on a door: spread() is seeded with the door tiles,
@@ -45,6 +53,7 @@ Set FF1_ROM to a cartridge; without one the cartridge half skips.
 """
 
 import io
+import json
 import os
 import re
 import struct
@@ -154,6 +163,34 @@ def same_file(path, data):
     return os.path.exists(path) and open(path, "rb").read() == data
 
 
+def png_alpha(data):
+    """[alpha] for an 8-bit RGBA PNG this suite just built, filter 0 only.
+
+    Every row carries a leading filter byte, so the alpha bytes are not at a
+    fixed stride through the whole image -- the offset shifts by one per row.
+    The first cut of this took every fourth byte from the start, which is right
+    for row 0 and wrong after it, and passed anyway because the image under
+    test is entirely zero. Hence the length check at the call site: on an
+    all-transparent plate an incorrect reader and a correct one agree on the
+    values and disagree on how many there are.
+    """
+    pos, width, height, idat = 8, 0, 0, b""
+    while pos < len(data):
+        length = struct.unpack(">I", data[pos:pos + 4])[0]
+        kind = data[pos + 4:pos + 8]
+        if kind == b"IHDR":
+            width, height = struct.unpack(">II", data[pos + 8:pos + 16])
+        elif kind == b"IDAT":
+            idat += data[pos + 8:pos + 8 + length]
+        pos += 12 + length
+    raw = zlib.decompress(idat)
+    out = []
+    for row in range(height):
+        base = row * (1 + width * 4) + 1
+        out += [raw[base + 4 * col + 3] for col in range(width)]
+    return out
+
+
 def png_pixels(data):
     """[[luma]] for a PNG this suite just built -- 8-bit RGB, filter 0 only.
 
@@ -189,9 +226,33 @@ def main():
           group["name"], pin_visibility.ENTRANCES_GROUP)
     kid = group["children"][0]
     check("a door carries its own sections", len(kid["sections"]), 1)
-    check("  and does not set item_count", "item_count" in kid["sections"][0],
-          False)
+    check("  and spells item_count out", kid["sections"][0].get("item_count"), 1)
+    check("  and hosts the code entrance_code mints",
+          kid["sections"][0].get("hosted_item"),
+          op.entrance_code("Entrance: Coneria"))
     check("  and is a trapezoid", kid["map_locations"][0]["shape"], "trapezoid")
+    # Both axes, because a width on its own does not do what it looks like:
+    # maptooltip.cpp:135-140 takes its {32, 32} default only when neither is
+    # set, and a width with no height warns to stderr and falls back to 32x32 --
+    # silently undoing the one thing the width was added for.
+    # The section is named for the qualifier, not for its node. A tooltip draws
+    # the location name in the big font and the section name in the small one,
+    # so a section named for its node prints one string twice at two sizes --
+    # which is what the board was doing. Shown as the duplication it removes
+    # rather than as the string it produces.
+    check("  and names its section for the qualifier, not the node",
+          kid["sections"][0].get("name"),
+          op.entrance_section_name(kid["name"]))
+    check("    which for a floor link is not the node's own name",
+          op.entrance_section_name("Entrance: SeaShrineB3 NE Upstairs"),
+          "NE Upstairs")
+    check("    and for a door, which has no qualifier, still is",
+          op.entrance_section_name("Entrance: Coneria"), "Coneria")
+
+    check("  and sizes the tooltip slot the badge has to fit in",
+          [kid["sections"][0].get("item_width"),
+           kid["sections"][0].get("item_height")],
+          [op.ENTRANCE_ITEM_WIDTH, op.ENTRANCE_ITEM_HEIGHT])
 
     # Both directions, as the stamper's own suite does it: under the group the
     # rule appears, and the same node outside it gets nothing. Keyed on the
@@ -251,6 +312,31 @@ def main():
 
     check("a lone warp tile inside the content is a door",
           sorted(regen_maps.floor_exits(Grid(), 0)), [(28, 28)])
+
+    # And the third condition, which is the crop's rather than this rule's. A
+    # room small enough to be a speck is dropped by drop_specks, taking its warp
+    # with it -- but the crop keeps that room whenever anything protected stands
+    # in it, and protected_cells shields every teleport except a warp. So a
+    # sealed room holding a staircase and a warp is drawn and then has no pin on
+    # its way out, which is what Sea Shrine B3's bottom-right corner did on
+    # every standard cartridge until floor_exits was given the crop's `keep`.
+    speck = list(tiles)              # the 11x11 block, plus a room off on its own
+    for row in range(40, 43):
+        for col in range(40, 43):
+            speck[row * dim + col] = 1
+
+    class Speck:
+        def teleports(self, map_id):
+            return [(41, 41, entrance_graph.TP_TELE_WARP, 0)]
+
+        def grid(self, map_id):
+            return speck, None, None
+
+    check("a warp in a speck the crop dropped is not a door",
+          sorted(regen_maps.floor_exits(Speck(), 0)), [])
+    check("  and is one as soon as the crop keeps that speck",
+          sorted(regen_maps.floor_exits(Speck(), 0, keep=[(42, 42)])),
+          [(41, 41)])
     check("  the one out in the filler is not, whatever its cluster",
           (5, 5) in render_maps.content_cells(tiles), False)
     was = regen_maps.FLOOR_EXIT_CLUSTER
@@ -271,6 +357,91 @@ def main():
     apart = {(11, 4): ("norm", 18), (20, 4): ("norm", 18)}
     check("  and one link in two places stays two",
           sorted(regen_maps._one_per_link(apart)), [(11, 4), (20, 4)])
+
+    # ---- what a pin is called ------------------------------------------
+    #
+    # A floor link used to be named for its tile -- "SeaShrineB3 49,37" -- so a
+    # floor with six staircases was six coordinate pairs to read off the art.
+    # The qualifier replaces that, and every row below is a rule that has to
+    # hold on a grid built here rather than on a cartridge: a cartridge can
+    # only show the naming agreeing with itself.
+    #
+    # The frame is the 11x11 block above, cols and rows 20..30, padded by one.
+    quad_of = {"Upstairs": (0x26, 0x27, 0x36, 0x37),   # TELEPORT_GRAPHICS[..][1]
+               "Downstairs": (0x28, 0x29, 0x38, 0x39)}
+    TS, UP, DOWN, MYSTERY = 1, 2, 3, 4
+    rom = bytearray(max(render_maps.TILESET_LUT + entrance_graph.MAP_COUNT,
+                       render_maps.QUAD_BASE + 0x200 * 8 + 0x80 * 4))
+    rom[render_maps.TILESET_LUT + 0] = TS
+    for tile, name in ((UP, "Upstairs"), (DOWN, "Downstairs")):
+        for n, value in enumerate(quad_of[name]):
+            rom[render_maps.QUAD_BASE + 0x200 * TS + 0x80 * n + tile] = value
+    # MYSTERY keeps its zero quad, which is the "no answer" the all-zero guard
+    # is for -- five graphics list four zeroes on some tileset, so a tile that
+    # matched on zeroes would match five at once.
+
+    named = list(tiles)
+    for cell, tile in (((21, 21), UP), ((29, 29), DOWN), ((29, 27), DOWN),
+                       ((25, 25), MYSTERY)):
+        named[cell[1] * dim + cell[0]] = tile
+
+    image = type("Image", (), {"data": rom})()
+
+    class Named:
+        rom = image
+
+        def grid(self, map_id):
+            return named, None, None
+
+    crop = render_maps.content_crop(named)
+    qual = lambda cell, kind=entrance_graph.TP_TELE_NORM, pay=0: (
+        regen_maps.entrance_qualifier(Named(), 0, named, crop, cell, kind, pay))
+
+    check("a link in the frame's north-west corner says so",
+          qual((21, 21)), "NW Upstairs")
+    check("  and one in the south-east says that",
+          qual((29, 29)), "SE Downstairs")
+    check("  and one in the middle band is not given a direction",
+          qual((25, 25)), regen_maps.ENTRANCE_MIDDLE)
+    check("the noun is FFR's own TeleportTilesGraphics, not a tile id",
+          render_maps.teleport_graphic(rom, 0, named, (29, 29)), "Downstairs")
+    check("  a graphic FFR has no row for leaves the noun off",
+          render_maps.teleport_graphic(rom, 0, named, (25, 25)), None)
+    check("  and a warp with no graphic says what the decomp calls it",
+          qual((25, 25), entrance_graph.TP_TELE_WARP), "Middle Back")
+    check("an exit tile takes FFR's ExitTeleportIndex name",
+          qual((21, 21), entrance_graph.TP_TELE_EXIT, 5), "ExitEarthCave")
+    check("  and an exit id FFR does not name falls back to position",
+          qual((21, 21), entrance_graph.TP_TELE_EXIT, 15), "NW Upstairs")
+
+    # The ordinal, and the collision it exists to break. Both cells below are
+    # Downstairs in the south-east, so the qualifier alone names them the same
+    # thing -- and two pins with one name would take out the item code minted
+    # from it, which build_entrance_links raises on.
+    check("two of the same thing in one corner do collide without a number",
+          qual((29, 29)) == qual((29, 27)), True)
+
+    # The direction is measured in the frame the tab draws, not in rom
+    # coordinates. A standard map is a torus and the crop slides the ones whose
+    # content crosses the join; a link at the low end of a map shifted right is
+    # in the *east* of what a player sees.
+    join = [0] * (dim * dim)
+    for row in range(20, 31):
+        for col in list(range(0, 6)) + list(range(58, dim)):
+            join[row * dim + col] = 1
+    join[25 * dim + 2] = UP
+    shifted = render_maps.content_crop(join)
+    check("the crop slid this map, so its box means nothing raw",
+          shifted.shift != (0, 0), True)
+
+    class Join(Named):
+        def grid(self, map_id):
+            return join, None, None
+
+    check("  and a link near column 0 is named for where it is drawn",
+          regen_maps.entrance_qualifier(Join(), 0, join, shifted, (2, 25),
+                                        entrance_graph.TP_TELE_NORM, 0),
+          "E Upstairs")
 
     # part_doors, on the shape it exists for: a town a tile from its castle.
     # Half a marker down, so the box still covers the door it names.
@@ -341,8 +512,10 @@ def main():
     check("every link is a norm or an exit",
           sorted({k for k in kinds if k in regen_maps.FLOOR_LINK_KINDS}),
           sorted(regen_maps.FLOOR_LINK_KINDS))
-    floor_doors = sum(len(regen_maps.floor_exits(graph, m))
-                      for m in render_maps.MAP_FILES)
+    npc_cells = regen_maps.npc_cells_of(rom)
+    floor_doors = sum(len(regen_maps.floor_exits(
+        graph, m, regen_maps.crop_keep(graph, m, npc_cells.get(m, ()))))
+        for m in render_maps.MAP_FILES)
     print(f"-- {floor_doors} of the warp tiles are a floor's door")
 
     # Every tile the filter lets through, per map, with what link it is part
@@ -354,7 +527,9 @@ def main():
         cells = {(col, row): (kind, pay)
                  for col, row, kind, pay in graph.teleports(map_id)
                  if kind in regen_maps.FLOOR_LINK_KINDS}
-        for cell in regen_maps.floor_exits(graph, map_id):
+        for cell in regen_maps.floor_exits(
+                graph, map_id,
+                regen_maps.crop_keep(graph, map_id, npc_cells.get(map_id, ()))):
             cells[cell] = (entrance_graph.TP_TELE_WARP, 0)
         eligible[map_id] = cells
     check("  and the border warps are all left out",
@@ -415,6 +590,20 @@ def main():
                      if not same_file(os.path.join(PACK, rel), data)), [])
         shut, opened = (png_pixels(built[rel]) for rel in
                         (op.DOOR_SHUT_IMG, op.DOOR_OPEN_IMG))
+        # The badge's own cell is a text field, so its picture is blank -- and
+        # it has to be a picture rather than nothing, because makeItem skips an
+        # item with no image and Item::render returns at :262 before it reaches
+        # the overlay. A blank icon there would take the badge text with it.
+        check("  the badge plate is written too", 
+              op.DOOR_BADGE_IMG in built, True)
+        check("    and is not either of the door pictures",
+              built.get(op.DOOR_BADGE_IMG) not in
+              (built[op.DOOR_SHUT_IMG], built[op.DOOR_OPEN_IMG]), True)
+        alpha = png_alpha(built[op.DOOR_BADGE_IMG])
+        check("    and is fully transparent",
+              sorted(set(alpha)), [0])
+        check("      over every pixel of it, not every fourth byte",
+              len(alpha), len(png_pixels(built[op.DOOR_SHUT_IMG])) ** 2)
         check("  both are the same size",
               [len(shut), len(shut[0]), len(opened), len(opened[0])],
               [64, 64, 64, 64])
@@ -430,9 +619,32 @@ def main():
                   for a, b in zip(r1, r2)), True)
 
     check("link names are unique", len(set(links)), len(links))
-    check("  and none names its destination",
-          sorted(n for n, (m, c, r) in links.items()
-                 if not n.endswith(f"{c},{r}")), [])
+    # This row used to assert a name ended in its own coordinates, which was the
+    # proxy for "says nothing about where it goes" while the coordinates *were*
+    # the name. The property has not changed and the check is now direct: a name
+    # may carry the map it stands on and nothing may carry another one.
+    leak = []
+    for name, (map_id, col, row) in links.items():
+        rest = name[len(op.ENTRANCE_PREFIX):]
+        mine = entrance_graph.MAP_NAMES[map_id]
+        if not rest.startswith(mine + " "):
+            leak.append(name)
+        elif any(other in rest[len(mine):] for other in entrance_graph.MAP_NAMES):
+            leak.append(name)
+    check("  and none names any map but the one it stands on", sorted(leak), [])
+
+    # The specific temptation, named so that reaching for it later fails a suite
+    # rather than a code review. FF1Lib/Enums.cs:187's TeleportIndex names all 64
+    # in-map teleports and would name every staircase pin here -- by its vanilla
+    # *destination*, which is the one thing a pin name must not say. These nine
+    # are the distinctive ones; none of them is a map name, so nothing else
+    # could put them here.
+    spoilers = ("MarshCaveTop", "MarshCaveBottom", "EarthCaveVampire",
+                "EarthCaveLich", "IceCavePitRoom", "SeaShrineMermaids",
+                "SeaShrineKraken", "CastleOrdealsMaze", "SkyPalaceTiamat",
+                "GurguVolcanoKary", "BahamutsRoom")
+    check("  and none wears a TeleportIndex name, which names a destination",
+          sorted(n for n in links if any(w in n for w in spoilers)), [])
     check("  and every name is namespaced with the doors",
           sorted(n for n in links if not n.startswith(op.ENTRANCE_PREFIX)), [])
     check("no link name collides with a door name",
@@ -446,7 +658,9 @@ def main():
     for name, (map_id, col, row) in links.items():
         table = {(x, y) for x, y, k, _ in graph.teleports(map_id)
                  if k in regen_maps.FLOOR_LINK_KINDS}
-        table |= regen_maps.floor_exits(graph, map_id)
+        table |= regen_maps.floor_exits(
+            graph, map_id,
+            regen_maps.crop_keep(graph, map_id, npc_cells.get(map_id, ())))
         if (col, row) not in table:
             astray.append(name)
     check("every link sits on a tile its map's table names", sorted(astray), [])
@@ -463,8 +677,19 @@ def main():
     check("every link is placeable on drawn art", sorted(lost), [])
     check("every node carries one section",
           sorted({len(k["sections"]) for k in kids}), [1])
-    check("  and none sets item_count",
-          sorted({("item_count" in k["sections"][0]) for k in kids}), [False])
+    check("  and every one spells item_count out",
+          sorted({k["sections"][0].get("item_count") for k in kids}), [1])
+    # The floor links are injected by a different function from the doors, so
+    # the tooltip slot has to be asserted on both or half the pins keep the
+    # overflow the other half just lost.
+    check("  and sizes the tooltip slot, on both axes",
+          sorted({(k["sections"][0].get("item_width"),
+                   k["sections"][0].get("item_height")) for k in kids}),
+          [(op.ENTRANCE_ITEM_WIDTH, op.ENTRANCE_ITEM_HEIGHT)])
+    check("  and hosts the code entrance_code mints",
+          [k["name"] for k in kids
+           if k["sections"][0].get("hosted_item")
+           != op.entrance_code(k["name"])], [])
     check("every marker is a trapezoid",
           sorted({k["map_locations"][0].get("shape") for k in kids}),
           ["trapezoid"])
@@ -523,6 +748,46 @@ def main():
         if cells and table.get("%d,%d,%d" % cells[0]) != want:
             named.append(kid["name"])
     check("a pin's own tile resolves to it", sorted(named), [])
+
+    # The codes the badges hang on. Three separate ways this goes wrong: two
+    # pins minting one code, a code an item already answers to, and the table
+    # scripts/entrance_items.lua reads disagreeing with the tree it was written
+    # beside. The middle one is the `Ruby`/`titan` clash, which was silent in
+    # three tools at once.
+    codes = [k["sections"][0]["hosted_item"] for k in group["children"]]
+    check("every pin mints its own code", len(set(codes)), len(codes))
+    taken = set()
+    for name in ("items.json", "hosted_items.json", "flags.json"):
+        with open(os.path.join(PACK, "items", name)) as fh:
+            for item in json.load(fh):
+                for field in ("codes", "secondary_codes"):
+                    taken.update(c.strip()
+                                 for c in (item.get(field) or "").split(","))
+                for stage in item.get("stages") or []:
+                    taken.update(c.strip()
+                                 for c in (stage.get("codes") or "").split(","))
+    check("and collides with no item the pack ships",
+          sorted(set(codes) & taken), [])
+
+    rows = re.findall(
+        r'\["([^"]+)"\] = { code = "([^"]+)", map = (-?\d+), name = "([^"]+)" },',
+        lua)
+    check("every pin has a row of its own",
+          sorted(sections.symmetric_difference(p for p, _, _, _ in rows)), [])
+    check("  carrying the code its section hosts",
+          sorted(set(codes).symmetric_difference(c for _, c, _, _ in rows)), [])
+    maps = {path: int(map_id) for path, _, map_id, _ in rows}
+    check("  and the name the tooltip shows",
+          sorted({n for _, _, _, n in rows}
+                 .symmetric_difference(k["name"] for k in group["children"])), [])
+    wrong = []
+    for kid in group["children"]:
+        path = (f'@{pin_visibility.ENTRANCES_GROUP}/{kid["name"]}'
+                f'/{kid["sections"][0]["name"]}')
+        cells = members.get(kid["name"]) or []
+        if cells and maps.get(path) != cells[0][0]:
+            wrong.append(kid["name"])
+    check("  and the map it stands on", sorted(wrong), [])
 
     # And the point of the table: a cluster is more than its middle. Counted
     # rather than asserted true, because a cartridge whose every link happened
