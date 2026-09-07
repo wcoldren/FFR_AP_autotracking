@@ -1808,3 +1808,35 @@ destination is the cartridge's, and `test_map_names.py` says the id has the
 right name, and a badge is those two composed. What the new suite
 `tests/test_entrance_items.lua` covers instead is the part nothing else could --
 what the text says with one end known, with both, and with both agreeing.
+
+## The overworld tab was cutting the coastline off
+
+Fixed 2026-09-07, on a report that islands were missing from the north, west and
+east of the map. They were: the crop box is measured from where the pins land,
+and a cartridge's outermost pins sit inside its own coastline. On the standard
+oracle the box was x 22..243, y 19..244 against land reaching x 1..253 and
+y 14..244, so 21 columns of the western landmass, 10 of the eastern islands and
+five rows off the top were land the party can walk on and the tab did not draw.
+
+`render_overworld.land_corners` reads walkability off the property table -- bit
+`FOOT` clear, which is the reading `audit()` already checks the art against tile
+by tile -- and hands the two corners to `content_box` beside the pins, so one
+margin and one clamp cover both. The box comes out (0, 6, 256, 247).
+
+**Which is close to not cropping the standard overworld at all, and that is the
+answer rather than a side effect.** The land is 12,175 of the 65,536 tiles and
+it is spread over nearly the whole field; a tab that draws the map has to draw
+that. Only the `std` branch names land, so `content_box` keeps trimming for
+every caller that does not.
+
+**A No-Overworld cartridge is not the exception it sounds like**, and this is
+the measurement worth keeping: 8,617 of its 8,786 walkable tiles are walkable on
+the standard oracle too. It is the same continents with about a third of them
+drowned, over the same span -- not a stub with the land removed. What is
+clustered on that mode is the nine reachable pads, which is a different fact
+from the shape of the map, and the two are easy to say interchangeably.
+
+`tools/tests/test_overworld_pins.py` has two rows rather than one: the crop
+holds every walkable tile, and the box a pin rule alone would build does not.
+The second is what stops the first from going vacuous on some future cartridge
+whose pins happen to reach the corners.

@@ -551,9 +551,11 @@ def content_box(anchors, dim=256, margin=CROP_MARGIN, minimum=CROP_MIN):
     land is nearly the whole field, 12,175 tiles spanning x 1..253 and y 14..244
     on the standard oracle and 8,786 over the same span on a No-Overworld one,
     so a caller that names the coastline gets an overworld tab that is
-    effectively uncropped. **A No-Overworld cartridge's map tables still
-    describe the vanilla continents** even though the party can reach almost
-    none of it; the huddle it is famous for is its nine doors, not its land.
+    effectively uncropped. **A No-Overworld cartridge is not the exception it
+    sounds like**: 8,617 of its 8,786 walkable tiles are walkable on the
+    standard oracle too, so it is the same continents with about a third of
+    them drowned, spanning the same field. The huddle it is known for is its
+    nine reachable pads, not its land.
 
     So the trim survives by the caller choosing not to name land, not by the
     land being small, and that is the whole of it: one rule, one margin, one
