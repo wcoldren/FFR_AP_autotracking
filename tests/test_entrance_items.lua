@@ -271,6 +271,30 @@ check("clearing says how many badges it blanked", clearEntranceNames(), 3)
 check("and the door says nothing again", badge(DOOR), "")
 check("clearing twice is not a change", clearEntranceNames(), 0)
 
+------------------------------------------------------------------
+print("\n-- a highlight that outlived its clock")
+------------------------------------------------------------------
+
+-- Highlight is written into the autosave and restored from it; the five-second
+-- deadline is a Lua local and is not. So a quit inside the window reopens with
+-- a gold pin and no handler registered to take it off, and the sweep is what
+-- notices. It is armed as this file loads and fires once, because the section
+-- restore lands after the script and would put back anything cleared earlier.
+check("the sweep is armed at load",
+  frameHandlers["entrance highlight sweep"] ~= nil, true)
+
+-- Two pins gold and no click behind either: the shape a restored autosave has.
+SECTIONS[STAIR_UP].Highlight = Highlight.Priority
+SECTIONS[DOOR].Highlight = Highlight.Priority
+frameHandlers["entrance highlight sweep"](0.016)
+check("and puts out every pin it finds lit",
+  SECTIONS[STAIR_UP].Highlight == Highlight.None
+    and SECTIONS[DOOR].Highlight == Highlight.None, true)
+check("then takes itself off, being a load-time job",
+  frameHandlers["entrance highlight sweep"], nil)
+check("and says nothing was left over on a clean board",
+  clearStaleEntranceHighlights(), 0)
+
 print("")
 if fail > 0 then
   print(string.format("%d FAILED", fail))

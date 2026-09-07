@@ -204,6 +204,52 @@ function removeEntranceHighlight(elapsed)
   HIGHLIGHT_ELAPSED = 0
 end
 
+-- Every entrance pin back to unlit. The deadline above is what normally does
+-- this; this is for the times it never got to run.
+--
+-- Highlight is saved state and the deadline is not. locationsection.cpp:180-181
+-- writes it into the autosave and :194-196 restores it, while HIGHLIGHT_SECTION
+-- is a Lua local that starts nil and the frame handler is registered by a click
+-- that has not happened yet. So quitting inside the five seconds reopens with a
+-- gold pin and nothing left that knows to put it out.
+--
+-- Sweeping every pin is safe because a highlight standing on one can only be
+-- ours: PopTracker has exactly two writers, the state load and Lua
+-- (locationsection.cpp:196, :289), there is no UI that sets one, and navigate
+-- below is the only Lua in the pack that touches Highlight at all.
+function clearStaleEntranceHighlights()
+  local cleared = 0
+  if not Highlight then
+    return cleared
+  end
+  for path in pairs(ENTRANCE_ITEMS) do
+    local sec = Tracker:FindObjectForCode(path)
+    -- `~= nil` as well as `~= None`, because a host that does not answer the
+    -- read will not accept the write either: Lua_NewIndex returns false and
+    -- PopTracker raises on the assignment. Reading nil is that host saying so.
+    local lit = sec and sec.Highlight
+    if lit ~= nil and lit ~= Highlight.None then
+      sec.Highlight = Highlight.None
+      cleared = cleared + 1
+    end
+  end
+  return cleared
+end
+
+-- On the first frame rather than as this file loads, and that is the whole
+-- reason it is a frame handler. Tracker::loadState restores lua items before
+-- sections (tracker.cpp:1422-1455) and the restore itself runs synchronously a
+-- few lines after init.lua returns (poptracker.cpp:1436-1449), so anything
+-- cleared from a LoadFunc, or from the bottom of this file, is put straight
+-- back by the section pass. The first frame is the earliest moment at which the
+-- restored board is the board.
+local STALE_HANDLER = "entrance highlight sweep"
+
+local function sweepStaleEntranceHighlights()
+  ScriptHost:RemoveOnFrameHandler(STALE_HANDLER)
+  clearStaleEntranceHighlights()
+end
+
 -- Tab to where a door goes and light the pin at the far end for a moment.
 --
 -- Priority rather than Avoid, which is what the pack this idea came from used:
@@ -369,4 +415,7 @@ function clearEntranceNames()
   return cleared
 end
 
-buildEntranceItems()
+if buildEntranceItems() > 0
+    and type(ScriptHost.AddOnFrameHandler) == "function" then
+  ScriptHost:AddOnFrameHandler(STALE_HANDLER, sweepStaleEntranceHighlights)
+end
