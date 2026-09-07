@@ -94,13 +94,24 @@ local MAP_OVERWORLD = -1    -- what we publish when not in a standard map
 -- on its own, so it is masked to 8 bits and not to 6.
 --
 -- One table rather than four constants, and the same reason applies to the edge
--- log's state further down: this file's main chunk is within a handful of names
--- of Lua's 200-local ceiling, and going over it is a load-time syntax error
--- rather than anything a test would catch. Keyed on "is this a standard map",
--- which is the question mapflags already answers.
-local SCROLL_ADDR = { [false] = { 0x0027, 0x0028 }, [true] = { 0x0029, 0x002A } }
-local PARTY_OFFSET = 7
-local OW_COORD_MASK = 0xFF
+-- log's state further down and to the two tables below: this file's main chunk
+-- is a countable number of names below Lua's 200-local ceiling for a main
+-- function, and going over it does not fail narrowly -- the whole script stops
+-- loading. The suite does catch that, loudly rather than precisely:
+-- tests/test_bridge.lua and tests/test_bridge_flow.lua both come in through
+-- assert(loadfile(...)), so what you get back is "the bridge does not load"
+-- rather than anything naming the line. Appending `local pad = 1` lines and
+-- running `luac -p` over the result is how the remaining margin gets counted.
+--
+-- Keyed on "is this a standard map", which is the question mapflags already
+-- answers, with the offset and the overworld's mask along for the ride so that
+-- neither costs a name of its own.
+local SCROLL_ADDR = {
+  [false] = { 0x0027, 0x0028 },
+  [true] = { 0x0029, 0x002A },
+  offset = 7,      -- the party sits 7 tiles into the window, on both axes
+  ow_mask = 0xFF,  -- the overworld's wrap; a standard map's is COORD_MASK
+}
 
 -- The seed's own flag string. FF1Rom.WriteSeedAndFlags stamps a plain-ASCII
 -- record into bank 0x1E at 0xBE00, which is PRG offset 0x7BE00 -- PRG
@@ -216,9 +227,12 @@ local AP_SHOP_PATCH_HEAD = "\xae\x0c\x03\xe0\x16"
 
 -- In-game guard, matching worlds/ff1/Client.py and the EmoTracker pack's
 -- isInGame(). All three bytes live inside MEM.
-local GUARD_A_OFF = 0x102   -- first character's name; 0 = title / char creation
-local GUARD_B_OFF = 0x0FC   -- see BATTLE_RUNNING
-local GUARD_C_OFF = 0x0A3
+-- One table rather than three names, for the reason SCROLL_ADDR gives above.
+local GUARD_OFF = {
+  a = 0x102,   -- first character's name; 0 = title / char creation
+  b = 0x0FC,   -- see BATTLE_RUNNING
+  c = 0x0A3,
+}
 -- What GUARD_B holds while a fight is on. Read two ways: as a reason to
 -- distrust the save window, and as the corroboration the Chaos poll needs that
 -- the formation and result bytes below it are a live battle's rather than
@@ -270,11 +284,14 @@ local TIMER_SAVE_FRAMES = 60
 -- closed, and that time is not part of the run.
 local TIMER_RESUME_MAX_SECONDS = 15
 
--- ARGB, matching the pairing Mesen's own bundled example script uses.
-local TIMER_FG_RUNNING = 0xFFFFFF
-local TIMER_FG_DONE = 0x7CFC7C
-local TIMER_BG = 0xFF000000
-local TIMER_MARGIN = 4
+-- ARGB, matching the pairing Mesen's own bundled example script uses. One table
+-- rather than four names, for the reason SCROLL_ADDR gives above.
+local TIMER_HUD = {
+  fg_running = 0xFFFFFF,
+  fg_done = 0x7CFC7C,
+  bg = 0xFF000000,
+  margin = 4,
+}
 
 local UAT_PORT = 65399      -- PopTracker's default; fallback is 44444
 local SCAN_INTERVAL_FRAMES = 6   -- ~10Hz memory scan; sockets poll every frame
@@ -1084,7 +1101,7 @@ end
 -- definition of each test rather than being restated here in cheaper form.
 -- A third of readMem()'s traffic, which is worth having because this runs on
 -- the same frames the scan does and used to double them.
-local START_OFFSETS = { GUARD_A_OFF, GUARD_B_OFF, GUARD_C_OFF }
+local START_OFFSETS = { GUARD_OFF.a, GUARD_OFF.b, GUARD_OFF.c }
 
 local function readStartMem()
   local bytes = {}
@@ -1289,7 +1306,7 @@ local function looksUninitialised(mem)
 end
 
 local function inGame(mem)
-  local a, b, c = at(mem, GUARD_A_OFF), at(mem, GUARD_B_OFF), at(mem, GUARD_C_OFF)
+  local a, b, c = at(mem, GUARD_OFF.a), at(mem, GUARD_OFF.b), at(mem, GUARD_OFF.c)
   if a == 0 then
     return false                      -- title screen or character creation
   end
@@ -1356,8 +1373,8 @@ local function readPos(map)
   if not sx or not sy then
     return nil
   end
-  local mask = standard and COORD_MASK or OW_COORD_MASK
-  return (sx + PARTY_OFFSET) & mask, (sy + PARTY_OFFSET) & mask
+  local mask = standard and COORD_MASK or SCROLL_ADDR.ow_mask
+  return (sx + SCROLL_ADDR.offset) & mask, (sy + SCROLL_ADDR.offset) & mask
 end
 
 ------------------------------------------------------------------
@@ -1664,7 +1681,7 @@ local function pollChaosKill()
   if chaosSeen or not EMU.readByte then
     return
   end
-  if not BATTLE_RUNNING[EMU.readByte(MEM_ADDR + GUARD_B_OFF)] then
+  if not BATTLE_RUNNING[EMU.readByte(MEM_ADDR + GUARD_OFF.b)] then
     return
   end
   if EMU.readByte(BTL_FORMATION_ADDR) ~= CHAOS_FORMATION then
@@ -1975,7 +1992,7 @@ local function scan()
 
   -- Require the party marker to hold steady for a few scans before trusting
   -- anything, so a reset cannot flush a half-initialised frame through.
-  local guard = at(mem, GUARD_A_OFF)
+  local guard = at(mem, GUARD_OFF.a)
   if guard ~= guardValue then
     guardValue = guard
     guardScans = 1
@@ -2221,8 +2238,8 @@ EMU.drawText = function(text, done)
       textWidth = measured
     end
   end
-  emu.drawString(width - textWidth - TIMER_MARGIN, TIMER_MARGIN, text,
-    done and TIMER_FG_DONE or TIMER_FG_RUNNING, TIMER_BG)
+  emu.drawString(width - textWidth - TIMER_HUD.margin, TIMER_HUD.margin, text,
+    done and TIMER_HUD.fg_done or TIMER_HUD.fg_running, TIMER_HUD.bg)
 end
 EMU.log = function(msg)
   emu.log("[ffr-uat] " .. msg)
