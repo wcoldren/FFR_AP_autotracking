@@ -31,6 +31,7 @@ directory puts everything back.
     tools/regen_maps.py FFR_seed.nes
     tools/regen_maps.py --verify        # is the installed override current?
     tools/regen_maps.py --refresh       # redraw whatever --verify calls stale
+    tools/regen_maps.py --refresh --mode std    # ... of one mode only
 
 The cartridge's own GameMode decides which set its art joins -- images/maps/std
 or images/maps/nov -- and the two live side by side, each with its own
@@ -1610,7 +1611,7 @@ def verify(out_dir):
     return 0
 
 
-def refresh(out_dir, dry_run):
+def refresh(out_dir, dry_run, only=None):
     """Redraw every mode `--verify` calls stale, from what it recorded.
 
     The remedy that `--verify` used to only describe. It introduces nothing:
@@ -1631,6 +1632,14 @@ def refresh(out_dir, dry_run):
     no recorded path, a cartridge that has moved, a checkout on another branch
     -- is reported and skipped, and the exit status stays non-zero, so a stale
     override never reads as refreshed.
+
+    `only` narrows it to one mode. That is for the caller who is about to play
+    a particular cartridge and wants that cartridge's art current now: the
+    other mode is a redraw nobody asked for, at the one moment they are least
+    willing to wait for it. It never widens what a refresh does to a mode --
+    each is still redrawn from its own recorded settings or not at all -- so
+    the only thing it can cost is leaving the other mode stale, which is said
+    out loud rather than left for `--verify` to discover later.
     """
     if not os.path.isdir(out_dir):
         print(f"no override installed at {out_dir}; nothing to refresh")
@@ -1647,14 +1656,31 @@ def refresh(out_dir, dry_run):
               "redraw, or from what")
         return 1
 
+    if only and only not in cache.get("modes", {}):
+        print(f"no {MODE_DIRS[only]} art has been drawn into {out_dir}, so "
+              "there is nothing here to redraw it from. Run this tool on a "
+              f"{MODE_DIRS[only]} cartridge once, and a refresh will find it "
+              "after that.")
+        return 1
+
     worn, outputs_ok = stale_modes(out_dir, cache)
+    # Narrowed after the comparison rather than before it, so the modes left
+    # out can be named. A filtered refresh that printed only what it did would
+    # be the one way this command can leave an override stale while exiting 0.
+    if only:
+        others = sorted(m for m in worn if m != only)
+        worn = {m: why for m, why in worn.items() if m == only}
+        if others:
+            print("also stale, and left alone because --mode named "
+                  f"{MODE_DIRS[only]}: "
+                  + ", ".join(MODE_DIRS[m] for m in others))
     if not worn:
         if not outputs_ok:
             print("files the last run wrote have changed, but the cache names "
                   "no mode to redraw them from")
             return 1
-        print(f"{out_dir} is already current with this checkout; nothing to "
-              "redraw")
+        scope = f"the {MODE_DIRS[only]} art is" if only else f"{out_dir} is"
+        print(f"{scope} already current with this checkout; nothing to redraw")
         return 0
 
     here = checkout_id().get("branch")
@@ -1783,7 +1809,11 @@ def main():
                                         "(default: ~/PopTracker/user-override/<uid>)")
     ap.add_argument("--mode", choices=tuple(MODE_DIRS),
                     help="file the art as std or nov rather than reading the "
-                         "cartridge's GameMode (a vanilla image has none)")
+                         "cartridge's GameMode (a vanilla image has none). "
+                         "With --refresh, where there is no cartridge to read "
+                         "a GameMode from, it means the other thing it can "
+                         "mean: redraw only this mode and leave the other "
+                         "alone")
     ap.add_argument("--marker-size", type=int, default=MARKER_SIZE,
                     metavar="PX",
                     help=f"marker box on a rendered map, in image pixels "
@@ -1844,7 +1874,8 @@ def main():
                     help="redraw every mode --verify calls stale, from the "
                          "cartridge and settings that mode recorded. Names no "
                          "cartridge and takes no drawing options: it repeats "
-                         "what was drawn before, against this checkout")
+                         "what was drawn before, against this checkout. "
+                         "--mode narrows it to one mode")
     args = ap.parse_args()
 
     out_dir = args.out or default_out()
@@ -1863,7 +1894,7 @@ def main():
         return verify(out_dir)
 
     if args.refresh:
-        return refresh(out_dir, args.dry_run)
+        return refresh(out_dir, args.dry_run, args.mode)
 
     if not args.rom:
         ap.error("a cartridge is required unless --verify, --refresh or "

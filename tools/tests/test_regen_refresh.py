@@ -2,13 +2,13 @@
 """Which modes count as stale, and what `--refresh` refuses to redraw.
 
 `--verify` names a stale override and `--refresh` acts on the same answer, so
-the answer is computed once, in `stale_modes`. The first half here holds that
+the answer is computed once, in `stale_modes`. The first part here holds that
 function to the three comparisons it stands for -- and to the one it must not
 make, because a mode drawn `--lanes none` has no stake in a lane file and
 redrawing it on every authoring edit is the reason the lane digest is compared
 per mode rather than folded into `INPUT_FILES`.
 
-The second half is about refusals. A refresh reads its arguments out of the
+The second part is about refusals. A refresh reads its arguments out of the
 cache instead of from a person, which is the whole point of it and also the
 risk: the recorded cartridge can have moved, been replaced by another seed at
 the same path, or never have been recorded at all, and the checkout can be on a
@@ -17,6 +17,11 @@ non-zero exit rather than guessed at, because a stale override that reports
 itself refreshed is worse than one that reports itself stale. A guard that
 cannot be seen to fire is not a guard, so each is exercised on a cache built to
 trip exactly it.
+
+The third is the `--mode` filter, whose risk runs the other way. Every check
+above is about refusing to redraw; this one is about reporting success over a
+mode it deliberately never looked at, which is the one exit-0 path that leaves
+the override stale on purpose.
 
 Needs no cartridge, no PopTracker and no override: every directory it asks
 about is one it just made in a temp dir. The fake cartridges are deliberately
@@ -66,10 +71,10 @@ def entry(**over):
     return was
 
 
-def refresh(out_dir):
+def refresh(out_dir, only=None):
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        rc = r.refresh(out_dir, False)
+        rc = r.refresh(out_dir, False, only)
     return rc, buf.getvalue()
 
 
@@ -154,6 +159,40 @@ with tempfile.TemporaryDirectory() as tmp:
     rc, out = refresh(tmp)
     ok(rc == 1 and "no longer the cartridge" in out,
        "the hash outranks the path when a seed directory is reused")
+
+# --- 3. what --mode narrows -----------------------------------------------
+#
+# The filter exists so start_session.sh can redraw the mode of the cartridge
+# being sat down with and not the other one. What it must never do is turn a
+# half-refreshed override into a clean exit: the mode it skipped is still
+# stale, and the only place that can say so is the run that decided to skip it.
+
+with tempfile.TemporaryDirectory() as tmp:
+    write_override(tmp, cache_for({"std": entry(), "nov": entry()}))
+    rc, out = refresh(tmp, "nov")
+    ok(rc == 0 and "No-Overworld art is already current" in out,
+       "--mode reports on the mode it was given, not on the tree")
+
+with tempfile.TemporaryDirectory() as tmp:
+    write_override(tmp, cache_for({"std": entry(inputs="stale")}))
+    rc, out = refresh(tmp, "nov")
+    ok(rc == 1 and "no No-Overworld art has been drawn" in out,
+       "a mode this override never drew is an unanswerable request, not a pass")
+
+with tempfile.TemporaryDirectory() as tmp:
+    # Both stale, one asked for. The one left behind has to be named: this is
+    # the only exit-0 path that knowingly leaves the override stale, and a
+    # silent one would be found later by --verify with nothing to explain it.
+    was = entry(inputs="stale")
+    del was["rom_path"]
+    write_override(tmp, cache_for({"std": was, "nov": entry(inputs="stale")}))
+    rc, out = refresh(tmp, "std")
+    ok("also stale, and left alone" in out and "No-Overworld" in out,
+       "the mode left out of a filtered refresh is named")
+    ok(rc == 1 and "before this tool recorded" in out
+       and "seed.nes" not in out,
+       "and only the named mode is acted on", str(rc))
+
 
 here = r.checkout_id().get("branch")
 if not here:

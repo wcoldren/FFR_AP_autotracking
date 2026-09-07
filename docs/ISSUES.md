@@ -397,6 +397,13 @@ Nothing here is urgent unless it says so.
   `start_session.sh` makes, and `FF1_REGEN_ANYWAY=1` is the same escape hatch.
 
       tools/regen_maps.py --refresh
+      tools/regen_maps.py --refresh --mode std
+
+  `--mode` narrows it to one mode, which is what somebody sitting down to play
+  a particular cartridge wants: the other mode's redraw is minutes spent at the
+  worst possible moment. It changes nothing about how a mode is redrawn, only
+  which ones are, and a run that leaves the other mode stale says so on its way
+  past rather than letting the next `--verify` be the first to mention it.
 
   The cartridge's path is recorded alongside its sha256 from 2026-09-05. An
   override written before that has the hash and not the path, so the first
