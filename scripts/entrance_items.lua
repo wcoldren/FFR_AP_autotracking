@@ -204,6 +204,22 @@ function buildEntranceItems()
       local row = { item = item, code = pin.code, map = pin.map,
                     name = pin.name, path = path }
       item.Name = pin.name
+      -- Both ways of saying the same thing, because there are 178 of these.
+      --
+      -- Tracker::ProviderCountForCode pcalls every LuaItem's
+      -- CanProvideCodeFunc unless PotentialCodes is set, and clears its cache
+      -- on every item change (tracker.cpp:605-612, luaitem.cpp:208-209). The
+      -- pack had four such items before this file; with a closure each, these
+      -- pins would put 178 pcalls behind every code re-resolved on every tick
+      -- that flips an item. PotentialCodes answers the same question from a
+      -- list in C++ and never enters Lua at all.
+      --
+      -- It needs 0.35.4 and the pack's floor is 0.35.1 (manifest.json), so the
+      -- closure stays as the fallback rather than raising that floor over a
+      -- performance fix. Set under pcall rather than gated on a version string:
+      -- an older host is one that refuses the assignment, which is exactly what
+      -- pcall is for, and a host that accepts it stops calling the closure.
+      pcall(function() item.PotentialCodes = { row.code } end)
       item.CanProvideCodeFunc = function(_, code)
         return code == row.code
       end

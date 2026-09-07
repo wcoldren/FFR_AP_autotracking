@@ -116,6 +116,13 @@ check("and answers to the code the section hosts",
   ENTRANCE_ITEMS[DOOR].item.CanProvideCodeFunc(nil, "entr_coneria"), true)
 check("and to nothing else",
   ENTRANCE_ITEMS[DOOR].item.CanProvideCodeFunc(nil, "entr_cardia1"), false)
+-- The same answer a host new enough for it reads without entering Lua. There
+-- are 178 of these items on a real board and the closure above is pcalled for
+-- every one of them on every code a provider scan resolves, so the list is
+-- what a current PopTracker uses and the closure is what an older one falls
+-- back to. Both are set; only one of them is ever asked.
+check("and says so as a list too, for a host that can read one",
+  (ENTRANCE_ITEMS[DOOR].item.PotentialCodes or {})[1], "entr_coneria")
 
 -- The provide is unconditional, and that is load-bearing rather than lazy: a
 -- section is CLEARED only when its items are cleared and every hosted code has
