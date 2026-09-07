@@ -294,13 +294,17 @@ closed 2026-09-06.
 
 ## 3. Clicks and confusion
 
-- **The regen's execution half. Landed 2026-09-05**: `tools/regen_maps.py
-  --refresh` redraws every mode `--verify` calls stale, reading that mode's
-  cartridge, `--npcs`, `--lanes`, `--retrace` and marker size back out of the
-  cache rather than asking for them again, so the remedy is run rather than
-  reconstructed by hand. It refuses where it would have to guess -- a mode
-  whose cartridge moved, or whose art was drawn on another branch, is reported
-  and skipped with the exit status left at 1. The detection half landed
+- **The regen's execution half. Landed 2026-09-05, narrowed and guarded
+  2026-09-07**: `tools/regen_maps.py --refresh` redraws every mode `--verify`
+  calls stale, reading that mode's cartridge, `--npcs`, `--lanes`, `--retrace`
+  and marker size back out of the cache rather than asking for them again, so
+  the remedy is run rather than reconstructed by hand, and `--mode` narrows it
+  to the one mode somebody is sitting down to play. It refuses where it would
+  have to guess: a mode whose cartridge moved is reported and skipped with the
+  exit status left at 1, and a mode whose art was drawn on another branch is
+  refused by `branch_block`, the one copy of that comparison, which every path
+  that draws asks. A refusal exits 3 rather than 1, so a caller can tell "you
+  are on the wrong branch" from "the render broke". The detection half landed
   2026-08-31 (`STATUS.md`, "The art on disk now says what it was drawn for").
   `docs/ISSUES.md`, "A stale override silently shadows pack edits", holds both
   halves and the reason the gate itself stays read-only.

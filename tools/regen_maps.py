@@ -31,6 +31,7 @@ directory puts everything back.
     tools/regen_maps.py FFR_seed.nes
     tools/regen_maps.py --verify        # is the installed override current?
     tools/regen_maps.py --refresh       # redraw whatever --verify calls stale
+    tools/regen_maps.py --refresh --mode std    # ... of one mode only
 
 The cartridge's own GameMode decides which set its art joins -- images/maps/std
 or images/maps/nov -- and the two live side by side, each with its own
@@ -269,6 +270,52 @@ def checkout_id():
     if branch:
         ident["branch"] = branch
     return ident
+
+
+# What a redraw from the wrong checkout exits with. Distinct from 1 because a
+# refusal and a failure ask the caller for different things: a failed render is
+# a bug to chase, a refusal is a branch to switch to. start_session.sh reads it
+# to say which happened rather than calling both "redraw failed", and names it
+# REGEN_REFUSED on its side.
+REFUSED = 3
+
+
+def branch_block(was):
+    """-> why this checkout must not redraw over that art, or None.
+
+    The override shadows the pack, so a regen does not merely rebuild art: it
+    rewrites the four location trees and layouts/shared.json from whatever this
+    working tree holds, and that is what the session then plays on. A regen
+    from a branch without the toggle work once wrote four location trees
+    carrying no pin rules, and would have silently dropped the Pins group at
+    the next restart. Nothing about the art on disk says which branch drew it,
+    which is why the cache records one.
+
+    One function because there were two, in two languages, and they had to
+    agree: this comparison lived here for `--refresh` and again in
+    start_session.sh's `regen_ok`, three days apart, and "should this guard
+    exist at all" could not be answered in one place while that was true.
+
+    Three answers, and only one of them stops anything: a match, a mismatch,
+    and "cannot tell" -- no git, a detached head, or art drawn before the
+    branch was recorded. "Cannot tell" proceeds. A guard that fires on an
+    absence is one people learn to pass with the override, which costs more
+    than it saves.
+
+    It compares the mode being drawn, which is the same reach both copies had.
+    The location trees are shared across modes, so art drawn for the other mode
+    on another branch says nothing here -- see the note in docs/ISSUES.md.
+    """
+    if os.environ.get("FF1_REGEN_ANYWAY"):
+        return None
+    drawn_on = (was or {}).get("branch")
+    here = checkout_id().get("branch")
+    if not here or not drawn_on or drawn_on == here:
+        return None
+    return (f"art was drawn on '{drawn_on}' and this checkout is on '{here}' "
+            "-- not redrawing, because the override shadows the pack and this "
+            f"would bake the location trees on '{here}' into what you play "
+            "on. FF1_REGEN_ANYWAY=1 to redraw anyway.")
 
 
 def stamp_text(modes):
@@ -1610,7 +1657,7 @@ def verify(out_dir):
     return 0
 
 
-def refresh(out_dir, dry_run):
+def refresh(out_dir, dry_run, only=None):
     """Redraw every mode `--verify` calls stale, from what it recorded.
 
     The remedy that `--verify` used to only describe. It introduces nothing:
@@ -1631,6 +1678,14 @@ def refresh(out_dir, dry_run):
     no recorded path, a cartridge that has moved, a checkout on another branch
     -- is reported and skipped, and the exit status stays non-zero, so a stale
     override never reads as refreshed.
+
+    `only` narrows it to one mode. That is for the caller who is about to play
+    a particular cartridge and wants that cartridge's art current now: the
+    other mode is a redraw nobody asked for, at the one moment they are least
+    willing to wait for it. It never widens what a refresh does to a mode --
+    each is still redrawn from its own recorded settings or not at all -- so
+    the only thing it can cost is leaving the other mode stale, which is said
+    out loud rather than left for `--verify` to discover later.
     """
     if not os.path.isdir(out_dir):
         print(f"no override installed at {out_dir}; nothing to refresh")
@@ -1647,18 +1702,34 @@ def refresh(out_dir, dry_run):
               "redraw, or from what")
         return 1
 
+    if only and only not in cache.get("modes", {}):
+        print(f"no {MODE_DIRS[only]} art has been drawn into {out_dir}, so "
+              "there is nothing here to redraw it from. Run this tool on a "
+              f"{MODE_DIRS[only]} cartridge once, and a refresh will find it "
+              "after that.")
+        return 1
+
     worn, outputs_ok = stale_modes(out_dir, cache)
+    # Narrowed after the comparison rather than before it, so the modes left
+    # out can be named. A filtered refresh that printed only what it did would
+    # be the one way this command can leave an override stale while exiting 0.
+    if only:
+        others = sorted(m for m in worn if m != only)
+        worn = {m: why for m, why in worn.items() if m == only}
+        if others:
+            print("also stale, and left alone because --mode named "
+                  f"{MODE_DIRS[only]}: "
+                  + ", ".join(MODE_DIRS[m] for m in others))
     if not worn:
         if not outputs_ok:
             print("files the last run wrote have changed, but the cache names "
                   "no mode to redraw them from")
             return 1
-        print(f"{out_dir} is already current with this checkout; nothing to "
-              "redraw")
+        scope = f"the {MODE_DIRS[only]} art is" if only else f"{out_dir} is"
+        print(f"{scope} already current with this checkout; nothing to redraw")
         return 0
 
-    here = checkout_id().get("branch")
-    problems = 0
+    problems = refused = 0
     for mode in sorted(worn):
         was = cache["modes"][mode]
         name = MODE_DIRS[mode]
@@ -1690,19 +1761,14 @@ def refresh(out_dir, dry_run):
                   "or --clean to drop the override.")
             problems += 1
             continue
-        # The guard start_session.sh makes before its own redraw, for the same
-        # reason: the override shadows the pack, so redrawing here bakes this
-        # checkout's location trees and layout into what the tracker serves.
-        # FF1_REGEN_ANYWAY is that script's escape hatch and stays the only one.
-        drawn_on = was.get("branch")
-        if (here and drawn_on and drawn_on != here
-                and not os.environ.get("FF1_REGEN_ANYWAY")):
-            print(f"\n{name}: art was drawn on '{drawn_on}' and this checkout "
-                  f"is on '{here}' -- not redrawing, because the override "
-                  "shadows the pack and this would bake the location trees on "
-                  f"'{here}' into what you play on. FF1_REGEN_ANYWAY=1 to "
-                  "redraw anyway.")
+        # Asked here as well as in the child, rather than left to it: a mode
+        # this checkout must not redraw is one no subprocess should be spawned
+        # for, and the parent is where the skip gets counted.
+        blocked = branch_block(was)
+        if blocked:
+            print(f"\n{name}: {blocked}")
             problems += 1
+            refused += 1
             continue
 
         marker = was.get("marker") or [MARKER_SIZE, MARKER_BORDER]
@@ -1734,7 +1800,11 @@ def refresh(out_dir, dry_run):
 
     if problems:
         print(f"\n{problems} mode(s) not refreshed")
-        return 1
+        # Only when the guard was the whole story. A run that also failed to
+        # render, or could not find a cartridge, is not "you are on the wrong
+        # branch" -- and a caller that switched branches on the strength of it
+        # would come back to the same failure with nothing explained.
+        return REFUSED if refused == problems else 1
     return 0
 
 
@@ -1783,7 +1853,11 @@ def main():
                                         "(default: ~/PopTracker/user-override/<uid>)")
     ap.add_argument("--mode", choices=tuple(MODE_DIRS),
                     help="file the art as std or nov rather than reading the "
-                         "cartridge's GameMode (a vanilla image has none)")
+                         "cartridge's GameMode (a vanilla image has none). "
+                         "With --refresh, where there is no cartridge to read "
+                         "a GameMode from, it means the other thing it can "
+                         "mean: redraw only this mode and leave the other "
+                         "alone")
     ap.add_argument("--marker-size", type=int, default=MARKER_SIZE,
                     metavar="PX",
                     help=f"marker box on a rendered map, in image pixels "
@@ -1844,7 +1918,8 @@ def main():
                     help="redraw every mode --verify calls stale, from the "
                          "cartridge and settings that mode recorded. Names no "
                          "cartridge and takes no drawing options: it repeats "
-                         "what was drawn before, against this checkout")
+                         "what was drawn before, against this checkout. "
+                         "--mode narrows it to one mode")
     args = ap.parse_args()
 
     out_dir = args.out or default_out()
@@ -1863,7 +1938,7 @@ def main():
         return verify(out_dir)
 
     if args.refresh:
-        return refresh(out_dir, args.dry_run)
+        return refresh(out_dir, args.dry_run, args.mode)
 
     if not args.rom:
         ap.error("a cartridge is required unless --verify, --refresh or "
@@ -1949,6 +2024,25 @@ def main():
               "art was last drawn")
     elif changed_flag:
         print(changed_flag)
+
+    # After the lines above rather than before them. On the blocked path the
+    # reason for the redraw is the whole story -- usually "the cartridge
+    # changed" -- and a refusal naming only branches would leave that unsaid
+    # while the caller goes on to open an emulator on the other seed's art.
+    #
+    # Here rather than before the up-to-date return above: that path rewrites
+    # the cache stamp and nothing a branch decides, so refusing it would block
+    # a run that was never going to touch the location trees.
+    #
+    # And not at all on --dry-run, for that same reason rather than as an
+    # exemption. What the guard is protecting is the four location trees and
+    # shared.json, which a dry run writes no more than the images or the cache
+    # stamp; refusing one would leave FF1_REGEN_ANYWAY=1 as the way to ask what
+    # a redraw would change, on the single run that could not change anything.
+    blocked = None if args.dry_run else branch_block(was)
+    if blocked:
+        print(f"the {MODE_DIRS[mode]} {blocked}")
+        return REFUSED
 
     bank = extract_chests.standard_map_bank(rom)
     print(f"reading standard maps from bank ${bank:02X}")

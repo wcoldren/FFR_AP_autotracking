@@ -390,18 +390,57 @@ Nothing here is urgent unless it says so.
   size back out of the cache rather than asking for them again. It introduces
   nothing -- it repeats what was drawn before against this checkout -- which is
   what makes it safe for a gate's failure message to name, and verify.sh stage
-  4 names it. What it will not do is guess. A mode whose cartridge has moved,
-  or whose art was drawn on another branch, is reported and skipped and the
-  exit status stays 1, because a stale override that reads as refreshed is
-  worse than one that reads as stale. The branch guard is the one
-  `start_session.sh` makes, and `FF1_REGEN_ANYWAY=1` is the same escape hatch.
+  4 names it. What it will not do is guess. A mode whose cartridge has moved
+  is reported and skipped and the exit status stays 1, because a stale override
+  that reads as refreshed is worse than one that reads as stale. A mode whose
+  art was drawn on another branch is skipped the same way, but comes out as a
+  refusal rather than a failure: a refresh the guard is the whole story for
+  exits 3, and one that also lost a cartridge stays 1, because a caller that
+  switched branches on the strength of a 3 would otherwise come back to the
+  other half of the failure with nothing said about it.
+
+  The branch guard is `branch_block`, and every path that draws asks it --
+  `--refresh` before it spawns a mode, and the ordinary run on a cartridge
+  before it draws one. It refuses because the override shadows the pack: a
+  regen rewrites the four location trees and `layouts/shared.json` from this
+  working tree, so it decides what the session plays on and not only what it
+  looks like. A refusal exits 3 rather than 1, which is how `start_session.sh`
+  tells "you are on the wrong branch" from "the render broke".
+  `FF1_REGEN_ANYWAY=1` is the one way past it. `--dry-run` is not past it but
+  beside it: it writes no location tree, no image and no cache stamp, so there
+  is nothing there for the guard to protect and it is not asked. A refused dry
+  run would make the override the way to ask what a redraw would change.
+
+  What it compares is the mode being drawn: the cache records a branch per
+  mode, and the guard reads that mode's. The location trees are shared between
+  the modes, so art drawn for the *other* mode on another branch is a case it
+  does not see -- draw std on one branch, then nov for the first time on
+  another, and the trees are rewritten unguarded. It has never been the case
+  that bit anybody, and both copies of the guard had the same reach before they
+  were collapsed into one, so closing it would be a change of behaviour rather
+  than the collapse. `--verify` still catches the result afterwards.
 
       tools/regen_maps.py --refresh
+      tools/regen_maps.py --refresh --mode std
+
+  `--mode` narrows it to one mode, which is what somebody sitting down to play
+  a particular cartridge wants: the other mode's redraw is minutes spent at the
+  worst possible moment. It changes nothing about how a mode is redrawn, only
+  which ones are, and a run that leaves the other mode stale says so on its way
+  past rather than letting the next `--verify` be the first to mention it.
 
   The cartridge's path is recorded alongside its sha256 from 2026-09-05. An
   override written before that has the hash and not the path, so the first
   refresh after upgrading names the cartridge it needs and asks for one run on
   it; every refresh after that finds it.
+
+  The path is a convenience and the hash is the authority, which is why
+  `start_session.sh` does not stop where a refresh stops. Step 1 hands the mode
+  being played to `--refresh --mode`, and a non-zero exit that is not a refusal
+  sends it back down the full render with the cartridge named on its own
+  command line. That is the one thing on this path the cache cannot be wrong
+  about: a seed that moved leaves the hash matching and the path not, and the
+  file the refresh is asking for is the one already typed.
 
   Deliberately **not** in `tools/tests/run.sh`. Both suites are documented as
   needing nothing outside the checkout, and this answers a question about the
@@ -418,13 +457,14 @@ Nothing here is urgent unless it says so.
   Workaround for the remaining gap: run `tools/regen_maps.py --refresh` after
   touching any file in `INPUT_FILES`, or `--clean` the override.
 
-  **Guarded in `start_session.sh` since 2026-09-02**, which is the other half
-  of this and fails in the opposite direction. Guarded there and only there:
-  the workaround in the paragraph above runs `tools/regen_maps.py` by hand,
-  which records the branch but does not check it. That is the deliberate shape
-  -- someone typing the tool's own name has chosen the checkout they are
-  standing in -- but it does mean the workaround is the unguarded path, and
-  the habit it replaces still applies to it. `--verify` answers "is the installed
+  **Guarded since 2026-09-02**, which is the other half of this and fails in
+  the opposite direction. It began in `start_session.sh` and only there, on the
+  reasoning that someone typing the tool's own name has chosen the checkout
+  they are standing in -- which left the workaround in the paragraph above as
+  the unguarded path, and it is the path this page recommends. That shape did
+  not survive: the guard was copied into `--refresh` three days later, and the
+  two copies were collapsed into `branch_block` on 2026-09-07, which every path
+  that draws now asks. `--verify` answers "is the installed
   override older than the checkout". It cannot answer "is this checkout the one
   that art should be rebuilt from", and `inputs` cannot either: the fingerprint
   notices that the pack moved and not which way, because a hash is the same
@@ -433,16 +473,19 @@ Nothing here is urgent unless it says so.
 
   So `regen_maps.py` records which working tree drew each mode's art --
   `branch`, `head` and `dirty`, in that mode's cache slot beside `inputs`
-  (`tools/regen_maps.py:214`, `checkout_id`) -- and `start_session.sh` compares
-  before it redraws (`start_session.sh:87`, `regen_ok`). On a mismatch it skips
-  step 1 and counts a problem rather than aborting, so the emulator and the
-  tracker still open on the art already on disk, and `FF1_REGEN_ANYWAY=1` goes
-  through. Three answers rather than two, and keeping them apart is most of the
-  work: a detached head records a commit and no branch, a checkout with no git
-  records neither, and both read as "cannot tell", redraw, and say that is what
+  (`tools/regen_maps.py:215`, `checkout_id`) -- and compares before it draws
+  (`branch_block`). A refusal exits 3, so `start_session.sh` skips step 1 and
+  counts a problem rather than aborting: the emulator and the tracker still
+  open on the art already on disk, and `FF1_REGEN_ANYWAY=1` goes through.
+  Three answers rather than two, and keeping them apart is most of the work: a
+  detached head records a commit and no branch, a checkout with no git records
+  neither, and both read as "cannot tell", redraw, and say that is what
   happened. A guard that fired on an absence is one people learn to pass with
-  the override. `tools/tests/test_regen_branch.py` holds the three apart and
-  demonstrates the skip against the same call on a matching branch.
+  the override. `tools/tests/test_regen_branch.py` holds the three apart,
+  demonstrates the refusal against the same call on a matching branch, shows it
+  standing in front of the drawing rather than behind it, and asserts that
+  there is still only one copy of it -- which is the thing that actually went
+  wrong, and the thing the first three checks cannot see.
 
   `head` and `dirty` are recorded and not compared. They are provenance, the
   role `sha1` and `ffr` already play for the cartridge -- what this art was
@@ -1612,7 +1655,7 @@ Nothing here is urgent unless it says so.
   reading the shape backwards; a diamond stops meaning "there is a sprite here".
   Nothing else breaks, because the rendering constraint that booked the shape is
   one-directional: a pin *on* a sprite must be a diamond or it hides it, which is
-  why `marker_pixel` emits one exactly there (`tools/regen_maps.py:1228`), and
+  why `marker_pixel` emits one exactly there (`tools/regen_maps.py:1274`), and
   adding more diamonds never violates that. It is a naming decision only —
   nothing starts emitting diamonds that did not emit them before.
 
