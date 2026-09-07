@@ -402,7 +402,10 @@ Nothing here is urgent unless it says so.
   working tree, so it decides what the session plays on and not only what it
   looks like. A refusal exits 3 rather than 1, which is how `start_session.sh`
   tells "you are on the wrong branch" from "the render broke".
-  `FF1_REGEN_ANYWAY=1` is the one way past it.
+  `FF1_REGEN_ANYWAY=1` is the one way past it. `--dry-run` is not past it but
+  beside it: it writes no location tree, no image and no cache stamp, so there
+  is nothing there for the guard to protect and it is not asked. A refused dry
+  run would make the override the way to ask what a redraw would change.
 
   What it compares is the mode being drawn: the cache records a branch per
   mode, and the guard reads that mode's. The location trees are shared between

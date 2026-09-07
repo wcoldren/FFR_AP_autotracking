@@ -282,12 +282,12 @@ else:
                                          "branch": here + "-not"}},
                        "outputs": {}}, f)
 
-        def draw(env=None):
+        def draw(env=None, extra=()):
             base = {k: v for k, v in os.environ.items()
                     if k != "FF1_REGEN_ANYWAY"}
             done = subprocess.run(
                 (sys.executable, os.path.join(TOOLS, "regen_maps.py"), rom,
-                 "--mode", "std", "--out", out),
+                 "--mode", "std", "--out", out) + tuple(extra),
                 capture_output=True, text=True, env={**base, **(env or {})})
             return done.returncode, done.stdout + done.stderr
 
@@ -305,6 +305,17 @@ else:
         rc, out_text = draw({"FF1_REGEN_ANYWAY": "1"})
         ok(rc != r.REFUSED and "not redrawing" not in out_text,
            "and FF1_REGEN_ANYWAY=1 gets it to the render", str(rc))
+
+        # The other side of "position": far enough down to be after the
+        # up-to-date return, and out of the way of the run that writes nothing.
+        # A dry run from the wrong branch rewrites no location tree, so
+        # refusing it would make the override the way to ask what a redraw
+        # would change. Same reading as the case above -- it reaches the render
+        # this cartridge cannot survive, which is how "it got past the guard"
+        # is told from "it was never going to draw".
+        rc, out_text = draw(extra=("--dry-run",))
+        ok(rc != r.REFUSED and "not redrawing" not in out_text,
+           "a --dry-run from the wrong branch is not refused", str(rc))
 
 
 # --- 4. and that there is still only one copy ------------------------------

@@ -2033,7 +2033,13 @@ def main():
     # Here rather than before the up-to-date return above: that path rewrites
     # the cache stamp and nothing a branch decides, so refusing it would block
     # a run that was never going to touch the location trees.
-    blocked = branch_block(was)
+    #
+    # And not at all on --dry-run, for that same reason rather than as an
+    # exemption. What the guard is protecting is the four location trees and
+    # shared.json, which a dry run writes no more than the images or the cache
+    # stamp; refusing one would leave FF1_REGEN_ANYWAY=1 as the way to ask what
+    # a redraw would change, on the single run that could not change anything.
+    blocked = None if args.dry_run else branch_block(was)
     if blocked:
         print(f"the {MODE_DIRS[mode]} {blocked}")
         return REFUSED
