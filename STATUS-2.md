@@ -1671,3 +1671,70 @@ any suite would have caught -- the suites load the file, so they would all have
 failed at once with a message about local variables. The edge log's state is one
 table and the scroll addresses are one table for that reason, and there are six
 names of headroom left.
+## One branch guard, and the exits it has to keep apart
+
+Built 2026-09-07 on `regen-one-guard`. The comparison that decides whether this
+checkout may redraw the installed override is one function now, `branch_block`,
+and every path that draws asks it. `docs/ISSUES.md`, "A stale override silently
+shadows pack edits", holds the settled form.
+
+**The drift being undone was not a wrong guard, it was a second one.**
+`start_session.sh` grew a branch comparison in shell on 2026-09-02, on the
+reasoning that someone typing the tool's own name has chosen the checkout they
+are standing in; `--refresh` copied it into Python three days later, because the
+workaround this page recommends goes down the other path. Neither copy was
+wrong. What could not be answered anywhere was whether the guard should exist at
+all, because the answer had to be given twice and the two would have to agree
+about a case neither had met yet. `tools/tests/test_regen_branch.py` now asserts
+the count as well as the behaviour: two copies pass every other check in that
+file, and disagreeing is the thing that actually happened.
+
+**A refusal is not a failure, and the number is the whole interface.** Exit 3 is
+"you are on the wrong branch", which asks for a checkout; anything else is "the
+render broke", which asks for a bug hunt. `start_session.sh` reads it by name on
+its side, and a `--refresh` stopped by nothing else returns it too -- but a run
+that also lost a cartridge stays 1, because a caller that switched branches on
+the strength of a 3 would come back to the other half of the failure with
+nothing said about it.
+
+**The review found five things, and two of them were not there.** The three that
+were: the guard sat above every `--dry-run` check, so a preview from another
+branch was refused though it writes nothing; `start_session.sh` handed its
+current-but-stale case to `--refresh`, which reopens the cartridge at the path
+the cache recorded, so a moved seed left the session refusing to redraw the
+cartridge already named on its own command line; and this page's own entry still
+said a branch refusal exits 1, eight lines above the paragraph saying it exits
+3. The two that were not: `IDEAS.md` and `ISSUES.md` were read as having gained
+off-by-one citations into `regen_maps.py`, where both had in fact been shifted
+faithfully by the +46 lines the diff added and were already a line or seventy
+off on `trunk`. One suggested correction pointed at a bare `continue`. The
+honest anchors are `marker_pixel` and the line that assigns the diamond, and
+retargeting them is a change to what those sentences point at rather than a
+repair of this branch's arithmetic -- left for a docs pass, and recorded here so
+the next reader of that citation knows it was looked at.
+
+**A dry run was refused by position rather than by intent.** The guard has to
+sit above the render, and above the render is also above every `dry_run` check
+below it. What it protects is the four location trees and `layouts/shared.json`
+-- a regen rewrites them from this working tree, so it decides what the session
+plays on and not only what it looks like -- and a dry run writes none of them,
+nor an image, nor the cache stamp. Refusing one left the override as the way to
+ask what a redraw would change, which is the shape of guard people learn to pass
+with the override rather than the shape they learn from.
+
+**The refresh knows a path and the session knows a cartridge.** A refresh reads
+`rom_path` back out of the cache; the plan `start_session.sh` builds is decided
+on the cartridge's bytes. Seeds live one per directory, so a re-rolled or
+renamed seed hashes equal at a path that no longer opens, and the failure that
+came of it asked for one run on the cartridge whose sha256 starts so-and-so --
+the file already typed. Step 1 now sends any non-refusal failure back down the
+full render with that file. Not a special case for a moved seed: everything
+`--refresh` gives up on gives up because it declines to guess, and there is
+nothing on that path left to guess about.
+
+**verify.sh stage 4 is stale for the whole of this branch, and stays that way.**
+`tools/regen_maps.py` is in `INPUT_FILES`, so editing it makes the installed
+override stale by definition, and the override is one shared resource keyed by
+pack uid -- a regen belongs after the merge, from `trunk`, not to a topic branch
+to make a stage green. The new guard refuses one from here anyway, which is the
+demonstration rather than the obstacle.
