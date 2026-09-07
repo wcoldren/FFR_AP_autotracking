@@ -61,7 +61,7 @@ work it is, not how much it matters.
 | §3 | Whether Inspect survives `hide unreachable locations` |
 | §3 | Warn once when a stale override shadows pack edits |
 | §3 | Room-level zoom, after the towns |
-| §4 | Entrance markers: where a door now goes |
+| §4 | Entrance markers: naming where a door goes |
 | §4 | The lanes still to draw: the ported drafts, the by-eye pass, the run-wide order |
 | §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
@@ -339,11 +339,31 @@ closed 2026-09-06.
   apart; `STATUS-2.md`, "And the staircases with them", has the measurement.
   Left:
 
-  * where a door now *goes*, which is the half that needs the observation
-    channel. The bridge watches party position and publishes an edge log, so the
-    permutation is learned by walking through it and reveal-on-visit cannot
-    spoil a seed; the design is in `STATUS.md`, "Designed, not started", and the
-    first increment is that log plus a console print.
+  **The observation channel landed 2026-09-06.** The bridge reads the party's
+  tile off `$27/$28` and `$29/$2A`, notices a map change between two trusted
+  scans, and publishes `ff1/edges` -- a log of doors somebody has actually
+  walked through. The pack marks the pin standing on the departure tile, so the
+  open-door icon means what it always said and is no longer a click. Nothing
+  reads a teleport table on the tracker's side of the wire, which is the point:
+  reveal-on-visit cannot spoil a seed. `entrance_graph --grade` is the
+  independent reading that says the channel is right, and the corpus gained
+  `entrances`, the only cartridge in it whose doors move. `STATUS-2.md`, "The
+  doors open themselves now", has it.
+
+  Left:
+
+  * **naming the destination.** Opening the far pin says a door was used, not
+    where it led. A marker's name cannot change at run time
+    (`locationsection.cpp:262-294` -- only `AvailableChestCount` and `Highlight`
+    are writable), so the text has to ride on an item hosted on the pin's
+    section. palex00's Crystal pack does exactly this and is worth reading
+    first: `BadgeText` with an arrow glyph, a left-click that tabs to where the
+    door leads and a right-click to what leads here, and `Highlight` on the
+    destination for a few seconds. Two of its notes carry straight over -- a
+    hosted item only counts as provided once the destination is known, which
+    makes "walked through" and "destination known" the same fact; and items are
+    created only for the categories a seed actually shuffles, because a large
+    LuaItem set makes every toggle laggy.
 - **The lanes still to draw.** Three things, in the order they cost a player
   something:
 

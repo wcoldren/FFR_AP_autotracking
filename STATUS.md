@@ -640,13 +640,11 @@ about it.
 
 ## Designed, not started
 
-- **Entrance markers.** The data half is done: `tools/entrance_graph.py` reads
-  the whole shuffle off the cartridge. The display half is designed end to end —
-  the bridge watches party position (`ow_scroll` `$27/$28`, `sm_scroll`
-  `$29/$2A`, the party is always 7 tiles in) and publishes an edge log, so the
-  pack learns the permutation by observation and reveal-on-visit cannot spoil.
-  The 0.32.0 floor it wanted is in the manifest already. Staged; the first
-  useful increment is the log plus a console print.
+- ~~**Entrance markers.**~~ Done 2026-09-06 — see `STATUS-2.md`, "The doors
+  open themselves now". The observation channel is built: the bridge reads
+  `$27/$28` and `$29/$2A`, publishes `ff1/edges`, and the pack marks the pin the
+  party actually walked through. What is left of this stream is naming the
+  destination rather than only opening the door.
 - ~~**Trap tiles on the map tabs.**~~ Done 2026-08-29 -- see "The letters are
   drawn, in the cartridge's own font". It did share its tile-to-pixel path with
   the entrance markers still to come, and it found the font that any later
