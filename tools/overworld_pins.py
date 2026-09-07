@@ -135,6 +135,47 @@ def door_cells(doors):
 ENTRANCE_PREFIX = "Entrance: "
 
 
+# What an entrance section's slot in the hover tooltip is sized to, in pixels.
+#
+# The badge text is an item *overlay*, and an overlay is neither measured into
+# the tooltip's width nor clipped when it is drawn (item.cpp:336-368,
+# maptooltip.cpp:202-205). So a destination longer than the icon renders
+# straight out through the popup's dark background, and the only lever the pack
+# has is the width of the slot the icon sits in -- there is no tooltip width in
+# the pack format at all.
+#
+# The widest badge line the pack can produce is 100.6px, measured through
+# DejaVuSans.ttf at the 10px SetOverlayFontSize entrance_items.lua asks for,
+# over every tab leaf in mapValues.lua and every name in map_names.lua with
+# entrance_items' own abbreviations applied. "Ice Cave Incentive" is the widest
+# and the five Gurgu Volcano floors sit 1.9px behind it, so the ceiling is a
+# cluster rather than one outlier and trimming further would mean abbreviating
+# names nobody would call long.
+#
+# 112 rather than 103 because the measurement is of *this* copy of DejaVuSans
+# and the app a player runs ships its own. Ten pixels is about two characters
+# of slack, which is the difference between a font revision moving a glyph and
+# a player watching text run out through the side of the popup.
+# tools/tests/test_badge_width.py holds the two numbers together, so a tab
+# renamed longer fails a suite rather than a hover.
+#
+# Two pixels of the slot go to the overlay's own shadow offset (item.cpp:305).
+#
+# The tooltip lays out a location icon *and* the hosted item at this width, so
+# a popup comes out around twice it. That is the cost of the fix and it is why
+# the badge is abbreviated rather than left alone: unabbreviated the widest line
+# is 166.6px, and the popup would be half as wide again.
+ENTRANCE_ITEM_WIDTH = 112
+
+# Spelled out beside the width because leaving it off does not do what it looks
+# like. maptooltip.cpp:135-140 takes the {32, 32} default only when *both* axes
+# are unset; with a width and no height it warns to stderr and falls back to
+# 32x32, silently undoing the width. locationsection.cpp:71-72 reads the two
+# through to_int rather than to_pixel, so these are plain pixels and not the
+# icon-size table item_size goes through.
+ENTRANCE_ITEM_HEIGHT = 32
+
+
 def entrance_code(name):
     """The item code hosted on one entrance pin's section.
 
@@ -294,6 +335,8 @@ def entrance_group(doors, origin=(0, 0), map_name="overworld", tile_px=16):
             {"name": name,
              "sections": [{"name": name[len(ENTRANCE_PREFIX):],
                            "item_count": 1,
+                           "item_width": ENTRANCE_ITEM_WIDTH,
+                           "item_height": ENTRANCE_ITEM_HEIGHT,
                            "hosted_item": entrance_code(name)}],
              "map_locations": [{"map": map_name,
                                 "x": (cell[0] - ox) * tile_px + half,

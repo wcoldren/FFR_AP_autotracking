@@ -1353,6 +1353,11 @@ def entrance_children(by_rom, tiles, sprite_cells=None):
                 # write and the pin would stop opening when the party walks
                 # through it.
                 "item_count": 1,
+                # The tooltip slot the badge text has to fit inside; see
+                # overworld_pins.ENTRANCE_ITEM_WIDTH for why an overlay needs
+                # one and why the height has to be spelled out with it.
+                "item_width": overworld_pins.ENTRANCE_ITEM_WIDTH,
+                "item_height": overworld_pins.ENTRANCE_ITEM_HEIGHT,
                 "hosted_item": overworld_pins.entrance_code(name),
             }],
             "map_locations": [ml],

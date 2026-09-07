@@ -170,6 +170,28 @@ check("the overworld is not named after whichever poster is up",
   ENTRANCE_ITEMS[STAIR_UP].item.BadgeText:find("Incentive") == nil, true)
 
 check("a pin nothing has said anything about stays blank", badge(WAY_OUT), "")
+
+-- The badge is an item *overlay*, and PopTracker neither measures an overlay
+-- into the hover tooltip's width nor clips it when it draws it
+-- (item.cpp:336-368, maptooltip.cpp:202-205), so a name wider than the slot
+-- renders out through the popup's background with nothing complaining.
+-- entrance_items.lua trims the handful of names that would; the slot itself is
+-- overworld_pins.ENTRANCE_ITEM_WIDTH, and tools/tests/test_badge_width.py is
+-- what measures the two against each other.
+--
+-- Both sources, because the fallback is where this went wrong: abbreviation
+-- used to be applied on the tab-leaf branch only, which left the widest string
+-- the pack can draw on the one path nothing checked.
+TAB_PATHS[7] = "Caves & Dungeons/Castle of Ordeals/Castle of Ordeals 2F"
+MAP_NAMES[8] = "TempleOfFiendsRevisitedChaos"
+check("a long tab leaf is abbreviated on the badge",
+  setEntranceForward(WAY_OUT, 7, nil) and badge(WAY_OUT), FWD .. "Ordeals 2F")
+check("and so is a long MAP_NAMES fallback",
+  setEntranceForward(WAY_OUT, 8, nil) and badge(WAY_OUT), FWD .. "ToFR Chaos")
+check("a name inside the slot is left alone",
+  setEntranceForward(WAY_OUT, 5, nil) and badge(WAY_OUT),
+  FWD .. "Marsh Cave B1")
+setEntranceForward(WAY_OUT, nil, nil)
 check("a path no pin owns is not an item",
   setEntranceForward("@Entrances/Entrance: Nowhere/Nowhere", 1, nil), false)
 

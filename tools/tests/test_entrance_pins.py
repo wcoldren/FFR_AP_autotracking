@@ -203,6 +203,14 @@ def main():
           kid["sections"][0].get("hosted_item"),
           op.entrance_code("Entrance: Coneria"))
     check("  and is a trapezoid", kid["map_locations"][0]["shape"], "trapezoid")
+    # Both axes, because a width on its own does not do what it looks like:
+    # maptooltip.cpp:135-140 takes its {32, 32} default only when neither is
+    # set, and a width with no height warns to stderr and falls back to 32x32 --
+    # silently undoing the one thing the width was added for.
+    check("  and sizes the tooltip slot the badge has to fit in",
+          [kid["sections"][0].get("item_width"),
+           kid["sections"][0].get("item_height")],
+          [op.ENTRANCE_ITEM_WIDTH, op.ENTRANCE_ITEM_HEIGHT])
 
     # Both directions, as the stamper's own suite does it: under the group the
     # rule appears, and the same node outside it gets nothing. Keyed on the
@@ -615,6 +623,13 @@ def main():
           sorted({len(k["sections"]) for k in kids}), [1])
     check("  and every one spells item_count out",
           sorted({k["sections"][0].get("item_count") for k in kids}), [1])
+    # The floor links are injected by a different function from the doors, so
+    # the tooltip slot has to be asserted on both or half the pins keep the
+    # overflow the other half just lost.
+    check("  and sizes the tooltip slot, on both axes",
+          sorted({(k["sections"][0].get("item_width"),
+                   k["sections"][0].get("item_height")) for k in kids}),
+          [(op.ENTRANCE_ITEM_WIDTH, op.ENTRANCE_ITEM_HEIGHT)])
     check("  and hosts the code entrance_code mints",
           [k["name"] for k in kids
            if k["sections"][0].get("hosted_item")

@@ -46,6 +46,49 @@ local HIGHLIGHT_SECONDS = 5
 local HIGHLIGHT_SECTION = nil
 local HIGHLIGHT_ELAPSED = 0
 
+-- Names the badge draws shorter than the tab does.
+--
+-- The badge is an item overlay, and PopTracker neither measures an overlay into
+-- the tooltip's width nor clips it when it draws it (item.cpp:336-368), so the
+-- text used to render straight out through the popup's background. The fix is
+-- two halves and this is the cheaper one: the slot is widened to
+-- overworld_pins.ENTRANCE_ITEM_WIDTH, and the names below are trimmed so the
+-- slot does not have to be half as wide again.
+--
+-- Fourteen because fourteen is all there is. Measured through DejaVuSans.ttf at
+-- the 10px SetOverlayFontSize below, everything else is already under the five
+-- Gurgu Volcano floors at 98.7px, so trimming any of them would buy nothing.
+-- Left alone the widest line is "TempleOfFiendsRevisitedChaos" at 166.6px;
+-- trimmed, the widest is "Ice Cave Incentive" at 100.6px.
+--
+-- Keyed on the name rather than the map id because that is what mapName has in
+-- hand at the point it answers, and because a tab renamed in mapValues.lua
+-- should stop matching rather than quietly abbreviate to the old name.
+-- tools/tests/test_badge_width.py measures every name the pack can show against
+-- the slot, so a new long one fails a suite instead of overflowing a popup
+-- nobody is looking at.
+local BADGE_SHORT = {
+  ["Ice Cave - Incentive Room"] = "Ice Cave Incentive",
+  ["Ice Cave - Bottom Floor"] = "Ice Cave Bottom",
+  ["Ice Cave - Exit Floor"] = "Ice Cave Exit",
+  ["Castle of Ordeals 1F"] = "Ordeals 1F",
+  ["Castle of Ordeals 2F"] = "Ordeals 2F",
+  ["Castle of Ordeals 3F"] = "Ordeals 3F",
+  -- MAP_NAMES rather than tab leaves. Every map on the board is claimed by a
+  -- tab today, so these only answer where tabPathForMap does not -- which is
+  -- the case the fallback exists for, and a badge should not overflow there
+  -- either. The Revisited floors are the whole of that list: nothing else in
+  -- map_names.lua is over budget.
+  ["TempleOfFiendsRevisited1F"] = "ToFR 1F",
+  ["TempleOfFiendsRevisited2F"] = "ToFR 2F",
+  ["TempleOfFiendsRevisited3F"] = "ToFR 3F",
+  ["TempleOfFiendsRevisitedEarth"] = "ToFR Earth",
+  ["TempleOfFiendsRevisitedFire"] = "ToFR Fire",
+  ["TempleOfFiendsRevisitedWater"] = "ToFR Water",
+  ["TempleOfFiendsRevisitedAir"] = "ToFR Air",
+  ["TempleOfFiendsRevisitedChaos"] = "ToFR Chaos",
+}
+
 -- What to call the map a door came out on.
 --
 -- The tab's own leaf first, because that is the label the player is about to be
@@ -70,20 +113,24 @@ local function mapName(mapId)
   if mapId == nil then
     return nil
   end
-  if mapId == -1 then
-    return (MAP_NAMES or {})[mapId]
-  end
-  local path = tabPathForMap and tabPathForMap(mapId)
-  if path then
-    local leaf = nil
-    for part in string.gmatch(path, "([^/]+)") do
-      leaf = part
-    end
-    if leaf then
-      return leaf
+  local name = nil
+  if mapId ~= -1 then
+    local path = tabPathForMap and tabPathForMap(mapId)
+    if path then
+      for part in string.gmatch(path, "([^/]+)") do
+        name = part
+      end
     end
   end
-  return (MAP_NAMES or {})[mapId]
+  name = name or (MAP_NAMES or {})[mapId]
+  if name == nil then
+    return nil
+  end
+  -- One abbreviation step for both sources rather than one per branch. The
+  -- fallback used to skip it, which put the widest name the pack can draw --
+  -- "TempleOfFiendsRevisitedChaos", 166.6px against a 102px slot -- on the one
+  -- path nothing was checking.
+  return BADGE_SHORT[name] or name
 end
 
 local function badgeText(row)
