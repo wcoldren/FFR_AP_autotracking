@@ -121,13 +121,18 @@ local function applyRecord(record)
   return marked
 end
 
+-- Returns how many sections it actually shut, so a caller can tell "cleared the
+-- board" from "the board was already clear".
 local function unmarkAll()
+  local cleared = 0
   for path in pairs(entranceSections()) do
     local sec = Tracker:FindObjectForCode(path)
-    if sec then
+    if sec and sec.AvailableChestCount ~= sec.ChestCount then
       sec.AvailableChestCount = sec.ChestCount
+      cleared = cleared + 1
     end
   end
+  return cleared
 end
 
 -- Called by reconcile.resetForNewGame, and it re-applies rather than only
@@ -143,8 +148,11 @@ function clearEntranceMarks()
   applyRecord(EDGES_SOURCE)
 end
 
--- Returns whether anything on the board moved.
+-- Returns whether anything on the board moved -- which the cartridge-swap path
+-- below can do without ever reaching the marking half, so it is tracked rather
+-- than read off the end. Nothing gates on this yet; onFF1Edges discards it.
 function applyFFREdges(record, rom)
+  local moved = false
   -- A different cartridge is a different permutation, so its doors start shut.
   -- EDGES_ROM nil is a first sighting rather than a change -- the board on
   -- screen is whatever PopTracker restored, and checkRom is what decides
@@ -152,14 +160,14 @@ function applyFFREdges(record, rom)
   if type(rom) == "string" and rom ~= "" then
     if EDGES_ROM ~= nil and rom ~= EDGES_ROM then
       Tracker.BulkUpdate = true
-      unmarkAll()
+      moved = unmarkAll() > 0
       Tracker.BulkUpdate = false
       EDGES_SOURCE = nil
     end
     EDGES_ROM = rom
   end
   if record == EDGES_SOURCE then
-    return false
+    return moved
   end
   EDGES_SOURCE = record
   Tracker.BulkUpdate = true
@@ -168,7 +176,7 @@ function applyFFREdges(record, rom)
   if marked > 0 and AUTOTRACKER_ENABLE_DEBUG_LOGGING then
     print(string.format("edges: %d entrance pin(s) marked from the walk", marked))
   end
-  return marked > 0
+  return moved or marked > 0
 end
 
 function onFF1Edges(store)
