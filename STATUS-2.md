@@ -1738,3 +1738,73 @@ override stale by definition, and the override is one shared resource keyed by
 pack uid -- a regen belongs after the merge, from `trunk`, not to a topic branch
 to make a stage green. The new guard refuses one from here anyway, which is the
 demonstration rather than the obstacle.
+
+## The doors say where they went
+
+Built 2026-09-07 on `entrance-destinations`. The pins have said "somebody has
+been through here" since the edge log landed a day earlier, and could not say
+where it led -- which on an entrance-randomised seed is the fact a player is
+actually tracking. Each pin now carries an item whose badge reads
+`->Marsh Cave B1`, a left-click tabs to where the door came out and a
+right-click to what leads here, with the far pin lit gold for five seconds so
+it can be found on arrival.
+
+**The answer was already in hand and being thrown away.** An `ff1/edges` record
+is six fields -- `fromMap,fromCol,fromRow,toMap,toCol,toRow` -- and `edges.lua`
+parsed the far end only to try marking a pin there. It names both ends from the
+same record now: the departure gets a forward, the arrival a reverse where a pin
+stands there at all, which on a town is only the way back out. So nothing new is
+read off the cartridge, and reveal-on-visit still cannot spoil a seed, because
+the badge is the party's own walk.
+
+**A marker's name is fixed at load, so the text has to ride on an item.**
+`AvailableChestCount` and `Highlight` are the only things a script may write to
+a section (`locationsection.cpp:262-294`). Each entrance section now hosts one
+item, minted by `overworld_pins.entrance_code` and named in the same table that
+resolves a tile to a pin, so the code exists in one place and Lua reads it back
+rather than rebuilding it.
+
+**The hosted item must provide its code unconditionally, and that is the
+correction to the design this was built from.** The pack the idea came from
+(palex00's Crystal) ties the provide to the reveal, and the scoping carried that
+over as "a hosted item only counts as provided once the destination is known".
+Here it would have been a defect: `locationsection.cpp:236-249` clears a section
+only when its items are cleared *and* every hosted code has a provider, so an
+item withholding its code holds the pin open -- and would have taken the
+hand-click clear away with it, on a board where clicking a door has always
+worked. Crystal needs the provide because it has no other state channel for an
+entrance. This pack has one; the badge is text.
+
+**And the same paragraph of that file has a second trap in it**, which cost
+nothing only because the source was read: `locationsection.cpp:67` gives a
+section `item_count` 1 *only while it hosts nothing*, and 0 as soon as it hosts
+something. Both injection sites now spell the 1 out. Left alone, every door pin
+would have lost the count `edges.lua` writes and stopped opening -- the feature
+this one is built beside, broken by the field nobody had to think about before.
+
+**What the badge is allowed to call a map.** The tab's own leaf first, because
+that is the label the player is about to be looking at -- `Earth Cave B1`, not
+`EarthCaveB1` -- and `scripts/map_names.lua` underneath for a map no tab claims.
+That table is committed rather than written by a regen, unlike its neighbour
+`entrance_links.lua`, because it is not a fact about a seed: FFR shuffles which
+map a door leads to and never renames a map.
+`tools/tests/test_map_names.py` fails when the copy drifts from
+`entrance_graph.MAP_NAMES`.
+
+**Gold rather than red for the highlight.** PopTracker's defaults make `Avoid`
+red and `Priority` gold (`mapwidget.cpp:54-60`), and red on the pin you were
+just sent to reads as a warning about it.
+
+**One copy of the map-id-to-tab resolution.** `tabPathForMap` and
+`activateTabPath` came out of `maptab.followMap`, which had the lookup, the
+towns-fold onto `overworldTab()` and the nested-tab walk inlined. A second copy
+in the badge clicks would have gone stale the first time a tab was renamed in
+`MAP_VALUE`.
+
+**No new grader, deliberately.** The scoping asked for one that reads the
+cartridge's tables and checks the name a badge would show. It would restate
+coverage that exists: `entrance_graph --grade` already says the record's
+destination is the cartridge's, and `test_map_names.py` says the id has the
+right name, and a badge is those two composed. What the new suite
+`tests/test_entrance_items.lua` covers instead is the part nothing else could --
+what the text says with one end known, with both, and with both agreeing.

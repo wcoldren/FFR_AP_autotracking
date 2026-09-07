@@ -61,7 +61,6 @@ work it is, not how much it matters.
 | §3 | Whether Inspect survives `hide unreachable locations` |
 | §3 | Warn once when a stale override shadows pack edits |
 | §3 | Room-level zoom, after the towns |
-| §4 | Entrance markers: naming where a door goes |
 | §4 | The lanes still to draw: the ported drafts, the by-eye pass, the run-wide order |
 | §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
@@ -354,20 +353,20 @@ closed 2026-09-06.
   `entrances`, the only cartridge in it whose doors move. `STATUS-2.md`, "The
   doors open themselves now", has it.
 
-  Left:
+  **And the destination has a name on it, 2026-09-07**, which closes this item.
+  Each pin hosts an item whose `BadgeText` reads `->Marsh Cave B1`, a left-click
+  tabs to where the door came out and a right-click to what leads here, with the
+  far pin lit gold while you find it. The destination was already in the record
+  and thrown away -- an `ff1/edges` line is six fields -- so nothing new is read
+  off the cartridge and the badge is still the party's own walk.
 
-  * **naming the destination.** Opening the far pin says a door was used, not
-    where it led. A marker's name cannot change at run time
-    (`locationsection.cpp:262-294` -- only `AvailableChestCount` and `Highlight`
-    are writable), so the text has to ride on an item hosted on the pin's
-    section. palex00's Crystal pack does exactly this and is worth reading
-    first: `BadgeText` with an arrow glyph, a left-click that tabs to where the
-    door leads and a right-click to what leads here, and `Highlight` on the
-    destination for a few seconds. Two of its notes carry straight over -- a
-    hosted item only counts as provided once the destination is known, which
-    makes "walked through" and "destination known" the same fact; and items are
-    created only for the categories a seed actually shuffles, because a large
-    LuaItem set makes every toggle laggy.
+  One of the two notes carried over from palex00's pack turned out to be wrong
+  here and is worth not re-deriving: **the hosted item must provide its code
+  unconditionally**. `locationsection.cpp:236-249` clears a section only when
+  its items are cleared *and* every hosted code has a provider, so tying the
+  provide to the reveal would hold the pin open and take the hand-click clear
+  away with it. This pack already has a state channel for a door; the badge is
+  text. `STATUS-2.md`, "The doors say where they went".
 - **The lanes still to draw.** Three things, in the order they cost a player
   something:
 
