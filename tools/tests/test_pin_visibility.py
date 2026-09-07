@@ -180,7 +180,7 @@ def main():
         for marker in node.get("map_locations") or []:
             marker["restrict_visibility_rules"] = ["$showPin|nonsense"]
             stamped += 1
-    check("pins given a rule policy does not call for", stamped, 290)
+    check("pins given a rule policy does not call for", stamped, 295)
     pin_visibility.stamp(doubtful)
     left = sum(1 for n in nodes(doubtful)
                for m in n.get("map_locations") or []
@@ -218,7 +218,7 @@ def main():
     check("rules a regen drops before the stamp",
           _rules(rebuilt), 0)
     pin_visibility.stamp(rebuilt)
-    check("rules the stamp puts back", _rules(rebuilt), 261)
+    check("rules the stamp puts back", _rules(rebuilt), 266)
     # The pins place_locations leaves alone keep their own shape, so this is
     # also the check that the stamp did not disturb the overworld.
     check("overworld pins still unruled", sum(

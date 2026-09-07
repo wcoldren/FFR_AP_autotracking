@@ -476,6 +476,16 @@
                                         ]
                                     },
                                     {
+                                        "map": "tofr1F",
+                                        "x": 291,
+                                        "y": 284,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrMid"
+                                        ]
+                                    },
+                                    {
                                         "map": "tofrChaos",
                                         "x": 213,
                                         "y": 53,
@@ -504,6 +514,16 @@
                                         "border_thickness": 2,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrLong"
+                                        ]
+                                    },
+                                    {
+                                        "map": "tofr1F",
+                                        "x": 419,
+                                        "y": 284,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrMid"
                                         ]
                                     },
                                     {
@@ -540,6 +560,16 @@
                                         "border_thickness": 2,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrLong|tofrMid"
+                                        ]
+                                    },
+                                    {
+                                        "map": "tofrWater",
+                                        "x": 270,
+                                        "y": 270,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrMid"
                                         ]
                                     },
                                     {
@@ -651,6 +681,16 @@
                                         ]
                                     },
                                     {
+                                        "map": "tofrEarth",
+                                        "x": 373,
+                                        "y": 298,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrMid"
+                                        ]
+                                    },
+                                    {
                                         "map": "tofrChaos",
                                         "x": 245,
                                         "y": 37,
@@ -684,6 +724,16 @@
                                         "border_thickness": 2,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrLong|tofrMid"
+                                        ]
+                                    },
+                                    {
+                                        "map": "tofrEarth",
+                                        "x": 277,
+                                        "y": 282,
+                                        "size": 16,
+                                        "border_thickness": 2,
+                                        "restrict_visibility_rules": [
+                                            "$showPin|chest|tofrMid"
                                         ]
                                     },
                                     {

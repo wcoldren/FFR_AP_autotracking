@@ -101,21 +101,31 @@ ENTRANCE_RULE = "$showPin|entrance"
 # reproduces its measured ROM tile through map_calibration.json's transform,
 # which is what identifies "ToFR Kary Floor 3" as chest 249 and not 251.
 #
-# What is deliberately absent: Mid lays second copies of 248 on Water and of
-# 249/250 on Earth, and moves 253/254 to 1F. Those three floors have no entry
-# in tools/map_calibration.json, so there is no pixel to put a marker on and
-# the hand art simply carries no pin for them. tools/regen_maps.py rebuilds
-# markers from the cartridge and is where those belong; see docs/ROADMAP.md.
+# Mid's second copies are here too, since 2026-09-06: it lays 248 on Water and
+# 249/250 on Earth as well as on their Long floors, and moves 253/254 to 1F,
+# where the two 3F copies are stranded. Those three floors had no entry in
+# tools/map_calibration.json until that day and so had no pixel to put a marker
+# on; they have one now, and the ten pins Mid draws are ten rather than five.
+#
+# A chest open on two floors gets a pin on each, which is the cartridge's doing
+# rather than a duplicate: on Mid, 248 really is openable on Water and on Air.
+LONG = ("tofrLong",)
+MID = ("tofrMid",)
 LONG_MID = ("tofrLong", "tofrMid")
 SHORT = ("tofrShort",)
 TOFR_MODES = {
-    "ToFR Vanilla Masa": {"tofrAir": LONG_MID, "tofrChaos": SHORT},
+    "ToFR Vanilla Masa": {"tofrAir": LONG_MID, "tofrWater": MID,
+                          "tofrChaos": SHORT},
     "ToFR Kary Floor 1": {"tofrFire": LONG_MID, "tofrChaos": SHORT},
     "ToFR Kary Floor 2": {"tofrFire": LONG_MID, "tofrChaos": SHORT},
-    "ToFR Kary Floor 3": {"tofrFire": LONG_MID, "tofrChaos": SHORT},
-    "ToFR Kary Floor 4": {"tofrFire": LONG_MID, "tofrChaos": SHORT},
-    "ToFR Lute Plate Room 1": {"tofr3F": ("tofrLong",), "tofrChaos": SHORT},
-    "ToFR Lute Plate Room 2": {"tofr3F": ("tofrLong",), "tofrChaos": SHORT},
+    "ToFR Kary Floor 3": {"tofrFire": LONG_MID, "tofrEarth": MID,
+                          "tofrChaos": SHORT},
+    "ToFR Kary Floor 4": {"tofrFire": LONG_MID, "tofrEarth": MID,
+                          "tofrChaos": SHORT},
+    "ToFR Lute Plate Room 1": {"tofr3F": LONG, "tofr1F": MID,
+                               "tofrChaos": SHORT},
+    "ToFR Lute Plate Room 2": {"tofr3F": LONG, "tofr1F": MID,
+                               "tofrChaos": SHORT},
 }
 
 FIELD = "restrict_visibility_rules"

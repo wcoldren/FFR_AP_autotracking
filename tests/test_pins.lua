@@ -132,10 +132,11 @@ end
 ------------------------------------------------------------------
 -- 2. The counts, per tree.
 --
--- 258 chest pins rather than 241 because ten chest ids carry two pins -- the
+-- 263 chest pins rather than 241 because ten chest ids carry two pins -- the
 -- Ordeals 2F chest and friends, where one chest is reachable from two floors --
 -- and because the seven ToFR chests each carry a second pin on tofrChaos, where
--- ShortToFR lays them. Those seven are mode-gated; the ten are not.
+-- ShortToFR lays them, and five of those seven a third on the floor Mid puts
+-- them on. The twelve ToFR extras are mode-gated; the ten are not.
 -- The 3 NPC pins are Nerrick, the Smith and Sarda: the only three the shipped
 -- tree places on a dungeon map rather than on the overworld. The 29 unruled are
 -- the overworld pins.
@@ -147,7 +148,7 @@ for _, rel in ipairs(DUNGEON_TREES) do
     local kind = rules and rules[1]:match("^%$showPin|([a-z]+)")
     n[kind or "none"] = (n[kind or "none"] or 0) + 1
   end)
-  check(rel .. ": chest pins", n.chest, 258)
+  check(rel .. ": chest pins", n.chest, 263)
   check(rel .. ": npc pins", n.npc, 3)
   check(rel .. ": pins with no rule", n.none, 29)
 end
@@ -430,11 +431,11 @@ end
 
 for _, rel in ipairs(DUNGEON_TREES) do
   provided = { show_chests = 1, show_npcs = 1 }
-  check(rel .. ": drawn, both toggles on", drawn(rel), 290)
+  check(rel .. ": drawn, both toggles on", drawn(rel), 295)
   provided = { show_npcs = 1 }
   check(rel .. ": drawn, chests off", drawn(rel), 32)
   provided = { show_chests = 1 }
-  check(rel .. ": drawn, npcs off", drawn(rel), 287)
+  check(rel .. ": drawn, npcs off", drawn(rel), 292)
   provided = {}
   check(rel .. ": drawn, both off", drawn(rel), 29)
 end
@@ -449,9 +450,14 @@ end
 -- shows.
 --
 -- 7 ToFR chests. Long puts 2 on tofr3F, 1 on tofrAir and 4 on tofrFire; Short
--- moves all 7 to tofrChaos; Mid keeps Air and Fire and loses the two 3F pins,
--- because Mid moves 253/254 to tofr1F, which has no calibration entry and so
--- carries no pin on the hand art at all.
+-- moves all 7 to tofrChaos; Mid draws ten, because it lays a second copy of
+-- 248 on Water and of 249/250 on Earth while leaving the originals where they
+-- were, and moves 253/254 to tofr1F. Mid drawing more pins than there are
+-- chests is the cartridge's doing and not a duplicate: both copies open.
+--
+-- Ten is also the count that says the three offsets landed. Until 2026-09-06
+-- tofr1F, tofrEarth and tofrWater had no calibration entry, so five of Mid's
+-- ten had no pixel to sit on and this row read five.
 ------------------------------------------------------------------
 -- No mode parameter: the mode is set in `provided` before each call, the same
 -- way every other flag in this file is, and a signature that took one would
@@ -469,7 +475,7 @@ end
 
 for _, rel in ipairs(DUNGEON_TREES) do
   provided = { show_chests = 1, show_npcs = 1 }
-  check(rel .. ": ToFR, mode unknown, every pin draws", tofrDrawn(rel), 14)
+  check(rel .. ": ToFR, mode unknown, every pin draws", tofrDrawn(rel), 19)
 
   provided = { show_chests = 1, show_npcs = 1, tofrLong = 1 }
   check(rel .. ": ToFR Long draws its seven", tofrDrawn(rel), 7)
@@ -478,7 +484,7 @@ for _, rel in ipairs(DUNGEON_TREES) do
   check(rel .. ": ToFR Short draws its seven", tofrDrawn(rel), 7)
 
   provided = { show_chests = 1, show_npcs = 1, tofrMid = 1 }
-  check(rel .. ": ToFR Mid draws five, not seven", tofrDrawn(rel), 5)
+  check(rel .. ": ToFR Mid draws its ten", tofrDrawn(rel), 10)
 end
 provided = {}
 

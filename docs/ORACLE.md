@@ -324,9 +324,10 @@ columns disagree on a Mid cartridge.
 floors they do put you in and leave the originals where they stood, so on Mid
 five of the seven indices sit on two tiles and on Short all seven do. On Mid
 both copies of 248, 249 and 250 are open — the stranded ones are 253 and 254 on
-3F. On Short every vanilla-floor copy is stranded. The pack names its seven
-locations after the vanilla floors and pins each to one map, which is the shape
-this measurement is against.
+3F. On Short every vanilla-floor copy is stranded. The pack still names its seven
+locations after the vanilla floors, but it no longer pins each to one map: since
+2026-09-06 a chest carries a pin per floor its mode opens it on, mode-gated, so
+Mid draws ten pins for seven chests and Long and Short seven each.
 
 **The mode does this on its own, and GameMode does not join in.** Every
 No-Overworld cartridge in the corpus is Short, so "No-Overworld orphans the seven

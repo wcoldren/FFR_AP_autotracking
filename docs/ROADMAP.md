@@ -58,7 +58,6 @@ work it is, not how much it matters.
 
 | | |
 |---|---|
-| §2 | ToFR floor modelling |
 | §3 | Whether Inspect survives `hide unreachable locations` |
 | §3 | Warn once when a stale override shadows pack edits |
 | §3 | Room-level zoom, after the towns |
@@ -191,9 +190,14 @@ its oracle seed is a hand transcription, which is what section 5 is meant to end
 
 Things a bridge-only player checks that the board has no cell for.
 
-- **ToFR floor modelling.** All three halves this bullet named are done. What
-  is left is three calibration offsets, which is a drawing problem rather than
-  a modelling one.
+**Nothing here is open.** The last of it, the three ToFR calibration offsets,
+closed 2026-09-06.
+
+**Closed.**
+
+- **ToFR floor modelling. Closed 2026-09-06**, four halves in four days: the
+  rules, the per-mode read, the pins that know the mode, and the offsets that
+  let the hand art carry them.
 
   **The rules now distinguish the rooms from the gauntlet, 2026-09-05.** The
   whole gate used to sit on the `ToFR` node where a child could not widen it,
@@ -221,24 +225,28 @@ Things a bridge-only player checks that the board has no cell for.
   cartridge lays and never wires, so a Mid regen no longer draws two markers on
   `ToFR 3F`.
 
-  **What is left is three offsets.** `tofr1F`, `tofrEarth` and `tofrWater` have
-  no `tools/map_calibration.json` entry, so the second copies Mid lays on those
-  three floors have nowhere to go on the hand-drawn art. The art `regen_maps.py`
-  redraws from the cartridge carries them, so this is the shipped art's gap and
-  not the board's.
+  **And the last three offsets landed 2026-09-06, from a landmark rather than a
+  heuristic.** `tofr1F` is (27,20), `tofrEarth` (13,18) and `tofrWater` (22,22),
+  and the five pins that were waiting on them are in both dungeon trees: Mid
+  draws its ten rather than five, which is the count that says this closed. Every
+  Temple floor but 1F, 2F and Chaos carries exactly one fixed-formation battle
+  tile — the fiend — at the same ROM coordinates on all five cartridges measured
+  here including vanilla, and the art draws a boss plate on it; the offset is
+  the difference between the two. 1F has no fiend and was anchored on its temple
+  outline instead, cross-checked against the four corner stair glyphs.
+  `tools/tests/test_calibration.py` re-derives both correspondences and fails on
+  a one-pixel drift in either end.
 
-  Four ways of finding an offset without a person looking have been tried and
-  written down as failures, because the next person to want this will reach for
-  one of them: edge energy over the image, edge energy restricted to the room,
-  saturated-sprite centroids against tile centres, and the ROM wall mask
-  correlated against per-tile brightness — that last peaks 3 to 5 pixels off the
-  known answer on all four calibrated floors, so it is a high correlation on the
-  wrong grid. The chest-centroid method the file documents cannot reach these
-  three at all: none of them carries a chest tile, and the four chests the
-  `tofr1F` art draws answer to nothing on the cartridge.
-  `tools/overlay_preview.py --solve` proposes an offset and refuses to write it
-  anywhere, because on `tofr1F` — the one Temple floor drawn with the outdoors
-  around it — the box it returns is the temple rather than the drawn area.
+  The room-extent rule had proposed `tofrEarth` correctly and `tofrWater` at
+  (31,22), which is the Map Key panel rather than the room — that is what a
+  content box does with furniture, and why the landmark is the better anchor
+  where there is one. Five ways of finding an offset without a person looking
+  have now been tried and written up as failures in
+  `tools/map_calibration.json`, because the next person to want one will reach
+  for them: edge energy over the image, edge energy restricted to the room,
+  saturated-sprite centroids, the ROM wall mask correlated against per-tile
+  brightness, and scoring an offset by void-tile agreement — the last two are
+  the tempting ones, and both score high on a grid that is demonstrably wrong.
 
 **Closed.**
 

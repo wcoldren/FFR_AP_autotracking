@@ -174,11 +174,16 @@ Nothing here is urgent unless it says so.
   from a fork on a tidying impulse is not a change worth making without a
   reason. If one is ever wanted, it is here.
 
-- **15 maps have no markers on the shipped hand-drawn art.** Measured
-  2026-09-04 as the `maps.json` rows carrying no `map_locations` entry in any of
+- **11 maps have no markers on the shipped hand-drawn art.** Re-derived
+  2026-09-06 as the `maps.json` rows carrying no `map_locations` entry in any of
   the four committed trees: `bahamut`, `earthB5`, `marshB1`, `mirage3F`,
-  `ordeals1F`, `seaB5`, `sky4F`, `sky5F`, `tofr1F`, `tofr2F`, `tofrChaos`,
-  `tofrEarth`, `tofrWater`, `volcB1`, `volcB3`.
+  `ordeals1F`, `seaB5`, `sky4F`, `sky5F`, `tofr2F`, `volcB1`, `volcB3`.
+
+  **This said 15 when it was measured on 2026-09-04**, and the four that left
+  are the four Temple floors: `tofrChaos` gained the seven pins Short lays when
+  the pins learned the mode, and `tofr1F`, `tofrEarth` and `tofrWater` gained
+  Mid's five when their calibration offsets landed. `tofr2F` is the one Temple
+  floor that stays, because no mode puts a chest on it.
 
   **This said 17 and gave a breakdown that does not reconcile**, which is why
   the method is written down now rather than the number alone. It read "16 were
@@ -1143,7 +1148,7 @@ Nothing here is urgent unless it says so.
   a slot FFR cannot incentivize on any flagset does not belong on it.
 
   **`slabTranslated` did not move, which is why the cut is this clean.** The
-  board's own `Melmond/Dr Unne` in `locations/overworld.json:2740` is the same
+  board's own `Melmond/Dr Unne` in `locations/overworld.json:2790` is the same
   section with the two incentive conjuncts stripped from every rule, and it
   hosts `slabTranslated` already, so reachability, the marker clear and
   `tests/test_ram.lua`'s Unne cases all read the board copy and are untouched.

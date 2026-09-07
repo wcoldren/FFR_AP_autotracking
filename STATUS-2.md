@@ -1506,3 +1506,65 @@ The generalisable half is not about this mode either: **a claim that four
 places agree on has usually been copied three times**, so the reading that
 disagrees with all of them is the one to check first rather than the one to
 discount.
+
+## The last three Temple offsets came off the fiend's own tile
+
+`tofr1F`, `tofrEarth` and `tofrWater` had no calibration entry, so five of the
+ten pins a Mid seed wants had no pixel to sit on. The file's own method could
+not reach them -- it solves an offset from the drawn chest sprites, and
+`chest_tiles()` puts no chest tile on any of the three -- and six ways of
+finding one without a person looking had already been tried and written up as
+failures.
+
+**The landmark was there the whole time, one map object over.** Every Temple
+floor except 1F, 2F and Chaos carries exactly one fixed-formation battle tile:
+the fiend. It is at the same ROM coordinates on all five cartridges here,
+vanilla included, so it is not a seed's property, and DarkmoonEX draws a yellow
+boss plate on it. `render_maps.map_trap_marks` reads the tile, the plate is one
+exact colour, and the offset is the difference between them.
+
+It reproduces `tofrFire` and `tofrAir` within a pixel in x and exactly in y. On
+`tofr3F` it lands 4 px high, and the resolution of that is the part worth
+keeping: the two chest sprites on that floor sit the same (-2,-3.5) from their
+tile centres as `tofrFire`'s and `tofrAir`'s do, so the committed offset is
+right and that art draws its plate high. A landmark that agrees on two floors
+and disagrees on the third is not yet a method -- what made it one was a second
+landmark on the disagreeing floor.
+
+**`tofr1F` has no fiend, and its outline answers instead.** That map's own grass
+is its void, which is exactly why `room_tiles()` proposed a nonsense (54,39) for
+it -- the box it returns is the temple rather than the drawn area. Ask about the
+temple instead and it is 42x37 ROM tiles against a drawn 673x592, so y is 20 on
+both edges. x is 27 or 28 and cannot be better than that: the art runs about
+1.5 px wide across its width, which the four corner stair glyphs show directly
+-- they imply 26, 27, 28.5 and 28.5 from left to right. 27 is the near-edge
+answer, and the chests Mid lays here sit mid-map where the stretch is smallest.
+
+**`tofrWater`'s proposal was the Map Key.** The room-extent rule anchors on the
+far content edge and returned 31; the plate said 22.5. Excluding the rows the
+Map Key panel occupies, the room measures exactly 496 px from x 22 -- 31 tiles,
+both edges hard -- so the rule had been measuring furniture. `tofrEarth`'s
+proposal was right and the plate agreed with it, which is the only one of the
+three where the two methods needed no argument.
+
+`tools/tests/test_calibration.py` re-derives both correspondences and fails on a
+one-pixel drift at either end: the tile comes off the cartridge, the pixel off
+the shipped art, and the entry is the only thing joining them. Demonstrated by
+nudging `tofrWater` by a pixel and watching it fail.
+
+**A seventh method was tried and failed, and it is the most plausible-looking
+yet.** Score an offset by how often the art agrees with the cartridge about
+which tiles are void, sampled at every tile centre. It scores 0.97 to 1.00 on
+offsets that are demonstrably wrong and recovers none of the five known ones,
+because a mostly-empty mask agrees with itself at many phases. High agreement
+over a uniform region is not evidence. That one is in
+`tools/map_calibration.json`'s comment with the other six.
+
+With the offsets in, the five waiting pins went into both dungeon trees and
+`pin_visibility.TOFR_MODES` gained the floors to gate them on. A Mid seed now
+draws ten pins for seven chests, which is the cartridge's arithmetic rather than
+a duplicate: it lays fresh copies of 248, 249 and 250 without erasing the
+originals, and both copies open. The five tiles those pins are placed on were
+read off all six Mid cartridges on this machine rather than the one the
+placement table was measured on, because a hardcoded tile is worth the second
+reading.
