@@ -1728,7 +1728,7 @@ def refresh(out_dir, dry_run, only=None):
         print(f"{scope} already current with this checkout; nothing to redraw")
         return 0
 
-    problems = 0
+    problems = refused = 0
     for mode in sorted(worn):
         was = cache["modes"][mode]
         name = MODE_DIRS[mode]
@@ -1767,6 +1767,7 @@ def refresh(out_dir, dry_run, only=None):
         if blocked:
             print(f"\n{name}: {blocked}")
             problems += 1
+            refused += 1
             continue
 
         marker = was.get("marker") or [MARKER_SIZE, MARKER_BORDER]
@@ -1798,7 +1799,11 @@ def refresh(out_dir, dry_run, only=None):
 
     if problems:
         print(f"\n{problems} mode(s) not refreshed")
-        return 1
+        # Only when the guard was the whole story. A run that also failed to
+        # render, or could not find a cartridge, is not "you are on the wrong
+        # branch" -- and a caller that switched branches on the strength of it
+        # would come back to the same failure with nothing explained.
+        return REFUSED if refused == problems else 1
     return 0
 
 

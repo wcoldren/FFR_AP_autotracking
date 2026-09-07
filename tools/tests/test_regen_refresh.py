@@ -209,17 +209,43 @@ else:
         anyway = os.environ.pop("FF1_REGEN_ANYWAY", None)
         try:
             rc, out = refresh(tmp)
-            ok(rc == 1 and "not redrawing" in out and here in out,
-               "art drawn on another branch is not redrawn onto this one")
+            ok(rc == r.REFUSED and "not redrawing" in out and here in out,
+               "art drawn on another branch is not redrawn onto this one",
+               str(rc))
             # The escape hatch has to work, or the guard is a wall. It gets as
             # far as the render, which the fake cartridge then refuses -- that
             # it got there at all is the thing being checked.
             os.environ["FF1_REGEN_ANYWAY"] = "1"
             rc, out = refresh(tmp)
             ok(rc == 1 and "not redrawing" not in out,
-               "and FF1_REGEN_ANYWAY=1 gets past the guard")
+               "and FF1_REGEN_ANYWAY=1 gets past the guard", str(rc))
         finally:
             os.environ.pop("FF1_REGEN_ANYWAY", None)
+            if anyway is not None:
+                os.environ["FF1_REGEN_ANYWAY"] = anyway
+
+
+# The exit status has to stay 1 when the guard was not the whole story. A run
+# that also failed to find a cartridge is not "you are on the wrong branch", and
+# a caller that switched branches on the strength of a 3 would come back to the
+# same failure with nothing explained.
+if here:
+    with tempfile.TemporaryDirectory() as tmp:
+        rom = os.path.join(tmp, "seed.nes")
+        body = b"the cartridge this art really was drawn from"
+        with open(rom, "wb") as f:
+            f.write(body)
+        gone = entry(inputs="stale", rom_path=os.path.join(tmp, "gone.nes"))
+        blocked = entry(inputs="stale", rom_path=rom, rom=r.sha(body),
+                        branch=here + "-not")
+        write_override(tmp, cache_for({"std": blocked, "nov": gone}))
+        anyway = os.environ.pop("FF1_REGEN_ANYWAY", None)
+        try:
+            rc, out = refresh(tmp)
+            ok(rc == 1 and "not redrawing" in out
+               and "That is where this art was drawn from" in out,
+               "a refusal alongside a real failure exits 1, not 3", str(rc))
+        finally:
             if anyway is not None:
                 os.environ["FF1_REGEN_ANYWAY"] = anyway
 

@@ -28,7 +28,10 @@
 #   FF1_NO_EMU=1               skip step 2
 #   FF1_NO_TRACKER=1           skip step 3
 #   FF1_REGEN_ANYWAY=1         redraw even from a branch the art on disk was
-#                              not drawn from -- see the guard below
+#                              not drawn from. The guard is regen_maps.py's,
+#                              not this script's: every path that draws asks
+#                              it, so it is the same answer whether the redraw
+#                              is asked for here or by hand
 
 set -u
 
@@ -66,47 +69,29 @@ find_app() {   # find_app <name> [<name>...]
     return 1
 }
 
-# Which branch a regen would bake into the override, and whether that is the
-# one the art on disk was drawn from.
+# Run a regen and say which way it came out. This script makes no judgement
+# about whether the redraw should happen: regen_maps.py refuses a checkout that
+# is not the one the art was drawn from, on every path that draws, and this used
+# to be a second copy of that comparison written in shell. Two guards that had
+# to agree is why "should the guard exist" could not be answered in one place.
 #
-# This matters because the override shadows the pack: PopTracker serves it
-# ahead of the checkout, so a redraw does not merely rebuild art -- it rewrites
-# the four location trees and `layouts/shared.json` from whatever this working
-# tree currently holds, and that is what the session then plays on. Nothing
-# about the art on disk says which branch wrote it. A regen from a branch
-# without the toggle work once wrote four location trees carrying no pin rules,
-# and would have silently dropped the Pins group at the next restart.
-#
-# regen_maps.py records the branch in its cache, so the comparison is against
-# the branch that drew this mode's art last rather than against a list of
-# blessed names kept here. Three answers, and only one of them stops anything:
-# a match, a mismatch, and "cannot tell" -- no git, a detached head, or art
-# drawn before the branch was recorded. "Cannot tell" says so and proceeds; a
-# guard that fires on an absence is one people learn to pass with the override,
-# which costs more than it saves.
-regen_ok() {   # regen_ok <mode> <branch the art was last drawn from, or ->
-    _mode=$1 _was=$2
-    if [ -n "${FF1_REGEN_ANYWAY:-}" ]; then
+# What is left here is the reporting, and the one thing it must not do is call
+# a refusal a failure. They ask for different things -- a branch to switch to,
+# or a bug to chase -- and exit 3 is how the tool tells them apart. Either way
+# step 1 is the only step affected: steps 2 and 3 still open the emulator and
+# the tracker on the art already on disk.
+regen() {   # regen <command...>
+    "$@"
+    _rc=$?
+    if [ "$_rc" -eq 0 ]; then
         return 0
     fi
-    _now=$(git -C "$ROOT" symbolic-ref --quiet --short HEAD 2>/dev/null) || _now=
-    if [ -z "$_now" ]; then
-        echo "  (cannot tell which branch this checkout is on; redrawing)"
-        return 0
+    if [ "$_rc" -eq 3 ]; then
+        echo "-> steps 2 and 3 still run, on the art already on disk -- which" >&2
+        echo "   is whatever the message above says it was drawn for." >&2
+    else
+        echo "redraw failed -- the tabs will show the shipped art" >&2
     fi
-    if [ "$_was" = "-" ]; then
-        echo "  (no branch recorded for the $_mode art on disk; redrawing from $_now)"
-        return 0
-    fi
-    if [ "$_now" = "$_was" ]; then
-        return 0
-    fi
-    echo "$_mode art was last drawn from '$_was'; this checkout is on '$_now'" >&2
-    echo "-> not redrawing. The override shadows the pack, so this would bake" >&2
-    echo "   the location trees and layout on '$_now' into what you play on." >&2
-    echo "   Steps 2 and 3 still run, on the art already on disk -- which is" >&2
-    echo "   whatever the line above this one says it was drawn for." >&2
-    echo "   FF1_REGEN_ANYWAY=1 to redraw anyway." >&2
     problems=$((problems + 1))
     return 1
 }
@@ -141,10 +126,6 @@ out = regen_maps.default_out()
 cache = os.path.join(out, regen_maps.CACHE_NAME)
 npcs, lanes, retrace = "all", "authored", "on"
 drawn = None
-# "-" rather than an empty field: this line is read back by a positional
-# `set --`, where an empty one would shift every field after it. Art drawn
-# before the branch was recorded has no branch, which is not a branch named "".
-branch = "-"
 try:
     with open(cache) as f:
         entry = json.load(f).get("modes", {}).get(mode, {})
@@ -158,60 +139,63 @@ try:
     # this script's own intent and not the slot's.
     if "retrace" in entry:
         retrace = regen_maps.retrace_slot(entry)
-    branch = entry.get("branch") or "-"
 except (OSError, ValueError):
     pass
 
 if drawn == sha:
-    print(f"current {mode} {npcs} {lanes} {retrace} {branch}")
+    print(f"current {mode} {npcs} {lanes} {retrace}")
 else:
     why = "no art for this mode yet" if drawn is None else "drawn from another cartridge"
-    print(f"redraw {mode} {npcs} {lanes} {retrace} {branch} {why}")
+    print(f"redraw {mode} {npcs} {lanes} {retrace} {why}")
 PY
 )
-    # Globbing off: a branch name is one of these fields now, and git allows
-    # characters the shell would otherwise expand against the working directory.
+    # Globbing off while this is split. Every field is drawn from a fixed
+    # vocabulary today and none of them could expand against the working
+    # directory, which is a property of the fields rather than a promise, and
+    # cheaper to keep than to re-establish.
     set -f
     set -- $plan
     set +f
     verdict=${1:-cannot}
     case $verdict in
         current)
-            mode=$2 npcs=$3 lanes=$4 retrace=$5 drawn_branch=$6
+            mode=$2
             # The art matches this cartridge, which does not yet mean it
             # matches the checkout: --verify is the one that compares those.
             if out=$("$PY" "$ROOT/tools/regen_maps.py" --verify 2>&1); then
                 echo "$mode art was drawn from this cartridge, and is current"
             else
                 echo "$out" | head -4
-                if regen_ok "$mode" "$drawn_branch"; then
-                    echo "-> the art is this cartridge's but predates the checkout; redrawing"
-                    if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes" --retrace "$retrace"; then
-                        echo "redraw failed -- the tabs will show the shipped art" >&2
-                        problems=$((problems + 1))
-                    fi
-                fi
+                # Not "redrawing": --verify reports on the whole override, so
+                # it can fail over the mode this cartridge is not. --refresh
+                # answers for the one named and says "already current" when
+                # that is the truth, where the old full render spent six
+                # seconds proving the same thing.
+                echo "-> this cartridge's art is installed, but the override"
+                echo "   predates the checkout somewhere"
+                # --refresh, not a fresh render: this is the case it exists for,
+                # and it reads the cartridge and the drawing settings back out
+                # of the cache rather than being handed them from here. --mode
+                # because the other mode's art is a redraw nobody asked for, at
+                # the moment they are least willing to wait for one.
+                regen "$PY" "$ROOT/tools/regen_maps.py" --refresh --mode "$mode"
             fi
             ;;
         redraw)
-            mode=$2 npcs=$3 lanes=$4 retrace=$5 drawn_branch=$6
-            shift 6
-            # Printed before the guard rather than inside it. On the blocked
-            # path this line is the whole story, and the reason that usually
-            # brings us here is "drawn from another cartridge" -- so a guard
-            # message naming only branches would leave the seed mismatch
-            # unsaid while steps 2 and 3 open the emulator and the tracker on
-            # the other seed's art.
+            mode=$2 npcs=$3 lanes=$4 retrace=$5
+            shift 5
+            # Printed before the tool runs, because on a refused path the
+            # reason is the whole story: what usually brings us here is "drawn
+            # from another cartridge", and a refusal naming only branches would
+            # leave that unsaid while steps 2 and 3 open the emulator and the
+            # tracker on the other seed's art.
             echo "$mode art needs redrawing -- $*"
-            if regen_ok "$mode" "$drawn_branch"; then
-                echo "-> redrawing from this cartridge"
-                # Not piped into tail: the exit status of a pipeline is the
-                # last command's, so gating on it would ask whether tail worked.
-                if ! "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes" --retrace "$retrace"; then
-                    echo "redraw failed -- the tabs will show the shipped art" >&2
-                    problems=$((problems + 1))
-                fi
-            fi
+            echo "-> asking regen_maps.py to redraw from this cartridge"
+            # Not piped into tail: the exit status of a pipeline is the last
+            # command's, so gating on it would ask whether tail worked. This is
+            # the path --refresh cannot take -- it names no cartridge by design,
+            # and this case is exactly a new one.
+            regen "$PY" "$ROOT/tools/regen_maps.py" "$ROM" --npcs "$npcs" --lanes "$lanes" --retrace "$retrace"
             ;;
         *)
             echo "$plan"

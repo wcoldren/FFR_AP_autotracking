@@ -442,13 +442,14 @@ Nothing here is urgent unless it says so.
   Workaround for the remaining gap: run `tools/regen_maps.py --refresh` after
   touching any file in `INPUT_FILES`, or `--clean` the override.
 
-  **Guarded in `start_session.sh` since 2026-09-02**, which is the other half
-  of this and fails in the opposite direction. Guarded there and only there:
-  the workaround in the paragraph above runs `tools/regen_maps.py` by hand,
-  which records the branch but does not check it. That is the deliberate shape
-  -- someone typing the tool's own name has chosen the checkout they are
-  standing in -- but it does mean the workaround is the unguarded path, and
-  the habit it replaces still applies to it. `--verify` answers "is the installed
+  **Guarded since 2026-09-02**, which is the other half of this and fails in
+  the opposite direction. It began in `start_session.sh` and only there, on the
+  reasoning that someone typing the tool's own name has chosen the checkout
+  they are standing in -- which left the workaround in the paragraph above as
+  the unguarded path, and it is the path this page recommends. That shape did
+  not survive: the guard was copied into `--refresh` three days later, and the
+  two copies were collapsed into `branch_block` on 2026-09-07, which every path
+  that draws now asks. `--verify` answers "is the installed
   override older than the checkout". It cannot answer "is this checkout the one
   that art should be rebuilt from", and `inputs` cannot either: the fingerprint
   notices that the pack moved and not which way, because a hash is the same
@@ -457,16 +458,19 @@ Nothing here is urgent unless it says so.
 
   So `regen_maps.py` records which working tree drew each mode's art --
   `branch`, `head` and `dirty`, in that mode's cache slot beside `inputs`
-  (`tools/regen_maps.py:214`, `checkout_id`) -- and `start_session.sh` compares
-  before it redraws (`start_session.sh:87`, `regen_ok`). On a mismatch it skips
-  step 1 and counts a problem rather than aborting, so the emulator and the
-  tracker still open on the art already on disk, and `FF1_REGEN_ANYWAY=1` goes
-  through. Three answers rather than two, and keeping them apart is most of the
-  work: a detached head records a commit and no branch, a checkout with no git
-  records neither, and both read as "cannot tell", redraw, and say that is what
+  (`tools/regen_maps.py:214`, `checkout_id`) -- and compares before it draws
+  (`branch_block`). A refusal exits 3, so `start_session.sh` skips step 1 and
+  counts a problem rather than aborting: the emulator and the tracker still
+  open on the art already on disk, and `FF1_REGEN_ANYWAY=1` goes through.
+  Three answers rather than two, and keeping them apart is most of the work: a
+  detached head records a commit and no branch, a checkout with no git records
+  neither, and both read as "cannot tell", redraw, and say that is what
   happened. A guard that fired on an absence is one people learn to pass with
-  the override. `tools/tests/test_regen_branch.py` holds the three apart and
-  demonstrates the skip against the same call on a matching branch.
+  the override. `tools/tests/test_regen_branch.py` holds the three apart,
+  demonstrates the refusal against the same call on a matching branch, shows it
+  standing in front of the drawing rather than behind it, and asserts that
+  there is still only one copy of it -- which is the thing that actually went
+  wrong, and the thing the first three checks cannot see.
 
   `head` and `dirty` are recorded and not compared. They are provenance, the
   role `sha1` and `ffr` already play for the cartridge -- what this art was

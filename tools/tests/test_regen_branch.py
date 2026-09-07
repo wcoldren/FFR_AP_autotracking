@@ -9,7 +9,7 @@ rules. The cache's `inputs` hash notices that the pack changed and cannot
 notice that the change was a step backwards, because a hash is the same size
 either way.
 
-Three parts, and they fail differently, so they are checked separately:
+Four parts, and they fail differently, so they are checked separately:
 
   1. `regen_maps.checkout_id()` records the branch. Its hard cases are the ones
      that have to stay apart: a detached head has no branch but does have a
@@ -22,6 +22,8 @@ Three parts, and they fail differently, so they are checked separately:
   3. `main` asks it before it draws. A predicate that is right and runs after
      the write is not a guard, so its position is checked separately from its
      answer, on the path that actually rewrites the location trees.
+  4. There is still only one copy. Two guards that agree pass every check the
+     first three make, and disagreeing is the failure that actually happened.
 
 Needs git and nothing else -- no cartridge, no override, no PopTracker. Every
 repository it asks about is one it just made in a temp dir, and the one
@@ -304,6 +306,21 @@ else:
         ok(rc != r.REFUSED and "not redrawing" not in out_text,
            "and FF1_REGEN_ANYWAY=1 gets it to the render", str(rc))
 
+
+# --- 4. and that there is still only one copy ------------------------------
+#
+# The drift this collapse undid was not a wrong guard, it was a second one:
+# start_session.sh grew its own branch comparison in shell three days before
+# --refresh copied it into Python, and two guards that had to agree is why
+# "should the guard exist at all" could not be answered anywhere. Nothing above
+# would notice it happening again -- both copies would pass their own checks --
+# so the count is what gets asserted.
+
+session = open(os.path.join(PACK, "start_session.sh")).read()
+ok("symbolic-ref" not in session and "regen_ok" not in session,
+   "start_session.sh makes no branch comparison of its own")
+ok('--refresh --mode "$mode"' in session,
+   "-- it delegates the mode it is about to play to --refresh")
 
 print()
 if fails:
