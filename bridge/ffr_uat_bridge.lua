@@ -78,6 +78,30 @@ local MAPFLAGS_ADDR = 0x002D
 local CUR_MAP_ADDR = 0x0048
 local MAP_OVERWORLD = -1    -- what we publish when not in a standard map
 
+-- Where the party is standing, in tiles. Same disassembly, variables.inc:22-26:
+-- ow_scroll_x/y are the overworld's scroll and sm_scroll_x/y the standard map's,
+-- and which pair means anything is the same question mapflags answers above.
+--
+-- The scroll is not the party. The party is drawn at the middle of the window
+-- and the engine derives its tile by adding 7 to the scroll on both axes --
+-- bank_0F.asm:3744 does it on entering a standard map ("get the scroll coords
+-- and add 7 to them to get the player position") and bank_0F.asm:1105-1125 does
+-- it the other way for every overworld step. Every teleport writes the
+-- destination back as `coord - 7`, so the two halves agree by construction.
+--
+-- A standard map is a 64-tile torus and the engine masks the subtraction with
+-- AND #$3F (bank_0F.asm:2237-2249); the overworld is 256 wide and the byte wraps
+-- on its own, so it is masked to 8 bits and not to 6.
+--
+-- One table rather than four constants, and the same reason applies to the edge
+-- log's state further down: this file's main chunk is within a handful of names
+-- of Lua's 200-local ceiling, and going over it is a load-time syntax error
+-- rather than anything a test would catch. Keyed on "is this a standard map",
+-- which is the question mapflags already answers.
+local SCROLL_ADDR = { [false] = { 0x0027, 0x0028 }, [true] = { 0x0029, 0x002A } }
+local PARTY_OFFSET = 7
+local OW_COORD_MASK = 0xFF
+
 -- The seed's own flag string. FF1Rom.WriteSeedAndFlags stamps a plain-ASCII
 -- record into bank 0x1E at 0xBE00, which is PRG offset 0x7BE00 -- PRG
 -- addressing does not count the 16-byte iNES header, so this is 0x10 below the
@@ -217,6 +241,18 @@ local TIMES_FILE = "ffr_times.log"
 -- checkpoint truncate the other seed's run. ffr_times.log gets away with one
 -- shared file only because it is append-only with the ROM name on every line.
 local TIMER_FILE = "ffr_timer.%s.state"
+
+-- The edge log, kept beside the ROM for the same reason and named the same way.
+-- What it holds is what the player has already walked through, so writing it
+-- down gives nothing away that the play session did not; what it buys is that
+-- closing the emulator does not un-learn the map.
+local EDGE_FILE = "ffr_edges.%s.state"
+
+-- More links than any cartridge has, both directions, with room for the stray
+-- record an Exit or Warp cast on a staircase adds. The largest No-Overworld
+-- cartridge measured draws 190 pins, so this is not a limit anyone reaches by
+-- playing -- it is there so a bug cannot grow the published string without end.
+local EDGE_LOG_MAX = 512
 
 -- Frames to seconds. The Lua API reports no frame rate, so this is the NES
 -- NTSC figure written down; a PAL cartridge would want 50.007.
@@ -597,7 +633,7 @@ local INFO_MSG =
 -- step at four call sites.
 local sent = {}
 local STATE_KEYS = { "mem", "ready", "goal", "map", "rom", "flags", "art",
-                     "shop", "rolls" }
+                     "shop", "rolls", "edges" }
 
 local function varMem(mem)
   local parts = {}
@@ -646,6 +682,13 @@ local function sendState(state, force)
   end
   if changed("map") then
     msgs[#msgs + 1] = varNum("ff1/map", state.map)
+  end
+  -- Which doors the party has walked through, and where each one came out.
+  -- Save state rather than a cartridge fact, so it sits with map and goal on
+  -- the gated side: it is a record of what has been done on this save, and the
+  -- one variable here the cartridge could answer but deliberately is not asked.
+  if changed("edges") then
+    msgs[#msgs + 1] = varStr("ff1/edges", state.edges)
   end
   -- Sent whatever ff1/ready says. This is which cartridge is in the slot, not
   -- game state, and the pack needs it before the save-loaded guard passes --
@@ -698,6 +741,26 @@ local guardValue, guardScans = nil, 0
 local lastMem = string.rep("\0", MEM_LEN)
 local lastGoal = false
 local lastMap = MAP_OVERWORLD
+
+-- The edge log, in one table for the reason SCROLL_ADDR gives above.
+--
+-- `map`, `col` and `row` are the last tile the party was seen standing on. nil
+-- is "nothing to compare against", and a reset, a state load, an untrusted scan
+-- and a cartridge swap all put it back there: an edge is only real when both of
+-- its ends were seen in one unbroken run of trusted scans. Without that a state
+-- load -- which moves the party across the world between two frames -- reads as
+-- a door.
+--
+-- `order` is the departure keys in the order they were first seen and `byFrom`
+-- maps each to its record, so walking a door twice rewrites in place rather
+-- than appending: `value` only changes when something new has been learned.
+-- `value` is a string and not a table because sendState diffs with a raw ~=.
+local edgeLog = {
+  map = nil, col = nil, row = nil,
+  order = {}, byFrom = {}, value = "",
+  rom = nil,          -- the cartridge these doors belong to
+  capped = false, warned = false,
+}
 local lastRom = ""
 local lastFlags = ""
 -- The two permutations this cartridge rolled, or "". Beside lastFlags for the
@@ -1243,6 +1306,10 @@ end
 -- happens during the reset window reaches the tracker.
 local function invalidate()
   guardValue, guardScans = nil, 0
+  -- The tile too, and this is the point of the whole guard for the edge log: a
+  -- state load puts the party somewhere else between two scans, and comparing
+  -- across that gap would invent a door that nobody walked through.
+  edgeLog.map, edgeLog.col, edgeLog.row = nil, nil, nil
 end
 
 local function isReady()
@@ -1262,6 +1329,21 @@ local function readMap()
     return MAP_OVERWORLD
   end
   return id
+end
+
+-- Which tile the party is standing on, for the map readMap() just named. Two
+-- reads and an add; see the SCROLL_ADDR block above for where the 7 and the two
+-- masks come from. Returns nil when the emulator will not answer, which the
+-- caller treats the same way it treats an untrusted scan.
+local function readPos(map)
+  local standard = (map ~= MAP_OVERWORLD)
+  local addr = SCROLL_ADDR[standard]
+  local sx, sy = EMU.readByte(addr[1]), EMU.readByte(addr[2])
+  if not sx or not sy then
+    return nil
+  end
+  local mask = standard and COORD_MASK or OW_COORD_MASK
+  return (sx + PARTY_OFFSET) & mask, (sy + PARTY_OFFSET) & mask
 end
 
 ------------------------------------------------------------------
@@ -1682,13 +1764,176 @@ local function drawRunClock()
   EMU.log("cannot draw the run clock -- it is still being kept and logged")
 end
 
+------------------------------------------------------------------
+-- The edge log: which door came out where.
+--
+-- The permutation is on the cartridge and this file never reads it. Everything
+-- here is observation -- two consecutive trusted scans that disagree about which
+-- map the party is on are a door, the tile before it is where that door was
+-- entered and the tile after it is where it came out. That is the whole point.
+-- A tracker told the answer up front spoils an entrance-shuffled seed; one that
+-- learns it by watching cannot, and the pack has no other source for it.
+--
+-- The wire format is one string, six integers per record, records separated by
+-- ";" and fields by ",":
+--
+--   <from map>,<from col>,<from row>,<to map>,<to col>,<to row>[;...]
+--
+-- with -1 for the overworld, which is the value ff1/map already publishes. A
+-- string and not an array because sendState diffs with a raw ~=, so a table
+-- would compare by reference and ship on every scan.
+--
+-- Keyed on the departure tile, in first-seen order. Walking the same door again
+-- rewrites its record in place, so the string only changes when something new
+-- has been learned -- which is also what keeps the file below from growing.
+------------------------------------------------------------------
+
+local function edgePath(rom)
+  rom = rom or edgeLog.rom
+  if type(rom) ~= "string" or rom == "" then
+    return nil
+  end
+  -- Sanitised the same way timerPath does it, and for the same reason: the id
+  -- is a SHA-1 where the emulator gives one and a file name where it does not.
+  local safe = (rom:gsub("[^%w%-%.]", "_"))
+  return besideRom(string.format(EDGE_FILE, safe))
+end
+
+-- Records one edge, keyed on where it was entered, and rebuilds the published
+-- string when it changed. Returns whether it changed, which is what decides
+-- whether anything is printed or written down.
+local function addEdge(fromMap, fromCol, fromRow, toMap, toCol, toRow)
+  local key = string.format("%d,%d,%d", fromMap, fromCol, fromRow)
+  local record = string.format("%s,%d,%d,%d", key, toMap, toCol, toRow)
+  local had = edgeLog.byFrom[key]
+  if had == record then
+    return false
+  end
+  if not had then
+    -- A cap rather than a trim: dropping the oldest would quietly un-learn a
+    -- door the player found first, and reaching this at all means something is
+    -- recording tiles that are not doors.
+    if #edgeLog.order >= EDGE_LOG_MAX then
+      if not edgeLog.capped then
+        edgeLog.capped = true
+        EMU.log(string.format(
+          "the edge log is full at %d doors -- nothing further will be recorded",
+          EDGE_LOG_MAX))
+      end
+      return false
+    end
+    edgeLog.order[#edgeLog.order + 1] = key
+  end
+  edgeLog.byFrom[key] = record
+  local parts = {}
+  for i = 1, #edgeLog.order do
+    parts[i] = edgeLog.byFrom[edgeLog.order[i]]
+  end
+  edgeLog.value = table.concat(parts, ";")
+  return true
+end
+
+local function saveEdges()
+  local path = edgePath()
+  if not path or not EMU.writeFile then
+    return
+  end
+  -- Rewritten whole rather than appended. The log is small, it is already
+  -- deduplicated in memory, and an append-only file would accumulate a line
+  -- every time a door is re-walked -- which is exactly the thing the in-memory
+  -- keying exists to avoid.
+  local body = { edgeLog.rom }
+  for i = 1, #edgeLog.order do
+    body[i + 1] = edgeLog.byFrom[edgeLog.order[i]]
+  end
+  local called, ok = pcall(EMU.writeFile, path, table.concat(body, "\n") .. "\n")
+  if called and ok then
+    return
+  end
+  if not edgeLog.warned then
+    edgeLog.warned = true
+    EMU.log("cannot write " .. path .. " -- the doors walked will be forgotten")
+  end
+end
+
+-- Only ever adopted when the file names the cartridge in the slot. The file
+-- name says the same thing, so this is the second lock rather than the first --
+-- but a permutation belongs to one cartridge, and a log adopted by the wrong
+-- seed would put pins on doors nobody has been through.
+local function loadEdges(rom)
+  local path = edgePath(rom)
+  if not path or not EMU.readFile then
+    return
+  end
+  local called, text = pcall(EMU.readFile, path)
+  if not called or type(text) ~= "string" then
+    return
+  end
+  local first = text:match("^([^\r\n]*)")
+  if first ~= rom then
+    return
+  end
+  local restored = 0
+  for line in text:gmatch("[^\r\n]+") do
+    local fm, fc, fr, tm, tc, tr =
+        line:match("^(%-?%d+),(%d+),(%d+),(%-?%d+),(%d+),(%d+)$")
+    if fm and addEdge(tonumber(fm), tonumber(fc), tonumber(fr),
+                      tonumber(tm), tonumber(tc), tonumber(tr)) then
+      restored = restored + 1
+    end
+  end
+  if restored > 0 then
+    EMU.log(string.format("picking up %d doors already walked on this cartridge",
+      restored))
+  end
+end
+
+-- A cartridge swap is a new permutation, so the log starts empty rather than
+-- carrying the previous seed's doors onto this one's map.
+local function ensureEdgesFor(rom)
+  if edgeLog.rom == rom then
+    return
+  end
+  edgeLog.rom = rom
+  edgeLog.order, edgeLog.byFrom, edgeLog.value = {}, {}, ""
+  edgeLog.map, edgeLog.col, edgeLog.row = nil, nil, nil
+  edgeLog.capped = false
+  loadEdges(rom)
+end
+
+-- One trusted scan's worth of watching. Called only once the save guard is
+-- happy, which is what makes "the map changed" mean a door rather than a boot.
+local function noteEdge(map)
+  local col, row = readPos(map)
+  if not col then
+    edgeLog.map, edgeLog.col, edgeLog.row = nil, nil, nil
+    return
+  end
+  local was = edgeLog.map
+  if was and was ~= map
+      and addEdge(was, edgeLog.col, edgeLog.row, map, col, row) then
+    -- The pack gets the numbers; a person reading Mesen's script window gets
+    -- the word, which is the whole of what this increment is for.
+    local function where(m, c, r)
+      if m == MAP_OVERWORLD then
+        return string.format("overworld (%d,%d)", c, r)
+      end
+      return string.format("map %d (%d,%d)", m, c, r)
+    end
+    EMU.log(string.format("door: %s -> %s",
+      where(was, edgeLog.col, edgeLog.row), where(map, col, row)))
+    saveEdges()
+  end
+  edgeLog.map, edgeLog.col, edgeLog.row = map, col, row
+end
+
 -- Everything sendState diffs, in one place. `ready` is the only field that
 -- differs between the four calls below, which is why it is the argument.
 local function currentState(ready)
   return {
     mem = lastMem, ready = ready, goal = lastGoal, map = lastMap,
     rom = lastRom, flags = lastFlags, art = lastArt, shop = lastShop,
-    rolls = lastRolls,
+    rolls = lastRolls, edges = edgeLog.value,
   }
 end
 
@@ -1698,6 +1943,10 @@ local function scan()
   lastFlags = readFlags(lastRom)
   lastRolls = readRolls(lastRom)
   lastArt = readArt(lastRom)
+  -- Ahead of the guard, like the four reads above: which cartridge is in the
+  -- slot decides whose doors these are, and getting that wrong is worse than
+  -- getting it late.
+  ensureEdgesFor(lastRom)
 
   if not inGame(mem) or looksUninitialised(mem) then
     invalidate()
@@ -1724,6 +1973,7 @@ local function scan()
   lastGoal = goalReached(at(mem, FLAGS_OFF + GOAL_BYTE))
   lastShop = shopItemBought(mem, lastRom)
   lastMap = readMap()
+  noteEdge(lastMap)
   noteRunProgress(lastRom, lastGoal)
   sendState(currentState(true))
 end
@@ -1765,6 +2015,9 @@ local function handleHandshake()
   lastFlags = readFlags(lastRom)
   lastRolls = readRolls(lastRom)
   lastArt = readArt(lastRom)
+  -- And which doors this cartridge has already been walked through, so a
+  -- tracker attaching mid-session gets the log rather than an empty board.
+  ensureEdgesFor(lastRom)
   EMU.log("PopTracker connected")
   EMU.notify("PopTracker connected")
   send(wsEncodeText(INFO_MSG))

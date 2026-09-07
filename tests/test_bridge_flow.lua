@@ -1308,5 +1308,144 @@ check("neither half readable reads as empty",
   table.concat(textFrames(allSent())):find('"ff1/rolls","value":""', 1, true) ~= nil,
   true)
 
+------------------------------------------------------------------
+-- 25. ff1/edges -- the door log.
+--
+-- This is the one variable the cartridge could answer and is deliberately not
+-- asked. Where a door leads is the shuffled half, and a tracker told it up
+-- front spoils an entrance-randomised seed, so the bridge learns it by watching
+-- instead: two trusted scans that disagree about which map the party is on are
+-- a door, the tile before is where it was entered and the tile after is where
+-- it came out.
+--
+-- The party is not the scroll. variables.inc:22-26 names ow_scroll_x/y at
+-- $27/$28 and sm_scroll_x/y at $29/$2A, and bank_0F.asm:3744 adds 7 to both
+-- axes to get the tile, wrapping a standard map at 64 and the overworld at 256.
+------------------------------------------------------------------
+
+-- Puts the party on a tile by writing the scroll the engine would have written
+-- for it, which is the inverse of what the bridge reads back.
+local function standAt(map, col, row)
+  if map == -1 then
+    MEMORY[0x002D] = 0x00
+    MEMORY[0x0027], MEMORY[0x0028] = (col - 7) & 0xFF, (row - 7) & 0xFF
+  else
+    MEMORY[0x002D], MEMORY[0x0048] = 0x01, map
+    MEMORY[0x0029], MEMORY[0x002A] = (col - 7) & 0x3F, (row - 7) & 0x3F
+  end
+end
+
+-- freshCart's swap without its frames and its allSent(): the empty log a new
+-- cartridge publishes goes out on the first scan, and a helper that threw the
+-- first frames away would throw away the answer.
+local function edgesCart(id)
+  ROM_INFO = { name = id .. ".nes", path = "/roms/" .. id .. ".nes",
+               fileSha1Hash = "sha-" .. id }
+  MEMORY = {}
+  MEMORY[0x6102] = 0x41
+  for i = 0, 0xFF do MEMORY[0x6200 + i] = 0x01 end
+end
+
+local function edgesValue(blob)
+  return blob:match('"ff1/edges","value":"([^"]*)"')
+end
+local function edgesSent()
+  return edgesValue(table.concat(textFrames(allSent())))
+end
+
+local OW_DOOR = "-1,152,161,5,5,7"
+local WAY_OUT = "5,1,2,-1,152,162"
+local SEAM = "5,9,9,12,3,4"
+
+edgesCart("edgesA")
+frames(60)
+standAt(-1, 152, 161)
+frames(12)
+allSent()
+allLogs()
+
+standAt(5, 5, 7)
+frames(12)
+check("walking into a map publishes the door", edgesSent(), OW_DOOR)
+check("and prints it once, in words",
+  logsMatching(allLogs(), "door: overworld (152,161) -> map 5 (5,7)"), 1)
+
+-- The pack re-reads every record on every change, so a variable that reshipped
+-- while the party stood still would be doing that ten times a second.
+frames(30)
+check("standing still does not resend the log", #allSent(), 0)
+
+-- The way out of a map is its own door, entered from its own tile: the two ends
+-- of a link are two records, which is what lets each of them mark its own pin.
+standAt(5, 1, 2)
+frames(12)
+allSent()
+standAt(-1, 152, 162)
+frames(12)
+check("walking back out appends the reverse",
+  edgesSent(), OW_DOOR .. ";" .. WAY_OUT)
+
+-- Keyed on where a door was entered, so re-walking one rewrites in place. A log
+-- that grew every time somebody went back through a staircase would reach the
+-- cap on an ordinary playthrough.
+standAt(-1, 152, 161)
+frames(12)
+allSent()
+standAt(5, 5, 7)
+frames(12)
+check("re-walking a known door adds nothing", edgesSent(), nil)
+
+-- A standard map is a 64-tile torus, so an arrival seven tiles past the seam is
+-- at 3 and not at 67. The scroll is written raw here rather than through
+-- standAt, because the wrap is the thing under test.
+standAt(5, 9, 9)
+frames(12)
+allSent()
+MEMORY[0x002D], MEMORY[0x0048] = 0x01, 12
+MEMORY[0x0029], MEMORY[0x002A] = 60, 61
+frames(12)
+check("the arrival tile wraps at 64",
+  edgesSent(), OW_DOOR .. ";" .. WAY_OUT .. ";" .. SEAM)
+
+-- A state load moves the party across the world between two frames. Comparing
+-- across that gap would invent a door nobody walked through, so the guard drops
+-- the previous tile and the next map change starts a new comparison. What it
+-- must not do is add a record -- which the exact string two checks below is
+-- what actually proves, since a fabricated edge would be in the file too.
+standAt(12, 20, 20)
+frames(12)
+allSent()
+resetCb()
+standAt(38, 30, 30)
+frames(60)
+check("a state load does not invent a door", edgesSent(), nil)
+
+-- The log is written beside the ROM and named after the cartridge, so closing
+-- the emulator does not un-learn the map.
+check("the log is written beside the ROM",
+  (FILES["/roms/ffr_edges.sha-edgesA.state"] or ""):find(OW_DOOR, 1, true) ~= nil,
+  true)
+
+-- A different cartridge is a different permutation. Its doors start empty
+-- rather than carrying the previous seed's onto this one's maps.
+edgesCart("edgesB")
+frames(60)
+check("a new cartridge empties the log", edgesSent(), "")
+
+-- And going back to the first one picks its doors up again, which is what the
+-- file is for.
+edgesCart("edgesA")
+frames(60)
+check("returning to a known cartridge restores its doors",
+  edgesSent(), OW_DOOR .. ";" .. WAY_OUT .. ";" .. SEAM)
+
+-- Only when the file names the cartridge in the slot. The file name says the
+-- same thing, so this is the second lock rather than the first -- but a log
+-- adopted by the wrong seed would open pins on doors nobody walked through.
+FILES["/roms/ffr_edges.sha-edgesC.state"] = "sha-somebody-else\n-1,1,1,2,2,2\n"
+edgesCart("edgesC")
+frames(60)
+check("a log naming another cartridge is not adopted", edgesSent(), "")
+
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)
