@@ -61,6 +61,7 @@ work it is, not how much it matters.
 | §3 | Whether Inspect survives `hide unreachable locations` |
 | §3 | Warn once when a stale override shadows pack edits |
 | §3 | Room-level zoom, after the towns |
+| §4 | Naming an entrance for what it is, not where it stands |
 | §4 | The lanes still to draw: the ported drafts, the by-eye pass, the run-wide order |
 | §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
@@ -80,6 +81,8 @@ register's. Rewording either end is how a row stops resolving, which
 
 | | |
 |---|---|
+| doors | A door that lands on the floor it left does not mark itself — the bridge notices a door by a change of map, and a same-floor link is not one |
+| doors | A pin missing from art that was drawn, wherever two rules derive the same content separately — one instance fixed, the sweep open |
 | blocked | The derivation cannot say "reach another location", and Lefein is where that shows — the last `--derived` divergence. Wants the requirements solver in `docs/IDEAS.md`, so it is filed rather than small |
 | maps | Crop boxes are looser than the map on several tabs — two causes, not one |
 | maps | A room bigger than the guard stays shut — Mirage Tower 1F is 458 cells against `ROOM_MAX_CELLS` at 256, and raising it wants a measurement of what else opens |
@@ -367,6 +370,21 @@ closed 2026-09-06.
   provide to the reveal would hold the pin open and take the hand-click clear
   away with it. This pack already has a state channel for a door; the badge is
   text. `STATUS-2.md`, "The doors say where they went".
+- **Naming an entrance for what it is, not where it stands.** A pin is called
+  `Entrance: SeaShrineB3 49,37` because position is the one thing the shuffle
+  does not move, and on a floor with six staircases that is six names a player
+  has to read as coordinates. palex00's Crystal pack reads better -- `Azalea Gym
+  Entrance` -- and the question this wants answered *first* is where those names
+  come from: **his are hand-authored in a registry**, so "Crystal does it" may
+  mean "Crystal typed them all out". Whether FFR or the cartridge carries
+  anything better has not been looked at, and guessing is how the trap-letter
+  work went wrong. Read before designing.
+
+  Two constraints it inherits. A name shows in the location list, so a name that
+  says where a door *goes* hands over the permutation -- whatever this becomes
+  has to describe the door's own end. And the badge already carries the
+  destination once walked, so the naming problem is only about telling two
+  staircases on one floor apart, which is smaller than it first looks.
 - **The lanes still to draw.** Three things, in the order they cost a player
   something:
 

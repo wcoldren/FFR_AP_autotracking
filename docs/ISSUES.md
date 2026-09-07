@@ -45,6 +45,44 @@ Nothing here is urgent unless it says so.
 
 ## Known wrong
 
+- **A door that lands on the floor it left does not mark itself.** Reported
+  2026-09-07 from play on `entrance_test`, as interior doors staying shut after
+  being walked through. The bridge notices a door by comparing two trusted scans
+  and acting when they disagree about *which map* the party is on
+  (`noteEdge`, `bridge/ffr_uat_bridge.lua:1942-1968`). A same-floor link changes
+  the tile and not the map id, so no edge is published and neither end marks --
+  the pins are drawn, the walk happens, and the board says nothing.
+
+  **The pins for these exist on purpose**, which is what makes the gap visible:
+  same-floor links are kept because they are the same kind of tile as a real one
+  and a player wants to know (`docs/ROADMAP.md` section 4). Castle of Ordeals 2F
+  is the known set -- every same-floor link in the game is a warp pad there, 15
+  on both cartridge kinds.
+
+  **Not yet diagnosed, and the hypothesis is the reporter's rather than a
+  measurement**: confirm against the edge log before building. The obvious fix
+  -- notice a tile jump rather than only a map change -- is the one that needs
+  care, because an ordinary step also changes the tile, and `invalidate()`
+  dropping the previous tile across a state load is what keeps the channel from
+  inventing doors. A threshold on distance would be a guess; the transition's
+  own `ScreenWipe_Close` is what the map-change reader leans on and is the thing
+  to look at first.
+
+- **A pin missing from art that was drawn, wherever two rules derive the same
+  content separately.** One instance found and fixed 2026-09-07 -- see the entry
+  named "The floor-door rule dropped a speck the crop had kept" -- and the sweep
+  for the rest is open. The shape is general: a rule that decides what to *draw*
+  and a rule that decides what to *crop* each build their own content set, and
+  the one that is stricter silently loses a marker on art the other kept.
+  `render_maps.protected_cells` says this about its own two readers and the
+  warning was not applied elsewhere.
+
+  Where to look, since the fixed instance was found by a player rather than by a
+  check: every caller of `render_maps.drop_specks` and `content_cells`, and
+  every place a marker set is intersected with content. The audit wants to be a
+  test rather than a session -- one that walks the corpus and reports any tile
+  the art draws, a rule calls a marker, and no marker stands on.
+
 - **A pinned control cannot survive Reset, and no pack-side change can make it.**
   Found 2026-09-04 while making the `Overworld Tab` choice stick. A stage pinned
   by hand does survive a *restart*: PopTracker autosaves item state and restores
@@ -1294,6 +1332,32 @@ Nothing here is urgent unless it says so.
   Changing the digest rewrote the key every authored file is stored under, which
   is why it was one pass over all 57 with a `VERSION` bump behind it rather than
   a quiet edit -- and why it takes a regen per mode to reach the installed art.
+
+- **The floor-door rule dropped a speck the crop had kept. Closed 2026-09-07**,
+  reported from play as a missing door in the bottom-right corner of Sea Shrine
+  B3. That corner is a sealed thirteen-cell room -- no walking route in or out,
+  a staircase at (49,37) and a warp at (47,39) -- and thirteen cells is a speck.
+
+  `render_maps.protected_cells` shields every teleport from the crop *except* a
+  warp, so the staircase saved the room and the art was drawn; then
+  `floor_exits` ran `drop_specks` with no `keep` of its own, dropped the room,
+  and took the warp's pin with it. The comment standing on `floor_exits`
+  described this exact case and called it "the safe direction" -- it had the
+  failure right and the conclusion wrong.
+
+  `regen_maps.crop_keep` is now the one function both callers ask.
+  **One pin, on `seaB3`, on every standard cartridge measured** -- the play
+  cartridge, `duck-weekly-0831-v2`, `std497`, `oracle_std`, `oracle_entrances`
+  -- and none on No-Overworld, which has no such room. The suite rows build the
+  case rather than assert it: a warp in a dropped speck is not a door, and is
+  one the moment the keep says the crop held that speck.
+
+  **It was on the route.** On the seed it was found on, the overworld's Marsh
+  Cave door lands at (47,39) -- so the unpinned tile was the first hop of the
+  only chain to Kraken, and the board could not draw the door the player had
+  walked through. The class this belongs to is the entry named "A pin missing
+  from art that was drawn, wherever two rules derive the same content
+  separately", which is open.
 
 ## Open questions
 
