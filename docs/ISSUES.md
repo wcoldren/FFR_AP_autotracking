@@ -73,6 +73,21 @@ Nothing here is urgent unless it says so.
   wrote, and the declared defaults are the thing to change. The rest is
   upstream's.
 
+  **The field that changes them is `initial_stage_idx`**, found 2026-09-06 while
+  chasing this again from the other end. `core/jsonitem.cpp:123` reads it for
+  every item type and clamps it into the stages array, so a progressive can
+  declare which stage it starts on; the Crystal pack uses it
+  (`items/tools.json:7`). That does not fix Reset -- the snapshot is still every
+  item as `init.lua` left it -- but it moves what Reset *restores to*, which is
+  the whole of what a player feels. `Active = true` stays needed and is
+  compatible: `:455-472` forces the value true and touches `_stage1` only, so it
+  cannot move a declared stage.
+
+  Left undone deliberately: which stage each control should start on is a
+  preference, not a derivation, and neither `Overworld Tab` nor `Entrance Pins`
+  has been asked for one. Both still declare stage 0. Changing that means
+  rewriting the sentence above it that says why, not only the number.
+
 - **The derivation cannot say "reach another location", and Lefein is where
   that shows.** Found 2026-08-30, when dropping the Ruby grant uncovered it:
   FFR's rule for Lefein is `(Tnt OR Ruby OR Canoe) AND Floater AND Slab`, and
