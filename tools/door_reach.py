@@ -242,8 +242,20 @@ NOT_TRAVEL = {"slab", "chime", "cube", "oxyale", "ruby", "rod", "tnt", "key",
 
 def pack_rules(rom, codes):
     """{node name: [capability set]} -- the pack's rules under these flags."""
+    # The $name calls the rules make, answered the way scripts/logic.lua does.
+    # check_logic.LUA_RULES is the same table read off the flags; here the flag
+    # has already become a code, so a guard is that code's absence.
+    #
+    # It has to be complete, which is what the raise below is for: a $name that
+    # fell through landed in the term list and came out as a capability the
+    # party had to *have*. $noSardasForest did exactly that and got away with it
+    # -- Sarda's other alternative reduces to {airship}, so minimal() absorbed
+    # the inflated set and the total came out right. The next one added to a
+    # node with no such sibling would print a silent DIFFER and spend the one
+    # disagreement `differ <= 1` allows on a bug in this file.
     pred = {"$standardWorld": True, "$noOverworld": False,
             "$noShipDrydock": "shipDrydock" not in codes,
+            "$noSardasForest": "sardasForest" not in codes,
             "$gatewayRollUnknown": False}
     with open(os.path.join(PACK, "locations/overworld.json")) as fh:
         doc = json.load(fh)
@@ -259,8 +271,13 @@ def pack_rules(rom, codes):
                 for t in (x.strip() for x in alt.split(",") if x.strip()):
                     if t in pred:
                         dead = dead or pred[t] is False
-                    elif t.startswith("$") or t in CAPS or t in NOT_TRAVEL \
-                            or t == "floater":
+                    elif t.startswith("$") and t not in NOT_TRAVEL:
+                        raise SystemExit(
+                            f"{kid['name']}: {t} is not a predicate this knows. "
+                            "Add it to pred (if it guards an alternative) or to "
+                            "NOT_TRAVEL (if it is an item), because falling "
+                            "through would make it a travel capability.")
+                    elif t in CAPS or t in NOT_TRAVEL or t == "floater":
                         terms.append(t)
                     elif t not in codes:
                         dead = True             # a flag this seed did not roll
