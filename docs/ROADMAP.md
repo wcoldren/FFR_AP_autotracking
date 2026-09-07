@@ -248,8 +248,6 @@ closed 2026-09-06.
   brightness, and scoring an offset by void-tile agreement — the last two are
   the tempting ones, and both score high on a grid that is demonstrably wrong.
 
-**Closed.**
-
 - **Re-cut 2026-09-01.** This section listed six bullets and read as six jobs.
   Three were already argued against in `docs/ISSUES.md` and are decisions rather
   than builds; one asked for rules that already exist; and the **No-Overworld
