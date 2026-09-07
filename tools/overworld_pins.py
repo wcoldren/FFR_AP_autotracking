@@ -539,13 +539,25 @@ def marker_tiles(box_tiles, num=80, den=3096):
 
 
 def content_box(anchors, dim=256, margin=CROP_MARGIN, minimum=CROP_MIN):
-    """(x0, y0, w, h) in tiles: what the pins need to be seen, clamped to the map.
+    """(x0, y0, w, h) in tiles: what has to be seen, clamped to the map.
 
-    The rule is the pins rather than the land, because the land is not what an
-    overworld tab is for. On a standard cartridge the pins are spread over the
-    whole field and this trims ocean off the edges; on a No-Overworld one they
-    are nine doors in a fourteen-tile huddle and it is the difference between a
-    readable map and a green smudge.
+    The rule is the pins *and* whatever else the caller hands in with them.
+    Pins alone was the first rule and it cut the map: a standard cartridge's
+    outermost pins sit well inside its own coastline, so the eight-tile margin
+    left the western islands, the eastern ones and the top of the northern
+    landmass outside the crop -- land a party can stand on, drawn nowhere.
+
+    What that costs is worth knowing rather than discovering: the overworld's
+    land is nearly the whole field, 12,175 tiles spanning x 1..253 and y 14..244
+    on the standard oracle and 8,786 over the same span on a No-Overworld one,
+    so a caller that names the coastline gets an overworld tab that is
+    effectively uncropped. **A No-Overworld cartridge's map tables still
+    describe the vanilla continents** even though the party can reach almost
+    none of it; the huddle it is famous for is its nine doors, not its land.
+
+    So the trim survives by the caller choosing not to name land, not by the
+    land being small, and that is the whole of it: one rule, one margin, one
+    clamp, and a caller with nothing to add simply adds nothing.
     """
     if not anchors:
         return (0, 0, dim, dim)

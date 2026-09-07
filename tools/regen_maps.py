@@ -2175,8 +2175,23 @@ def main():
         # loop is settling. It reads the unnudged doors every pass, so nothing
         # compounds and the fixed-point argument above still holds.
         raw_doors = overworld_pins.entrance_door_pins(ow_graph.doors)
+        # The coastline goes in beside the pins. A cartridge's outermost pins
+        # sit inside its own coastline, so a box measured from pins alone cut
+        # the western and eastern islands and the top of the northern landmass
+        # off the tab -- land the party walks on, drawn nowhere. On the standard
+        # oracle that box was x 22..243, y 19..244 against land reaching x 1..253
+        # and y 14..244.
+        #
+        # The land is nearly the whole field, so this is close to not cropping
+        # the standard overworld at all, and that is the intended answer rather
+        # than a side effect: the tab is the map. Only this branch names land,
+        # so content_box keeps trimming for anything that does not.
+        #
+        # Measured once, outside the loop: the land does not move when the
+        # marker does.
+        ow_land = render_overworld.land_corners(rom)
         ow_box = overworld_pins.content_box(
-            list(ow_placed.values()) + list(raw_doors.values()))
+            list(ow_placed.values()) + list(raw_doors.values()) + ow_land)
         for _ in range(8):
             step_ = overworld_pins.marker_tiles(max(ow_box[2], ow_box[3]))
             ow_doors = overworld_pins.part_doors(raw_doors, step_)
@@ -2184,7 +2199,7 @@ def main():
             stacked_ = overworld_pins.spread(ow_placed, step_,
                                              taken=door_taken)
             box_ = overworld_pins.content_box(
-                list(stacked_.values()) + list(ow_doors.values()))
+                list(stacked_.values()) + list(ow_doors.values()) + ow_land)
             if box_ == ow_box:
                 # The incentive sheet gets the same pins stacked at the same
                 # step but without the doors claimed. It shares the overworld's
