@@ -162,6 +162,23 @@ def main():
     check("  and the free case swallows everything",
           door_reach.show(door_reach.minimal([set(), {"ship"}])), "(free)")
 
+    # --- a region's own rules reach its doors -----------------------------
+    #
+    # No region in locations/overworld.json carries one today, so this is the
+    # part of pack_rules the corpus below cannot exercise. It is checked anyway
+    # because the failure is silent: reading only a child's rules grades every
+    # door under a gated region "(free)", which invents a disagreement or hides
+    # one, and `differ <= 1` has no room for either.
+    check("a child with no rules of its own inherits the region's",
+          door_reach.inherited_rules(["ship"], []), ["ship"])
+    check("  and with rules is crossed against it, OR by AND",
+          door_reach.inherited_rules(["ship", "airship"], ["canoe", "bridge"]),
+          ["ship,canoe", "ship,bridge", "airship,canoe", "airship,bridge"])
+    check("  a region with none leaves the child as it was",
+          door_reach.inherited_rules([], ["canoe"]), ["canoe"])
+    check("  and neither is the one empty alternative, not none at all",
+          door_reach.inherited_rules([], []), [""])
+
     # --- the cartridge -----------------------------------------------------
     path = os.environ.get("FF1_ROM")
     if not path or not os.path.exists(path):

@@ -240,6 +240,30 @@ NOT_TRAVEL = {"slab", "chime", "cube", "oxyale", "ruby", "rod", "tnt", "key",
               "$hasCanoe", "$hasFloater"}
 
 
+def inherited_rules(parent, child):
+    """The alternatives a child node actually runs under, parent folded in.
+
+    PopTracker does not read a node's access_rules on their own. Alternatives
+    are OR and inheritance is AND, so a child's list is crossed with its
+    parent's -- every parent alternative concatenated with every child one --
+    and a child with no rules of its own inherits the parent's outright
+    (location.cpp:105-137). An empty result is the always-reachable case, which
+    the caller's term loop reaches through the one empty alternative below.
+
+    This function is why the region loop cannot just read `kid["access_rules"]`.
+    No region in locations/overworld.json carries a rule today, so the two agree
+    on the current file -- but the child-only reading turns a region rule into
+    "(free)" for every door beneath it, and it does it in silence, which would
+    either invent a DIFFER or hide one against the `differ <= 1` gate in
+    tests/test_door_reach.py. Every other unknown this file meets raises.
+    """
+    if not child:
+        return list(parent) or [""]
+    if not parent:
+        return list(child)
+    return [f"{p},{c}" for p in parent for c in child]
+
+
 def pack_rules(rom, codes):
     """{node name: [capability set]} -- the pack's rules under these flags."""
     # The $name calls the rules make, answered the way scripts/logic.lua does.
@@ -261,12 +285,10 @@ def pack_rules(rom, codes):
         doc = json.load(fh)
     out = {}
     for region in doc:
+        parent = region.get("access_rules") or []
         for kid in region.get("children") or []:
-            alts, rules = [], kid.get("access_rules") or []
-            if not rules:
-                out[kid["name"]] = [frozenset()]        # no rule means always
-                continue
-            for alt in rules:
+            alts = []
+            for alt in inherited_rules(parent, kid.get("access_rules") or []):
                 terms, dead = [], False
                 for t in (x.strip() for x in alt.split(",") if x.strip()):
                     if t in pred:
