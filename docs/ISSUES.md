@@ -45,38 +45,6 @@ Nothing here is urgent unless it says so.
 
 ## Known wrong
 
-- **Two ToFR chests were held red on every standard seed, because the whole
-  gate sat on the parent.** Fixed 2026-09-05. `ToFR Lute Plate Room 1` and `2`
-  are chest indices 253 and 254, and they are in front of the lute plate rather
-  than behind it -- which is what their names say. The node carried
-  `$canBreakOrb,lute,key` and the seven chests hung off it with no rules of
-  their own, so a child could not widen what the parent had already narrowed.
-
-  **Measured rather than reasoned.** Walking ToFR from the Black Orb landing
-  with `tools/tofr_diff.py`'s reader on `6BF0DEA9` (Long) and `C189A0EF` (Mid),
-  holding the orbs alone, opens 253 and 254 and nothing else; adding the Lute
-  alone or the Key alone opens nothing further; both together open the other
-  five. FFR says the same independently -- `ItemLocations.cs:391-393` chains
-  `TempleOfFiendsPhantom` off `None` while `Lute` enters at
-  `TempleOfFiendsEarth` and `Key` at `TempleOfFiendsFire`, and `:262-263` puts
-  `ToFRevisited6` and `7` on the Phantom floor. 26 of the 37 cartridges on this
-  machine are Long and 5 are Mid, so this was wrong on nearly every standard
-  seed.
-
-  **The fix is where the gate lives, not what it says.** The node keeps
-  `$canBreakOrb` -- being inside the Temple is what the orbs buy -- and the five
-  chests past the plate carry `lute,key` / `chaosRush,lute` / `shortToFR`
-  themselves. Every alternative PopTracker builds by crossing parent with child
-  comes out exactly as before for those five and for Chaos; only the two rooms
-  move. The incentive trees got the same node collapse, which is
-  behaviour-preserving there because they host nothing but Chaos.
-
-  **The old checks could not have caught it, and now they can.** Both ChaosRush
-  checks in `tests/test_ram.lua` asserted on the *node*, which the orbs alone
-  now satisfy on every mode, so they would have passed whatever the flag did;
-  they are pointed at the five chests instead. The new checks fail against the
-  pre-fix tree, which is the demonstration a gate row owes.
-
 - **A pinned control cannot survive Reset, and no pack-side change can make it.**
   Found 2026-09-04 while making the `Overworld Tab` choice stick. A stage pinned
   by hand does survive a *restart*: PopTracker autosaves item state and restores
@@ -575,6 +543,56 @@ Nothing here is urgent unless it says so.
   looked like confirmation. It was computed over the already-filtered live-tile
   list, so it reproduced the OR answer by construction and could not have
   disagreed. It is evidence of nothing.
+
+- **The lane port suite crashes when `FF1_ROM` is the cartridge it ports to.**
+  Found 2026-09-06, and it predates the branch that found it -- reproduced
+  identically at `20afab6`. `tools/tests/test_port_lanes.py` takes `FF1_ROM` as
+  the source and the No-Overworld oracle as a fixed target, and its docstring
+  promises it skips without two cartridges that lay some floor differently.
+  Point `FF1_ROM` at a No-Overworld cartridge and the two ends are the same
+  kind: "the two cartridges are not the same one" is reported as a *failure*
+  rather than taken as the skip condition, the run carries on with nearly every
+  floor reporting "have", and it ends in an `IndexError` out of
+  `carried[0]`. Three checks fail and the suite exits on a traceback.
+
+  **`verify.sh` stage 2 is green on this machine because `FF1_ROM` names the
+  standard weekly**, so the failure only appears when someone points the
+  variable at the other kind -- which is a reasonable thing to do, and is what
+  the No-Overworld suites want. The fix is the skip the docstring already
+  describes: compare the two cartridges before the checks and skip when they
+  are one, rather than checking the precondition as though it were a result.
+
+- **Two ToFR chests were held red on every standard seed, because the whole
+  gate sat on the parent.** Fixed 2026-09-05. `ToFR Lute Plate Room 1` and `2`
+  are chest indices 253 and 254, and they are in front of the lute plate rather
+  than behind it -- which is what their names say. The node carried
+  `$canBreakOrb,lute,key` and the seven chests hung off it with no rules of
+  their own, so a child could not widen what the parent had already narrowed.
+
+  **Measured rather than reasoned.** Walking ToFR from the Black Orb landing
+  with `tools/tofr_diff.py`'s reader on `6BF0DEA9` (Long) and `C189A0EF` (Mid),
+  holding the orbs alone, opens 253 and 254 and nothing else; adding the Lute
+  alone or the Key alone opens nothing further; both together open the other
+  five. FFR says the same independently -- `ItemLocations.cs:391-393` chains
+  `TempleOfFiendsPhantom` off `None` while `Lute` enters at
+  `TempleOfFiendsEarth` and `Key` at `TempleOfFiendsFire`, and `:262-263` puts
+  `ToFRevisited6` and `7` on the Phantom floor. 26 of the 37 cartridges on this
+  machine are Long and 5 are Mid, so this was wrong on nearly every standard
+  seed.
+
+  **The fix is where the gate lives, not what it says.** The node keeps
+  `$canBreakOrb` -- being inside the Temple is what the orbs buy -- and the five
+  chests past the plate carry `lute,key` / `chaosRush,lute` / `shortToFR`
+  themselves. Every alternative PopTracker builds by crossing parent with child
+  comes out exactly as before for those five and for Chaos; only the two rooms
+  move. The incentive trees got the same node collapse, which is
+  behaviour-preserving there because they host nothing but Chaos.
+
+  **The old checks could not have caught it, and now they can.** Both ChaosRush
+  checks in `tests/test_ram.lua` asserted on the *node*, which the orbs alone
+  now satisfy on every mode, so they would have passed whatever the flag did;
+  they are pointed at the five chests instead. The new checks fail against the
+  pre-fix tree, which is the demonstration a gate row owes.
 
 - **A slot can ring for a location the seed does not have, and the caravan was
   not the only one. Closed 2026-09-05** by asking Archipelago. Found 2026-09-03
