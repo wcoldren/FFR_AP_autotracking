@@ -308,6 +308,91 @@ def main():
     check("  and one link in two places stays two",
           sorted(regen_maps._one_per_link(apart)), [(11, 4), (20, 4)])
 
+    # ---- what a pin is called ------------------------------------------
+    #
+    # A floor link used to be named for its tile -- "SeaShrineB3 49,37" -- so a
+    # floor with six staircases was six coordinate pairs to read off the art.
+    # The qualifier replaces that, and every row below is a rule that has to
+    # hold on a grid built here rather than on a cartridge: a cartridge can
+    # only show the naming agreeing with itself.
+    #
+    # The frame is the 11x11 block above, cols and rows 20..30, padded by one.
+    quad_of = {"Upstairs": (0x26, 0x27, 0x36, 0x37),   # TELEPORT_GRAPHICS[..][1]
+               "Downstairs": (0x28, 0x29, 0x38, 0x39)}
+    TS, UP, DOWN, MYSTERY = 1, 2, 3, 4
+    rom = bytearray(max(render_maps.TILESET_LUT + entrance_graph.MAP_COUNT,
+                       render_maps.QUAD_BASE + 0x200 * 8 + 0x80 * 4))
+    rom[render_maps.TILESET_LUT + 0] = TS
+    for tile, name in ((UP, "Upstairs"), (DOWN, "Downstairs")):
+        for n, value in enumerate(quad_of[name]):
+            rom[render_maps.QUAD_BASE + 0x200 * TS + 0x80 * n + tile] = value
+    # MYSTERY keeps its zero quad, which is the "no answer" the all-zero guard
+    # is for -- five graphics list four zeroes on some tileset, so a tile that
+    # matched on zeroes would match five at once.
+
+    named = list(tiles)
+    for cell, tile in (((21, 21), UP), ((29, 29), DOWN), ((29, 27), DOWN),
+                       ((25, 25), MYSTERY)):
+        named[cell[1] * dim + cell[0]] = tile
+
+    image = type("Image", (), {"data": rom})()
+
+    class Named:
+        rom = image
+
+        def grid(self, map_id):
+            return named, None, None
+
+    crop = render_maps.content_crop(named)
+    qual = lambda cell, kind=entrance_graph.TP_TELE_NORM, pay=0: (
+        regen_maps.entrance_qualifier(Named(), 0, named, crop, cell, kind, pay))
+
+    check("a link in the frame's north-west corner says so",
+          qual((21, 21)), "NW Upstairs")
+    check("  and one in the south-east says that",
+          qual((29, 29)), "SE Downstairs")
+    check("  and one in the middle band is not given a direction",
+          qual((25, 25)), regen_maps.ENTRANCE_MIDDLE)
+    check("the noun is FFR's own TeleportTilesGraphics, not a tile id",
+          render_maps.teleport_graphic(rom, 0, named, (29, 29)), "Downstairs")
+    check("  a graphic FFR has no row for leaves the noun off",
+          render_maps.teleport_graphic(rom, 0, named, (25, 25)), None)
+    check("  and a warp with no graphic says what the decomp calls it",
+          qual((25, 25), entrance_graph.TP_TELE_WARP), "Middle Back")
+    check("an exit tile takes FFR's ExitTeleportIndex name",
+          qual((21, 21), entrance_graph.TP_TELE_EXIT, 5), "ExitEarthCave")
+    check("  and an exit id FFR does not name falls back to position",
+          qual((21, 21), entrance_graph.TP_TELE_EXIT, 15), "NW Upstairs")
+
+    # The ordinal, and the collision it exists to break. Both cells below are
+    # Downstairs in the south-east, so the qualifier alone names them the same
+    # thing -- and two pins with one name would take out the item code minted
+    # from it, which build_entrance_links raises on.
+    check("two of the same thing in one corner do collide without a number",
+          qual((29, 29)) == qual((29, 27)), True)
+
+    # The direction is measured in the frame the tab draws, not in rom
+    # coordinates. A standard map is a torus and the crop slides the ones whose
+    # content crosses the join; a link at the low end of a map shifted right is
+    # in the *east* of what a player sees.
+    join = [0] * (dim * dim)
+    for row in range(20, 31):
+        for col in list(range(0, 6)) + list(range(58, dim)):
+            join[row * dim + col] = 1
+    join[25 * dim + 2] = UP
+    shifted = render_maps.content_crop(join)
+    check("the crop slid this map, so its box means nothing raw",
+          shifted.shift != (0, 0), True)
+
+    class Join(Named):
+        def grid(self, map_id):
+            return join, None, None
+
+    check("  and a link near column 0 is named for where it is drawn",
+          regen_maps.entrance_qualifier(Join(), 0, join, shifted, (2, 25),
+                                        entrance_graph.TP_TELE_NORM, 0),
+          "E Upstairs")
+
     # part_doors, on the shape it exists for: a town a tile from its castle.
     # Half a marker down, so the box still covers the door it names.
     pair = {"Entrance: Coneria": (151, 160), "Entrance: ConeriaCastle1": (152, 159)}
@@ -470,9 +555,32 @@ def main():
                   for a, b in zip(r1, r2)), True)
 
     check("link names are unique", len(set(links)), len(links))
-    check("  and none names its destination",
-          sorted(n for n, (m, c, r) in links.items()
-                 if not n.endswith(f"{c},{r}")), [])
+    # This row used to assert a name ended in its own coordinates, which was the
+    # proxy for "says nothing about where it goes" while the coordinates *were*
+    # the name. The property has not changed and the check is now direct: a name
+    # may carry the map it stands on and nothing may carry another one.
+    leak = []
+    for name, (map_id, col, row) in links.items():
+        rest = name[len(op.ENTRANCE_PREFIX):]
+        mine = entrance_graph.MAP_NAMES[map_id]
+        if not rest.startswith(mine + " "):
+            leak.append(name)
+        elif any(other in rest[len(mine):] for other in entrance_graph.MAP_NAMES):
+            leak.append(name)
+    check("  and none names any map but the one it stands on", sorted(leak), [])
+
+    # The specific temptation, named so that reaching for it later fails a suite
+    # rather than a code review. FF1Lib/Enums.cs:187's TeleportIndex names all 64
+    # in-map teleports and would name every staircase pin here -- by its vanilla
+    # *destination*, which is the one thing a pin name must not say. These nine
+    # are the distinctive ones; none of them is a map name, so nothing else
+    # could put them here.
+    spoilers = ("MarshCaveTop", "MarshCaveBottom", "EarthCaveVampire",
+                "EarthCaveLich", "IceCavePitRoom", "SeaShrineMermaids",
+                "SeaShrineKraken", "CastleOrdealsMaze", "SkyPalaceTiamat",
+                "GurguVolcanoKary", "BahamutsRoom")
+    check("  and none wears a TeleportIndex name, which names a destination",
+          sorted(n for n in links if any(w in n for w in spoilers)), [])
     check("  and every name is namespaced with the doors",
           sorted(n for n in links if not n.startswith(op.ENTRANCE_PREFIX)), [])
     check("no link name collides with a door name",

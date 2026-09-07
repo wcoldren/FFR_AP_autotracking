@@ -74,6 +74,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PACK = os.path.dirname(HERE)
@@ -1141,6 +1142,87 @@ def entrance_tiles(graph, npc_cells=None):
             for name, cells in entrance_members(graph, npc_cells).items()}
 
 
+# How far off centre a pin has to sit before its name says north or west, as a
+# fraction of the frame's width or height. At 0.15 the middle three tenths of
+# each axis is the neutral band, which is what keeps a floor's one central
+# staircase from being called "NE" for sitting a tile past the midpoint.
+ENTRANCE_BAND = 0.15
+
+# What a pin in the middle band is called. A word rather than a letter, because
+# it stands where "NE" would and "Entrance: MarshCaveB1 C Downstairs" reads as
+# a typo.
+ENTRANCE_MIDDLE = "Middle"
+
+
+def _octant(crop, cell):
+    """Where a cell sits in its frame -- "NE", "S", "Middle" -- or None.
+
+    Measured in the *frame* the tab draws, not in rom coordinates, which is why
+    it goes through Crop.place: a standard map is a torus and the crop slides
+    the ones whose content crosses the join, so on those "north" in rom
+    coordinates is the wrong end of the map. Five of the 61 slide on both
+    oracles -- Melmond, Crescent Lake, Coneria Castle 1F, Elfland Castle and
+    Sky Palace 4F -- which is few enough to get away with the wrong arithmetic
+    for a long time and not few enough to leave wrong.
+
+    None where the cell is not in frame, which a caller answers by falling back
+    rather than by guessing a direction.
+    """
+    at = crop.place(*cell)
+    if at is None:
+        return None
+    cols, rows = crop.size
+    dx = (at[0] + 0.5) / cols - 0.5
+    dy = (at[1] + 0.5) / rows - 0.5
+    ns = "N" if dy < -ENTRANCE_BAND else ("S" if dy > ENTRANCE_BAND else "")
+    ew = "W" if dx < -ENTRANCE_BAND else ("E" if dx > ENTRANCE_BAND else "")
+    return (ns + ew) or ENTRANCE_MIDDLE
+
+
+def entrance_qualifier(graph, map_id, tiles, crop, cell, kind, pay):
+    """The words after the map name in a floor link's pin name.
+
+    Three sources, in this order, and every one of them describes the tile
+    rather than where it leads. That is the constraint the whole naming scheme
+    hangs on: a pin name shows in the location list, so a name that said where
+    a door went would hand over the permutation the pins exist to let you find.
+    docs/ROADMAP.md section 4 has it.
+
+      * An exit tile gets FFR's own ExitTeleportIndex name -- "ExitEarthCave",
+        and Titan's Tunnel finally splits into East and West. This is the one
+        FFR table that names a teleport by its own end.
+      * Everything else gets where it sits in the frame, plus what it is drawn
+        as, read out of FFR's TeleportTilesGraphics.
+      * A warp tile FFR has no graphic for is "Back", which is the decomp's own
+        word: Constants.inc:320 defines TP_TELE_WARP as "go back to previous
+        floor".
+
+    Coordinates remain the last resort, for a pin out of frame with no graphic.
+    Nothing in either oracle reaches it, and it is here so the qualifier is
+    never empty -- an empty one would collapse a floor's pins onto one name and
+    take build_entrance_links' duplicate-code guard with it.
+
+    **TeleportIndex is deliberately not used**, though it would name all 77
+    staircases and every id measured is in its range. Those names are a
+    teleport's *vanilla destination* -- MarshCaveTop, EarthCaveVampire -- so a
+    pin wearing one would claim a destination on a seed that had moved it.
+    entrance_graph.EXIT_NAMES says the same thing where the table lives.
+    """
+    if (kind == entrance_graph.TP_TELE_EXIT
+            and pay < len(entrance_graph.EXIT_NAMES)):
+        return entrance_graph.EXIT_NAMES[pay]
+    words = []
+    where = _octant(crop, cell)
+    if where:
+        words.append(where)
+    drawn = render_maps.teleport_graphic(graph.rom.data, map_id, tiles, cell)
+    if drawn:
+        words.append(drawn)
+    elif kind == entrance_graph.TP_TELE_WARP:
+        words.append("Back")
+    return " ".join(words) or f"{cell[0]},{cell[1]}"
+
+
 def entrance_members(graph, npc_cells=None):
     """{node name: [(map_id, col, row), ...]} -- every tile that *is* this link.
 
@@ -1162,16 +1244,35 @@ def entrance_members(graph, npc_cells=None):
     npc_cells = npc_cells_of(rom) if npc_cells is None else npc_cells
     out = {}
     for map_id in render_maps.MAP_FILES:
+        tiles = graph.grid(map_id)[0]
+        keep = crop_keep(graph, map_id, npc_cells.get(map_id, ()), tiles)
         link = {(col, row): (kind, pay)
                 for col, row, kind, pay in graph.teleports(map_id)
                 if kind in FLOOR_LINK_KINDS}
-        for cell in floor_exits(graph, map_id,
-                                crop_keep(graph, map_id,
-                                          npc_cells.get(map_id, ()))):
+        for cell in floor_exits(graph, map_id, keep):
             link[cell] = (entrance_graph.TP_TELE_WARP, 0)
-        for (col, row), group in sorted(_one_per_link(link).items()):
+        # The frame the tab draws, which is what _octant measures against. The
+        # same `keep` the floor-door rule used, for the reason crop_keep exists
+        # at all: the crop and the pins disagreeing about what a speck is has
+        # already cost a pin.
+        crop = render_maps.content_crop(tiles, keep=keep)
+        pins = [(entrance_qualifier(graph, map_id, tiles, crop, cell,
+                                    *link[cell]), cell, group)
+                for cell, group in sorted(_one_per_link(link).items())]
+        # An ordinal only where a floor really does offer two of the same thing
+        # in the same corner -- Ice Cave B2's pit room is ten holes in one
+        # frame quadrant and there is nothing else to say about them. Ordered
+        # row then column, the tie-break _middle already uses, so the number a
+        # pin wears does not move between runs of one cartridge.
+        repeated = Counter(qual for qual, _, _ in pins)
+        nth = Counter()
+        for qual, (col, row), group in sorted(pins, key=lambda p: (p[0], p[1][1],
+                                                                  p[1][0])):
+            if repeated[qual] > 1:
+                nth[qual] += 1
+                qual = f"{qual} {nth[qual]}"
             name = (overworld_pins.ENTRANCE_PREFIX
-                    + f"{entrance_graph.MAP_NAMES[map_id]} {col},{row}")
+                    + f"{entrance_graph.MAP_NAMES[map_id]} {qual}")
             out[name] = ([(map_id, col, row)]
                          + [(map_id, c, r) for c, r in sorted(group)
                             if (c, r) != (col, row)])

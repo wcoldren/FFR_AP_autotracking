@@ -13,9 +13,9 @@ local popapi = dofile(PACK .. "/tests/pop_api.lua")
 -- out of the map below it is a two-tile doorway, and the two staircases are
 -- single tiles -- which is the whole spread the real table carries.
 local DOOR = "@Entrances/Entrance: Coneria/Coneria"
-local WAY_OUT = "@Entrances/Entrance: Coneria Town 7,15/Coneria Town 7,15"
-local STAIR_UP = "@Entrances/Entrance: Marsh Cave B1 11,3/Marsh Cave B1 11,3"
-local STAIR_DOWN = "@Entrances/Entrance: Marsh Cave B2 5,29/Marsh Cave B2 5,29"
+local WAY_OUT = "@Entrances/Entrance: ConeriaTown S Downstairs/ConeriaTown S Downstairs"
+local STAIR_UP = "@Entrances/Entrance: MarshCaveB1 NW Downstairs/MarshCaveB1 NW Downstairs"
+local STAIR_DOWN = "@Entrances/Entrance: MarshCaveB2 SE Downstairs/MarshCaveB2 SE Downstairs"
 
 ENTRANCE_LINKS = {
   ["-1,152,161"] = DOOR, ["-1,153,161"] = DOOR, ["-1,152,162"] = DOOR,

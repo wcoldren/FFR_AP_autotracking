@@ -11,9 +11,9 @@ local popapi = dofile(PACK .. "/tests/pop_api.lua")
 -- Four pins, as in test_edges.lua: an overworld door, the way out of the town
 -- below it, and the two ends of one staircase.
 local DOOR = "@Entrances/Entrance: Coneria/Coneria"
-local WAY_OUT = "@Entrances/Entrance: Coneria Town 7,15/Coneria Town 7,15"
-local STAIR_UP = "@Entrances/Entrance: Marsh Cave B1 11,3/Marsh Cave B1 11,3"
-local STAIR_DOWN = "@Entrances/Entrance: Marsh Cave B2 5,29/Marsh Cave B2 5,29"
+local WAY_OUT = "@Entrances/Entrance: ConeriaTown S Downstairs/ConeriaTown S Downstairs"
+local STAIR_UP = "@Entrances/Entrance: MarshCaveB1 NW Downstairs/MarshCaveB1 NW Downstairs"
+local STAIR_DOWN = "@Entrances/Entrance: MarshCaveB2 SE Downstairs/MarshCaveB2 SE Downstairs"
 
 ENTRANCE_LINKS = {
   ["-1,152,161"] = DOOR, ["-1,153,161"] = DOOR,
@@ -24,12 +24,12 @@ ENTRANCE_LINKS = {
 
 ENTRANCE_PINS = {
   [DOOR] = { code = "entr_coneria", map = -1, name = "Entrance: Coneria" },
-  [WAY_OUT] = { code = "entr_coneriatown_7_15", map = 1,
-                name = "Entrance: Coneria Town 7,15" },
-  [STAIR_UP] = { code = "entr_marshcaveb1_11_3", map = 5,
-                 name = "Entrance: Marsh Cave B1 11,3" },
-  [STAIR_DOWN] = { code = "entr_marshcaveb2_5_29", map = 6,
-                   name = "Entrance: Marsh Cave B2 5,29" },
+  [WAY_OUT] = { code = "entr_coneriatown_s_downstairs", map = 1,
+                name = "Entrance: ConeriaTown S Downstairs" },
+  [STAIR_UP] = { code = "entr_marshcaveb1_nw_downstairs", map = 5,
+                 name = "Entrance: MarshCaveB1 NW Downstairs" },
+  [STAIR_DOWN] = { code = "entr_marshcaveb2_se_downstairs", map = 6,
+                   name = "Entrance: MarshCaveB2 SE Downstairs" },
 }
 
 -- Two maps have a tab and two do not, which is the split the badge has to
