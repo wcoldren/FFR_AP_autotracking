@@ -30,11 +30,17 @@ What is checked:
     thousands it drops, and the two conditions it keeps a tile on, each shown
     failing on a grid built here
   * a link on a tile that also holds a drawn sprite stays a trapezoid
+  * every tile of a doorway or a town blob resolves back to the one pin that
+    stands on it, and every entry in that table names a section the group has.
+    This is what scripts/autotracking/edges.lua reads to mark a door the party
+    walked through, and the tiles that are *not* the pin's own are the whole
+    reason it exists
 
 Set FF1_ROM to a cartridge; without one the cartridge half skips.
 """
 
 import os
+import re
 import struct
 import sys
 import zlib
@@ -435,6 +441,43 @@ def main():
           sorted(rules), [(pin_visibility.ENTRANCE_RULE,)])
     check("  and the group holds both halves",
           len(group["children"]), len(doors) + len(kids))
+
+    # The table that turns an observed tile back into a pin. The bridge sees
+    # whichever tile of a doorway the party stepped on; the pin is named for the
+    # middle of the cluster. So the interesting property is not that the pin's
+    # own tile is in the table -- it is that the others are, and that every
+    # entry names a section the tree actually has.
+    door_members = op.entrance_door_members(reader)
+    link_members = regen_maps.entrance_members(graph)
+    members = {**door_members, **link_members}
+    lua = regen_maps.build_entrance_links(group["children"], members)
+    table = dict(re.findall(r'\["([^"]+)"\] = "([^"]+)"', lua))
+
+    sections = {f'@{pin_visibility.ENTRANCES_GROUP}/{k["name"]}'
+                f'/{k["sections"][0]["name"]}' for k in group["children"]}
+    check("every entry names a section the group has",
+          sorted(set(table.values()) - sections), [])
+    check("and every placed pin is reachable from some tile",
+          sorted(sections - set(table.values())), [])
+
+    # The pin's own tile resolves to its own pin, which is the row that would
+    # catch the two halves being keyed differently.
+    named = []
+    for kid in group["children"]:
+        cells = members.get(kid["name"]) or []
+        want = (f'@{pin_visibility.ENTRANCES_GROUP}/{kid["name"]}'
+                f'/{kid["sections"][0]["name"]}')
+        if cells and table.get("%d,%d,%d" % cells[0]) != want:
+            named.append(kid["name"])
+    check("a pin's own tile resolves to it", sorted(named), [])
+
+    # And the point of the table: a cluster is more than its middle. Counted
+    # rather than asserted true, because a cartridge whose every link happened
+    # to be one tile wide would make this vacuous without saying so.
+    extra = sum(len(cells) - 1 for cells in members.values())
+    print(f"-- {len(table)} tiles resolve to {len(sections)} pins, "
+          f"{extra} of them a tile the pin is not named after")
+    check("a doorway is wider than its pin somewhere", extra > 0, True)
 
     return 1 if fail else 0
 

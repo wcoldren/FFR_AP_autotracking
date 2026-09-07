@@ -1063,6 +1063,22 @@ def entrance_tiles(graph):
     shape as a staircase, because leaving a floor by the front is the same kind
     of thing to a player as leaving it by the stairs.
     """
+    return {name: cells[0] for name, cells in entrance_members(graph).items()}
+
+
+def entrance_members(graph):
+    """{node name: [(map_id, col, row), ...]} -- every tile that *is* this link.
+
+    The pin's own cell comes first and the rest follow in tile order, so
+    entrance_tiles is this table's first column.
+
+    A pin is named for the middle of its cluster, and a party walking through a
+    five-tile doorway comes out on whichever of the five it stepped on. So the
+    tile the bridge observes and the tile the pin is named after disagree four
+    times in five, and this is the table that puts them back together. Nothing
+    here says where anything goes: it is positions, which is what the pins
+    already draw.
+    """
     out = {}
     for map_id in render_maps.MAP_FILES:
         link = {(col, row): (kind, pay)
@@ -1070,21 +1086,27 @@ def entrance_tiles(graph):
                 if kind in FLOOR_LINK_KINDS}
         for cell in floor_exits(graph, map_id):
             link[cell] = (entrance_graph.TP_TELE_WARP, 0)
-        for col, row in sorted(_one_per_link(link)):
+        for (col, row), group in sorted(_one_per_link(link).items()):
             name = (overworld_pins.ENTRANCE_PREFIX
                     + f"{entrance_graph.MAP_NAMES[map_id]} {col},{row}")
-            out[name] = (map_id, col, row)
+            out[name] = ([(map_id, col, row)]
+                         + [(map_id, c, r) for c, r in sorted(group)
+                            if (c, r) != (col, row)])
     return out
 
 
 def _one_per_link(link):
-    """{(col, row)} -- one cell per link, for a {cell: (kind, id)} of tiles.
+    """One cell per link, for a {cell: (kind, id)} of tiles.
 
     A doorway is as wide as the art draws it and the teleport table repeats
     itself across it: Coneria Castle's two entrances are three tiles and five,
     each tile its own exit, so the board drew eight trapezoids in two rows along
     the castle's rim for what a player walks through twice. Ice Cave B2's wide
     pit is the same thing one floor down.
+
+    Returns {the cell the pin sits on: every cell of its cluster}, because both
+    halves are wanted: the first names the pin and the second is what an
+    observed tile has to be matched against.
 
     Adjacent tiles are one pin when they are the same link -- same kind, same
     teleport id -- which is the condition that makes this lossless rather than
@@ -1096,10 +1118,10 @@ def _one_per_link(link):
     Merging on the destination instead would be the spoiler: it is the shuffled
     half, and pins that grouped by it would hand over the permutation.
     """
-    out = set()
+    out = {}
     for value in set(link.values()):
         for group in _clusters({c for c, v in link.items() if v == value}):
-            out.add(_middle(group))
+            out[_middle(group)] = group
     return out
 
 
@@ -1143,6 +1165,52 @@ def entrance_children(by_rom, tiles, sprite_cells=None):
             "map_locations": [ml],
         })
     return kids, lost, shaded
+
+
+ENTRANCE_LINKS_FILE = "scripts/entrance_links.lua"
+
+
+def build_entrance_links(nodes, members):
+    """The Lua table that turns an observed tile into the pin standing on it.
+
+    The bridge publishes ff1/edges by watching the party walk: which map it was
+    on, which tile it left from, and where it came out. It reads no teleport
+    table, because a tracker told the permutation up front spoils an
+    entrance-randomised seed -- so the pack has to match a raw tile against the
+    pins it drew, and a pin does not always sit on the tile that was walked. A
+    doorway is as wide as the art draws it and a town is a blob; both collapse
+    to one marker, and the four tiles that lost are still tiles a party can
+    stand on.
+
+    Written into the override beside the art rather than committed, because the
+    cells come off the cartridge and the pins only exist here at all. The pack
+    ships an empty copy so the base tracker loads and the feature is simply
+    inert there, which is already true of the pins themselves.
+    `scripts/autotracking/mapValues.lua` is the same arrangement.
+
+    `nodes` is the placed pins, so a link the crop could not hold contributes
+    nothing: an entry naming a section that does not exist would be a silent
+    lookup failure rather than a visible one.
+
+    Positions only. Which pin a tile belongs to is what the board already draws,
+    so this hands over nothing the shuffle is hiding.
+    """
+    lines = []
+    for node in nodes:
+        name = node["name"]
+        cells = members.get(name)
+        if not cells:
+            continue
+        section = node["sections"][0]["name"]
+        path = f"@{pin_visibility.ENTRANCES_GROUP}/{name}/{section}"
+        for map_id, col, row in cells:
+            lines.append(f'  ["{map_id},{col},{row}"] = "{path}",')
+    return ("-- Generated by tools/regen_maps.py -- do not edit.\n"
+            "--\n"
+            "-- Every tile that belongs to an entrance pin, and the section that\n"
+            "-- pin marks. scripts/autotracking/edges.lua looks an observed tile\n"
+            "-- up here; see build_entrance_links for why the two disagree.\n"
+            "ENTRANCE_LINKS = {\n" + "\n".join(lines) + "\n}\n")
 
 
 def maps_by_rom_id(cal):
@@ -2144,6 +2212,13 @@ def main():
             link_shaded += link_shade
             if group["children"]:
                 doc.append(group)
+            # Written whether or not there are any: an override whose pins are
+            # switched off still has to overwrite the previous run's table, or
+            # the pack would look tiles up against the cartridge before it.
+            files[ENTRANCE_LINKS_FILE] = build_entrance_links(
+                group["children"],
+                {**overworld_pins.entrance_door_members(ow_reader),
+                 **entrance_members(ow_graph)}).encode()
         pin_visibility.stamp(doc)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()
         placed += pl

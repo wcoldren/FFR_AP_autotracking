@@ -142,6 +142,12 @@ if PopVersion and PopVersion>="0.18.0" then
     -- the board already starts where "nothing has said" is -- so unlike
     -- flag_mapping this is loaded here and nowhere else.
     ScriptHost:LoadScript("scripts/autotracking/rolls_mapping.lua")
+    -- Which doors the party has walked through, and the table that says which
+    -- pin stands on a tile. The table is empty in the pack and written by a
+    -- regen into the override, beside the pins it resolves -- so the load is
+    -- unconditional and the feature is inert until there is an override.
+    ScriptHost:LoadScript("scripts/entrance_links.lua")
+    ScriptHost:LoadScript("scripts/autotracking/edges.lua")
     ScriptHost:LoadScript("scripts/autotracking/uat.lua")
   end
 end

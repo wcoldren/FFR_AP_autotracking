@@ -144,6 +144,29 @@ def entrance_door_pins(reader):
             for door, cell in sorted(door_cells(reader).items())}
 
 
+def entrance_door_members(reader):
+    """{node name: [(-1, x, y), ...]} -- every overworld tile that opens a door.
+
+    entrance_door_pins keeps one tile per door, the north-west corner of a
+    town's blob, because that is where a single marker belongs. A party walks
+    onto whichever tile of the blob it reached, so the tile the bridge sees is
+    usually not the tile the pin is named after; this is the table that puts
+    them back together, and -1 is the map id the overworld publishes.
+
+    The pin's own tile comes first, matching regen_maps.entrance_members.
+    """
+    first = door_cells(reader)
+    out = {}
+    for door, cells in sorted(entrance_graph.door_positions(reader).items()):
+        if not cells:
+            continue
+        head = first[door]
+        out[ENTRANCE_PREFIX + entrance_graph.DOOR_NAMES[door]] = (
+            [(-1, head[0], head[1])]
+            + [(-1, x, y) for x, y in sorted(cells) if (x, y) != head])
+    return out
+
+
 # The tooltip icons the entrance group hands its children. Written by a regen
 # from the cartridge, like the map art, and for the same reason: they are the
 # game's own pixels, so they belong beside the renders in the override rather
