@@ -84,13 +84,17 @@ find_app() {   # find_app <name> [<name>...]
 # or a bug to chase -- and exit 3 is how the tool tells them apart. Either way
 # step 1 is the only step affected: steps 2 and 3 still open the emulator and
 # the tracker on the art already on disk.
-regen() {   # regen <command...>
-    "$@"
-    _rc=$?
-    if [ "$_rc" -eq 0 ]; then
+#
+# Split from `regen` so a caller with a second thing to try can look at the
+# status before any of this is said. Counting a problem is part of reporting,
+# so a redraw that is about to be attempted another way must not come through
+# here first: two lines about one failed step, and a non-zero exit for a
+# session whose art came out current.
+regen_report() {   # regen_report <status>
+    if [ "$1" -eq 0 ]; then
         return 0
     fi
-    if [ "$_rc" -eq "$REGEN_REFUSED" ]; then
+    if [ "$1" -eq "$REGEN_REFUSED" ]; then
         echo "-> steps 2 and 3 still run, on the art already on disk -- which" >&2
         echo "   is whatever the message above says it was drawn for." >&2
     else
@@ -98,6 +102,11 @@ regen() {   # regen <command...>
     fi
     problems=$((problems + 1))
     return 1
+}
+
+regen() {   # regen <command...>
+    "$@"
+    regen_report $?
 }
 
 # ----------------------------------------------------------------- 1. the art
@@ -163,7 +172,7 @@ PY
     verdict=${1:-cannot}
     case $verdict in
         current)
-            mode=$2
+            mode=$2 npcs=$3 lanes=$4 retrace=$5
             # The art matches this cartridge, which does not yet mean it
             # matches the checkout: --verify is the one that compares those.
             if out=$("$PY" "$ROOT/tools/regen_maps.py" --verify 2>&1); then
@@ -182,7 +191,31 @@ PY
                 # of the cache rather than being handed them from here. --mode
                 # because the other mode's art is a redraw nobody asked for, at
                 # the moment they are least willing to wait for one.
-                regen "$PY" "$ROOT/tools/regen_maps.py" --refresh --mode "$mode"
+                "$PY" "$ROOT/tools/regen_maps.py" --refresh --mode "$mode"
+                rc=$?
+                # A refresh reopens the cartridge at the path the cache
+                # recorded, while the verdict above was reached on the
+                # cartridge's bytes. Those two disagree whenever the seed has
+                # moved since it was drawn, and then what the failure asks for
+                # -- one run on the cartridge whose sha256 starts so-and-so --
+                # is the file already named on this command line. So hand it
+                # that one before calling anything a failure. Everything else
+                # --refresh gives up on wants the same run, for the same
+                # reason: it declines to guess, and here there is nothing left
+                # to guess about.
+                #
+                # Not on a refusal. Exit 3 is an answer about the checkout, and
+                # a full render is the same draw from the same working tree --
+                # it would be asking the guard the same question a second time
+                # and drawing on the answer it already refused.
+                if [ "$rc" -ne 0 ] && [ "$rc" -ne "$REGEN_REFUSED" ]; then
+                    echo "-> the cache could not redraw that mode on its own;"
+                    echo "   redrawing from the cartridge named here instead"
+                    regen "$PY" "$ROOT/tools/regen_maps.py" "$ROM" \
+                        --npcs "$npcs" --lanes "$lanes" --retrace "$retrace"
+                else
+                    regen_report "$rc"
+                fi
             fi
             ;;
         redraw)

@@ -430,6 +430,14 @@ Nothing here is urgent unless it says so.
   refresh after upgrading names the cartridge it needs and asks for one run on
   it; every refresh after that finds it.
 
+  The path is a convenience and the hash is the authority, which is why
+  `start_session.sh` does not stop where a refresh stops. Step 1 hands the mode
+  being played to `--refresh --mode`, and a non-zero exit that is not a refusal
+  sends it back down the full render with the cartridge named on its own
+  command line. That is the one thing on this path the cache cannot be wrong
+  about: a seed that moved leaves the hash matching and the path not, and the
+  file the refresh is asking for is the one already typed.
+
   Deliberately **not** in `tools/tests/run.sh`. Both suites are documented as
   needing nothing outside the checkout, and this answers a question about the
   machine's PopTracker install rather than about the code: a developer with a
