@@ -275,7 +275,8 @@ def checkout_id():
 # What a redraw from the wrong checkout exits with. Distinct from 1 because a
 # refusal and a failure ask the caller for different things: a failed render is
 # a bug to chase, a refusal is a branch to switch to. start_session.sh reads it
-# to say which happened rather than calling both "redraw failed".
+# to say which happened rather than calling both "redraw failed", and names it
+# REGEN_REFUSED on its side.
 REFUSED = 3
 
 

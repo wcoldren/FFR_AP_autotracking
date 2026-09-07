@@ -56,6 +56,10 @@ esac
 problems=0
 step() { printf '\n=== %s\n' "$1"; }
 
+# regen_maps.py's REFUSED. The number is the whole interface between that guard
+# and this script, so it is named on both sides rather than read as a bare 3.
+REGEN_REFUSED=3
+
 # An app bundle is named by whoever installed it, and the two emulators this
 # has been run against are called different things. Guess, then let the guess
 # be overridden, rather than hardcoding one and failing on the other machine.
@@ -86,7 +90,7 @@ regen() {   # regen <command...>
     if [ "$_rc" -eq 0 ]; then
         return 0
     fi
-    if [ "$_rc" -eq 3 ]; then
+    if [ "$_rc" -eq "$REGEN_REFUSED" ]; then
         echo "-> steps 2 and 3 still run, on the art already on disk -- which" >&2
         echo "   is whatever the message above says it was drawn for." >&2
     else
