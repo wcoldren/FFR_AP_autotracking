@@ -272,6 +272,51 @@ def checkout_id():
     return ident
 
 
+# What a redraw from the wrong checkout exits with. Distinct from 1 because a
+# refusal and a failure ask the caller for different things: a failed render is
+# a bug to chase, a refusal is a branch to switch to. start_session.sh reads it
+# to say which happened rather than calling both "redraw failed".
+REFUSED = 3
+
+
+def branch_block(was):
+    """-> why this checkout must not redraw over that art, or None.
+
+    The override shadows the pack, so a regen does not merely rebuild art: it
+    rewrites the four location trees and layouts/shared.json from whatever this
+    working tree holds, and that is what the session then plays on. A regen
+    from a branch without the toggle work once wrote four location trees
+    carrying no pin rules, and would have silently dropped the Pins group at
+    the next restart. Nothing about the art on disk says which branch drew it,
+    which is why the cache records one.
+
+    One function because there were two, in two languages, and they had to
+    agree: this comparison lived here for `--refresh` and again in
+    start_session.sh's `regen_ok`, three days apart, and "should this guard
+    exist at all" could not be answered in one place while that was true.
+
+    Three answers, and only one of them stops anything: a match, a mismatch,
+    and "cannot tell" -- no git, a detached head, or art drawn before the
+    branch was recorded. "Cannot tell" proceeds. A guard that fires on an
+    absence is one people learn to pass with the override, which costs more
+    than it saves.
+
+    It compares the mode being drawn, which is the same reach both copies had.
+    The location trees are shared across modes, so art drawn for the other mode
+    on another branch says nothing here -- see the note in docs/ISSUES.md.
+    """
+    if os.environ.get("FF1_REGEN_ANYWAY"):
+        return None
+    drawn_on = (was or {}).get("branch")
+    here = checkout_id().get("branch")
+    if not here or not drawn_on or drawn_on == here:
+        return None
+    return (f"art was drawn on '{drawn_on}' and this checkout is on '{here}' "
+            "-- not redrawing, because the override shadows the pack and this "
+            f"would bake the location trees on '{here}' into what you play "
+            "on. FF1_REGEN_ANYWAY=1 to redraw anyway.")
+
+
 def stamp_text(modes):
     """The stamp file's whole content, from the cache's per-mode records.
 
@@ -1683,7 +1728,6 @@ def refresh(out_dir, dry_run, only=None):
         print(f"{scope} already current with this checkout; nothing to redraw")
         return 0
 
-    here = checkout_id().get("branch")
     problems = 0
     for mode in sorted(worn):
         was = cache["modes"][mode]
@@ -1716,18 +1760,12 @@ def refresh(out_dir, dry_run, only=None):
                   "or --clean to drop the override.")
             problems += 1
             continue
-        # The guard start_session.sh makes before its own redraw, for the same
-        # reason: the override shadows the pack, so redrawing here bakes this
-        # checkout's location trees and layout into what the tracker serves.
-        # FF1_REGEN_ANYWAY is that script's escape hatch and stays the only one.
-        drawn_on = was.get("branch")
-        if (here and drawn_on and drawn_on != here
-                and not os.environ.get("FF1_REGEN_ANYWAY")):
-            print(f"\n{name}: art was drawn on '{drawn_on}' and this checkout "
-                  f"is on '{here}' -- not redrawing, because the override "
-                  "shadows the pack and this would bake the location trees on "
-                  f"'{here}' into what you play on. FF1_REGEN_ANYWAY=1 to "
-                  "redraw anyway.")
+        # Asked here as well as in the child, rather than left to it: a mode
+        # this checkout must not redraw is one no subprocess should be spawned
+        # for, and the parent is where the skip gets counted.
+        blocked = branch_block(was)
+        if blocked:
+            print(f"\n{name}: {blocked}")
             problems += 1
             continue
 
@@ -1980,6 +2018,19 @@ def main():
               "art was last drawn")
     elif changed_flag:
         print(changed_flag)
+
+    # After the lines above rather than before them. On the blocked path the
+    # reason for the redraw is the whole story -- usually "the cartridge
+    # changed" -- and a refusal naming only branches would leave that unsaid
+    # while the caller goes on to open an emulator on the other seed's art.
+    #
+    # Here rather than before the up-to-date return above: that path rewrites
+    # the cache stamp and nothing a branch decides, so refusing it would block
+    # a run that was never going to touch the location trees.
+    blocked = branch_block(was)
+    if blocked:
+        print(f"the {MODE_DIRS[mode]} {blocked}")
+        return REFUSED
 
     bank = extract_chests.standard_map_bank(rom)
     print(f"reading standard maps from bank ${bank:02X}")

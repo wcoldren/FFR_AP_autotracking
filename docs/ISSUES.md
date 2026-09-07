@@ -393,8 +393,25 @@ Nothing here is urgent unless it says so.
   4 names it. What it will not do is guess. A mode whose cartridge has moved,
   or whose art was drawn on another branch, is reported and skipped and the
   exit status stays 1, because a stale override that reads as refreshed is
-  worse than one that reads as stale. The branch guard is the one
-  `start_session.sh` makes, and `FF1_REGEN_ANYWAY=1` is the same escape hatch.
+  worse than one that reads as stale.
+
+  The branch guard is `branch_block`, and every path that draws asks it --
+  `--refresh` before it spawns a mode, and the ordinary run on a cartridge
+  before it draws one. It refuses because the override shadows the pack: a
+  regen rewrites the four location trees and `layouts/shared.json` from this
+  working tree, so it decides what the session plays on and not only what it
+  looks like. A refusal exits 3 rather than 1, which is how `start_session.sh`
+  tells "you are on the wrong branch" from "the render broke".
+  `FF1_REGEN_ANYWAY=1` is the one way past it.
+
+  What it compares is the mode being drawn: the cache records a branch per
+  mode, and the guard reads that mode's. The location trees are shared between
+  the modes, so art drawn for the *other* mode on another branch is a case it
+  does not see -- draw std on one branch, then nov for the first time on
+  another, and the trees are rewritten unguarded. It has never been the case
+  that bit anybody, and both copies of the guard had the same reach before they
+  were collapsed into one, so closing it would be a change of behaviour rather
+  than the collapse. `--verify` still catches the result afterwards.
 
       tools/regen_maps.py --refresh
       tools/regen_maps.py --refresh --mode std
@@ -1619,7 +1636,7 @@ Nothing here is urgent unless it says so.
   reading the shape backwards; a diamond stops meaning "there is a sprite here".
   Nothing else breaks, because the rendering constraint that booked the shape is
   one-directional: a pin *on* a sprite must be a diamond or it hides it, which is
-  why `marker_pixel` emits one exactly there (`tools/regen_maps.py:1228`), and
+  why `marker_pixel` emits one exactly there (`tools/regen_maps.py:1274`), and
   adding more diamonds never violates that. It is a naming decision only —
   nothing starts emitting diamonds that did not emit them before.
 
