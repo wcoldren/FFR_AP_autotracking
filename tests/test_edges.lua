@@ -11,11 +11,13 @@ local popapi = dofile(PACK .. "/tests/pop_api.lua")
 
 -- Four pins. The Coneria door is a three-tile blob on the overworld, the way
 -- out of the map below it is a two-tile doorway, and the two staircases are
--- single tiles -- which is the whole spread the real table carries.
+-- single tiles -- which is the whole spread the real table carries. The section
+-- under each is named as tools/overworld_pins.py names it: the qualifier alone
+-- where the node has one, the bare name where it does not.
 local DOOR = "@Entrances/Entrance: Coneria/Coneria"
-local WAY_OUT = "@Entrances/Entrance: ConeriaTown S Downstairs/ConeriaTown S Downstairs"
-local STAIR_UP = "@Entrances/Entrance: MarshCaveB1 NW Downstairs/MarshCaveB1 NW Downstairs"
-local STAIR_DOWN = "@Entrances/Entrance: MarshCaveB2 SE Downstairs/MarshCaveB2 SE Downstairs"
+local WAY_OUT = "@Entrances/Entrance: ConeriaTown S Downstairs/S Downstairs"
+local STAIR_UP = "@Entrances/Entrance: MarshCaveB1 NW Downstairs/NW Downstairs"
+local STAIR_DOWN = "@Entrances/Entrance: MarshCaveB2 SE Downstairs/SE Downstairs"
 
 ENTRANCE_LINKS = {
   ["-1,152,161"] = DOOR, ["-1,153,161"] = DOOR, ["-1,152,162"] = DOOR,

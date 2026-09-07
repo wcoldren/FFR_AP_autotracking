@@ -10,10 +10,16 @@ local popapi = dofile(PACK .. "/tests/pop_api.lua")
 
 -- Four pins, as in test_edges.lua: an overworld door, the way out of the town
 -- below it, and the two ends of one staircase.
+--
+-- The section under each is named the way tools/overworld_pins.py names it --
+-- the qualifier alone where the node has one ("S Downstairs"), the whole bare
+-- name where it does not, which is every overworld door. Nothing in Lua parses
+-- a section path, so these could be any strings and nothing here would fail;
+-- they are the real shape because that is the point of a fixture.
 local DOOR = "@Entrances/Entrance: Coneria/Coneria"
-local WAY_OUT = "@Entrances/Entrance: ConeriaTown S Downstairs/ConeriaTown S Downstairs"
-local STAIR_UP = "@Entrances/Entrance: MarshCaveB1 NW Downstairs/MarshCaveB1 NW Downstairs"
-local STAIR_DOWN = "@Entrances/Entrance: MarshCaveB2 SE Downstairs/MarshCaveB2 SE Downstairs"
+local WAY_OUT = "@Entrances/Entrance: ConeriaTown S Downstairs/S Downstairs"
+local STAIR_UP = "@Entrances/Entrance: MarshCaveB1 NW Downstairs/NW Downstairs"
+local STAIR_DOWN = "@Entrances/Entrance: MarshCaveB2 SE Downstairs/SE Downstairs"
 
 ENTRANCE_LINKS = {
   ["-1,152,161"] = DOOR, ["-1,153,161"] = DOOR,
