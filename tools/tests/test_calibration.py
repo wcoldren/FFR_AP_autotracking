@@ -172,6 +172,27 @@ def main():
     if fails:
         return bail()
 
+    # An entry records what it was solved from, and there are two shapes of
+    # that. `_derived_from` is an NPC and a pixel, and test_maps.lua check 4d
+    # re-derives it from npc_positions.json. The readings behind the Temple
+    # floors are a battle tile and an outline rather than an NPC, so 4d cannot
+    # read them and they carry `_solved_from` instead -- with this suite as
+    # their checker, which is the whole reason the second name exists.
+    #
+    # What keeps that honest is one-directional and asserted here: an entry may
+    # record its evidence under `_solved_from` only if this suite re-derives
+    # that floor. Put the key on a map nothing here looks at and it reads as
+    # checked while nothing checks it, which is worse than no key at all.
+    solved = sorted(k for k, v in cal.items()
+                    if isinstance(v, dict) and "_solved_from" in v)
+    check("_solved_from sits only on floors this suite re-derives",
+          [k for k in solved if k not in TOFR_FLOORS], [])
+    check("no entry claims both kinds of evidence",
+          sorted(k for k, v in cal.items()
+                 if isinstance(v, dict)
+                 and "_solved_from" in v and "_derived_from" in v), [])
+    check("at least one entry carries a _solved_from", bool(solved), True)
+
     # 1. the fiend's tile against its drawn plate
     for name, want_delta in sorted(PLATE_FLOORS.items()):
         found = battle_tiles(rom, cal[name]["rom_map_id"])

@@ -103,7 +103,20 @@
   "any, at (17,15) and (23,15), which is exactly what its committed offset",
   "implies and is a good check that the transform above is right. Whatever",
   "tofr1F's drawn chests depict, the cartridge does not agree, so they cannot",
-  "anchor an offset."
+  "anchor an offset.",
+  "",
+  "Two keys record what an entry was solved from, and which one an entry wants",
+  "is decided by who can re-derive it rather than by taste. _derived_from is an",
+  "NPC and a pixel; tests/test_maps.lua check 4d looks the NPC up in",
+  "npc_positions.json and recomputes the pixel, so the offset stops being the",
+  "answer the moment either end moves. _solved_from is for a reading 4d cannot",
+  "follow -- a battle tile, a room outline -- and its checker is",
+  "tools/tests/test_calibration.py, which re-derives the Temple floors from the",
+  "cartridge and the shipped art. That suite also asserts the split: no entry",
+  "carries both keys, and _solved_from may only sit on a floor it re-derives.",
+  "So do not add _solved_from to an entry as documentation. An entry with no",
+  "checker should carry its reasoning in a plain note, where it reads as",
+  "reasoning; the key is a claim that something re-checks it."
  ],
  "cardia": {
   "rom_map_id": 16,
