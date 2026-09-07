@@ -128,9 +128,10 @@ The sections below are the log of how that was found and what it cost.
 
 Found 2026-08-29, the first time the all-items reachability oracle was run
 against a cartridge. It failed, and it was right to. Moved to
-`docs/NOVERWORLD.md`, "The Temple of Fiends Revisited is orphaned", which
-carries the seven maps, the stripped `TP_SPEC_4ORBS` special and what the oracle
-excepts.
+`docs/NOVERWORLD.md`, "The Temple of Fiends Revisited is orphaned on the
+corpus's seeds", which carries the seven maps, the stripped `TP_SPEC_4ORBS`
+special and what the oracle excepts. (That page was renamed 2026-09-06, when
+the orphaning turned out to be `ToFRMode = Short`'s doing and not this mode's.)
 
 What stays here is the lesson, which is not about this mode. The oracle's first
 real run corrected a claim this document had been making for weeks: the

@@ -1357,3 +1357,152 @@ The `47 of 57` figure went stale in the same window, four lines above a
 paragraph that had already declined to be citable for exactly this reason. It
 is a pointer to `tools/port_lanes.py` now, which prints the tally and writes
 nothing without `--apply`.
+
+## Each ToFR mode was asked what it built, one cartridge at a time
+
+The board drew the Temple of Fiends revisited as though it were one dungeon.
+`ToFRMode` decides which of its floors exist, and the seven chests each named
+one vanilla floor, so a Mid seed put two markers on a floor that mode does not
+wire and a Short seed put all seven where its warp never goes.
+
+`tofr_diff.py --dump` (2026-09-05) reads one cartridge instead of comparing
+two, because the diff refuses a cross-mode comparison on purpose and the
+question here is what a single mode built. **It walks rather than counting ways
+in, and that is the finding rather than an implementation note.** `MidToFR`
+blocks the passages to Stairs B by writing walls onto 1F and leaves every
+teleport table entry where it was, so a census of the table reports 2F and 3F
+wired and they cannot be stood on. Only Short's change is visible in the table.
+
+What came back is stable enough to hold as a placement table rather than derive
+per seed: one chest layout per mode across every cartridge on this machine, and
+no mode erases a chest tile, so the vanilla copies survive on Mid and Short
+alongside the fresh ones. `docs/ORACLE.md`, "What each mode builds", owns the
+floors and the counts.
+
+## Two ToFR chests were in front of the plate, and the gate was on the parent
+
+The Lute Plate rooms are the first thing past the Black Orb landing, not the
+last, and the whole ToFR gate sat on the parent node where a child cannot widen
+it. Both rooms were therefore red on almost every standard cartridge here. The
+node keeps `$canBreakOrb`; the five chests genuinely past the plate carry the
+rest themselves.
+
+Measured by walking ToFR from the landing on a Long and a Mid cartridge, with
+FFR's own `ItemLocations.cs` agreeing independently -- two readings that could
+have disagreed, rather than one read twice. `docs/ISSUES.md`, "Two ToFR chests
+were held red on every standard seed", has the chain and the pre-fix failure.
+
+## Six ways to find a calibration offset without a person looking
+
+A pin needs an `x`/`y`, and `tools/map_calibration.json` had offsets for three
+of the seven Temple floors. The four without them are the ones the file's own
+method cannot reach: it solved the three from chest-sprite centroids, and
+`chest_tiles()` puts no chest tile on any of the four -- the four chests the
+`tofr1F` art draws answer to nothing on the cartridge.
+
+`tofrChaos` was solved from the room's extent instead and confirmed twice over,
+which left three. Everything tried to reach those three automatically failed,
+and the failures are written into that file's comment rather than left for the
+next attempt to rediscover: edge energy over the image, edge energy restricted
+to the room, saturated-sprite centroids against tile centres, and the ROM wall
+mask correlated against per-tile brightness. **The last of those is the one
+worth remembering.** It peaks three to five pixels off the known answer on all
+four calibrated floors -- a high correlation on the wrong grid, which is what a
+method looks like just before it is believed. Hand-drawn tiles carry more
+contrast inside them than at their edges, so every gradient method finds the
+texture or the room rather than the grid.
+
+`tools/overlay_preview.py` draws the proposal over the art and `--solve`
+prints one, and it writes nothing anywhere: on `tofr1F`, the one Temple floor
+drawn with the outdoors around it, `room_tiles()` calls the commonest tile the
+void and returns the temple rather than the drawn area. What worked on Chaos
+was one distinctive object matched to the one special tile in its column, which
+is per floor and is the honest cost. `docs/ROADMAP.md` section 2 names the
+three that are left.
+
+## The pins know which floors their mode wires
+
+`ToFR Mode` is one item with three stages rather than a switch per mode, so the
+mode cannot contradict itself, and `shortToFR` rides on the Short stage so every
+access rule and `check_logic` keep reading what they read before it became an
+enum. Stage 0 is the honest answer to "the cartridge did not say", including a
+flag string that says Random without resolving it, and it draws every mode's
+pin rather than guessing -- which is what the board did before it could tell the
+modes apart. Each chest then names the floor its mode puts it on.
+
+The regen half is a filter on the same walk. `regen_maps.py` drops the chest
+copies a cartridge lays and never wires, and `live_chest_tiles` calls
+`reached()` rather than repeating its seeding, so the dump's walk column and the
+pin filter cannot drift apart while both still claim to be one walk. An empty
+inbound census raises instead of walking nothing: that would have classed every
+ToFR chest stranded and cleared the floors, with a count line as the only
+signal.
+
+Merged 2026-09-06. **The review that covered it ran inside the working session
+rather than in fresh context**, which is weaker cover than the two reviews under
+`a34c02d` and is recorded here because the merge message is the only other place
+that says so. Six findings, all addressed, none waived.
+
+## A suite that printed its failures and exited 0
+
+Replacing the ToFR block at the end of `tools/tests/test_noverworld_rules.py`
+took the file's last two lines with it -- the FAILURES report and
+`sys.exit(1 if fails else 0)`. `ok()` only ever appends to `fails`, so with
+nothing reading it the suite printed its failures to stdout and exited clean.
+`run.sh` gates on exit status, so the whole file stopped gating: not just the
+new ToFR rows but the derived-rule and No-Overworld reachability checks that
+predate them, for the day it took to notice.
+
+Restored verbatim, and checked the way this repo checks a check -- flip an
+assertion and watch it fail, leave it alone and watch it pass. `tofrDrawn`'s
+unused second parameter went at the same time: no call site passed it, so the
+signature advertised a filter the function does not apply and an edit that
+started passing a mode would have changed nothing while looking like it had.
+
+## One cache slot, two readers, two disagreements
+
+`flag_change` and `refresh()` are the only two places in `regen_maps.py` that
+turn a stored slot back into flags, and they read two keys differently.
+
+`retrace` is the one that broke. `retrace_slot()` exists because a slot written
+before the setting went per-layout holds a JSON bool, and `refresh()` read the
+key raw, so on exactly those old slots the redraw raised a `TypeError` out of
+`subprocess.run` -- an unhandled traceback out of the remedy `verify.sh` prints
+when the override is stale. Coercing to a string would not have saved it either;
+`"True"` is not a retrace mode and argparse would refuse it. `start_session.sh`
+read the key the same way and would have printed `--retrace True` into a plan
+line it hands straight back.
+
+`npcs` was the quieter one. `flag_change` defaults it to `none` and calls that
+the safe direction; `refresh()` defaulted it to `all`, so a slot written before
+the key existed -- art carrying no sprites -- would have been redrawn with every
+sprite on it, which is `refresh()` changing what a mode shows while its
+docstring promises it introduces nothing.
+
+## No-Overworld does not orphan the ToFR gauntlet -- ToFRMode does
+
+Four places said No-Overworld repoints TempleOfFiends at Chaos and strands the
+seven interior floors on its own: `docs/NOVERWORLD.md`, `docs/ORACLE.md`'s
+incomparability list, two spots in `tofr_diff.py`, and a comment in
+`regen_maps.main`. It does not. `tofr_diff.wiring`'s docstring named
+`ShortenToFR` correctly the whole time and disagreed with all four.
+
+Measured rather than argued, 2026-09-06, on two throwaway cartridges rolled from
+the No-Overworld preset with `ToFRMode` alone changed: rolled Long it reaches
+all eight floors and strands nothing, rolled Mid it strands the two 3F copies
+and no more -- the standard-mode figures exactly, and both redraw clean.
+`docs/ORACLE.md` carries the table and the recipe; the cartridges were not kept.
+
+**Every No-Overworld cartridge in the corpus is Short, and that is the whole
+shape of the mistake.** A corpus that varies one flag in one direction lets two
+facts look like one, and the claim was then copied outward from the page that
+first stated it. The reason to read the cartridge rather than the flag survives
+untouched -- entrance and floor shuffle move the ways in, Mid's walls are not
+table-visible, and No-Overworld does build ToFR's ways in itself and lay two
+more copies of ToFR chest indices outside ToFR, which is why `comparable()`
+still refuses a cross-`GameMode` diff. Only the orphaning was wrong.
+
+The generalisable half is not about this mode either: **a claim that four
+places agree on has usually been copied three times**, so the reading that
+disagrees with all of them is the one to check first rather than the one to
+discount.
