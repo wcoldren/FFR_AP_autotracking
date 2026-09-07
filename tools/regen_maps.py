@@ -431,8 +431,7 @@ def crops(rom, graph, npc_cells=None):
     out = {}
     for map_id, name in render_maps.MAP_FILES.items():
         tiles = render_maps.map_tiles(rom, map_id)
-        keep = [cell for _, cell in render_maps.protected_cells(
-            rom, map_id, tiles, graph, (npc_cells or {}).get(map_id, ()))]
+        keep = crop_keep(graph, map_id, (npc_cells or {}).get(map_id, ()), tiles)
         out[name] = render_maps.content_crop(tiles, keep=keep)
     return out
 
@@ -1066,17 +1065,23 @@ def _clusters(cells):
     return out
 
 
-def crop_keep(graph, map_id, npc_cells=()):
+def crop_keep(graph, map_id, npc_cells=(), tiles=None):
     """The cells the crop will not discard on this map, for floor_exits' `keep`.
 
     A named function rather than four lines at each site, because the crop and
     the floor-door rule disagreeing about what a speck is has already cost a
     pin -- render_maps.protected_cells says the same thing about crop_violations
     and content_crop deriving it separately.
+
+    `tiles` is the map's grid where the caller already has it. Without one the
+    graph's own is used rather than a fresh decompress: Graph.grid caches, and
+    entrance_members asks this for all 61 maps twice a regen.
     """
     rom = graph.rom.data
+    if tiles is None:
+        tiles = graph.grid(map_id)[0]
     return [cell for _, cell in render_maps.protected_cells(
-        rom, map_id, render_maps.map_tiles(rom, map_id), graph, npc_cells)]
+        rom, map_id, tiles, graph, npc_cells)]
 
 
 def floor_exits(graph, map_id, keep=()):
