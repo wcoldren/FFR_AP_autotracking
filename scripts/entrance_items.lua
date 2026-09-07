@@ -1,0 +1,248 @@
+-- The badge on an entrance pin: where the door came out.
+--
+-- The pins say a door is here and, since the edge log landed, that somebody has
+-- walked through it. What they cannot say is where it led, and a marker's name
+-- is fixed at load -- AvailableChestCount and Highlight are the only things a
+-- script may write to a section (locationsection.cpp:262-294). So the text
+-- rides on an item the section hosts, one item per pin, and this is where they
+-- are made.
+--
+-- Nothing here reads a teleport table. A badge is filled in from ff1/edges,
+-- which is the party's own walk, so the board learns the permutation exactly as
+-- the player does and reveal-on-visit still cannot spoil a seed. That is why
+-- "walked through" and "destination known" are the same fact here.
+--
+-- ENTRANCE_PINS comes from scripts/entrance_links.lua, which a regen writes
+-- into the override beside the art. The pack's copy is empty, so a tracker with
+-- no override makes no items -- which is right, since it has no pins to hang
+-- them on either.
+--
+-- The item always provides its code, and that is deliberate rather than
+-- incidental: locationsection.cpp:236-249 clears a section only when its items
+-- are cleared *and* every hosted code has a provider, so an item that withheld
+-- its code would hold the pin open and take the hand-click clear away with it.
+-- The badge is text; the state stays edges.lua's.
+
+-- path -> { item, code, map, name, fwdMap, fwdPath, revMap, revPath }
+ENTRANCE_ITEMS = {}
+
+-- Byte escapes rather than literals so the file's encoding cannot decide what
+-- a player sees: -> <- <->
+local ARROW_FWD = "\226\134\146"
+local ARROW_REV = "\226\134\144"
+local ARROW_BOTH = "\226\134\148"
+
+-- The pins' own icons, and committed rather than written by a regen --
+-- Pack::hasFile does not consult the override even though Pack::ReadFile does,
+-- which is why they are in the pack at all. An item with no icon draws
+-- PopTracker's fallback, and these are the two pictures the board already uses
+-- for the same two states.
+local DOOR_SHUT_ICON = "images/icons/door_shut.png"
+local DOOR_OPEN_ICON = "images/icons/door_open.png"
+
+-- How long the far pin stays lit after a click that tabbed to it.
+local HIGHLIGHT_SECONDS = 5
+local HIGHLIGHT_SECTION = nil
+local HIGHLIGHT_AT = 0
+
+-- What to call the map a door came out on.
+--
+-- The tab's own leaf first, because that is the label the player is about to be
+-- looking at -- "Earth Cave B1" rather than "EarthCaveB1" -- and MAP_NAMES
+-- underneath for a map no tab claims. A badge with no name in it is the thing
+-- this file exists to remove, so it is answered twice rather than once.
+local function mapName(mapId)
+  if mapId == nil then
+    return nil
+  end
+  local path = tabPathForMap and tabPathForMap(mapId)
+  if path then
+    local leaf = nil
+    for part in string.gmatch(path, "([^/]+)") do
+      leaf = part
+    end
+    if leaf then
+      return leaf
+    end
+  end
+  return (MAP_NAMES or {})[mapId]
+end
+
+local function badgeText(row)
+  local fwd = mapName(row.fwdMap)
+  local rev = mapName(row.revMap)
+  if fwd and rev then
+    -- One line where both ends are the same map, which is what a two-way door
+    -- looks like from here, and two where they are not -- a seed with the
+    -- directions decoupled, and a staircase whose halves land on different
+    -- floors.
+    if row.fwdMap == row.revMap then
+      return ARROW_BOTH .. fwd
+    end
+    return ARROW_FWD .. fwd .. "\n" .. ARROW_REV .. rev
+  elseif fwd then
+    return ARROW_FWD .. fwd
+  elseif rev then
+    return ARROW_REV .. rev
+  end
+  return ""
+end
+
+local function redraw(row)
+  local item = row.item
+  local text = badgeText(row)
+  item.BadgeText = text
+  if text ~= "" then
+    item.BadgeTextColor = "#ffd700"
+    item.Icon = DOOR_OPEN_ICON
+  else
+    item.Icon = DOOR_SHUT_ICON
+  end
+  if type(item.SetOverlayBackground) == "function" then
+    item:SetOverlayBackground("#c0000000")
+    item:SetOverlayFontSize(10)
+    item:SetOverlayAlign("left")
+  end
+end
+
+function removeEntranceHighlight()
+  if os.clock() - HIGHLIGHT_AT < HIGHLIGHT_SECONDS then
+    return
+  end
+  ScriptHost:RemoveOnFrameHandler("entrance highlight")
+  if HIGHLIGHT_SECTION then
+    HIGHLIGHT_SECTION.Highlight = Highlight.None
+  end
+  HIGHLIGHT_SECTION = nil
+  HIGHLIGHT_AT = 0
+end
+
+-- Tab to where a door goes and light the pin at the far end for a moment.
+--
+-- Priority rather than Avoid, which is what the pack this idea came from used:
+-- the two are a colour each and PopTracker's defaults make Avoid red and
+-- Priority gold (mapwidget.cpp:54-60). Red on the pin you were just sent to
+-- reads as a warning about it.
+--
+-- The far end is often not a pin at all: entering a town lands the party on a
+-- plain tile inside its border, and only the way back out departs from one. So
+-- the tab is the answer that always works and the highlight is the bonus, which
+-- is the same split edges.lua makes when it marks.
+local function navigate(mapId, path)
+  if mapId == nil then
+    return false
+  end
+  local tab = tabPathForMap and tabPathForMap(mapId)
+  if tab then
+    activateTabPath(tab)
+  end
+  if path and Highlight then
+    local sec = Tracker:FindObjectForCode(path)
+    if sec then
+      if HIGHLIGHT_SECTION then
+        HIGHLIGHT_SECTION.Highlight = Highlight.None
+      end
+      sec.Highlight = Highlight.Priority
+      HIGHLIGHT_SECTION = sec
+      HIGHLIGHT_AT = os.clock()
+      if type(ScriptHost.AddOnFrameHandler) == "function" then
+        ScriptHost:AddOnFrameHandler("entrance highlight", removeEntranceHighlight)
+      end
+    end
+  end
+  return tab ~= nil
+end
+
+-- One item per pin, in a fixed order.
+--
+-- Sorted rather than left to pairs() because a LuaItem's id falls back to its
+-- creation order on a host too old for stable ids (tracker.cpp:1434-1438), and
+-- a set of items whose order moved between two runs of the same cartridge would
+-- restore onto each other. On a current host the id is
+-- "<type>:<name>@<hash of the source filename>", so the names being unique per
+-- pin is what makes them stable, and this file being its own is what keeps
+-- uat.lua's five untouched.
+function buildEntranceItems()
+  ENTRANCE_ITEMS = {}
+  local paths = {}
+  for path in pairs(ENTRANCE_PINS or {}) do
+    paths[#paths + 1] = path
+  end
+  if #paths == 0 then
+    return 0
+  end
+  if type(ScriptHost.CreateLuaItem) ~= "function" then
+    print("entrances: no ScriptHost:CreateLuaItem -- the door pins cannot say "
+      .. "where they lead on this host")
+    return 0
+  end
+  table.sort(paths)
+  local made = 0
+  for _, path in ipairs(paths) do
+    local pin = ENTRANCE_PINS[path]
+    local ok, item = pcall(function() return ScriptHost:CreateLuaItem() end)
+    if not ok or not item then
+      print("entrances: could not create the badge for " .. path)
+    else
+      local row = { item = item, code = pin.code, map = pin.map,
+                    name = pin.name, path = path }
+      item.Name = pin.name
+      item.CanProvideCodeFunc = function(_, code)
+        return code == row.code
+      end
+      item.ProvidesCodeFunc = function(_, code)
+        return code == row.code and 1 or 0
+      end
+      item.OnLeftClickFunc = function()
+        navigate(row.fwdMap, row.fwdPath)
+      end
+      item.OnRightClickFunc = function()
+        navigate(row.revMap, row.revPath)
+      end
+      redraw(row)
+      ENTRANCE_ITEMS[path] = row
+      made = made + 1
+    end
+  end
+  return made
+end
+
+-- Where this door led. `path` is the pin walked out of, `mapId` the map it came
+-- out on, and `destPath` the pin at the far end where there is one.
+function setEntranceForward(path, mapId, destPath)
+  local row = ENTRANCE_ITEMS[path]
+  if not row or (row.fwdMap == mapId and row.fwdPath == destPath) then
+    return false
+  end
+  row.fwdMap, row.fwdPath = mapId, destPath
+  redraw(row)
+  return true
+end
+
+-- And what led here, which is the same edge read from the other end.
+function setEntranceReverse(path, mapId, srcPath)
+  local row = ENTRANCE_ITEMS[path]
+  if not row or (row.revMap == mapId and row.revPath == srcPath) then
+    return false
+  end
+  row.revMap, row.revPath = mapId, srcPath
+  redraw(row)
+  return true
+end
+
+-- Every badge back to blank. The caller is the cartridge swap and the reset in
+-- edges.lua: a different seed is a different permutation, and a badge left over
+-- from the last one is worse than no badge at all.
+function clearEntranceNames()
+  local cleared = 0
+  for _, row in pairs(ENTRANCE_ITEMS) do
+    if row.fwdMap ~= nil or row.revMap ~= nil then
+      row.fwdMap, row.fwdPath, row.revMap, row.revPath = nil, nil, nil, nil
+      redraw(row)
+      cleared = cleared + 1
+    end
+  end
+  return cleared
+end
+
+buildEntranceItems()

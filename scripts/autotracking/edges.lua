@@ -63,12 +63,19 @@ local function sectionFor(path)
   return nil
 end
 
+-- Which pin stands on a tile, or nil where none does. The lookup markTile makes
+-- on its way to marking, lifted out so the naming half can ask the same
+-- question about the far end of an edge without marking anything.
+local function pinAt(map, col, row)
+  return (ENTRANCE_LINKS or {})[string.format("%d,%d,%d", map, col, row)]
+end
+
 -- Marks the pin standing on one tile, if a pin stands on it at all. An edge
 -- whose departure carries no pin is dropped here and that is the filter: Exit
 -- and Warp move the party between maps without a door, and neither of them
 -- leaves from a staircase.
 local function markTile(map, col, row)
-  local path = (ENTRANCE_LINKS or {})[string.format("%d,%d,%d", map, col, row)]
+  local path = pinAt(map, col, row)
   if not path then
     return false
   end
@@ -80,6 +87,25 @@ local function markTile(map, col, row)
   end
   sec.AvailableChestCount = 0
   return true
+end
+
+-- What the badges say, from the same record the marks come from.
+--
+-- The mark and the name are one fact seen twice: the bridge reports an edge
+-- only once the party has walked it, so a pin that opens is a pin whose
+-- destination is known. They are still two calls because the far end resolves
+-- to a pin far less often than it resolves to a map -- a town's inside carries
+-- no pin, and the map id is what the badge needs.
+local function nameRecord(fromPath, fm, toPath, tm)
+  if not setEntranceForward then
+    return
+  end
+  if fromPath then
+    setEntranceForward(fromPath, tm, toPath)
+  end
+  if toPath then
+    setEntranceReverse(toPath, fm, fromPath)
+  end
 end
 
 local function applyRecord(record)
@@ -107,12 +133,15 @@ local function applyRecord(record)
     if not fm then
       bad = bad + 1
     else
-      if markTile(tonumber(fm), tonumber(fc), tonumber(fr)) then
+      fm, fc, fr = tonumber(fm), tonumber(fc), tonumber(fr)
+      tm, tc, tr = tonumber(tm), tonumber(tc), tonumber(tr)
+      if markTile(fm, fc, fr) then
         marked = marked + 1
       end
-      if markTile(tonumber(tm), tonumber(tc), tonumber(tr)) then
+      if markTile(tm, tc, tr) then
         marked = marked + 1
       end
+      nameRecord(pinAt(fm, fc, fr), fm, pinAt(tm, tc, tr), tm)
     end
   end
   if bad > 0 then
@@ -145,6 +174,9 @@ end
 -- No BulkUpdate: the one caller is already inside one.
 function clearEntranceMarks()
   unmarkAll()
+  if clearEntranceNames then
+    clearEntranceNames()
+  end
   applyRecord(EDGES_SOURCE)
 end
 
@@ -161,6 +193,13 @@ function applyFFREdges(record, rom)
     if EDGES_ROM ~= nil and rom ~= EDGES_ROM then
       Tracker.BulkUpdate = true
       moved = unmarkAll() > 0
+      -- The badges with them, and for the stronger reason: a mark left over
+      -- from the last cartridge is a door you did open, on a board that has
+      -- moved on. A name left over is a door pointing somewhere this seed does
+      -- not send it.
+      if clearEntranceNames then
+        moved = (clearEntranceNames() > 0) or moved
+      end
       Tracker.BulkUpdate = false
       EDGES_SOURCE = nil
     end

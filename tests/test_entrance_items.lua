@@ -1,0 +1,204 @@
+-- The badge on an entrance pin: what it says, and where a click sends you.
+--
+-- The items are the only way a pin can carry text, so what is checked here is
+-- text and navigation rather than state -- the mark stays edges.lua's and
+-- tests/test_edges.lua owns it. The two files share a fixture on purpose: the
+-- same four pins, so a row here about the town case can be read beside the row
+-- there about the same walk.
+local PACK = arg[1]
+local popapi = dofile(PACK .. "/tests/pop_api.lua")
+
+-- Four pins, as in test_edges.lua: an overworld door, the way out of the town
+-- below it, and the two ends of one staircase.
+local DOOR = "@Entrances/Entrance: Coneria/Coneria"
+local WAY_OUT = "@Entrances/Entrance: Coneria Town 7,15/Coneria Town 7,15"
+local STAIR_UP = "@Entrances/Entrance: Marsh Cave B1 11,3/Marsh Cave B1 11,3"
+local STAIR_DOWN = "@Entrances/Entrance: Marsh Cave B2 5,29/Marsh Cave B2 5,29"
+
+ENTRANCE_LINKS = {
+  ["-1,152,161"] = DOOR, ["-1,153,161"] = DOOR,
+  ["1,7,15"] = WAY_OUT, ["1,8,15"] = WAY_OUT,
+  ["5,11,3"] = STAIR_UP,
+  ["6,5,29"] = STAIR_DOWN,
+}
+
+ENTRANCE_PINS = {
+  [DOOR] = { code = "entr_coneria", map = -1, name = "Entrance: Coneria" },
+  [WAY_OUT] = { code = "entr_coneriatown_7_15", map = 1,
+                name = "Entrance: Coneria Town 7,15" },
+  [STAIR_UP] = { code = "entr_marshcaveb1_11_3", map = 5,
+                 name = "Entrance: Marsh Cave B1 11,3" },
+  [STAIR_DOWN] = { code = "entr_marshcaveb2_5_29", map = 6,
+                   name = "Entrance: Marsh Cave B2 5,29" },
+}
+
+-- Two maps have a tab and two do not, which is the split the badge has to
+-- survive: the leaf of a tab path is the friendly name, and MAP_NAMES is what
+-- answers for a map no tab claims.
+MAP_NAMES = {
+  [-1] = "Overworld", [1] = "ConeriaTown", [5] = "MarshCaveB1",
+  [6] = "MarshCaveB2",
+}
+
+local TAB_PATHS = {
+  [-1] = "Overworld",
+  [5] = "Caves & Dungeons/Marsh Cave/Marsh Cave B1",
+}
+
+function tabPathForMap(mapId)
+  return TAB_PATHS[mapId]
+end
+
+local hints = {}
+function activateTabPath(path)
+  for name in string.gmatch(path, "([^/]+)") do
+    hints[#hints + 1] = name
+  end
+end
+
+Highlight = { None = 0, Priority = 4 }
+
+local SECTIONS = {}
+for _, path in pairs(ENTRANCE_LINKS) do
+  SECTIONS[path] = SECTIONS[path] or { ChestCount = 1, AvailableChestCount = 1,
+                                       Highlight = Highlight.None }
+end
+
+local luaItems = {}
+Tracker = popapi.strict("Tracker", {
+  FindObjectForCode = function(_, code) return SECTIONS[code] end,
+})
+local frameHandlers = {}
+ScriptHost = popapi.strict("ScriptHost", {
+  CreateLuaItem = function()
+    local it = {}
+    luaItems[#luaItems + 1] = it
+    return it
+  end,
+  AddOnFrameHandler = function(_, name, fn) frameHandlers[name] = fn end,
+  RemoveOnFrameHandler = function(_, name) frameHandlers[name] = nil end,
+})
+
+local fail = 0
+local function check(label, got, want)
+  local ok = got == want
+  if not ok then fail = fail + 1 end
+  print(string.format("%s %-54s %s", ok and "ok  " or "FAIL", label, tostring(got)))
+  if not ok then print(string.format("     wanted %s", tostring(want))) end
+end
+
+dofile(PACK .. "/scripts/entrance_items.lua")
+
+local FWD = "\226\134\146"
+local REV = "\226\134\144"
+local BOTH = "\226\134\148"
+
+local function badge(path)
+  return ENTRANCE_ITEMS[path].item.BadgeText
+end
+
+------------------------------------------------------------------
+print("-- one item per pin")
+------------------------------------------------------------------
+
+check("an item was made for every pin", #luaItems, 4)
+check("and each is reachable by its path",
+  ENTRANCE_ITEMS[DOOR] ~= nil and ENTRANCE_ITEMS[STAIR_DOWN] ~= nil, true)
+check("the item is named for the pin", ENTRANCE_ITEMS[DOOR].item.Name,
+  "Entrance: Coneria")
+check("and answers to the code the section hosts",
+  ENTRANCE_ITEMS[DOOR].item.CanProvideCodeFunc(nil, "entr_coneria"), true)
+check("and to nothing else",
+  ENTRANCE_ITEMS[DOOR].item.CanProvideCodeFunc(nil, "entr_cardia1"), false)
+
+-- The provide is unconditional, and that is load-bearing rather than lazy: a
+-- section is CLEARED only when its items are cleared and every hosted code has
+-- a provider (locationsection.cpp:236-249), so an item that answered 0 until
+-- the destination were known would hold the pin open -- and would take the
+-- hand-click clear away with it, on a board where clicking a door has always
+-- worked.
+check("it provides its code before anything is known",
+  ENTRANCE_ITEMS[DOOR].item.ProvidesCodeFunc(nil, "entr_coneria"), 1)
+check("the badge starts empty", badge(DOOR), "")
+
+------------------------------------------------------------------
+print("\n-- what a walk writes on it")
+------------------------------------------------------------------
+
+check("a destination with a tab is named by its leaf",
+  setEntranceForward(DOOR, 5, STAIR_UP) and badge(DOOR), FWD .. "Marsh Cave B1")
+-- The other half of the same rule: nothing claims map 6, so the badge falls
+-- back to the committed name rather than saying nothing at all.
+check("and one without a tab by MAP_NAMES",
+  setEntranceForward(STAIR_UP, 6, STAIR_DOWN) and badge(STAIR_UP),
+  FWD .. "MarshCaveB2")
+check("re-setting the same destination is not a change",
+  setEntranceForward(DOOR, 5, STAIR_UP), false)
+check("the far pin reads the same edge backwards",
+  setEntranceReverse(STAIR_DOWN, 5, STAIR_UP) and badge(STAIR_DOWN),
+  REV .. "Marsh Cave B1")
+
+-- A door whose two directions agree is one line, which is what a two-way link
+-- looks like from the pin standing on it.
+setEntranceReverse(STAIR_UP, 6, STAIR_DOWN)
+check("both directions on one map collapse to one line", badge(STAIR_UP),
+  BOTH .. "MarshCaveB2")
+setEntranceReverse(STAIR_UP, -1, DOOR)
+check("and two maps are two lines", badge(STAIR_UP),
+  FWD .. "MarshCaveB2" .. "\n" .. REV .. "Overworld")
+
+check("a pin nothing has said anything about stays blank", badge(WAY_OUT), "")
+check("a path no pin owns is not an item",
+  setEntranceForward("@Entrances/Entrance: Nowhere/Nowhere", 1, nil), false)
+
+------------------------------------------------------------------
+print("\n-- the clicks")
+------------------------------------------------------------------
+
+hints = {}
+ENTRANCE_ITEMS[WAY_OUT].item.OnLeftClickFunc()
+check("a click before the walk goes nowhere", #hints, 0)
+
+hints = {}
+ENTRANCE_ITEMS[DOOR].item.OnLeftClickFunc()
+check("left-click tabs to where the door led", table.concat(hints, "/"),
+  "Caves & Dungeons/Marsh Cave/Marsh Cave B1")
+check("and lights the pin at the far end",
+  SECTIONS[STAIR_UP].Highlight, Highlight.Priority)
+check("with a frame handler to put it out",
+  frameHandlers["entrance highlight"] ~= nil, true)
+
+hints = {}
+ENTRANCE_ITEMS[STAIR_DOWN].item.OnRightClickFunc()
+check("right-click tabs to what leads here", table.concat(hints, "/"),
+  "Caves & Dungeons/Marsh Cave/Marsh Cave B1")
+
+-- The handler is a no-op until the time is up, then it clears the pin and
+-- takes itself off. Both halves, because a highlight that never came off would
+-- leave the board gold everywhere a door was clicked.
+frameHandlers["entrance highlight"]()
+check("the highlight holds while the clock is running",
+  SECTIONS[STAIR_UP].Highlight, Highlight.Priority)
+local realClock = os.clock
+os.clock = function() return realClock() + 60 end
+frameHandlers["entrance highlight"]()
+os.clock = realClock
+check("and comes off when it is up", SECTIONS[STAIR_UP].Highlight,
+  Highlight.None)
+check("and the handler removes itself",
+  frameHandlers["entrance highlight"], nil)
+
+------------------------------------------------------------------
+print("\n-- a different cartridge")
+------------------------------------------------------------------
+
+check("clearing says how many badges it blanked", clearEntranceNames(), 3)
+check("and the door says nothing again", badge(DOOR), "")
+check("clearing twice is not a change", clearEntranceNames(), 0)
+
+print("")
+if fail > 0 then
+  print(string.format("%d FAILED", fail))
+  os.exit(1)
+end
+print("ALL PASS")

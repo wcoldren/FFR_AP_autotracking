@@ -559,13 +559,17 @@ def main():
     check("and collides with no item the pack ships",
           sorted(set(codes) & taken), [])
 
-    rows = re.findall(r'\["([^"]+)"\] = { code = "([^"]+)", map = (-?\d+) },',
-                      lua)
+    rows = re.findall(
+        r'\["([^"]+)"\] = { code = "([^"]+)", map = (-?\d+), name = "([^"]+)" },',
+        lua)
     check("every pin has a row of its own",
-          sorted(sections.symmetric_difference(p for p, _, _ in rows)), [])
+          sorted(sections.symmetric_difference(p for p, _, _, _ in rows)), [])
     check("  carrying the code its section hosts",
-          sorted(set(codes).symmetric_difference(c for _, c, _ in rows)), [])
-    maps = {path: int(map_id) for path, _, map_id in rows}
+          sorted(set(codes).symmetric_difference(c for _, c, _, _ in rows)), [])
+    maps = {path: int(map_id) for path, _, map_id, _ in rows}
+    check("  and the name the tooltip shows",
+          sorted({n for _, _, _, n in rows}
+                 .symmetric_difference(k["name"] for k in group["children"])), [])
     wrong = []
     for kid in group["children"]:
         path = (f'@{pin_visibility.ENTRANCES_GROUP}/{kid["name"]}'
