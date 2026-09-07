@@ -90,6 +90,28 @@ def markers(nodes, out=None):
     return out
 
 
+def section_ids(nodes, parent=""):
+    """Every section's `@id`, built the way PopTracker builds them.
+
+    Transcribed from `src/core/location.cpp:183-231`: a node's id is its
+    parent's id plus its name, a child inherits that as its parent, and a
+    section's full id is its location's id plus its own name. Written out here
+    rather than imported so it can disagree with the tool under test.
+    """
+    out = set()
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        name = node.get("name", "")
+        loc_id = name if not parent else parent + "/" + name
+        for sec in node.get("sections") or []:
+            out.add("@" + loc_id + "/" + sec.get("name", ""))
+        kids = node.get("children")
+        if isinstance(kids, list):
+            out |= section_ids(kids, loc_id)
+    return out
+
+
 def quiet(fn, *args):
     """Call `fn` with its report swallowed -- the rows below read the verdict."""
     out, sys.stdout = sys.stdout, io.StringIO()
@@ -469,9 +491,15 @@ def main():
     lua = regen_maps.build_entrance_links(group["children"], members)
     table = dict(re.findall(r'\["([^"]+)"\] = "([^"]+)"', lua))
 
-    sections = {f'@{pin_visibility.ENTRANCES_GROUP}/{k["name"]}'
-                f'/{k["sections"][0]["name"]}' for k in group["children"]}
-    check("every entry names a section the group has",
+    # Derived by walking the tree the way PopTracker builds ids
+    # (location.cpp:183-231: a child's parent is its parent's full id, and a
+    # section's full id is that plus its own name), not by rebuilding the same
+    # f-string build_entrance_links uses. That distinction is the whole value of
+    # these two rows: a table and a check that agree because they share one
+    # assumption cannot test the assumption, and this one is the format
+    # Tracker:FindObjectForCode has to resolve at run time.
+    sections = section_ids([group])
+    check("every entry names a section the tree really has",
           sorted(set(table.values()) - sections), [])
     check("and every placed pin is reachable from some tile",
           sorted(sections - set(table.values())), [])
