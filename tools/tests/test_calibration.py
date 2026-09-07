@@ -47,7 +47,6 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import pngio                                                   # noqa: E402
 import render_maps as rm                                       # noqa: E402
-import tofr_diff as td                                         # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
@@ -56,16 +55,21 @@ PACK = os.path.dirname(TOOLS)
 PLATE_RGB = (242, 201, 11)      # the boss plate DarkmoonEX draws on a fiend
 GLYPH_RGB = (0, 232, 216)       # the stair glyph on the 1F and 2F art
 
-# The floor, its ROM map, and where the plate sits relative to the tile centre
-# the committed offset implies. Measured 2026-09-06; see map_calibration.json's
-# comment for why tofr3F is the odd one.
+# Where the plate sits relative to the tile centre the committed offset
+# implies. Measured 2026-09-06; see map_calibration.json's comment for why
+# tofr3F is the odd one. Which ROM map each name stands for is deliberately
+# not repeated here: it is read off the entry and checked below.
 PLATE_FLOORS = {
-    "tofr3F":    (54, (0.5, -4.0)),
-    "tofrEarth": (55, (-0.5, 0.0)),
-    "tofrFire":  (56, (-0.5, 0.0)),
-    "tofrWater": (57, (0.5, 0.0)),
-    "tofrAir":   (58, (-1.0, 0.0)),
+    "tofr3F":    (0.5, -4.0),
+    "tofrEarth": (-0.5, 0.0),
+    "tofrFire":  (-0.5, 0.0),
+    "tofrWater": (0.5, 0.0),
+    "tofrAir":   (-1.0, 0.0),
 }
+
+# Every Temple floor a chest can land on. 2F is left out on purpose: no mode
+# puts a chest there, so nothing would read it.
+TOFR_FLOORS = list(PLATE_FLOORS) + ["tofr1F", "tofrChaos"]
 
 # 1F's four corner staircases, as ROM tiles. The map's other two teleports are
 # the time warp in the middle and a warp the art draws no glyph for.
@@ -146,19 +150,31 @@ def main():
             fails.append("%s: got %r, want %r" % (label, got, want))
         print("%s %-58s %s" % ("ok  " if got == want else "FAIL", label, got))
 
-    # Every Temple floor a chest can land on needs an entry. 2F is left out on
-    # purpose: no mode puts a chest there, so nothing would read it.
-    for name in list(PLATE_FLOORS) + ["tofr1F", "tofrChaos"]:
-        check("%s has a calibration entry" % name, name in cal, True)
-    if fails:
+    def bail():
         for f in fails:
             print("     " + f)
         print("FAILURES: %d" % len(fails))
         return 1
 
+    for name in TOFR_FLOORS:
+        check("%s has a calibration entry" % name, name in cal, True)
+    if fails:
+        return bail()
+
+    # The entry's own rom_map_id is what regen_maps and overlay_preview resolve
+    # a marker through, so an entry pointing at another floor's map moves every
+    # marker on it while the offset still looks right. render_maps' table is the
+    # authority on which id carries which name, and this suite reads the id off
+    # the entry from here on rather than keeping a second copy to disagree with.
+    for name in TOFR_FLOORS:
+        check("%s's rom_map_id is the map of that name" % name,
+              rm.MAP_FILES.get(cal[name]["rom_map_id"]), name)
+    if fails:
+        return bail()
+
     # 1. the fiend's tile against its drawn plate
-    for name, (map_id, want_delta) in sorted(PLATE_FLOORS.items()):
-        found = battle_tiles(rom, map_id)
+    for name, want_delta in sorted(PLATE_FLOORS.items()):
+        found = battle_tiles(rom, cal[name]["rom_map_id"])
         check("%s carries one fixed-formation tile" % name, len(found), 1)
         if len(found) != 1:
             continue
@@ -196,7 +212,7 @@ def main():
 
         # The outline. The ROM map's own grass is its void, so the temple's
         # extent is a tile count the art has to match in pixels.
-        tiles = rm.map_tiles(rom, 52)
+        tiles = rm.map_tiles(rom, cal["tofr1F"]["rom_map_id"])
         grid = [tiles[r * 64:(r + 1) * 64] for r in range(64)]
         void = max(set(tiles), key=tiles.count)
         cols = [c for c in range(64) if any(grid[r][c] != void for r in range(64))]
