@@ -37,8 +37,22 @@ local ARROW_BOTH = "\226\134\148"
 -- which is why they are in the pack at all. An item with no icon draws
 -- PopTracker's fallback, and these are the two pictures the board already uses
 -- for the same two states.
-local DOOR_SHUT_ICON = "images/icons/door_shut.png"
-local DOOR_OPEN_ICON = "images/icons/door_open.png"
+-- The badge item's picture, and it is transparent on purpose.
+--
+-- A tooltip draws the location's own icon *and* every hosted item
+-- (maptooltip.cpp:143-158), so an entrance section has always been two cells:
+-- the door's state, which edges.lua opens when the party walks through, and
+-- this one, which carries where it went. Both used to wear the same door and
+-- read as one thing printed twice.
+--
+-- It cannot simply have no icon. makeItem skips an item whose image is empty,
+-- and Item::render returns at :262 before it reaches the overlay -- so a badge
+-- with no picture draws no text either. The cell has to hold something and the
+-- something has to be invisible.
+--
+-- The open/shut pair went with the door: this cell no longer has a state to
+-- report, because the cell beside it already reports it.
+local DOOR_BADGE_ICON = "images/icons/door_badge.png"
 
 -- How long the far pin stays lit after a click that tabbed to it, in seconds
 -- of wall time -- see removeEntranceHighlight for where the seconds come from.
@@ -55,11 +69,12 @@ local HIGHLIGHT_ELAPSED = 0
 -- overworld_pins.ENTRANCE_ITEM_WIDTH, and the names below are trimmed so the
 -- slot does not have to be half as wide again.
 --
--- Fourteen because fourteen is all there is. Measured through DejaVuSans.ttf at
--- the 10px SetOverlayFontSize below, everything else is already under the five
--- Gurgu Volcano floors at 98.7px, so trimming any of them would buy nothing.
--- Left alone the widest line is "TempleOfFiendsRevisitedChaos" at 166.6px;
--- trimmed, the widest is "Ice Cave Incentive" at 100.6px.
+-- Fourteen because fourteen is all there is. Measured through
+-- DejaVuSans-Bold.ttf -- the face the overlay is actually drawn in -- at the
+-- 10px SetOverlayFontSize below, everything else is already under the five
+-- Gurgu Volcano floors at 109.2px, so trimming any of them would buy nothing.
+-- Left alone the widest line is "TempleOfFiendsRevisitedWater" at 186.7px;
+-- trimmed, the widest is "Ice Cave Incentive" at 111.3px.
 --
 -- Keyed on the name rather than the map id because that is what mapName has in
 -- hand at the point it answers, and because a tab renamed in mapValues.lua
@@ -159,9 +174,6 @@ local function redraw(row)
   item.BadgeText = text
   if text ~= "" then
     item.BadgeTextColor = "#ffd700"
-    item.Icon = DOOR_OPEN_ICON
-  else
-    item.Icon = DOOR_SHUT_ICON
   end
   if type(item.SetOverlayBackground) == "function" then
     item:SetOverlayBackground("#c0000000")
@@ -262,6 +274,9 @@ function buildEntranceItems()
       local row = { item = item, code = pin.code, map = pin.map,
                     name = pin.name, path = path }
       item.Name = pin.name
+      -- Set once and never again: the cell is a text field and its picture is
+      -- the transparent plate that lets the text draw at all.
+      item.Icon = DOOR_BADGE_ICON
       -- Both ways of saying the same thing, because there are 178 of these.
       --
       -- Tracker::ProviderCountForCode pcalls every LuaItem's

@@ -163,6 +163,34 @@ def same_file(path, data):
     return os.path.exists(path) and open(path, "rb").read() == data
 
 
+def png_alpha(data):
+    """[alpha] for an 8-bit RGBA PNG this suite just built, filter 0 only.
+
+    Every row carries a leading filter byte, so the alpha bytes are not at a
+    fixed stride through the whole image -- the offset shifts by one per row.
+    The first cut of this took every fourth byte from the start, which is right
+    for row 0 and wrong after it, and passed anyway because the image under
+    test is entirely zero. Hence the length check at the call site: on an
+    all-transparent plate an incorrect reader and a correct one agree on the
+    values and disagree on how many there are.
+    """
+    pos, width, height, idat = 8, 0, 0, b""
+    while pos < len(data):
+        length = struct.unpack(">I", data[pos:pos + 4])[0]
+        kind = data[pos + 4:pos + 8]
+        if kind == b"IHDR":
+            width, height = struct.unpack(">II", data[pos + 8:pos + 16])
+        elif kind == b"IDAT":
+            idat += data[pos + 8:pos + 8 + length]
+        pos += 12 + length
+    raw = zlib.decompress(idat)
+    out = []
+    for row in range(height):
+        base = row * (1 + width * 4) + 1
+        out += [raw[base + 4 * col + 3] for col in range(width)]
+    return out
+
+
 def png_pixels(data):
     """[[luma]] for a PNG this suite just built -- 8-bit RGB, filter 0 only.
 
@@ -207,6 +235,20 @@ def main():
     # maptooltip.cpp:135-140 takes its {32, 32} default only when neither is
     # set, and a width with no height warns to stderr and falls back to 32x32 --
     # silently undoing the one thing the width was added for.
+    # The section is named for the qualifier, not for its node. A tooltip draws
+    # the location name in the big font and the section name in the small one,
+    # so a section named for its node prints one string twice at two sizes --
+    # which is what the board was doing. Shown as the duplication it removes
+    # rather than as the string it produces.
+    check("  and names its section for the qualifier, not the node",
+          kid["sections"][0].get("name"),
+          op.entrance_section_name(kid["name"]))
+    check("    which for a floor link is not the node's own name",
+          op.entrance_section_name("Entrance: SeaShrineB3 NE Upstairs"),
+          "NE Upstairs")
+    check("    and for a door, which has no qualifier, still is",
+          op.entrance_section_name("Entrance: Coneria"), "Coneria")
+
     check("  and sizes the tooltip slot the badge has to fit in",
           [kid["sections"][0].get("item_width"),
            kid["sections"][0].get("item_height")],
@@ -548,6 +590,20 @@ def main():
                      if not same_file(os.path.join(PACK, rel), data)), [])
         shut, opened = (png_pixels(built[rel]) for rel in
                         (op.DOOR_SHUT_IMG, op.DOOR_OPEN_IMG))
+        # The badge's own cell is a text field, so its picture is blank -- and
+        # it has to be a picture rather than nothing, because makeItem skips an
+        # item with no image and Item::render returns at :262 before it reaches
+        # the overlay. A blank icon there would take the badge text with it.
+        check("  the badge plate is written too", 
+              op.DOOR_BADGE_IMG in built, True)
+        check("    and is not either of the door pictures",
+              built.get(op.DOOR_BADGE_IMG) not in
+              (built[op.DOOR_SHUT_IMG], built[op.DOOR_OPEN_IMG]), True)
+        alpha = png_alpha(built[op.DOOR_BADGE_IMG])
+        check("    and is fully transparent",
+              sorted(set(alpha)), [0])
+        check("      over every pixel of it, not every fourth byte",
+              len(alpha), len(png_pixels(built[op.DOOR_SHUT_IMG])) ** 2)
         check("  both are the same size",
               [len(shut), len(shut[0]), len(opened), len(opened[0])],
               [64, 64, 64, 64])

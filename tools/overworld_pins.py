@@ -144,28 +144,27 @@ ENTRANCE_PREFIX = "Entrance: "
 # has is the width of the slot the icon sits in -- there is no tooltip width in
 # the pack format at all.
 #
-# The widest badge line the pack can produce is 100.6px, measured through
-# DejaVuSans.ttf at the 10px SetOverlayFontSize entrance_items.lua asks for,
-# over every tab leaf in mapValues.lua and every name in map_names.lua with
-# entrance_items' own abbreviations applied. "Ice Cave Incentive" is the widest
-# and the five Gurgu Volcano floors sit 1.9px behind it, so the ceiling is a
-# cluster rather than one outlier and trimming further would mean abbreviating
-# names nobody would call long.
+# The widest badge line the pack can produce is 111.3px, and the overlay is
+# drawn two pixels wider than its text for the light and shadow passes
+# (item.cpp:305), so 113.3px reaches the edge. Measured through
+# DejaVuSans-Bold.ttf -- the app's DEFAULT_FONT_NAME (defaults.h:10) -- at the
+# 10px SetOverlayFontSize entrance_items.lua asks for, across every tab leaf in
+# mapValues.lua and every name in map_names.lua with the abbreviations applied.
 #
-# 112 rather than 103 because the measurement is of *this* copy of DejaVuSans
-# and the app a player runs ships its own. Ten pixels is about two characters
-# of slack, which is the difference between a font revision moving a glyph and
-# a player watching text run out through the side of the popup.
-# tools/tests/test_badge_width.py holds the two numbers together, so a tab
-# renamed longer fails a suite rather than a hover.
+# The first cut of this measured the regular face and got 100.6px, which set
+# the constant one pixel *under* what the badge actually draws. The overlay
+# font is trackerview.cpp:123's, and that is the bold one.
 #
-# Two pixels of the slot go to the overlay's own shadow offset (item.cpp:305).
+# 120 rather than 114 because the measurement is of this copy of the font and a
+# player runs the app's own. tools/tests/test_badge_width.py holds the two
+# numbers together, so a tab renamed longer fails a suite rather than a hover.
 #
-# The tooltip lays out a location icon *and* the hosted item at this width, so
-# a popup comes out around twice it. That is the cost of the fix and it is why
-# the badge is abbreviated rather than left alone: unabbreviated the widest line
-# is 166.6px, and the popup would be half as wide again.
-ENTRANCE_ITEM_WIDTH = 112
+# It cannot be smaller by leaning on the header. The tooltip is as wide as its
+# widest measured child, so a long location name would carry a badge that
+# starts at 32px -- but "Entrance: Gaia" is 91.1px against a badge reaching
+# 143.3px from there, and short-named doors are exactly the ones whose
+# destinations can be long.
+ENTRANCE_ITEM_WIDTH = 120
 
 # Spelled out beside the width because leaving it off does not do what it looks
 # like. maptooltip.cpp:135-140 takes the {32, 32} default only when *both* axes
@@ -174,6 +173,29 @@ ENTRANCE_ITEM_WIDTH = 112
 # through to_int rather than to_pixel, so these are plain pixels and not the
 # icon-size table item_size goes through.
 ENTRANCE_ITEM_HEIGHT = 32
+
+
+def entrance_section_name(name):
+    """What the section under an entrance node is called.
+
+    The qualifier alone where there is one -- "NE Upstairs" under
+    "Entrance: SeaShrineB3 NE Upstairs" -- and the whole bare name where there
+    is not, which is every overworld door: "Coneria" has no qualifier to keep
+    because the name *is* the door.
+
+    A map tooltip draws the location name in the big font and each section name
+    in the small one (maptooltip.cpp:63-80, :113-120), so a section named for
+    its node prints one string twice at two sizes. The coordinates were short
+    enough to hide that; "SeaShrineB3 NE Upstairs" is not, and the map is on
+    the line above either way.
+
+    Uniqueness does not rest on this. A section path is
+    @Entrances/<node>/<section> and the node name is the half that is unique --
+    which is why two floors may both offer an "NE Upstairs" without colliding.
+    """
+    bare = name[len(ENTRANCE_PREFIX):] if name.startswith(ENTRANCE_PREFIX) else name
+    head, sep, rest = bare.partition(" ")
+    return rest if sep else bare
 
 
 def entrance_code(name):
@@ -246,6 +268,21 @@ def entrance_door_members(doors):
 # than committed here.
 DOOR_SHUT_IMG = "images/icons/door_shut.png"
 DOOR_OPEN_IMG = "images/icons/door_open.png"
+
+# The badge item's own picture, and it is deliberately a transparent one.
+#
+# The tooltip draws item_count location icons and then every hosted item
+# (maptooltip.cpp:143-158), so an entrance section is always two cells: the
+# door's state, which edges.lua opens when the party walks through, and the
+# badge, which carries where it went. Both wore the same door and read as one
+# thing printed twice.
+#
+# Blank rather than a second picture because there is nothing true to draw
+# there -- the cell is a text field. And it has to be a transparent *image*
+# rather than no image: makeItem skips an empty one entirely and
+# Item::render returns at :262 before it reaches the overlay, so a badge with
+# no icon draws no text either.
+DOOR_BADGE_IMG = "images/icons/door_badge.png"
 
 
 def part_doors(doors, step, dim=256):
@@ -333,7 +370,7 @@ def entrance_group(doors, origin=(0, 0), map_name="overworld", tile_px=16):
         "chest_opened_img": DOOR_OPEN_IMG,
         "children": [
             {"name": name,
-             "sections": [{"name": name[len(ENTRANCE_PREFIX):],
+             "sections": [{"name": entrance_section_name(name),
                            "item_count": 1,
                            "item_width": ENTRANCE_ITEM_WIDTH,
                            "item_height": ENTRANCE_ITEM_HEIGHT,

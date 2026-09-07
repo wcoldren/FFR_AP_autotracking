@@ -1346,7 +1346,7 @@ def entrance_children(by_rom, tiles, sprite_cells=None):
         kids.append({
             "name": name,
             "sections": [{
-                "name": name[len(overworld_pins.ENTRANCE_PREFIX):],
+                "name": overworld_pins.entrance_section_name(name),
                 # Spelled out because the hosted item takes the default away:
                 # locationsection.cpp:67 gives a section item_count 1 only while
                 # it hosts nothing. At 0 there is no count for edges.lua to
@@ -2008,6 +2008,18 @@ def encode(w, h, rgb):
     os.close(fd)
     try:
         pngio.write_rgb(tmp, w, h, rgb)
+        with open(tmp, "rb") as f:
+            return f.read()
+    finally:
+        os.remove(tmp)
+
+
+def encode_rgba(w, h, rgba):
+    """encode's four-channel twin, for the badge's transparent plate."""
+    fd, tmp = tempfile.mkstemp(suffix=".png")
+    os.close(fd)
+    try:
+        pngio.write_rgba(tmp, w, h, rgba)
         with open(tmp, "rb") as f:
             return f.read()
     finally:
