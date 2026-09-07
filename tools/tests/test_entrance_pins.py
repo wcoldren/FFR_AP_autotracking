@@ -16,10 +16,18 @@ What is checked:
     second-source rule test_overworld_pins.py follows
   * node names are unique across the tree, because tiles_by_name, mirror_of and
     restamp are all keyed on a bare node name and a collision is silent
-  * every node carries its own single section, and nothing sets item_count --
-    a section with item_count below 1 and no hosted item is skipped by
-    CalculateLocationState, which leaves a marker that draws nothing and says
-    nothing
+  * every node carries its own single section, that section hosts the item its
+    badge text rides on, and it spells item_count out as 1. Both halves matter
+    and they pull against each other: a section with item_count below 1 and no
+    hosted item is skipped by CalculateLocationState, and locationsection.cpp:67
+    drops the default from 1 to 0 the moment a hosted item appears -- so the
+    field that could be left alone before the item has to be written now
+  * every code is minted by overworld_pins.entrance_code, is unique across the
+    group, and collides with nothing in items/*.json. A code shared with an item
+    is the `Ruby`/`titan` clash again, and here there are 178 chances at it
+  * ENTRANCE_PINS names every pin exactly once, with the code its section hosts
+    and the map it stands on -- the table scripts/entrance_items.lua builds the
+    badge items from
   * every entrance marker is a trapezoid carrying exactly $showPin|entrance,
     and no other marker carries either
   * a place pin does not sit on a door: spread() is seeded with the door tiles,
@@ -45,6 +53,7 @@ Set FF1_ROM to a cartridge; without one the cartridge half skips.
 """
 
 import io
+import json
 import os
 import re
 import struct
@@ -189,8 +198,10 @@ def main():
           group["name"], pin_visibility.ENTRANCES_GROUP)
     kid = group["children"][0]
     check("a door carries its own sections", len(kid["sections"]), 1)
-    check("  and does not set item_count", "item_count" in kid["sections"][0],
-          False)
+    check("  and spells item_count out", kid["sections"][0].get("item_count"), 1)
+    check("  and hosts the code entrance_code mints",
+          kid["sections"][0].get("hosted_item"),
+          op.entrance_code("Entrance: Coneria"))
     check("  and is a trapezoid", kid["map_locations"][0]["shape"], "trapezoid")
 
     # Both directions, as the stamper's own suite does it: under the group the
@@ -463,8 +474,12 @@ def main():
     check("every link is placeable on drawn art", sorted(lost), [])
     check("every node carries one section",
           sorted({len(k["sections"]) for k in kids}), [1])
-    check("  and none sets item_count",
-          sorted({("item_count" in k["sections"][0]) for k in kids}), [False])
+    check("  and every one spells item_count out",
+          sorted({k["sections"][0].get("item_count") for k in kids}), [1])
+    check("  and hosts the code entrance_code mints",
+          [k["name"] for k in kids
+           if k["sections"][0].get("hosted_item")
+           != op.entrance_code(k["name"])], [])
     check("every marker is a trapezoid",
           sorted({k["map_locations"][0].get("shape") for k in kids}),
           ["trapezoid"])
@@ -523,6 +538,42 @@ def main():
         if cells and table.get("%d,%d,%d" % cells[0]) != want:
             named.append(kid["name"])
     check("a pin's own tile resolves to it", sorted(named), [])
+
+    # The codes the badges hang on. Three separate ways this goes wrong: two
+    # pins minting one code, a code an item already answers to, and the table
+    # scripts/entrance_items.lua reads disagreeing with the tree it was written
+    # beside. The middle one is the `Ruby`/`titan` clash, which was silent in
+    # three tools at once.
+    codes = [k["sections"][0]["hosted_item"] for k in group["children"]]
+    check("every pin mints its own code", len(set(codes)), len(codes))
+    taken = set()
+    for name in ("items.json", "hosted_items.json", "flags.json"):
+        with open(os.path.join(PACK, "items", name)) as fh:
+            for item in json.load(fh):
+                for field in ("codes", "secondary_codes"):
+                    taken.update(c.strip()
+                                 for c in (item.get(field) or "").split(","))
+                for stage in item.get("stages") or []:
+                    taken.update(c.strip()
+                                 for c in (stage.get("codes") or "").split(","))
+    check("and collides with no item the pack ships",
+          sorted(set(codes) & taken), [])
+
+    rows = re.findall(r'\["([^"]+)"\] = { code = "([^"]+)", map = (-?\d+) },',
+                      lua)
+    check("every pin has a row of its own",
+          sorted(sections.symmetric_difference(p for p, _, _ in rows)), [])
+    check("  carrying the code its section hosts",
+          sorted(set(codes).symmetric_difference(c for _, c, _ in rows)), [])
+    maps = {path: int(map_id) for path, _, map_id in rows}
+    wrong = []
+    for kid in group["children"]:
+        path = (f'@{pin_visibility.ENTRANCES_GROUP}/{kid["name"]}'
+                f'/{kid["sections"][0]["name"]}')
+        cells = members.get(kid["name"]) or []
+        if cells and maps.get(path) != cells[0][0]:
+            wrong.append(kid["name"])
+    check("  and the map it stands on", sorted(wrong), [])
 
     # And the point of the table: a cluster is more than its middle. Counted
     # rather than asserted true, because a cartridge whose every link happened

@@ -45,6 +45,7 @@ which is drawing a seed.
 """
 
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -132,6 +133,32 @@ def door_cells(doors):
 # tiles_by_name, mirror_of and restamp are all keyed on a bare node name, and a
 # door named "Coneria" would collide with the town pin of the same name.
 ENTRANCE_PREFIX = "Entrance: "
+
+
+def entrance_code(name):
+    """The item code hosted on one entrance pin's section.
+
+    A pin carries an item so it can carry text: a marker's name is fixed at load
+    (locationsection.cpp:262-294 lets a script write AvailableChestCount and
+    Highlight and nothing else), so "this door came out in Melmond" has to ride
+    on an item hosted by the section. The code is minted here and nowhere else,
+    and Lua reads it back out of the table a regen writes rather than rebuilding
+    the string, so the two halves cannot drift.
+
+    Keyed on the node name rather than the tile, because the name is the thing
+    already guaranteed unique -- tiles_by_name, mirror_of and restamp are all
+    keyed on it -- while a door's pin cell is not the door's tile: part_doors
+    nudges a town half a marker south to part it from its castle, and a code
+    minted from that would name a tile the door is not on.
+
+    The prefix is what keeps it clear of every code in items/*.json. The
+    `Ruby`/`titan` clash cost a rename in three tools at once, and an entrance
+    code colliding with an item would be the same failure with 178 chances to
+    happen.
+    """
+    bare = name[len(ENTRANCE_PREFIX):] if name.startswith(ENTRANCE_PREFIX) else name
+    slug = re.sub(r"[^a-z0-9]+", "_", bare.lower()).strip("_")
+    return "entr_" + slug
 
 
 def entrance_door_pins(doors):
@@ -232,8 +259,13 @@ def entrance_group(doors, origin=(0, 0), map_name="overworld", tile_px=16):
     sections and does not aggregate from children, so a parent carrying markers
     and no sections is hidden; and a section with item_count below 1 and no
     hosted item is skipped, which leaves a marker that draws nothing and reports
-    no error. The default item_count is 1 (locationsection.cpp:67), so the way
-    to get that right is to leave it alone.
+    no error.
+
+    `item_count` is spelled out because the hosted item takes the default away:
+    locationsection.cpp:67 defaults it to 1 only while there are no hosted
+    items, and to 0 once there is one. A door at 0 would have no count for
+    edges.lua to write, so the pin the party walked through would stop opening
+    -- the feature this one is built beside.
 
     A section also gives a door a state, which is the point: until the bridge
     watches the party walk through one, "I have been in here" is a click.
@@ -260,7 +292,9 @@ def entrance_group(doors, origin=(0, 0), map_name="overworld", tile_px=16):
         "chest_opened_img": DOOR_OPEN_IMG,
         "children": [
             {"name": name,
-             "sections": [{"name": name[len(ENTRANCE_PREFIX):]}],
+             "sections": [{"name": name[len(ENTRANCE_PREFIX):],
+                           "item_count": 1,
+                           "hosted_item": entrance_code(name)}],
              "map_locations": [{"map": map_name,
                                 "x": (cell[0] - ox) * tile_px + half,
                                 "y": (cell[1] - oy) * tile_px + half,
