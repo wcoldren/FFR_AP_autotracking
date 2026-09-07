@@ -40,8 +40,14 @@ MAP_NAMES = {
   [6] = "MarshCaveB2",
 }
 
+-- The overworld's tab is "Incentive Locations" here rather than "Overworld",
+-- and that is the real one rather than an awkward fixture: maptab's
+-- tabPathForMap(-1) answers overworldTab(), which is the incentive poster on
+-- an ordinary seed and on both NOverworld variants. A tab path is not a map
+-- name there, so the badge has to take the overworld from MAP_NAMES -- while a
+-- click on the same pin still has to open the tab. Both are checked below.
 local TAB_PATHS = {
-  [-1] = "Overworld",
+  [-1] = "Incentive Locations",
   [5] = "Caves & Dungeons/Marsh Cave/Marsh Cave B1",
 }
 
@@ -147,6 +153,15 @@ setEntranceReverse(STAIR_UP, -1, DOOR)
 check("and two maps are two lines", badge(STAIR_UP),
   FWD .. "MarshCaveB2" .. "\n" .. REV .. "Overworld")
 
+-- The overworld is named from MAP_NAMES and not from its tab. Its tab is
+-- whichever of the two posters the seed wants, so taking the leaf there would
+-- badge the way out of every town "Incentive Locations" -- the wrong answer to
+-- the question the badge asks, on roughly the thirty most-walked pins there
+-- are. The two really do disagree in this fixture, which is what makes the row
+-- above worth reading.
+check("the overworld is not named after whichever poster is up",
+  ENTRANCE_ITEMS[STAIR_UP].item.BadgeText:find("Incentive") == nil, true)
+
 check("a pin nothing has said anything about stays blank", badge(WAY_OUT), "")
 check("a path no pin owns is not an item",
   setEntranceForward("@Entrances/Entrance: Nowhere/Nowhere", 1, nil), false)
@@ -187,6 +202,16 @@ check("and comes off when it is up", SECTIONS[STAIR_UP].Highlight,
   Highlight.None)
 check("and the handler removes itself",
   frameHandlers["entrance highlight"], nil)
+
+-- The other half of the overworld rule: the badge does not take its name from
+-- the tab, and the click still goes to the tab. STAIR_UP's reverse is the
+-- overworld door, so this opens whichever poster overworldTab() picked --
+-- "Incentive Locations" in this fixture, which is the leaf the badge above
+-- refused to use as a name.
+hints = {}
+ENTRANCE_ITEMS[STAIR_UP].item.OnRightClickFunc()
+check("a click bound for the overworld opens the tab that is up",
+  table.concat(hints, "/"), "Incentive Locations")
 
 ------------------------------------------------------------------
 print("\n-- a different cartridge")

@@ -51,9 +51,26 @@ local HIGHLIGHT_AT = 0
 -- looking at -- "Earth Cave B1" rather than "EarthCaveB1" -- and MAP_NAMES
 -- underneath for a map no tab claims. A badge with no name in it is the thing
 -- this file exists to remove, so it is answered twice rather than once.
+--
+-- The overworld is the exception and has to be, because there the tab is not a
+-- name for the map. tabPathForMap(-1) answers overworldTab(), which picks
+-- between two posters of the same ground by what the seed put in the pool, and
+-- on the ordinary incentive-only seed -- and on both NOverworld variants,
+-- whatever the pool says -- that leaf is "Incentive Locations". Every door back
+-- out to the overworld would have read "-> Incentive Locations", which is the
+-- right answer to "which tab does clicking this open" and the wrong one to
+-- "where did this door come out". Which is also why navigate() below still
+-- asks tabPathForMap: the click wants the tab, the badge wants the map.
+--
+-- The towns reach overworldTab() by the same route in the pack's own MAP_VALUE,
+-- but not here: the pins come from an override, and an override's table names
+-- each town's tab outright.
 local function mapName(mapId)
   if mapId == nil then
     return nil
+  end
+  if mapId == -1 then
+    return (MAP_NAMES or {})[mapId]
   end
   local path = tabPathForMap and tabPathForMap(mapId)
   if path then
