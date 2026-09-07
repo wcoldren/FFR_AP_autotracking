@@ -40,10 +40,11 @@ local ARROW_BOTH = "\226\134\148"
 local DOOR_SHUT_ICON = "images/icons/door_shut.png"
 local DOOR_OPEN_ICON = "images/icons/door_open.png"
 
--- How long the far pin stays lit after a click that tabbed to it.
+-- How long the far pin stays lit after a click that tabbed to it, in seconds
+-- of wall time -- see removeEntranceHighlight for where the seconds come from.
 local HIGHLIGHT_SECONDS = 5
 local HIGHLIGHT_SECTION = nil
-local HIGHLIGHT_AT = 0
+local HIGHLIGHT_ELAPSED = 0
 
 -- What to call the map a door came out on.
 --
@@ -122,8 +123,18 @@ local function redraw(row)
   end
 end
 
-function removeEntranceHighlight()
-  if os.clock() - HIGHLIGHT_AT < HIGHLIGHT_SECONDS then
+-- The frame handler's own argument is where the seconds come from, and it has
+-- to be: os.clock() is process CPU time, and PopTracker spends most of an idle
+-- second in the compositor rather than in Lua, so a five-CPU-second deadline
+-- arrives tens of wall seconds after the click. That is harmless where
+-- autotracking.lua times its board reassert -- firing late still catches the
+-- restore -- and it is the visible symptom here, since the thing being timed is
+-- a gold pin somebody is looking at. PopTracker passes wall seconds since this
+-- handler last ran (scripthost.cpp:516-522), documented since 0.25.9 and so
+-- well under the pack's floor, and accumulating them is exact.
+function removeEntranceHighlight(elapsed)
+  HIGHLIGHT_ELAPSED = HIGHLIGHT_ELAPSED + (type(elapsed) == "number" and elapsed or 0)
+  if HIGHLIGHT_ELAPSED < HIGHLIGHT_SECONDS then
     return
   end
   ScriptHost:RemoveOnFrameHandler("entrance highlight")
@@ -131,7 +142,7 @@ function removeEntranceHighlight()
     HIGHLIGHT_SECTION.Highlight = Highlight.None
   end
   HIGHLIGHT_SECTION = nil
-  HIGHLIGHT_AT = 0
+  HIGHLIGHT_ELAPSED = 0
 end
 
 -- Tab to where a door goes and light the pin at the far end for a moment.
@@ -161,7 +172,7 @@ local function navigate(mapId, path)
       end
       sec.Highlight = Highlight.Priority
       HIGHLIGHT_SECTION = sec
-      HIGHLIGHT_AT = os.clock()
+      HIGHLIGHT_ELAPSED = 0
       if type(ScriptHost.AddOnFrameHandler) == "function" then
         ScriptHost:AddOnFrameHandler("entrance highlight", removeEntranceHighlight)
       end

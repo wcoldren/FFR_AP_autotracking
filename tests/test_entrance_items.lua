@@ -198,13 +198,17 @@ check("right-click tabs to what leads here", table.concat(hints, "/"),
 -- The handler is a no-op until the time is up, then it clears the pin and
 -- takes itself off. Both halves, because a highlight that never came off would
 -- leave the board gold everywhere a door was clicked.
-frameHandlers["entrance highlight"]()
+--
+-- The seconds are the ones PopTracker hands the handler, and they are wall
+-- seconds since it last ran. Fed in a frame at a time here for the same reason
+-- the real thing accumulates them: os.clock, which this used to time, is CPU
+-- time, and five of those on an idle tracker are tens of seconds of somebody
+-- watching a gold pin.
+frameHandlers["entrance highlight"](1.0)
+frameHandlers["entrance highlight"](1.0)
 check("the highlight holds while the clock is running",
   SECTIONS[STAIR_UP].Highlight, Highlight.Priority)
-local realClock = os.clock
-os.clock = function() return realClock() + 60 end
-frameHandlers["entrance highlight"]()
-os.clock = realClock
+frameHandlers["entrance highlight"](3.0)
 check("and comes off when it is up", SECTIONS[STAIR_UP].Highlight,
   Highlight.None)
 check("and the handler removes itself",
