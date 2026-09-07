@@ -260,6 +260,11 @@ local TIMER_FILE = "ffr_timer.%s.state"
 -- What it holds is what the player has already walked through, so writing it
 -- down gives nothing away that the play session did not; what it buys is that
 -- closing the emulator does not un-learn the map.
+--
+-- Nothing here removes a record. Re-walking a door rewrites it in place, the
+-- file is rewritten whole from what is held in memory, and there is no path
+-- that shrinks either -- so deleting this file is the only way to take a wrong
+-- record back, and docs/BRIDGE.md says so where a player will find it.
 local EDGE_FILE = "ffr_edges.%s.state"
 
 -- More links than any cartridge has, both directions, with room for the stray
