@@ -549,8 +549,8 @@ Nothing here is urgent unless it says so.
   list, so it reproduced the OR answer by construction and could not have
   disagreed. It is evidence of nothing.
 
-- **The lane port suite crashes when `FF1_ROM` is the cartridge it ports to.**
-  Found 2026-09-06, and it predates the branch that found it -- reproduced
+- **The lane port suite crashes when `FF1_ROM` is the cartridge it ports to.
+  Closed 2026-09-06.** Found 2026-09-06, and it predates the branch that found it -- reproduced
   identically at `20afab6`. `tools/tests/test_port_lanes.py` takes `FF1_ROM` as
   the source and the No-Overworld oracle as a fixed target, and its docstring
   promises it skips without two cartridges that lay some floor differently.
@@ -566,6 +566,25 @@ Nothing here is urgent unless it says so.
   the No-Overworld suites want. The fix is the skip the docstring already
   describes: compare the two cartridges before the checks and skip when they
   are one, rather than checking the precondition as though it were a result.
+
+  **That fix was half of it, which only showed up on re-measuring.** Comparing
+  the stamps catches `FF1_ROM` naming the oracle *file* -- and that shape fails
+  four checks, not three. The three-failure run this entry was written from is
+  `nov2`, a different No-Overworld cartridge, whose stamp does not match the
+  target at all: the stamp check passes and the run still ends at `carried[0]`,
+  because what is actually absent is not a distinct cartridge but a floor laid
+  differently. `nov` and `nov2` draw all 55 authored floors the same way, so
+  every one reports `have`. Skipping only on equal stamps would have left the
+  reproduction in this entry crashing exactly as before.
+
+  So the precondition is measured rather than assumed. Both shapes skip: the
+  target named as its own source, and a pairing where no floor either carries
+  or refuses -- decided before any tally check runs, so it is a skip rather
+  than a skip after three red rows. What stays a failure is a pairing that
+  does differ where nothing carries, which is the tool refusing floors it used
+  to take; that path now reports its failures and exits 1 instead of ending on
+  a traceback, because a crash replaces the answer the checks just gave rather
+  than adding to it.
 
 - **Two ToFR chests were held red on every standard seed, because the whole
   gate sat on the parent.** Fixed 2026-09-05. `ToFR Lute Plate Room 1` and `2`

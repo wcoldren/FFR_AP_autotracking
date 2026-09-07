@@ -38,7 +38,16 @@ whatever is currently committed.
 
 Needs two cartridges that lay some floor differently: FF1_ROM is the source,
 and the target is the No-Overworld oracle, the same one test_noverworld_rules
-reads. Without both this skips rather than passing quietly.
+reads. Without both this skips rather than passing quietly, and "differently"
+is the load-bearing word -- point FF1_ROM at a No-Overworld cartridge and the
+two ends lay every authored floor the same way, so every floor reports `have`
+and there is no carry to check. That is this machine having no answer, not the
+tool being wrong, so it skips on both shapes: the target named as its own
+source, and a pairing with nothing to carry.
+
+What stays a failure is a pairing that *does* differ where nothing carries.
+That is the tool refusing floors it used to take, which is the regression the
+pinned tally exists for.
 """
 import contextlib
 import io
@@ -65,6 +74,14 @@ def check(what, got, want):
         fails.append(f"{what}: got {got!r}, want {want!r}")
 
 
+def report():
+    """Print what failed and return the exit code; also the early bail."""
+    for f in fails:
+        print("     " + f)
+    print("ALL PASS" if not fails else f"{len(fails)} FAILED")
+    return 1 if fails else 0
+
+
 # The pinned tally, and the ten floors that refuse. `docs/ROADMAP.md` carries
 # the same figures in prose ("No-Overworld has 47 of 57"): 15 floors are laid
 # tile-for-tile like their standard twins and need nothing, 32 carry, 10 are an
@@ -89,7 +106,11 @@ if not os.path.isfile(NOV):
     sys.exit(0)
 
 src, dst = PL.Side(src_path), PL.Side(NOV)
-check("the two cartridges are not the same one", src.stamp == dst.stamp, False)
+if src.stamp == dst.stamp:
+    print(f"skipped: FF1_ROM is the port target itself "
+          f"({os.path.basename(src_path)}); this needs two cartridges that "
+          "lay some floor differently")
+    sys.exit(0)
 
 # Whether the counts above describe *this* source cartridge. They are a fact
 # about the pairing, not about the tool, so pinning them against a cartridge
@@ -168,6 +189,18 @@ try:
             refused.append(name)
             check(f"{name}'s refusal names a stop", "stop" in detail, True)
 
+    # The precondition, now that it can be measured rather than assumed: a
+    # pairing where no floor either carries or refuses lays every authored
+    # floor the same way, and the checks below would read that as the tool
+    # having stopped working. Decided before any of them runs, so the skip is
+    # a skip rather than a skip after three red rows.
+    if not carried and not refused:
+        print("skipped: FF1_ROM and the No-Overworld oracle lay every authored "
+              "floor the same way, so there is nothing to carry "
+              f"({states.get('have', 0)} floors already drawn); this needs two "
+              "cartridges that lay some floor differently")
+        sys.exit(0)
+
     check("every map is accounted for",
           sum(states.values()), len(rm.MAP_FILES))
     if pinned:
@@ -213,6 +246,12 @@ try:
     # `note` is the live case: lane_edit writes it, no committed entry has one
     # yet, and a copy built from a listed set of keys drops it without
     # anything failing. Injected on the source side and read back off the port.
+    if not carried:
+        # Floors differed and none carried, so the checks above have already
+        # failed and named it. Everything from here reads a carried floor, and
+        # a traceback would replace that answer rather than add to it.
+        sys.exit(report())
+
     name, map_id, _ = carried[0]
     before = LF.read(name)
     was = LF.pick(before, src.digest(map_id))
@@ -293,7 +332,4 @@ finally:
     shutil.rmtree(work, ignore_errors=True)
     LF.LANES = keep
 
-for f in fails:
-    print("     " + f)
-print("ALL PASS" if not fails else f"{len(fails)} FAILED")
-sys.exit(1 if fails else 0)
+sys.exit(report())

@@ -88,7 +88,6 @@ register's. Rewording either end is how a row stops resolving, which
 | lanes | A lane file's `region` is an index the digest does not guard |
 | lanes | A stop at a chest re-orients for free, and nothing says whether it should |
 | tests | Nothing tests the multi-tile OR in `derive()` |
-| tests | The lane port suite crashes when `FF1_ROM` is the cartridge it ports to — it treats the precondition its docstring says it skips on as a check, and ends on a traceback |
 | board | The No-Overworld incentive poster is missing one slot, not two — of `nerrick` and `airship`, only `nerrick` is |
 | board | The incentive defaults are still a guess on a version with no schema |
 | board | The gold ring stops being gold once this pack's off filter has had it — `showIncentiveRings` may want a drawn "off" image |
