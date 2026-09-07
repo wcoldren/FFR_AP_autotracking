@@ -1316,17 +1316,31 @@ local function isReady()
   return guardScans >= GUARD_STABLE_SCANS
 end
 
--- Which map the player is on, or MAP_OVERWORLD. Only meaningful once the save
--- guard is happy, so scan() holds the last value rather than reading this while
--- the game is mid-reset.
+-- Which map the player is on, or MAP_OVERWORLD, or nil when the read cannot be
+-- believed. Only meaningful once the save guard is happy, so scan() holds the
+-- last value rather than reading this while the game is mid-reset.
+--
+-- Three situations used to come back as MAP_OVERWORLD and only one of them is
+-- the overworld. An emulator that will not answer is one, and a mapflags
+-- claiming a standard map over a cur_map no standard map has is the other:
+-- both are the read failing rather than the party being outdoors. That was a
+-- transient wrong value on ff1/map until noteEdge began comparing each scan
+-- against the last, and then it stopped being transient -- a single bad read
+-- inside a dungeon records a door out to the overworld and a door back, writes
+-- them to a file that outlives the session, and can light a staircase nobody
+-- has used. So they are nil, which noteEdge treats the way it treats an
+-- untrusted scan, and lastMap keeps whatever it already had.
 local function readMap()
   local flags = EMU.readByte(MAPFLAGS_ADDR)
-  if not flags or (flags & 0x01) == 0 then
+  if not flags then
+    return nil
+  end
+  if (flags & 0x01) == 0 then
     return MAP_OVERWORLD
   end
   local id = EMU.readByte(CUR_MAP_ADDR)
   if not id or id > 60 then
-    return MAP_OVERWORLD
+    return nil
   end
   return id
 end
@@ -1904,7 +1918,12 @@ end
 -- One trusted scan's worth of watching. Called only once the save guard is
 -- happy, which is what makes "the map changed" mean a door rather than a boot.
 local function noteEdge(map)
-  local col, row = readPos(map)
+  -- nil is readMap() declining to answer. Dropping the anchor is what stops the
+  -- next good scan being compared against a position on a map nobody named.
+  local col, row
+  if map then
+    col, row = readPos(map)
+  end
   if not col then
     edgeLog.map, edgeLog.col, edgeLog.row = nil, nil, nil
     return
@@ -1972,8 +1991,11 @@ local function scan()
   lastMem = mem
   lastGoal = goalReached(at(mem, FLAGS_OFF + GOAL_BYTE))
   lastShop = shopItemBought(mem, lastRom)
-  lastMap = readMap()
-  noteEdge(lastMap)
+  local map = readMap()
+  if map then
+    lastMap = map
+  end
+  noteEdge(map)
   noteRunProgress(lastRom, lastGoal)
   sendState(currentState(true))
 end

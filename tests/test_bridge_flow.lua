@@ -396,11 +396,14 @@ frames(12)
 check("changing floor publishes the new id",
   table.concat(textFrames(allSent())):find('"ff1/map","value":38', 1, true) ~= nil, true)
 
--- an id outside the 61 standard maps is not something MAP_VALUE can name
+-- an id outside the 61 standard maps is not something MAP_VALUE can name, and
+-- it is not the overworld either: mapflags still says standard map, so the two
+-- disagree and the read is the thing to distrust. The last map stands and
+-- nothing is published.
 MEMORY[0x0048] = 200
 frames(12)
-check("out-of-range id falls back to overworld",
-  table.concat(textFrames(allSent())):find('"ff1/map","value":-1', 1, true) ~= nil, true)
+check("out-of-range id holds the last map",
+  table.concat(textFrames(allSent())):find('"ff1/map"', 1, true) == nil, true)
 
 -- and a reset must hold the last map rather than announce a move
 MEMORY[0x002D], MEMORY[0x0048] = 0x01, 22
@@ -1419,6 +1422,20 @@ resetCb()
 standAt(38, 30, 30)
 frames(60)
 check("a state load does not invent a door", edgesSent(), nil)
+
+-- A read the bridge cannot believe is not a walk outdoors. mapflags claiming a
+-- standard map over an id no standard map has used to publish -1, and once each
+-- scan was being compared against the last that fabricated a pair of doors --
+-- out to the overworld and back in -- from a party that never moved, and wrote
+-- them to a file that outlives the session. Nothing may be recorded either way,
+-- so this stays on one map: a real step would be a real door and would say
+-- nothing about the bad read.
+MEMORY[0x0048] = 200
+frames(12)
+check("an unbelievable map id invents no door", edgesSent(), nil)
+MEMORY[0x0048] = 38                          -- the read comes good again
+frames(12)
+check("and none when it comes good again", edgesSent(), nil)
 
 -- The log is written beside the ROM and named after the cartridge, so closing
 -- the emulator does not un-learn the map.
