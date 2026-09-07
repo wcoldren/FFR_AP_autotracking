@@ -36,6 +36,7 @@ EDGES_ROM = nil
 EDGES_SOURCE = nil
 
 local MISSING_WARNED = {}
+local EMPTY_WARNED = false
 
 -- Every distinct pin ENTRANCE_LINKS knows about. Several tiles share a pin, so
 -- this is not the key set.
@@ -84,6 +85,20 @@ end
 local function applyRecord(record)
   if type(record) ~= "string" then
     return 0
+  end
+  -- A pack with no override has an empty table, and that is not an error -- the
+  -- entrance pins are not drawn there either. But it is indistinguishable from
+  -- a working setup where nothing happens to be marking, because an empty table
+  -- has no path to fail to resolve and nothing else says a word. Said once, and
+  -- only once the bridge has actually reported a door, so a board that has
+  -- simply not walked through one yet stays quiet.
+  if record ~= "" and not next(ENTRANCE_LINKS or {}) and not EMPTY_WARNED then
+    EMPTY_WARNED = true
+    print("edges: the bridge is reporting doors, but no entrance pin knows which "
+      .. "tile it stands on -- scripts/entrance_links.lua is empty, which is "
+      .. "what a pack with no regenerated override has. Run "
+      .. "tools/regen_maps.py on this cartridge to draw the pins and write the "
+      .. "table that marks them.")
   end
   local marked, bad = 0, 0
   for rec in record:gmatch("[^;]+") do

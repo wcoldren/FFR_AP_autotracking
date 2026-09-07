@@ -163,6 +163,41 @@ check("a good record beside a bad one still marks",
 check("the good half took", walked(STAIR_UP), true)
 
 ------------------------------------------------------------------
+print("\n-- the pack with no override, which is what shipped inert")
+------------------------------------------------------------------
+
+-- The table is empty in the committed pack and written by a regen, so a
+-- tracker with no override marks nothing. That is correct -- it has no
+-- entrance pins either -- but it looked exactly like a wired-up board that
+-- happened not to be marking, because an empty table has no path that can fail
+-- to resolve and nothing else said a word. It says one now, once.
+reset()
+local saved = ENTRANCE_LINKS
+ENTRANCE_LINKS = {}
+local said = {}
+local realPrint = print
+print = function(msg) said[#said + 1] = msg end
+applyFFREdges(STAIRS, "romA")
+applyFFREdges(STAIRS .. ";" .. OW_TO_TOWN, "romA")
+print = realPrint
+ENTRANCE_LINKS = saved
+
+check("an empty table says so when a door is reported", #said, 1)
+check("  and names the file to regenerate",
+  said[1] and said[1]:find("entrance_links.lua", 1, true) ~= nil, true)
+
+-- Not on a board that has simply not walked anywhere yet: an empty log through
+-- an empty table is two kinds of nothing, and warning there would fire on every
+-- Archipelago-only session.
+ENTRANCE_LINKS = {}
+said = {}
+print = function(msg) said[#said + 1] = msg end
+applyFFREdges("", "romB")
+print = realPrint
+ENTRANCE_LINKS = saved
+check("but stays quiet when no door has been walked", #said, 0)
+
+------------------------------------------------------------------
 print("\n-- a cartridge swap")
 ------------------------------------------------------------------
 
