@@ -89,7 +89,8 @@
   "brightness. The correlation is genuinely high -- 0.70 to 0.83 -- and its peak",
   "is 3 to 5 pixels away from the known answer on all four floors that have one.",
   "It finds the room, not the grid.",
-  "",  "A fifth, tried 2026-09-06 and worth naming because it looks like the",
+  "",
+  "A fifth, tried 2026-09-06 and worth naming because it looks like the",
   "landmark method and is not: scoring an offset by how often the art agrees",
   "with the cartridge about which tiles are void, sampled at every tile centre.",
   "It scores 0.97 to 1.00 on offsets that are demonstrably wrong -- a mostly",
@@ -531,7 +532,7 @@
   ],
   "_solved_from": {
    "how": "the temple outline, cross-checked against the four corner stair glyphs",
-   "note": "The one Temple floor with no fiend to anchor on. The ROM map's own grass is the void, so the temple spans ROM cols 0-41 and rows 0-36 (42x37 tiles = 672x592 px) and the art's non-grass box is x 27-699, y 20-611. The y span is 592 exactly and both edges agree on 20. The x span is 673, one pixel wider than the grid, so the near edge gives 27 and the far edge 28; the four cyan stair glyphs, at ROM (1,1), (40,1), (1,35) and (40,35), imply 26, 27, 28.5 and 28.5 -- the art runs about 1.5 px wide across its width. 27 is the near-edge answer and the chest copies Mid lays here, 253 at (16,16) and 254 at (24,16), sit mid-map where the stretch is smallest."
+   "note": "The one Temple floor with no fiend to anchor on. The ROM map's own grass is the void, so the temple spans ROM cols 0-41 and rows 0-36 (42x37 tiles = 672x592 px) and the art's non-grass box is x 27-699, y 20-611. The y span is 592 exactly and both edges agree on 20. The x span is 673, one pixel wider than the grid, so the near edge gives 27 and the far edge 28; the four cyan stair glyphs imply 27.0 at ROM (1,1), 28.5 at (40,1), 26.0 at (1,35) and 28.5 at (40,35) -- the art runs about 1.5 px wide across its width, and no single offset is exact at both ends. They straddle the answer rather than settling it, which is why the near edge decides and the glyphs only have to agree within 2 px. 27 is the near-edge answer and the chest copies Mid lays here, 253 at (16,16) and 254 at (24,16), sit mid-map where the stretch is smallest."
   }
  },
  "tofrEarth": {

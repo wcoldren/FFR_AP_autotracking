@@ -23,12 +23,18 @@ either end without the other fails.
      is high. It is pinned at its measured value rather than waved through,
      because "off by about 4" would pass an entry that had drifted by 4.
 
-  2. **1F's four corner stair glyphs, and its outline.** 1F has no fiend. Its
-     art draws a cyan glyph on each of the four corner staircases, and the
-     temple itself is bounded by the map's own grass on all four sides. The
-     glyphs land within 2 px, which is as tight as this one gets: the drawn
-     temple is 673 px wide against 672 px of grid, so the art runs about 1.5 px
-     wide across its width and no single offset can be exact at both ends.
+  2. **1F's outline, cross-checked against its four corner stair glyphs.** 1F
+     has no fiend. The temple is bounded by the map's own grass on all four
+     sides, so both edges of that box are read exactly: offset_y against the
+     top edge, offset_x against the near edge. Its art also draws a cyan glyph
+     on each of the four corner staircases, and those land within 2 px.
+
+     2 px is as tight as the glyphs get, and that is why they are the
+     cross-check rather than the anchor: the drawn temple is 673 px wide
+     against 672 px of grid, so the art runs about 1.5 px wide across its
+     width, no single offset is exact at both ends, and a 2 px tolerance
+     cannot separate offset_x 27 from 28 -- it admits both. The near edge
+     can, and does.
 
 Set FF1_ROM to a cartridge; without one this skips. Any Final Fantasy image
 does -- the tiles this reads are in the same place on all of them, which is
@@ -199,11 +205,19 @@ def main():
         ys = [y for y in range(h)
               if any(tuple(buf[(y * w + x) * 3:(y * w + x) * 3 + 3]) not in grass
                      for x in range(w))]
+        xs = [x for x in range(w)
+              if any(tuple(buf[(y * w + x) * 3:(y * w + x) * 3 + 3]) not in grass
+                     for y in range(h))]
         check("tofr1F's temple is 37 ROM tiles tall", rows[-1] - rows[0] + 1, 37)
         check("tofr1F's drawn temple is 592 px tall", ys[-1] - ys[0] + 1, 592)
         check("tofr1F's offset_y is that top edge", offset[1] - rows[0] * 16,
               ys[0])
         check("tofr1F's temple is 42 ROM tiles wide", cols[-1] - cols[0] + 1, 42)
+        # 673 against 672 px of grid: the one pixel the art runs wide. The near
+        # edge is the answer, so offset_x is read there and not at the far one.
+        check("tofr1F's drawn temple is 673 px wide", xs[-1] - xs[0] + 1, 673)
+        check("tofr1F's offset_x is that near edge", offset[0] - cols[0] * 16,
+              xs[0])
 
     for f in fails:
         print("     " + f)
