@@ -96,7 +96,7 @@ def main():
     doc = json.load(open(os.path.join(PACK, board)))
     tiles = regen_maps.marker_tiles(rom, board)
 
-    placed, unplaced, anchors = op.resolve(rom, reader, graph, doc, tiles)
+    placed, unplaced, anchors = op.resolve(rom, graph, doc, tiles)
     pins = [name for name, _ in op.pin_names(doc)]
     print(f"-- {os.path.basename(path)}: {len(pins)} pins on the overworld art")
 
@@ -121,7 +121,7 @@ def main():
               got_short >= expected_short, True)
     check("and the rest are placed", len(placed) + len(unplaced), len(pins))
 
-    doors = op.door_cells(reader)
+    doors = op.door_cells(graph.doors)
     on_a_door = set(doors.values())
     props = ro.props(rom)
     rows = None

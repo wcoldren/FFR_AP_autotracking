@@ -2022,7 +2022,7 @@ def main():
     board_doc = lenient(os.path.join(PACK, dungeon_locations))
     if mode == "std":
         ow_placed, ow_unplaced, ow_anchors = overworld_pins.resolve(
-            rom, ow_reader, ow_graph, board_doc, tiles_by_name)
+            rom, ow_graph, board_doc, tiles_by_name)
         # Stack the pins that share a door before the box is measured, so a pin
         # nudged clear of another is inside the art rather than off the top of
         # it. The step is a marker's height and the marker is a fraction of the
@@ -2053,7 +2053,7 @@ def main():
         # because the nudge is measured in markers and the marker is what the
         # loop is settling. It reads the unnudged doors every pass, so nothing
         # compounds and the fixed-point argument above still holds.
-        raw_doors = overworld_pins.entrance_door_pins(ow_reader)
+        raw_doors = overworld_pins.entrance_door_pins(ow_graph.doors)
         ow_box = overworld_pins.content_box(
             list(ow_placed.values()) + list(raw_doors.values()))
         for _ in range(8):
@@ -2175,7 +2175,7 @@ def main():
         # cartridge only, ow_maps being empty otherwise.
         if rel is incentive_locations and mode == "std":
             placed_here, un_here, _ = overworld_pins.resolve(
-                rom, ow_reader, ow_graph, doc, tiles_by_name, mirror=ow_mirror)
+                rom, ow_graph, doc, tiles_by_name, mirror=ow_mirror)
             # The sheet mirrors the door-free stacking, so its pins arrive
             # already parted from each other and standing on the doors they
             # name; this only separates any of its own that land together.
@@ -2217,7 +2217,7 @@ def main():
             # the pack would look tiles up against the cartridge before it.
             files[ENTRANCE_LINKS_FILE] = build_entrance_links(
                 group["children"],
-                {**overworld_pins.entrance_door_members(ow_reader),
+                {**overworld_pins.entrance_door_members(ow_graph.doors),
                  **entrance_members(ow_graph)}).encode()
         pin_visibility.stamp(doc)
         files[rel] = (json.dumps(doc, indent=4) + "\n").encode()

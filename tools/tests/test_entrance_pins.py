@@ -311,7 +311,8 @@ def main():
         return 0
     rom = open(path, "rb").read()
     reader = entrance_graph.Rom(path)
-    doors = op.entrance_door_pins(reader)
+    graph = entrance_graph.Graph(reader)
+    doors = op.entrance_door_pins(graph.doors)
     print(f"-- {os.path.basename(path)}: {len(doors)} doors carry a tile")
 
     on_a_door = teleport_tiles(reader)
@@ -328,7 +329,6 @@ def main():
     # The floor links. The filter is the whole thing here, so it is asserted
     # from the other side as well: what the kinds are, and what including the
     # wrong one would cost.
-    graph = entrance_graph.Graph(reader)
     links = regen_maps.entrance_tiles(graph)
     kinds = {}
     warps = 0
@@ -494,7 +494,7 @@ def main():
     # middle of the cluster. So the interesting property is not that the pin's
     # own tile is in the table -- it is that the others are, and that every
     # entry names a section the tree actually has.
-    door_members = op.entrance_door_members(reader)
+    door_members = op.entrance_door_members(graph.doors)
     link_members = regen_maps.entrance_members(graph)
     members = {**door_members, **link_members}
     lua = regen_maps.build_entrance_links(group["children"], members)
