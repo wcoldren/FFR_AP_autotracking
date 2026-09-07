@@ -106,6 +106,12 @@ OW_TILES = 128
 
 ENTR_COUNT = 32
 EXIT_COUNT = 16
+
+# What the bridge publishes for "not in a standard map", and what an edge log
+# therefore carries on either side of an overworld door. It matches
+# bridge/ffr_uat_bridge.lua's MAP_OVERWORLD and scripts/autotracking/maptab.lua,
+# which is the point of writing it down rather than spelling -1 three times.
+MAP_OVERWORLD_ID = -1
 NORM_COUNT_EXT = 256
 
 # ------------------------------------------------------------ tile properties
@@ -1308,6 +1314,107 @@ def check_noverworld_towns(g, mode, why=None):
     return True
 
 
+def read_edge_log(path):
+    """[(from map, col, row, to map, col, row)] out of a bridge edge log.
+
+    The file is the cartridge id on its first line and one record per line
+    after it, six integers each, -1 for the overworld. Written by
+    bridge/ffr_uat_bridge.lua; the id is not checked here, because a log handed
+    to this tool by name is a log somebody meant to grade against this ROM.
+    """
+    out = []
+    with open(path) as f:
+        for line in f:
+            fields = line.strip().split(",")
+            if len(fields) != 6:
+                continue
+            try:
+                out.append(tuple(int(v) for v in fields))
+            except ValueError:
+                continue
+    return out
+
+
+def expected_edge(g, fm, fc, fr):
+    """Where the cartridge says a door at (fm, fc, fr) comes out.
+
+    Returns (destination, why): the destination as (map, col, row), or None
+    with a reason nobody can be graded against.
+
+    This is the reading the bridge is forbidden to make -- it is the whole
+    permutation, which is why grading happens here at a terminal and not in the
+    tracker.
+    """
+    if fm == MAP_OVERWORLD_ID:
+        for door, cells in g.doors.items():
+            if (fc, fr) in cells:
+                return ((g.entr_map[door],
+                         coord(g.entr_x[door]), coord(g.entr_y[door])), None)
+        return (None, "no overworld door stands on that tile")
+    for x, y, kind, pay in g.teleports(fm):
+        if (x, y) != (fc, fr):
+            continue
+        if kind == TP_TELE_NORM:
+            return ((g.norm_map[pay],
+                     coord(g.norm_x[pay]), coord(g.norm_y[pay])), None)
+        if kind == TP_TELE_EXIT:
+            if pay >= EXIT_COUNT:
+                return (None, f"exit teleport {pay} is off the end of the table")
+            return ((MAP_OVERWORLD_ID, g.exit_x[pay], g.exit_y[pay]), None)
+        # bank_0F.asm:2214-2217: a warp tile pops the scroll, map and tileset
+        # the last normal teleport pushed. Where it comes out is on the 6502
+        # stack and in no table, so it is ungradeable by construction rather
+        # than unmeasured.
+        return (None, "a warp tile -- its destination is on the stack, not in a table")
+    return (None, "no teleport tile there")
+
+
+def grade_edges(g, path):
+    """Grade a played edge log against the cartridge. True when nothing disagreed.
+
+    The observation channel has no other oracle. The bridge learns the
+    permutation by watching the party walk and never reads a teleport table;
+    this tool reads nothing else, so the two answers are independent, which is
+    the only thing that makes agreement worth anything.
+    """
+    log = read_edge_log(path)
+    agree, wrong, ungradeable = 0, [], []
+    for fm, fc, fr, tm, tc, tr in log:
+        want, why = expected_edge(g, fm, fc, fr)
+        if want is None:
+            ungradeable.append((fm, fc, fr, tm, tc, tr, why))
+        elif want == (tm, tc, tr):
+            agree += 1
+        else:
+            wrong.append((fm, fc, fr, tm, tc, tr, want))
+
+    def where(m, c, r):
+        if m == MAP_OVERWORLD_ID:
+            return f"overworld ({c},{r})"
+        name = MAP_NAMES[m] if m < MAP_COUNT else f"map {m}"
+        return f"{name} ({c},{r})"
+
+    print(f"grading {len(log)} walked door(s) against the cartridge")
+    for fm, fc, fr, tm, tc, tr, want in wrong:
+        print(f"  DISAGREES  {where(fm, fc, fr)} -> {where(tm, tc, tr)}, "
+              f"but the cartridge says {where(*want)}")
+    for fm, fc, fr, tm, tc, tr, why in ungradeable:
+        print(f"  ungraded   {where(fm, fc, fr)} -> {where(tm, tc, tr)}: {why}")
+
+    # What has not been walked yet, so a run of agreements is read next to how
+    # much of the seed it covers. A log of three doors agreeing three times is
+    # not evidence about the other hundred and seventy.
+    links = sum(1 for m in range(MAP_COUNT)
+                for _, _, k, _ in g.teleports(m)
+                if k in (TP_TELE_NORM, TP_TELE_EXIT))
+    links += sum(len(cells) for cells in g.doors.values())
+    print(f"  {agree} agree, {len(wrong)} disagree, "
+          f"{len(ungradeable)} ungradeable")
+    print(f"  {links} tiles on this cartridge are a door or a staircase, "
+          f"so most of them are still unwalked")
+    return not wrong
+
+
 def self_check(g):
     """The byte-0/byte-1 regression test.
 
@@ -1846,6 +1953,9 @@ def main():
                     help="the two permutations the flag string cannot say: "
                          "the Cardia gateways and the objective NPCs")
     ap.add_argument("--self-check", action="store_true", help="staircases must not be chests")
+    ap.add_argument("--grade", metavar="LOG",
+                    help="grade a bridge edge log (ffr_edges.<rom>.state) "
+                         "against this cartridge's own teleport tables")
     ap.add_argument("-o", "--out", help="write the graph as JSON")
     args = ap.parse_args()
 
@@ -1862,7 +1972,7 @@ def main():
     # bare door table read vanilla structures, and --tables is the thing you run
     # to see what is at that offset on an image that has no such tables.
     info = ffr_info(rom)
-    if info is None and any((args.dump, args.to, args.to_npc, args.out)):
+    if info is None and any((args.dump, args.to, args.to_npc, args.out, args.grade)):
         sys.exit(f"{args.rom}: no FFRInfo record -- this is not a Final Fantasy "
                  "Randomizer cartridge, and the tables this tool routes with only "
                  "exist on one. Try --tables to see what is at that offset.")
@@ -1873,6 +1983,8 @@ def main():
     ok, npc_reached = True, True
     if args.self_check:
         ok = self_check(g)
+    if args.grade:
+        ok = grade_edges(g, args.grade) and ok
     if args.gates:
         print_gates(g)
     if args.rolls:
@@ -1911,7 +2023,7 @@ def main():
         else:
             npc_reached = False
     if not any((args.self_check, args.gates, args.rolls, args.trades, args.tables,
-                args.dump, args.to, args.to_npc, args.out)):
+                args.dump, args.to, args.to_npc, args.out, args.grade)):
         print_doors(g, tabs)
 
     if args.out:

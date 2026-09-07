@@ -35,14 +35,21 @@ What is checked:
     This is what scripts/autotracking/edges.lua reads to mark a door the party
     walked through, and the tiles that are *not* the pin's own are the whole
     reason it exists
+  * entrance_graph --grade agrees with a log built from the cartridge's own
+    tables, and disagrees the moment one destination is moved. That grader is
+    the only independent reading of the observation channel there is: the
+    bridge learns the permutation by watching the party walk and never opens a
+    teleport table, and the grader opens nothing else
 
 Set FF1_ROM to a cartridge; without one the cartridge half skips.
 """
 
+import io
 import os
 import re
 import struct
 import sys
+import tempfile
 import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -81,6 +88,15 @@ def markers(nodes, out=None):
             out.append((node.get("name"), marker))
         markers(node.get("children") or [], out)
     return out
+
+
+def quiet(fn, *args):
+    """Call `fn` with its report swallowed -- the rows below read the verdict."""
+    out, sys.stdout = sys.stdout, io.StringIO()
+    try:
+        return fn(*args)
+    finally:
+        sys.stdout = out
 
 
 def teleport_tiles(reader):
@@ -478,6 +494,64 @@ def main():
     print(f"-- {len(table)} tiles resolve to {len(sections)} pins, "
           f"{extra} of them a tile the pin is not named after")
     check("a doorway is wider than its pin somewhere", extra > 0, True)
+
+    # The grader that stands behind the observation channel. It reads the
+    # cartridge's own teleport tables, which is the reading the bridge is
+    # forbidden to make, so the two answers are independent -- and that
+    # independence is the only thing agreement is worth anything for.
+    log, ungradeable = [], []
+    for door, cells in sorted(graph.doors.items()):
+        if cells:
+            log.append((-1, cells[0][0], cells[0][1], graph.entr_map[door],
+                        entrance_graph.coord(graph.entr_x[door]),
+                        entrance_graph.coord(graph.entr_y[door])))
+    for map_id in range(entrance_graph.MAP_COUNT):
+        for x, y, kind, pay in graph.teleports(map_id):
+            if kind == entrance_graph.TP_TELE_NORM:
+                log.append((map_id, x, y, graph.norm_map[pay],
+                            entrance_graph.coord(graph.norm_x[pay]),
+                            entrance_graph.coord(graph.norm_y[pay])))
+            elif (kind == entrance_graph.TP_TELE_EXIT
+                  and pay < entrance_graph.EXIT_COUNT):
+                log.append((map_id, x, y, -1,
+                            graph.exit_x[pay], graph.exit_y[pay]))
+            else:
+                ungradeable.append((map_id, x, y))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        good = os.path.join(tmp, "edges.state")
+        with open(good, "w") as f:
+            f.write("sha-fixture\n")
+            f.writelines("%d,%d,%d,%d,%d,%d\n" % rec for rec in log)
+        check("a log of every door agrees with the cartridge",
+              quiet(entrance_graph.grade_edges, graph, good), True)
+        check("  and it was not a handful of doors",
+              len(entrance_graph.read_edge_log(good)), len(log))
+
+        # The row that makes the one above mean something. A grader that only
+        # ever agrees is worth nothing, so one destination is moved and the
+        # same call has to come back false.
+        moved = list(log)
+        moved[0] = moved[0][:3] + ((moved[0][3] + 1) % entrance_graph.MAP_COUNT,
+                                   moved[0][4], moved[0][5])
+        bad = os.path.join(tmp, "bad.state")
+        with open(bad, "w") as f:
+            f.write("sha-fixture\n")
+            f.writelines("%d,%d,%d,%d,%d,%d\n" % rec for rec in moved)
+        check("one destination moved is caught",
+              quiet(entrance_graph.grade_edges, graph, bad), False)
+
+    # Exit and Warp cast off a door are the shape that must read as ungradeable
+    # rather than as wrong: a tile that is no teleport at all has no answer on
+    # the cartridge to disagree with.
+    want, why = entrance_graph.expected_edge(graph, 5, 40, 40)
+    check("a tile that is no teleport has no expected destination", want, None)
+    check("  and says why", "no teleport tile there" in (why or ""), True)
+    if ungradeable:
+        map_id, x, y = ungradeable[0]
+        _, why = entrance_graph.expected_edge(graph, map_id, x, y)
+        check("a warp tile is ungradeable, not wrong",
+              "stack" in (why or ""), True)
 
     return 1 if fail else 0
 

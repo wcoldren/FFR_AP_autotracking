@@ -6,8 +6,14 @@ rules FFR hands Archipelago — and `tools/check_logic.py` compares that with th
 pack's rules as truth tables. This file says which cartridge answers which
 question, and how to rebuild any of them from nothing.
 
-Seven cartridges, all 4.9.2, all generated locally with `Spoilers` and
+Eight cartridges, all 4.9.2, all generated locally with `Spoilers` and
 `Archipelago` on so the export is attached.
+
+Seven of them answer a question about the pack's *rules*, through
+`tools/check_logic.py`. The eighth, `entrances`, answers a different one and is
+listed here because it is a corpus cartridge in every other respect: it is the
+only one whose doors have been shuffled, and it is what the bridge's edge log
+and `entrance_graph --grade` are exercised against.
 
 **All 4.9.2 is a limit as well as a fact.** `ShipDrydock`, `MapAirshipHike` and
 `MapCardiaLandBridge` do not exist in FFR at the 4.9.2 release commit, so no
@@ -28,6 +34,7 @@ the export drops ToFR.
 | `notail` | `oracle_notail` | `45057553` | GameMode 0, ToFRMode 0 (Long), NoTail | that `NoTail` reaches no exported rule — see below |
 | `novnolefein` | `oracle_novnolefein` | `F2585541` | the same as `nov`, minus `LefeinSuperStore` | what `LefeinSuperStore` does to a No-Overworld seed, which is nothing a router sees |
 | `novhoard` | `oracle_novhoard` | `F2585541` | the same as `nov`, plus `MapDragonsHoard`, with `IncentivizeCardia` still off | the No-Overworld half of the cardia split, which the six standard hoard cartridges could not answer for |
+| `entrances` | `oracle_entrances` | `E17A11CE` | GameMode 0, ToFRMode 0 (Long), `Entrances` + `Towns` + `Floors` | the only cartridge here whose doors move — what the observation channel is graded on |
 
 Modes are quoted as **read back off the cartridge**, never off the filename —
 that trap has bitten more than once.
@@ -47,6 +54,7 @@ prose for these as well; the paragraph below about `F258553F` says why.
     shard        omlInPoZ8aeCvsimCReMV9G4KHYm3TUYASJBGOBHlVOiR1kCNT91VO6GOxnA9GbEBb7YM1kQIzMfs8M3W7C8VP-aE5sJ0h2VYqBCNFMidFYuxFDg.QyWC6OgqMHtZPIrzXE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
     notail       omlInPoZ8aeRURUYe2aUg0I8HZZCUXtPc76esLTcnyl5plsgMDVIQ3lOapR226xybGTTrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
     novnolefein  omlY4TDJ0WBi73FLBF5VGzzAxztAsvA1h7hrrqcjdsidtXDK56cD4rAwa.3JnP7xA1eccFbQG-e.47l5WKeeBsCx37sjlvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
+    entrances    omlHJbMGe6RWURUYlp1dofYCDVQgVyzSpAduB9BO3eDEYtDcZg688txmIj9XUOac5zPR1R1tZNWsKI9Q7dEI2loLexABq2.aMg88qWtukrNi9bw7cmy8BcEvuNmxVgGcJKrw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
     novhoard     omlY4TDJ0WBi73FLBFbuh.G9jOSOon1ZIuedRm9rW-heEZ4V2WL9-Hw-Gyqnw1rWU7PuPNdGWIaJq5Lgg3-We-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
 
 Each cartridge sits in its own directory with its spoiler `.txt`, its
@@ -813,7 +821,10 @@ will not accept a path. Each flags preset is a stock 4.9.2 preset from
 `ArchipelagoEquipment`, `ArchipelagoGold`, `ArchipelagoShards`. The pool flags
 are what take FFR's `rules:` from the key items alone up to 225 locations.
 `oracle_std` is `default.json`, `oracle_nov` is `NOverworld.json`, `oracle_shard`
-is `Shard_Hunt.json`. `oracle_novnolefein` is `oracle_nov.json` with
+is `Shard_Hunt.json`. `oracle_entrances` is `oracle_std.json` with `Entrances`,
+`Towns` and `Floors` set `true` and nothing else -- three lines and the `Name`,
+which is what makes a difference in what it draws attributable to the shuffle
+rather than to the seed. `oracle_novnolefein` is `oracle_nov.json` with
 `LefeinSuperStore` set `false` and nothing else, and `oracle_novhoard` is the
 same file with `MapDragonsHoard` set `true` -- `IncentivizeCardia` is already
 `false` there, which is the pair that combination was rolled for. Each differs
