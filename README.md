@@ -57,7 +57,10 @@ Single sprites are a deliberate exception. A tracker cell wants an icon,
 icon lifted and recoloured for a tracker is ordinary practice in this community.
 Icons made that way may ship here. Two do: `images/icons/door_shut.png` and
 `door_open.png`, the tooltip icon for an entrance pin, written by
-`tools/make_door_icons.py` off the locked-door tile. They are committed rather
+`tools/make_door_icons.py` off the locked-door tile. The same writer produces a
+third, `door_badge.png`, which is transparent: the destination text sits in a
+cell of its own beside the door, and PopTracker draws no overlay on an item
+that has no picture at all, so that cell needs one it cannot see. They are committed rather
 than left to a regen because `Pack::hasFile` does not consult the user-override,
 so a section image that lives only there falls back to PopTracker's chest. The
 door is vanilla tile art -- byte-identical off all four measured cartridges --
@@ -238,7 +241,7 @@ whole point on a seed that shuffled them.
 And it says where it went. Click a door pin and the tooltip carries a small
 door with the destination beside it -- `->Marsh Cave B1`, or `<-Coneria` for a
 door something else comes out of, or `<->Elfland` when both directions are the
-same map. Click that little door and the tab it names comes forward, with the
+same map. Click that destination and the tab it names comes forward, with the
 pin at the far end lit gold for a few seconds so you can see which one it is;
 right-click goes the other way, to whatever leads here. It only ever says what
 you have already seen from inside the game: the badge is filled in from the same

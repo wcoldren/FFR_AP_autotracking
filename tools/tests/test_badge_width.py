@@ -29,7 +29,10 @@ sys.path.insert(0, TOOLS)
 
 import overworld_pins  # noqa: E402
 
-FONT_REL = os.path.join("PopTracker", "assets", "DejaVuSans.ttf")
+# DEFAULT_FONT_NAME, defaults.h:10 -- the overlay is drawn in the bold face,
+# which trackerview.cpp:123 hands it. Measuring the regular one is how the
+# first cut of this set the slot a pixel under what the badge draws.
+FONT_REL = os.path.join("PopTracker", "assets", "DejaVuSans-Bold.ttf")
 
 
 def find_font():
@@ -44,7 +47,7 @@ def find_font():
     """
     named = os.environ.get("FF1_POPTRACKER")
     if named:
-        at = os.path.join(named, "assets", "DejaVuSans.ttf")
+        at = os.path.join(named, "assets", "DejaVuSans-Bold.ttf")
         return at if os.path.exists(at) else None
     at = PACK
     while True:

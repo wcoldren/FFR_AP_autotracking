@@ -1814,6 +1814,64 @@ which is the readable half of the point, and the cost is that a saved tracker
 state loses its cleared doors once. Worth saying out loud rather than finding in
 play.
 
+## The popup was printing everything on it twice
+
+Fixed 2026-09-07, on a play report: the hover carried the entrance's name and a
+door icon, and then both again, bigger and to the right. Both halves were real
+and neither was new -- but widening the slot the day before turned an adjacency
+nobody had remarked on into an obvious repeat, which is how it got noticed.
+
+**The name.** `MapTooltip` draws the location's name in the big font,
+right-aligned, and then each section's name in the small one, left-aligned
+(`maptooltip.cpp:63-80`, `:113-120`). The pack named the section for its node
+minus the `Entrance: ` prefix, so every entrance popup printed one string twice
+at two sizes. `Entrance: SeaShrineB3 49,37` and `SeaShrineB3 49,37` was quiet
+enough to live with; the same trick on `SeaShrineB3 NE Upstairs` is not.
+`overworld_pins.entrance_section_name` is now the one rule: the qualifier where
+there is one, the whole bare name where there is not, which is every overworld
+door -- `Coneria` has nothing to strip because the name *is* the door.
+Uniqueness never rested on it, since a section path is
+`@Entrances/<node>/<section>` and the node is the unique half.
+
+**The icon, and this is the part that is not redundancy.** The tooltip lays out
+`item_count` location icons and *then* every hosted item, so an entrance
+section has always been two cells: the door's state, which `edges.lua` opens
+when the party walks through, and the badge, which says where it went. Two
+different facts -- and both were drawing the same door picture, so they read as
+one thing printed twice.
+
+**The badge's cell is now blank, and it has to be blank rather than empty.**
+`TrackerView::makeItem` skips an item whose image is empty ("this allows blank
+items as placeholder"), and `Item::render` returns at `:262` -- before it
+reaches the overlay block. So a badge item with no icon draws no *text* either,
+and the cell has to hold a picture that happens to be invisible.
+`make_door_icons` writes a third file for it, `pngio.write_rgba` puts alpha in
+the encoder for the one image that needs it, and the guard that holds the
+committed icons to what the writer draws covers all three.
+
+**Neither cell could give way instead.** `item_count` has to stay 1 or the
+count `edges.lua` writes has nowhere to go, which is the trap this branch
+already paid for once; and `item_width` is per section and
+`maptooltip.cpp:133` hands the same size to both loops, so the two cells cannot
+be sized apart.
+
+**Two measurements in the section below this one were wrong, and are corrected
+there.** The badge is drawn in `DEFAULT_FONT_NAME`, which is
+`DejaVuSans-Bold.ttf` (`defaults.h:10`) by way of `trackerview.cpp:123`, and the
+first cut measured the regular face: 100.6px where the real figure is 111.3px.
+With the overlay's own two pixels of shadow that is 113.3px against a slot of
+112 -- so the constant was a pixel *under* what the badge draws, and the guard
+agreed with it because it was reading the same wrong file. The slot is 120 now
+and `test_badge_width.py` opens the bold face.
+
+**And a row in that guard's neighbour was vacuous on the first cut**, which is
+worth recording because it passed. The alpha reader took every fourth byte from
+the start of the decompressed data; a PNG carries a filter byte per row, so
+that is right for row 0 and drifts by one per row after it -- and on an
+all-transparent plate every byte is zero, so a wrong reader and a right one
+agree on the values. It is checked on its length as well now: 4,096 against the
+4,111 the broken one returns.
+
 ## The badge was rendering out through the side of the popup
 
 Fixed 2026-09-07, on a report that the hover tooltip "isn't quite wide enough".
@@ -1838,11 +1896,10 @@ height it warns to stderr and falls back to 32x32, silently undoing the width.
 The two go in together at both injection sites.
 
 **The width is measured, not chosen.** The widest badge line the pack can draw
-is 100.6px, read out of `DejaVuSans.ttf` at the 10px `SetOverlayFontSize`
+is 111.3px, read out of `DejaVuSans-Bold.ttf` at the 10px `SetOverlayFontSize`
 `entrance_items.lua` asks for, across every tab leaf in `mapValues.lua` and
-every name in `map_names.lua`. The slot is 112 rather than 103 because that
-measurement is of *this* copy of the font and a player runs the app's own;
-ten pixels is about two characters of slack.
+every name in `map_names.lua`. The slot is 120 rather than 114 because that
+measurement is of *this* copy of the font and a player runs the app's own.
 `tools/tests/test_badge_width.py` holds the two numbers together and fails when
 a tab is renamed longer, rather than leaving it to somebody's hover.
 
@@ -1850,12 +1907,12 @@ a tab is renamed longer, rather than leaving it to somebody's hover.
 The tooltip lays out a location icon *and* the hosted item at that width, so a
 popup is about twice it: fourteen names are trimmed -- the Ice Cave and Castle
 of Ordeals tabs, and the eight Revisited floors -- and without them the widest
-line is 166.6px and the popup would be half as wide again.
+line is 186.7px and the popup would be half as wide again.
 
 **And the trim used to be applied on one branch of two.** `mapName` preferred
 the tab leaf and fell back to `map_names.lua`, and only the leaf went through
 the abbreviation, so `TempleOfFiendsRevisitedChaos` -- the widest string the
-pack can produce, at 166.6px against a 110px budget -- sat on the one path
+pack can produce, at 186.7px against a 118px budget -- sat on the one path
 nothing checked. The guard found it on its first run, which is the argument for
 the guard: every map on the board is claimed by a tab today, so the fallback is
 a branch a person reads past and a measurement does not.
