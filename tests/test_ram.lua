@@ -746,9 +746,18 @@ check("airBoat does not open it on the Floater alone", inLogic("Cardia Forest"),
 -- $noShipDrydock like every other alternative naming the Ship, and the RAM
 -- clause carries the same guard, or the clause would hand out `airship` and
 -- open every `$standardWorld,airship` alternative behind the rule's back.
+--
+-- $6004 is set here, and that is the whole point of the row. A guard on the
+-- clause alone leaves the $6004 rule reading the byte as possession, and on
+-- this seed the byte says 1 whenever the welded vehicle is parked in airship
+-- shape -- so the player who parks is credited with an airship the guard was
+-- written to deny them, and the one who takes off loses it again. The rule
+-- carries `notUnderAirBoat` for that reason; with the guard on the clause only,
+-- both checks below fail.
 reset()
 MEM[0x600C] = 1
 MEM[0x602B], MEM[0x6000] = 1, 1
+MEM[0x6004] = 1                                  -- parked in airship shape
 byCode["airBoat"].Active = true
 byCode["shipDrydock"].Active = true
 applyRamRules(byteAt)
@@ -761,7 +770,7 @@ byCode["shipDrydock"].Active = false
 -- Every case above reaches Cardia Forest through the *pre-existing*
 -- `$standardWorld,airship` alternative, because the RAM clause raises the
 -- Floater to its airship stage and `airship` is then provided. That grades the
--- clause and says nothing at all about the ~150 `airBoat,...,floater,ship`
+-- clause and says nothing at all about the 102 `airBoat,...,floater,ship`
 -- lines the trees gained with it -- reverting every one of them left this file
 -- green.
 --

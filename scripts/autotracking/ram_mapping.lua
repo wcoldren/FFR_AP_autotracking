@@ -146,8 +146,15 @@ RAM_RULES = {
   { code = "slab", stage = 2, addr = 0x620F, mask = 0x02 },     -- Lefein
 
   -- Floater, then the airship it produces.
+  --
+  -- `notUnderAirBoat` is the airship half only, and it is a suppression rather
+  -- than an override: on an AirBoat cartridge $6004 is the welded vehicle's
+  -- current shape and not possession, so the byte has to stop being read at all
+  -- rather than be read and then corrected. The clause in applyRamRules that
+  -- puts the stage back is the possession reading, and it carries a drydock
+  -- guard this rule has no way to carry.
   { code = "floater", stage = 0, addr = 0x602B },
-  { code = "floater", stage = 1, addr = 0x6004 },               -- airship_vis
+  { code = "floater", stage = 1, addr = 0x6004, notUnderAirBoat = true },  -- airship_vis
 
   -- Vehicles and world state.
   { code = "ship",   stage = 0, addr = 0x6000 },
@@ -334,8 +341,12 @@ end
 function applyRamRules(byteAt)
   local best = {}
   local seen = false
+  -- Read once, because two things below turn on it: the rules it suppresses,
+  -- and the possession clause that stands in for one of them.
+  local airBoat = Tracker:FindObjectForCode("airBoat")
+  local underAirBoat = (airBoat and airBoat.Active) and true or false
   for _, rule in ipairs(RAM_RULES) do
-    local byte = byteAt(rule.addr)
+    local byte = (not (underAirBoat and rule.notUnderAirBoat)) and byteAt(rule.addr) or nil
     if byte then
       seen = true
       local hit
@@ -381,6 +392,14 @@ function applyRamRules(byteAt)
   -- walked back a stage on every take-off and every docking, and the board's
   -- airship alternatives went red and green with it.
   --
+  -- Which is why the byte is suppressed rather than outvoted. `best` keeps the
+  -- highest stage any rule reached, so a clause that only ever raises cannot
+  -- undo a reading, and the $6004 rule's reading is wrong in both directions
+  -- here: it grants the airship to a parked vehicle and takes it away from a
+  -- flying one. `notUnderAirBoat` on that rule is what stops it being read, and
+  -- this clause is the whole of what replaces it -- including on the drydock
+  -- seed below, where the replacement is deliberately nothing.
+  --
   -- Possession is the conjunction FFR's own checker uses: SanityCheckerV2.cs
   -- :736-742 and :754-760 both call LiftOff() the moment the Ship and the
   -- Floater are held together. The Floater survives it -- EnableAirBoat patches
@@ -403,9 +422,8 @@ function applyRamRules(byteAt)
   -- this file is written to avoid. No cartridge in either corpus sets both flags
   -- at once, so check_logic cannot see this one: it grades the trees, and the
   -- trees were already right.
-  local airBoat = Tracker:FindObjectForCode("airBoat")
   local drydock = Tracker:FindObjectForCode("shipDrydock")
-  if airBoat and airBoat.Active and not (drydock and drydock.Active) then
+  if underAirBoat and not (drydock and drydock.Active) then
     local shipVis = byteAt(0x6000)        -- ship_vis
     local itemFloater = byteAt(0x602B)    -- item_floater
     if shipVis and itemFloater and (shipVis & 0x7F) ~= 0 and itemFloater ~= 0
