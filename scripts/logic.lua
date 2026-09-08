@@ -52,6 +52,28 @@ function noShipDrydock()
   return 1
 end
 
+-- Whether the airship is a thing you raise, or the Ship in another shape.
+--
+-- FFR's "AirBoat" (AirBoat) welds the two vehicles into one: Hacks.cs:107
+-- patches out the desert turn-in -- PutInBank(0x0E, 0xB25F, "EAEA38"), commented
+-- "disable floater raising the airship" -- and asm/1B_A000_AirBoatRoutines.asm
+-- puts the take-off on the A button instead, gated on holding the Floater while
+-- aboard the Ship. So on such a seed the Ryukahn Desert cell is not how anyone
+-- gets airborne, and this guard is what takes it out of the trees.
+--
+-- Which is also why every airship alternative has a sibling naming
+-- `airBoat,...,floater,ship`: that conjunction is FFR's own condition for the
+-- MapChange, SanityCheckerV2.cs:736-742 and :754-760 both calling LiftOff() the
+-- moment the two are held together, and SCLogic.cs:122,129 walking the airship's
+-- reachable areas out from the Ship's own tile restricted by Floater | Ship.
+function noAirBoat()
+  local flag = Tracker:FindObjectForCode("airBoat")
+  if flag and flag.Active then
+    return 0
+  end
+  return 1
+end
+
 -- ShuffleObjectiveNPCs permutes Bahamut, Dr Unne and the Elf Doctor across
 -- BahamutCave2, Melmond and Elfland Castle (NPCs.cs:277). The flag says the
 -- shuffle happened; it does not say where anyone went, because the permutation

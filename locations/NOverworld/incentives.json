@@ -110,6 +110,7 @@
                     "$standardWorld,openProgression",
                     "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,extendedOpen",
                     "$noOverworld"
                 ],
@@ -139,6 +140,7 @@
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,extendedOpen",
                     "$noOverworld"
                 ],
@@ -168,6 +170,7 @@
                     "$standardWorld,bridge",
                     "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,extendedOpen,canoe",
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,lefeinBridge",
@@ -199,6 +202,7 @@
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,extendedOpen",
                     "$noOverworld"
                 ],
@@ -209,6 +213,7 @@
                             "herb,elfdocInElflandCastle,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
                             "herb,$noObjectiveShuffle,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
                             "herb,objectiveNPCs,$standardWorld,airship,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
+                            "herb,objectiveNPCs,airBoat,$standardWorld,$noShipDrydock,floater,ship,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
                             "herb,objectiveNPCs,airshipHike,$standardWorld,$noShipDrydock,floater,ship,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
                             "herb,objectiveNPCs,cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
                             "herb,objectiveNPCs,$standardWorld,$noShipDrydock,cardiaDock,ship,canal,^$incentiveSlot|fetchQuestsAreIncentive,^$incentiveSlot|npcFetchItems",
@@ -239,6 +244,7 @@
                     "$standardWorld,bridge",
                     "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,extendedOpen,canoe",
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,lefeinBridge",
@@ -270,6 +276,7 @@
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,extendedOpen",
                     "$noOverworld"
                 ],
@@ -299,6 +306,7 @@
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,$noShipDrydock,ship",
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,extendedOpen",
                     "$noOverworld"
                 ],
@@ -332,7 +340,9 @@
                 "name": "I: Sarda's Cave",
                 "access_rules": [
                     "$standardWorld,$noSardasForest,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,$noSardasForest,floater,ship",
                     "$standardWorld,ruby,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,ruby,floater,ship",
                     "$standardWorld,$noShipDrydock,ruby,ship,canal",
                     "$standardWorld,melmondRiver,canoe,ruby",
                     "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
@@ -365,6 +375,7 @@
                 "name": "I: Titan's Trove",
                 "access_rules": [
                     "$standardWorld,ruby,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,ruby,floater,ship",
                     "$standardWorld,$noShipDrydock,ruby,ship,canal",
                     "$standardWorld,melmondRiver,canoe,ruby",
                     "airshipHike,$standardWorld,$noShipDrydock,ruby,floater,ship",
@@ -394,6 +405,7 @@
                 "name": "I: Earth Cave",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,$noShipDrydock,ship,canal",
                     "$standardWorld,melmondRiver,canoe",
                     "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
@@ -435,6 +447,7 @@
                 "name": "I: Crescent Lake",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,$noShipDrydock,ship,canal",
                     "$standardWorld,extendedOpen,canoe",
@@ -469,6 +482,7 @@
                 "name": "I: Ice Cave",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,$noShipDrydock,ship,canoe",
                     "$standardWorld,bridge,canoe",
                     "$standardWorld,openProgression,canoe",
@@ -501,6 +515,7 @@
                 "name": "I: Volcano",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,openProgression,canoe",
                     "$standardWorld,extendedOpen,canoe",
                     "$standardWorld,$noShipDrydock,ship,canoe",
@@ -540,6 +555,7 @@
                 "name": "I: Bahamut",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "$standardWorld,$noShipDrydock,cardiaDock,ship,canal",
@@ -582,6 +598,7 @@
                 "name": "I: Cardia Incentive",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "cardiaLandBridge,cardiaDock,$standardWorld,$noShipDrydock,ship,canal",
@@ -655,6 +672,7 @@
                 "name": "I: Ordeals",
                 "access_rules": [
                     "$standardWorld,airship,canoe",
+                    "airBoat,$standardWorld,$noShipDrydock,canoe,floater,ship",
                     "$standardWorld,$noShipDrydock,ship,canal,canoe",
                     "$standardWorld,lefeinBridge,hwyOrdeals,bridge,canoe",
                     "$noOverworld,$hasCanoe"
@@ -690,6 +708,7 @@
                 "name": "I: Lefein",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,$noShipDrydock,lefeinRiver,canoe,ship,canal",
                     "$standardWorld,bridge,lefeinBridge",
                     "$standardWorld,$noShipDrydock,hwyOrdeals,ship,canal,canoe",
@@ -723,6 +742,7 @@
                 "name": "I: Gaia",
                 "access_rules": [
                     "$standardWorld,airship",
+                    "airBoat,$standardWorld,$noShipDrydock,floater,ship",
                     "$standardWorld,$noShipDrydock,lefeinRiver,gaiaMountain,ship,canal,canoe",
                     "$standardWorld,$noShipDrydock,northernDocks,hwyOrdeals,gaiaMountain,ship,canal",
                     "$standardWorld,$noShipDrydock,hwyOrdeals,gaiaMountain,ship,canal,canoe",
@@ -754,6 +774,7 @@
                 "name": "I: Sky Palace",
                 "access_rules": [
                     "$standardWorld,airship,chime,cube",
+                    "airBoat,$standardWorld,$noShipDrydock,chime,cube,floater,ship",
                     "$standardWorld,$noShipDrydock,northernDocks,ship,canal,chime,cube",
                     "$standardWorld,lefeinBridge,bridge,hwyOrdeals,chime,cube",
                     "$standardWorld,$noShipDrydock,hwyOrdeals,ship,canal,canoe,chime,cube",
@@ -793,6 +814,7 @@
                 "name": "I: Waterfall",
                 "access_rules": [
                     "$standardWorld,airship,canoe",
+                    "airBoat,$standardWorld,$noShipDrydock,canoe,floater,ship",
                     "$standardWorld,$noShipDrydock,northernDocks,ship,canal,canoe",
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship",
                     "$noOverworld,$hasFloater"
@@ -821,8 +843,9 @@
                 "name": "I: Sea Shrine",
                 "access_rules": [
                     "$standardWorld,airship,canoe,oxyale",
+                    "airBoat,$standardWorld,$noShipDrydock,canoe,oxyale,floater,ship",
                     "$standardWorld,$noShipDrydock,northernDocks,ship,canal,oxyale",
-                    "$standardWorld,$noShipDrydock,northernDocks,airBoat,airship,ship,oxyale",
+                    "airBoat,$standardWorld,$noShipDrydock,northernDocks,oxyale,floater,ship",
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship,oxyale",
                     "$noOverworld,$hasCanoe,$hasFloater,oxyale",
                     "$noOverworld,chime,$hasFloater"
@@ -846,8 +869,9 @@
                 "name": "I: Sea Incentive",
                 "access_rules": [
                     "$standardWorld,airship,canoe,oxyale",
+                    "airBoat,$standardWorld,$noShipDrydock,canoe,oxyale,floater,ship",
                     "$standardWorld,$noShipDrydock,northernDocks,ship,canal,oxyale",
-                    "$standardWorld,$noShipDrydock,northernDocks,airBoat,airship,ship,oxyale",
+                    "airBoat,$standardWorld,$noShipDrydock,northernDocks,oxyale,floater,ship",
                     "cardiaLandBridge,$standardWorld,$noShipDrydock,canoe,canal,ship,oxyale",
                     "$noOverworld,$hasCanoe,$hasFloater,oxyale",
                     "$noOverworld,chime,$hasFloater"

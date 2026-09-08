@@ -120,6 +120,12 @@ FREE_FLAGS = {
 LUA_RULES = {
     "$noSardasForest": lambda flags: flags.get("MapSardasForest") is not True,
     "$noShipDrydock": lambda flags: flags.get("ShipDrydock") is not True,
+    # AirBoat welds the Ship and the airship into one vehicle and patches out
+    # the desert turn-in that would otherwise raise the airship (Hacks.cs:107),
+    # so on such a seed the pack's Floater Turn In cell is not a way to get
+    # airborne and this guard takes it out of the tree. What replaces it is the
+    # `airBoat,...,floater,ship` sibling every airship alternative now carries.
+    "$noAirBoat": lambda flags: flags.get("AirBoat") is not True,
     # ShuffleObjectiveNPCs moves Bahamut, Dr Unne and the Elf Doctor between
     # their three homes, and the permutation is rolled at generation rather
     # than written into the flag string. The pack answers that by requiring
@@ -311,13 +317,26 @@ AIRSHIP_SECTION = "Ryukahn Desert/Floater Turn In"
 
 def airship_chain(sections):
     """What it takes to reach the desert and raise the airship, as the pack has
-    it. Everything above the Floater Turn In section, but not the section's own
-    rule -- that one is "you are holding the floater", which is the other half
-    of the condition and is applied separately."""
+    it. Everything above the Floater Turn In section, plus whatever the section
+    asks for beyond `inactiveFloater` -- that term is "you are holding the
+    floater", which is the other half of the condition and is applied
+    separately, but it is no longer the whole of the section's rule. The
+    `$noAirBoat` guard beside it is a real gate: on an AirBoat seed FFR patches
+    the turn-in out (Hacks.cs:107), so the desert stops being a way to get
+    airborne and this chain has to stop granting the code.
+
+    An alternative left empty by the strip is dropped rather than kept, because
+    an empty term list never matches -- see `as_chain`, where the same trap is
+    written up at length."""
     path = find_section(sections, AIRSHIP_SECTION)
     if path is None:
         raise SystemExit("cannot find %r -- the airship rule moved" % AIRSHIP_SECTION)
-    return sections[path]["chain"][:-1]
+    chain = sections[path]["chain"]
+    own = [alt for alt in
+           (",".join(t for t in alt.split(",") if t.strip() != "inactiveFloater")
+            for alt in chain[-1])
+           if alt]
+    return chain[:-1] + ([own] if own else [])
 
 
 def with_airship(provided, raise_chain):
