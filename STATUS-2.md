@@ -2079,3 +2079,85 @@ the walk would follow a seed that moved them.
 Nothing is wired into `regen_maps` yet. What this closes is the question of
 whether the derivation is trustworthy enough to build on, and the answer is on
 the record now rather than in a session.
+
+
+## The airship is the Ship, on a cartridge that says so
+
+Landed 2026-09-08, `2257671..0651e25`, four commits. FFR's `AirBoat` welds the
+two vehicles into one: `Hacks.cs:107` patches the Ryukahn Desert turn-in out --
+`PutInBank(0x0E, 0xB25F, "EAEA38")`, commented "disable floater raising the
+airship" -- and `asm/1B_A000_AirBoatRoutines.asm` puts the take-off on the A
+button, gated on holding the Floater while aboard the Ship. The pack went on
+modelling the airship as something raised in the desert, on a seed where that
+is not a thing that happens.
+
+**The row said "rules use it" and meant one rule**, which is the part worth
+keeping. `docs/FLAG_COVERAGE.md` had `AirBoat` filed as modelled, with a code,
+an image and an entry in the toggle table, and the flag-coverage test was
+satisfied by all of that. What the test asks is whether a flag FFR consults has
+a code here; it cannot ask whether the code is on the rules the flag actually
+moves. One alternative named it -- the Sea Shrine's northern-docks route -- and
+that alternative was itself unsatisfiable, since it read
+`airBoat,airship,...` and the flag is the reason `airship` never arrives. So
+the one piece of evidence that the flag was modelled was also wrong, and had
+been since it was written.
+
+**The grade, on a new corpus cartridge.** `airboat497` is `std497` plus the one
+flag, on the same seed as the rest of the 4.9.7 baseline. Before: **49 agree,
+19 distinct divergences over 173 locations**, in both directions -- FFR opening
+158 rules on `(Floater AND Ship)` that the pack held shut, the pack opening the
+Cardia and Mirage rows on `(Canoe AND Floater)` that FFR does not. After: **222
+checked, 221 agree**, the odd row `Shop Item`, which every cartridge here has.
+
+**Two halves in opposite directions, because one of them alone is a different
+wrong answer.** `$noAirBoat` takes the Floater Turn In cell out of the tree; a
+green check on a turn-in FFR has patched out is its own lie, and it is the
+quieter one, since nothing goes red to say so. What replaces it is a sibling on
+every airship alternative naming the conjunction FFR's own checker uses --
+`SanityCheckerV2.cs:736-742` and `:754-760` both call `LiftOff()` the moment
+the Ship and the Floater are held together, and `SCLogic.cs:122,129` walks the
+airship's reachable areas out from the Ship's own tile restricted by
+`Floater | Ship`. 102 new alternatives across the four trees, and the five that
+were already there rewritten to name `floater,ship`.
+
+**`$6004` stops meaning "the party has the airship", and that is the half a
+tree cannot state.** `1B_A000_AirBoatRoutines.asm` writes that byte as the
+welded vehicle's current shape: `LiftOff` and the ship-tile branch of
+`NewLandingCheck` both store zero into it, and only a landing on an airship
+tile stores one. Vanilla never stores zero there at all -- the disassembly's
+only writes are `INC airship_vis` -- which is why the existing rule is right on
+every other cartridge and wrong on this one. Left alone the Floater walked back
+a stage on every take-off and every docking, and the board's airship
+alternatives went red and green with it. The RAM clause reads possession
+instead, masking `$6000`'s bit 7, which `LiftOff` sets and `DockShip` clears.
+
+**One combination is deliberately strict and nothing can grade it.** A
+`ShipDrydock` + `AirBoat` seed is credited with no airship at all. `$6000` is
+possession, not reachability -- Bikke sets it wherever the hull is, and on a
+drydock seed the hull is at Gaia behind the Canoe -- while the take-off is on
+the A button *aboard* the Ship. Without the guard on the RAM half, the moment
+Bikke handed the Ship over a player holding the Floater got `airship`, and with
+it every `$standardWorld,airship` alternative in the trees, which carry no
+drydock guard of their own because on any other cartridge the airship is raised
+in the desert and owes the Ship nothing. No cartridge in either corpus sets
+both flags, so `check_logic` cannot see this one: it grades the trees, and the
+trees were already right. `tests/test_ram.lua` is what holds it.
+
+**Deleting all 102 sibling lines left the whole suite green**, which is why
+there is now a structural test rather than a note. The Lua suite reaches its
+checks through the pre-existing `airship` alternative, since the RAM clause
+provides that code on an AirBoat cartridge and the sibling never has to fire;
+`check_logic` in `verify.sh` grades the two 4.9.2 cartridges, which have no
+AirBoat between them. Only the manual 4.9.7 sweep in `docs/ORACLE.md` would
+have caught it, and a sweep somebody has to remember to run is not a gate.
+`tools/tests/test_airboat_siblings.py` asserts the swap over the JSON, needing
+no cartridge and no corpus. It is not asserted symmetrically: the five Sea
+Shrine alternatives answer a rule that never named `airship`, and a check with
+a hand-kept exception list drifts the way the sweep did.
+
+**The lesson is the one the coverage test cannot reach.** A flag with a code, an
+image and a table row reads as modelled from every angle the tests look from.
+What says otherwise is a cartridge with the flag on, graded rule by rule, and
+the corpus is where that lives -- the same answer as the bank read and the
+door map before it. The cheap version of that question is "how many rules name
+this code?", and on `AirBoat` the answer was one.
