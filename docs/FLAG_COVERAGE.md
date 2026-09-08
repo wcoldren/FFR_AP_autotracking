@@ -77,7 +77,8 @@ to the A button. `airboat497` graded that at **19 divergences over 173
 locations**, in both directions: FFR opening 158 rules on `(Floater AND Ship)`
 that the pack held shut, and the pack opening the Cardia and Mirage rows on
 `(Canoe AND Floater)` that FFR does not. It reads 221 of 222 now, the odd row
-being `Shop Item`, which every cartridge here has.
+being `Shop Item`, the caravan slot, which the tool over-reports and does not
+count because no export records where the vehicles were placed.
 
 One combination is deliberately strict, on the same terms the `airshipHike`
 alternatives already take: the sibling carries `$noShipDrydock`, so a

@@ -2107,7 +2107,9 @@ flag, on the same seed as the rest of the 4.9.7 baseline. Before: **49 agree,
 19 distinct divergences over 173 locations**, in both directions -- FFR opening
 158 rules on `(Floater AND Ship)` that the pack held shut, the pack opening the
 Cardia and Mirage rows on `(Canoe AND Floater)` that FFR does not. After: **222
-checked, 221 agree**, the odd row `Shop Item`, which every cartridge here has.
+checked, 221 agree**, the odd row `Shop Item` -- the caravan slot, which the
+tool over-reports and does not count, since no export records where the
+vehicles were placed.
 
 **Two halves in opposite directions, because one of them alone is a different
 wrong answer.** `$noAirBoat` takes the Floater Turn In cell out of the tree; a

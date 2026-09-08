@@ -624,7 +624,7 @@ end
 --
 -- What "left as they were" costs, on `AirBoat` specifically, because it is now
 -- the widest of these cells. Swapping from an AirBoat cartridge to one whose
--- AirBoat was rolled leaves the cell set, and with it 107 `airBoat,...,floater,
+-- AirBoat was rolled leaves the cell set, and with it all 107 `airBoat,...,floater,
 -- ship` siblings and ram_mapping.lua's clause that grants the airship from the
 -- Ship and the Floater. Before those existed a sticky `airBoat` moved one Sea
 -- Shrine alternative; now it moves the board.

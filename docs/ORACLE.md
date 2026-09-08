@@ -432,7 +432,9 @@ rows look harder than `ShipDrydock` was.
 
 ### Measured
 
-Last run 2026-09-03.
+Last run 2026-09-03, and the four rows dated 2026-09-08 on that day. Three of
+those were re-runs of rows nothing had touched, and all three had drifted --
+which is the argument for re-running the table rather than appending to it.
 
 | Check | Result |
 |---|---|
@@ -465,10 +467,10 @@ Last run 2026-09-03.
 | the incentive rings, all 27 exports | **0 wrong**, since 2026-09-03. `tools/tests/test_incentive_conjunction.py` predicts each slot's ring from the export's own flags and compares it to `priority_locations`. Before the conjunctions it was 13 wrong rings and one ghost -- 7 on `nofetchitems497`, 6 plus the caravan slot on `nonpcitems497` -- and before Nerrick's third term, `nov` and `nov2` each rang him. One disagreement is waived by name rather than scoped away: a Sea Shrine chest `notail` does not have. Two others were waived and are not now. `Dr Unne`, who is no seed's location, went when the slot was removed rather than excused; the Cardia ring on the five standard hoard cartridges and on `novhoard` went when the progressive was split, and `hoarddockbridge497`'s Cardia ghost went with it -- that row was only reachable through the ring being wrong, so the finding behind it is open and this corpus can no longer show it. Both 2026-09-03 |
 | `std497` vs `nofetchitems497`, `Dr Unne` | **not among the seven, and not an AP location at all.** FFR has no `IncentivizeUnne`; `SCLogic.cs:555-557` folds Unne into Lefein's reachability. The pack gave `I: Dr Unne` an incentive section on both sheets, `hosted_item: slabTranslated` gated on `fetchQuestsAreIncentive` -- an eighth slot FFR never fills. Removed 2026-09-03 rather than re-gated, with no line cited here because the close took both sections out; `docs/ISSUES.md` has it |
 | `std497` vs `nonpcitems497`, the caravan slot | **`Shop Item` leaves `rules` and `locations` too**, not only the incentive pool: 227 locations to 224, and the six NPCs stay. So six of the seven are un-ringed checks and the seventh is not a check at all -- a different repair, and the one the pool heading hid until 2026-09-03 |
-| `hoarddockbridge497`, pack rules vs FFR | **227 checked, 227 agree, 0 divergences** — it was 216 agree, 3 divergences over 11 locations |
-| `hoardhike497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
-| `hoarddockhike497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — and 95 agree, 13 distinct divergences over 129 locations against the rules as they stood at `2b0ff32`, which is what this row exists to have caught |
-| `airboat497`, pack rules vs FFR | **222 checked, 221 agree, 1 divergence** (`Shop Item`, which every cartridge here has) — it was **49 agree, 19 distinct divergences over 173 locations** before the `airBoat` siblings, the `$noAirBoat` guard and the RAM clause |
+| `hoarddockbridge497`, pack rules vs FFR | **228 checked, 227 agree, 1 divergence** (`Shop Item`, uncounted) — it was 216 agree, 3 divergences over 11 locations. Recorded here as 227/227/0 until 2026-09-08, when a re-run said otherwise; the same run at `2203878` gives 228/227/1, so the row was stale rather than moved by anything recent |
+| `hoardhike497`, pack rules vs FFR | **227 checked, 227 agree, 0 divergences** — recorded as 226/226 until 2026-09-08 |
+| `hoarddockhike497`, pack rules vs FFR | **225 checked, 224 agree, 1 divergence** (`Shop Item`, uncounted) — and 95 agree, 13 distinct divergences over 129 locations against the rules as they stood at `2b0ff32`, which is what this row exists to have caught. Recorded as 224/224/0 until 2026-09-08 |
+| `airboat497`, pack rules vs FFR | **222 checked, 221 agree, 1 divergence** (`Shop Item`, the caravan slot, which the tool over-reports and does not count -- no export records where the vehicles were placed) — it was **49 agree, 19 distinct divergences over 173 locations** before the `airBoat` siblings, the `$noAirBoat` guard and the RAM clause |
 | `std497` vs `airboat497`, exported rules | **202 in both, 158 differ.** Every clause the flag adds names the Floater and the Ship together -- 65 bare `(Floater AND Ship)`, the rest that plus Chime, Cube, Canoe, Oxyale, Rod, Ruby or Slab. 116 of the 117 it *removes* are `(Canoe AND Floater …)`: with the turn-in patched out, walking the canoe to Ryukahn Desert stops raising anything. The odd clause each way is `Shop Item` |
 | `std497` vs `dock497`, the Cardia islands | **unmoved at `(Canoe AND Floater)`. The Bahamut dock opens Bahamut's Cave and nothing else** |
 | `std497` vs `hoard497`, chest placements | **map 39 (BahamutCaveB2) goes 0 -> 13 and no map loses one** (`tools/extract_chests.py`) |
