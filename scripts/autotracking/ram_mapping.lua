@@ -369,6 +369,51 @@ function applyRamRules(byteAt)
     return
   end
 
+  -- AirBoat, where $6004 stops meaning "the party has the airship".
+  --
+  -- FFR's asm/1B_A000_AirBoatRoutines.asm welds the two vehicles into one and
+  -- writes that byte as the vehicle's current shape rather than as possession:
+  -- `LiftOff` and the ship-tile branch of `NewLandingCheck` both store zero into
+  -- it, and only a landing on an airship tile stores one. Vanilla never stores
+  -- zero there at all -- the disassembly's only writes are INC airship_vis, at
+  -- bank_0E.asm:7026 and bank_0F.asm:8219 -- which is why the rule above is
+  -- right on every other cartridge and wrong on this one. Left alone the Floater
+  -- walked back a stage on every take-off and every docking, and the board's
+  -- airship alternatives went red and green with it.
+  --
+  -- Possession is the conjunction FFR's own checker uses: SanityCheckerV2.cs
+  -- :736-742 and :754-760 both call LiftOff() the moment the Ship and the
+  -- Floater are held together. The Floater survives it -- EnableAirBoat patches
+  -- out the turn-in that would spend it (Hacks.cs:107) and FlyAirship reads
+  -- item_floater to authorise every take-off -- so $602B stays set for the rest
+  -- of the seed. $6000's bit 7 is "currently airborne" (LiftOff does ORA #$80,
+  -- DockShip AND #$7F), hence the mask; the `ship` rule needs no such care,
+  -- because $81 is nonzero either way and already answers correctly.
+  --
+  -- The drydock guard is the same one every sibling in the trees carries, and
+  -- it belongs here for the same reason. $6000 is possession, not reachability:
+  -- Bikke sets it wherever the hull is, and on a ShipDrydock seed the hull is at
+  -- Gaia (MapExchange/ShipLocations.cs:52-60), behind the Canoe. AirBoat's
+  -- take-off is on the A button *aboard the Ship*, so it wants the tile and not
+  -- just the item. Without this, the moment Bikke handed the Ship over a player
+  -- holding the Floater got `airship` on a drydock seed, and with it every
+  -- `$standardWorld,airship` alternative in the trees -- which carry no drydock
+  -- guard of their own, because on any other cartridge the airship is raised in
+  -- the desert and owes the Ship nothing. That is the false green the rest of
+  -- this file is written to avoid. No cartridge in either corpus sets both flags
+  -- at once, so check_logic cannot see this one: it grades the trees, and the
+  -- trees were already right.
+  local airBoat = Tracker:FindObjectForCode("airBoat")
+  local drydock = Tracker:FindObjectForCode("shipDrydock")
+  if airBoat and airBoat.Active and not (drydock and drydock.Active) then
+    local shipVis = byteAt(0x6000)        -- ship_vis
+    local itemFloater = byteAt(0x602B)    -- item_floater
+    if shipVis and itemFloater and (shipVis & 0x7F) ~= 0 and itemFloater ~= 0
+       and (best["floater"] or 0) < 1 then
+      best["floater"] = 1
+    end
+  end
+
   -- Say so when an item the cartridge was showing stops being shown at all.
   --
   -- For a turn-in item "no rule matched" is ambiguous: it means either "never

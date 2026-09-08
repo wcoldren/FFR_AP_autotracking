@@ -710,6 +710,125 @@ byCode["cardiaLandBridge"].Active = false
 
 
 ------------------------------------------------------------------
+-- AirBoat, which is the same shape as the hike and one byte harder.
+--
+-- FFR welds the two vehicles into one: the desert turn-in is patched out
+-- (Hacks.cs:107) and asm/1B_A000_AirBoatRoutines.asm puts the take-off on the A
+-- button, gated on holding the Floater while aboard the Ship. FFR's checker
+-- agrees -- SanityCheckerV2.cs:736-742 and :754-760 call LiftOff() the moment
+-- the two are held together -- so `airBoat,...,floater,ship` is the sibling
+-- every airship alternative carries, and $noAirBoat is what takes the desert
+-- cell out of the tree.
+------------------------------------------------------------------
+reset()
+MEM[0x600C] = 1                                  -- canal not dug
+MEM[0x602B] = 1                                  -- Floater held
+MEM[0x6000] = 1                                  -- Ship
+applyRamRules(byteAt)
+check("floater and ship, no flag: Cardia Forest is out", inLogic("Cardia Forest"), false)
+byCode["airBoat"].Active = true
+applyRamRules(byteAt)
+check("airBoat opens it on the Floater and the Ship", inLogic("Cardia Forest"), true)
+
+-- The Ship half is real: with AirBoat there is nothing to lift off from.
+reset()
+MEM[0x600C] = 1
+MEM[0x602B] = 1                                  -- Floater, no Ship
+byCode["airBoat"].Active = true
+applyRamRules(byteAt)
+check("airBoat does not open it on the Floater alone", inLogic("Cardia Forest"), false)
+
+-- A drydocked Ship takes it away, the same as it does everywhere else. $6000 is
+-- possession and not reachability -- Bikke sets it wherever the hull is, and on
+-- a ShipDrydock seed the hull is at Gaia, behind the Canoe -- while AirBoat's
+-- take-off is on the A button *aboard* the Ship. So an observed Ship is not an
+-- observed airship here, and both halves have to agree: the sibling carries
+-- $noShipDrydock like every other alternative naming the Ship, and the RAM
+-- clause carries the same guard, or the clause would hand out `airship` and
+-- open every `$standardWorld,airship` alternative behind the rule's back.
+reset()
+MEM[0x600C] = 1
+MEM[0x602B], MEM[0x6000] = 1, 1
+byCode["airBoat"].Active = true
+byCode["shipDrydock"].Active = true
+applyRamRules(byteAt)
+check("a drydocked ship does not fly on airBoat", inLogic("Cardia Forest"), false)
+check("and the RAM clause grants no airship either", byCode["floater"]:providesCode("airship"), 0)
+byCode["shipDrydock"].Active = false
+
+-- The sibling alternatives, exercised as siblings.
+--
+-- Every case above reaches Cardia Forest through the *pre-existing*
+-- `$standardWorld,airship` alternative, because the RAM clause raises the
+-- Floater to its airship stage and `airship` is then provided. That grades the
+-- clause and says nothing at all about the ~150 `airBoat,...,floater,ship`
+-- lines the trees gained with it -- reverting every one of them left this file
+-- green.
+--
+-- Hand clicks are what tell them apart, and they are a real feed: the pack is
+-- clicked through without a bridge attached, and there a one-click Floater
+-- provides `floater,inactiveFloater` and no `airship`. Nothing but a sibling
+-- can open the check.
+--
+-- CurrentStage 1, not 0. allow_disabled puts a synthetic 0 below stages[], so
+-- the Lua-visible number is one above the index and 0 is the *off* cell rather
+-- than the first icon (jsonitem.cpp:381,473). Writing 0 here switched the item
+-- off and the assertion below passed for the wrong reason.
+reset()
+byCode["floater"].CurrentStage = 1
+byCode["ship"].Active = true
+check("hand-clicked floater provides no airship",
+      byCode["floater"]:providesCode("airship"), 0)
+check("floater and ship alone do not open Cardia Forest", inLogic("Cardia Forest"), false)
+byCode["airBoat"].Active = true
+check("the airBoat sibling opens it with no airship anywhere",
+      inLogic("Cardia Forest"), true)
+byCode["shipDrydock"].Active = true
+check("and the sibling's own drydock guard shuts it", inLogic("Cardia Forest"), false)
+byCode["shipDrydock"].Active = false
+byCode["airBoat"].Active = false
+
+-- The desert stops being a way to get airborne. Holding the Floater in the
+-- desert raises nothing on this cartridge, so the section that hosts `airship`
+-- has to be out of the tree even though the desert itself is walkable.
+reset()
+MEM[0x600C] = 1
+MEM[0x6012] = 1                                  -- Canoe, and the Ship below,
+MEM[0x6000] = 1                                  -- which is what reaches the desert
+MEM[0x602B] = 1                                  -- plus the Floater to turn in
+applyRamRules(byteAt)
+check("turn-in is live without the flag",
+      inLogic("Ryukahn Desert", { "inactiveFloater" }), true)
+byCode["airBoat"].Active = true
+applyRamRules(byteAt)
+check("airBoat takes the desert turn-in out",
+      inLogic("Ryukahn Desert", { "$noAirBoat,inactiveFloater" }), false)
+check("but the desert is still reachable", inLogic("Ryukahn Desert"), true)
+
+-- The RAM half. $6004 is the vehicle's current shape under AirBoat, not
+-- possession: LiftOff and the ship-tile branch of NewLandingCheck both zero it,
+-- and $6000 gains bit 7 while airborne. So the bytes below are a player flying
+-- the thing, and the board has to still say they have it.
+reset()
+MEM[0x6000] = 0x81                               -- ship_vis, airborne
+MEM[0x6004] = 0                                  -- airship_vis, cleared by LiftOff
+MEM[0x602B] = 1                                  -- item_floater, never consumed
+byCode["airBoat"].Active = true
+applyRamRules(byteAt)
+check("airborne under airBoat still provides 'airship'", provided("airship"), true)
+check("and still provides 'ship'", provided("ship"), true)
+
+-- Vanilla never stores zero into $6004 at all -- the disassembly's only writes
+-- are INC, at bank_0E.asm:7026 and bank_0F.asm:8219 -- so on any other
+-- cartridge the same bytes mean the airship was never raised, and reading them
+-- as possession would be an invention.
+byCode["airBoat"].Active = false
+applyRamRules(byteAt)
+check("without the flag the same bytes are not an airship", provided("airship"), false)
+check("the ship is still a ship", provided("ship"), true)
+
+
+------------------------------------------------------------------
 -- ShuffleObjectiveNPCs. FFR permutes Bahamut, Dr Unne and the Elf Doctor
 -- across BahamutCave2, Melmond and Elfland Castle (NPCs.cs:277) and writes the
 -- permutation nowhere the pack can read: not the flag string, not the spoiler.
