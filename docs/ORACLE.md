@@ -390,6 +390,7 @@ flag decoder accepts a local build of it unmodified.
 | `nonpcitems497` | `oracle497_nonpcitems` | `3B7E1C8A` | `std497` **minus** `NPCItems` | what `NPCItems` governs, which turns out to be the incentive pool and not the rules |
 | `nofetchitems497` | `oracle497_nofetchitems` | `3B7E1C8A` | `std497` **minus** `NPCFetchItems` | the same question for the fetch half, which turns out to be the incentive pool and not the rules either -- and which of the pack's eight fetch rows FFR actually incentivizes |
 | `hoarddockhike497` | `oracle497_hoard` + `MapBahamutCardiaDock` + `MapAirshipHike` | `3B7E1C8A` | the same three | the three Cardia-relevant flags a played seed rolled, carried on `std497`'s baseline rather than that seed's whole flag set, and the combination the pairs above do not cover |
+| `airboat497` | `oracle497_airboat` | `3B7E1C8A` | `std497` plus `AirBoat` | what welding the Ship and the airship into one vehicle does to the rules, in both directions |
 
 **Every cartridge here shares `std497`'s seed**, a tighter control than
 `nov`/`nov2`, which hold the flags still and vary the seed. `std497` is the
@@ -407,7 +408,7 @@ hold still".
 
 **Most of them are one flag from that baseline; the rest say which pair they
 isolate.** `drydock497`, `extended497`, `airship497`, `landbridge497`,
-`objnpc497`, `dock497` and `hoard497` each change one value. The others exist
+`objnpc497`, `dock497`, `hoard497` and `airboat497` each change one value. The others exist
 because the question needs two flags at once, and then it is the *pair* that
 isolates rather than either cartridge against `std497`: `gaia497` needs the
 docks and the mountain pass together, with `gaiahwy497` one flag further on;
@@ -461,12 +462,14 @@ Last run 2026-09-03.
 | `std497` vs `nofetchitems497`, exported rules | **206 in both, 0 differ.** `NPCFetchItems` moves no reachability rule at all, the same as its free-half sibling |
 | `std497` vs `nofetchitems497`, `priority_locations` | **7 gone: Astos, Elf Prince, Fairy, Lefein, Matoya, Nerrick and Smith**, with `IncentivizeFetchNPCs` still on -- the `NPCFetchItems` conjunct of the seven computed at `FlagsCompute.cs:220-226`. The pack rings all seven; see `docs/ISSUES.md` |
 | `std497` vs `nofetchitems497`, whether a slot leaves | **no. All seven stay in `rules` and `locations`** -- 227 to 226, and both the removed and the added names are chests, so the net one is pool churn the tool declines to attribute. Unlike the free half there is no caravan-shaped second repair: the fetch fix is the conjunction on seven rows and nothing else |
-| the incentive rings, all 23 exports | **0 wrong**, since 2026-09-03. `tools/tests/test_incentive_conjunction.py` predicts each slot's ring from the export's own flags and compares it to `priority_locations`. Before the conjunctions it was 13 wrong rings and one ghost -- 7 on `nofetchitems497`, 6 plus the caravan slot on `nonpcitems497` -- and before Nerrick's third term, `nov` and `nov2` each rang him. One disagreement is waived by name rather than scoped away: a Sea Shrine chest `notail` does not have. Two others were waived and are not now. `Dr Unne`, who is no seed's location, went when the slot was removed rather than excused; the Cardia ring on the five standard hoard cartridges and on `novhoard` went when the progressive was split, and `hoarddockbridge497`'s Cardia ghost went with it -- that row was only reachable through the ring being wrong, so the finding behind it is open and this corpus can no longer show it. Both 2026-09-03 |
+| the incentive rings, all 27 exports | **0 wrong**, since 2026-09-03. `tools/tests/test_incentive_conjunction.py` predicts each slot's ring from the export's own flags and compares it to `priority_locations`. Before the conjunctions it was 13 wrong rings and one ghost -- 7 on `nofetchitems497`, 6 plus the caravan slot on `nonpcitems497` -- and before Nerrick's third term, `nov` and `nov2` each rang him. One disagreement is waived by name rather than scoped away: a Sea Shrine chest `notail` does not have. Two others were waived and are not now. `Dr Unne`, who is no seed's location, went when the slot was removed rather than excused; the Cardia ring on the five standard hoard cartridges and on `novhoard` went when the progressive was split, and `hoarddockbridge497`'s Cardia ghost went with it -- that row was only reachable through the ring being wrong, so the finding behind it is open and this corpus can no longer show it. Both 2026-09-03 |
 | `std497` vs `nofetchitems497`, `Dr Unne` | **not among the seven, and not an AP location at all.** FFR has no `IncentivizeUnne`; `SCLogic.cs:555-557` folds Unne into Lefein's reachability. The pack gave `I: Dr Unne` an incentive section on both sheets, `hosted_item: slabTranslated` gated on `fetchQuestsAreIncentive` -- an eighth slot FFR never fills. Removed 2026-09-03 rather than re-gated, with no line cited here because the close took both sections out; `docs/ISSUES.md` has it |
 | `std497` vs `nonpcitems497`, the caravan slot | **`Shop Item` leaves `rules` and `locations` too**, not only the incentive pool: 227 locations to 224, and the six NPCs stay. So six of the seven are un-ringed checks and the seventh is not a check at all -- a different repair, and the one the pool heading hid until 2026-09-03 |
 | `hoarddockbridge497`, pack rules vs FFR | **227 checked, 227 agree, 0 divergences** — it was 216 agree, 3 divergences over 11 locations |
 | `hoardhike497`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
 | `hoarddockhike497`, pack rules vs FFR | **224 checked, 224 agree, 0 divergences** — and 95 agree, 13 distinct divergences over 129 locations against the rules as they stood at `2b0ff32`, which is what this row exists to have caught |
+| `airboat497`, pack rules vs FFR | **222 checked, 221 agree, 1 divergence** (`Shop Item`, which every cartridge here has) — it was **49 agree, 19 distinct divergences over 173 locations** before the `airBoat` siblings, the `$noAirBoat` guard and the RAM clause |
+| `std497` vs `airboat497`, exported rules | **202 in both, 158 differ.** Every clause the flag adds names the Floater and the Ship together -- 65 bare `(Floater AND Ship)`, the rest that plus Chime, Cube, Canoe, Oxyale, Rod, Ruby or Slab. 116 of the 117 it *removes* are `(Canoe AND Floater …)`: with the turn-in patched out, walking the canoe to Ryukahn Desert stops raising anything. The odd clause each way is `Shop Item` |
 | `std497` vs `dock497`, the Cardia islands | **unmoved at `(Canoe AND Floater)`. The Bahamut dock opens Bahamut's Cave and nothing else** |
 | `std497` vs `hoard497`, chest placements | **map 39 (BahamutCaveB2) goes 0 -> 13 and no map loses one** (`tools/extract_chests.py`) |
 | Bahamut's Cave's requirement, read through the hoard | **std `(Canoe AND Floater)`; +dock `(Canal AND Ship)` as well; +land bridge `(Canal AND Canoe AND Ship)` as well; +both `(Canal AND Ship)`, not the union; +hike `(Floater AND Ship)` as well** |
@@ -576,7 +579,7 @@ the 53 are not an artefact of it.
     O7=<corpus>/oracle-4.9.7
     for s in std drydock extended airship landbridge objnpc gaia gaiahwy \
              dock dockbridge hoard hoarddock hoardbridge hoarddockbridge hoardhike \
-             hoarddockhike nonpcitems; do
+             hoarddockhike nonpcitems airboat; do
         python3 tools/check_logic.py $O7/${s}497/${s}497.nes \
             --ap-rules $O7/${s}497/${s}497.yaml --ff1-world $W
     done
@@ -681,7 +684,7 @@ had.
 | question | answer |
 |---|---|
 | `LefeinSuperStore` across the 4.9.2 presets | **`true` in 4 of 4** — `oracle_std`, `oracle_nov`, `oracle_shard`, `oracle_notail` |
-| across the 4.9.7 presets | **`true` in 18 of 18** |
+| across the 4.9.7 presets | **`true` in 19 of 19** |
 | so the No-Overworld rules and the 75-link table were derived | **with the flag on**, which `docs/FLAG_COVERAGE.md` said was off |
 | the cartridge's own tiles, `oracle_nov` | **all 10 cells the flag-on branch of `ApplyMapMods` writes hold what it writes; 0 of the 14 that only the flag-off branch touches do** |
 | the three writes both branches share | **all 36 cells match, unflipped** — so `ApplyMapMods` ran and the `(x, y)` reading is right, which is what makes the answer above evidence rather than a miss |

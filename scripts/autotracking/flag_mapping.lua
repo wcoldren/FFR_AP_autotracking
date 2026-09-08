@@ -621,6 +621,21 @@ end
 -- both as "rolled" left a 4.9.7 drydock seed's `shipDrydock` set when the next
 -- cartridge was a 4.9.2 one, and with it every alternative in the trees that
 -- names the Ship, for the rest of the session.
+--
+-- What "left as they were" costs, on `AirBoat` specifically, because it is now
+-- the widest of these cells. Swapping from an AirBoat cartridge to one whose
+-- AirBoat was rolled leaves the cell set, and with it 107 `airBoat,...,floater,
+-- ship` siblings and ram_mapping.lua's clause that grants the airship from the
+-- Ship and the Floater. Before those existed a sticky `airBoat` moved one Sea
+-- Shrine alternative; now it moves the board.
+--
+-- It is not fixable by choosing a better default, and that is why the cell is
+-- left alone rather than reset. Off is not the safe direction either: on a
+-- cartridge that really is AirBoat, `$noAirBoat` puts the Ryukahn Desert
+-- turn-in back in the trees, and Hacks.cs:107 has patched it out -- a green
+-- check on a turn-in that does nothing. Neither default is honest about a flag
+-- the cartridge declined to state, so the answer is the player's click, and the
+-- "rolled at generation" line below is what asks for it.
 local SCHEMA_NAMES = {}
 local function schemaNames(version)
   if version == nil or FFR_FLAG_SCHEMAS == nil then return nil end

@@ -52,7 +52,7 @@ Ten names, and this is all of them:
 | `FreeLute` | Lute at start | `lute` from inventory | RAM |
 | `FreeRod` | Rod at start | `rod` from inventory | RAM |
 | `IsFloaterRemoved` | Read once, at `SanityCheckerV2.cs:178`, and only to clear `MapChange.Airship` out of `requiredMapChanges` — which feeds the `complete` boolean and no per-location rule | `floater` progressive assumes Floater->Airship | n/a for colours — verified 2026-09-01, see below |
-| `AirBoat` | Ship doubles as airship after Floater | `airBoat` progressive, rules use it | code |
+| `AirBoat` | Ship doubles as airship after Floater: `LiftOff()` the moment both are held (`SanityCheckerV2.cs:736-742,754-760`), and the airship's reachable areas are walked from the *Ship's* tile restricted to what the Floater and the Ship reach (`SCLogic.cs:122,129`) | `airBoat` progressive; every airship alternative carries an `airBoat,...,floater,ship` sibling, `$noAirBoat` takes the desert turn-in out, and `ram_mapping.lua` reads possession rather than `$6004`, under the same `$noShipDrydock` guard the siblings carry | code — graded by `airboat497` |
 | `GameMode` | Compared against `DeepDungeon` and nothing else (`SanityCheckerV2.cs:183,779`) | `isNoOverworld()` from variant UID | variant (warning printed on mismatch) |
 
 **`IsFloaterRemoved` was on the verify list and is now answered: it moves no
@@ -67,6 +67,31 @@ seed will not roll against this corpus's preset at all, because removing the
 Floater from the pool leaves item placement unable to meet the incentive count
 (`ItemPlacement.cs:173`), with or without `IncentivizeAirship`. The by-
 construction argument is what stands, and it is the stronger of the two.
+
+**`AirBoat` was the row that said "rules use it" and meant one rule.** Until
+2026-09-07 the only alternative naming the code was the Sea Shrine's, and the
+pack still modelled the airship as something raised at Ryukahn Desert -- which
+on an AirBoat cartridge is not a thing that happens, because `Hacks.cs:107`
+patches the turn-in out and `asm/1B_A000_AirBoatRoutines.asm` moves the take-off
+to the A button. `airboat497` graded that at **19 divergences over 173
+locations**, in both directions: FFR opening 158 rules on `(Floater AND Ship)`
+that the pack held shut, and the pack opening the Cardia and Mirage rows on
+`(Canoe AND Floater)` that FFR does not. It reads 221 of 222 now, the odd row
+being `Shop Item`, which every cartridge here has.
+
+One combination is deliberately strict, on the same terms the `airshipHike`
+alternatives already take: the sibling carries `$noShipDrydock`, so a
+`ShipDrydock` + `AirBoat` seed is credited with no airship at all. Both halves
+carry that guard, and the RAM clause is the half where it is easy to leave out.
+`$6000` is possession and not reachability -- Bikke sets it wherever the hull
+is, and on a drydock seed the hull is at Gaia, behind the Canoe -- while the
+take-off is on the A button *aboard* the Ship. A clause that read `$6000` and
+`$602B` alone would grant `airship` the moment Bikke handed the Ship over, and
+with it every `$standardWorld,airship` alternative in the trees, which carry no
+drydock guard of their own because on any other cartridge the airship is raised
+in the desert and owes the Ship nothing. No cartridge in either corpus sets both
+flags at once, so `check_logic` cannot grade this combination; `tests/test_ram.lua`
+is what holds it.
 
 The `GameMode` row reads differently once you look at its two call sites. The
 checker branches on Deep Dungeon; it never asks whether the seed is
@@ -148,7 +173,7 @@ either. The eleven above them are in both schemas.
 
 | FFR flag | Pack | Status |
 |---|---|---|
-| `OrbsRequiredCount`, `OrbsRequiredMode` | `logic.lua:223-224` reads `ffrFlag()` directly | code |
+| `OrbsRequiredCount`, `OrbsRequiredMode` | `logic.lua:245-246` reads `ffrFlag()` directly | code |
 | `ShardCount` | `hasEnoughShards()` | code |
 | `ToFRMode` | `ToFR Mode`, one progressive with three stages — `tofrLong` / `tofrMid` / `tofrShort,shortToFR`, `inherit_codes` off, stage 0 for a mode the cartridge did not resolve; `shortToFR` on the five chests behind the lute plate | code — only Short moves an access rule, but every mode moves which floor a chest pin is drawn on |
 | `ChaosRush` | `chaosRush` toggle; `chaosRush,lute` on the same five | code |
