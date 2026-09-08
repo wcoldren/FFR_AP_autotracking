@@ -199,6 +199,11 @@ def load_pack_rules(pack=PACK, files=None):
                 key = "/".join(here + [sname])
                 sections[key] = {
                     "chain": sub + [srules] if srules else sub,
+                    # Kept separately because the chain only ends in it when it
+                    # is non-empty, so its position is not something a caller
+                    # can read off the chain. airship_chain needs the section's
+                    # own rules and nothing else.
+                    "own": srules,
                     "hosted": section.get("hosted_item"),
                 }
             walk(node.get("children", []), here, sub)
@@ -327,16 +332,26 @@ def airship_chain(sections):
 
     An alternative left empty by the strip is dropped rather than kept, because
     an empty term list never matches -- see `as_chain`, where the same trap is
-    written up at length."""
+    written up at length.
+
+    The section's own rules are read from `own` rather than off the tail of the
+    chain. `load_pack_rules` appends them only when there are some, so on a
+    ruleless section the tail is the *region's* rules and stripping there would
+    quietly edit the wrong list -- or raise IndexError, on a tree where nothing
+    above had rules either. Both are worth more than the deliberate error below,
+    which says what actually happened."""
     path = find_section(sections, AIRSHIP_SECTION)
     if path is None:
         raise SystemExit("cannot find %r -- the airship rule moved" % AIRSHIP_SECTION)
-    chain = sections[path]["chain"]
+    section = sections[path]
+    if not section["own"]:
+        raise SystemExit("%r has no access_rules of its own -- the airship rule "
+                         "moved" % AIRSHIP_SECTION)
     own = [alt for alt in
            (",".join(t for t in alt.split(",") if t.strip() != "inactiveFloater")
-            for alt in chain[-1])
+            for alt in section["own"])
            if alt]
-    return chain[:-1] + ([own] if own else [])
+    return section["chain"][:-1] + ([own] if own else [])
 
 
 def with_airship(provided, raise_chain):
