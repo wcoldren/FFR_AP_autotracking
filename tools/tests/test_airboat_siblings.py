@@ -25,6 +25,13 @@ no corpus and no Archipelago checkout.
     `airBoat`, `$noShipDrydock`, `floater`, `ship`
     is also in the list
 
+The `$noAirBoat` half needs the same treatment and for the same reason. The Lua
+suite reaches it by passing the section's rule in as an argument, which grades
+`noAirBoat()` returning 0 and would pass with the guard deleted from all three
+trees. So the second invariant is that every section hosting `airship` names
+`$noAirBoat` on every alternative -- keyed on `hosted_item` rather than on the
+section's name, since granting the code is what the guard is about.
+
 Not asserted the other way round. Five `airBoat` alternatives have no `airship`
 partner and are right not to: the Sea Shrine's northern-docks route is reached
 on `ship,canal` rather than on the airship, and the welded vehicle flies the
@@ -52,6 +59,10 @@ TREES = [
 # What the sibling says instead of `airship`.
 SWAP = frozenset({"airBoat", "$noShipDrydock", "floater", "ship"})
 
+# And what the section handing out `airship` has to say, so that the code is
+# never granted on a cartridge FFR has patched the turn-in out of.
+GUARD = "$noAirBoat"
+
 
 def rule_lists(node, path=""):
     """Every access_rules list in a tree, with the path that names it."""
@@ -69,9 +80,33 @@ def rule_lists(node, path=""):
             yield from rule_lists(child, here)
 
 
+def airship_hosts(node, path=""):
+    """Every section that hands out `airship`, with its rules.
+
+    Keyed on `hosted_item` rather than on the section's name, because the name
+    is the thing most likely to be rewritten and the grant is what the guard is
+    about. A section that stops hosting the airship stops needing the guard by
+    the same reading.
+    """
+    if isinstance(node, list):
+        for child in node:
+            yield from airship_hosts(child, path)
+        return
+    if not isinstance(node, dict):
+        return
+    here = path + "/" + str(node.get("name", "?"))
+    if node.get("hosted_item") == "airship":
+        yield here, node.get("access_rules", [])
+    for key in ("children", "sections"):
+        for child in node.get(key, []):
+            yield from airship_hosts(child, here)
+
+
 def main():
     checked = 0
     missing = []
+    unguarded = []
+    hosts = 0
 
     for rel in TREES:
         path = os.path.join(PACK, rel)
@@ -86,6 +121,20 @@ def main():
                 if ((alt - {"airship"}) | SWAP) not in alts:
                     missing.append((rel, where, text))
 
+        for where, rules in airship_hosts(doc):
+            hosts += 1
+            if not rules:
+                unguarded.append((rel, where, "(no access_rules at all)"))
+            for text in rules:
+                if GUARD not in [t.strip() for t in text.split(",")]:
+                    unguarded.append((rel, where, text))
+
+    if hosts == 0:
+        print("FAIL: nothing hosts `airship` -- the turn-in moved, or stopped")
+        print("      being the place the code is granted. The guard has to")
+        print("      follow it; this test cannot say where it went.")
+        return 1
+
     if checked == 0:
         print("FAIL: no airship alternatives found at all -- the trees moved,")
         print("      or rule_lists stopped walking them. Either way this test")
@@ -97,12 +146,22 @@ def main():
         print("      %s" % text)
         print("      has no airBoat sibling")
 
-    if missing:
-        print("%d of %d airship alternatives have no sibling"
-              % (len(missing), checked))
+    for rel, where, text in unguarded:
+        print("FAIL: %s %s" % (rel, where))
+        print("      %s" % text)
+        print("      hands out `airship` without %s" % GUARD)
+
+    if missing or unguarded:
+        if missing:
+            print("%d of %d airship alternatives have no sibling"
+                  % (len(missing), checked))
+        if unguarded:
+            print("%d rule(s) across %d airship host(s) lack %s"
+                  % (len(unguarded), hosts, GUARD))
         return 1
 
-    print("ok: %d airship alternatives, each with its airBoat sibling" % checked)
+    print("ok: %d airship alternatives, each with its airBoat sibling; "
+          "%d airship host(s), each guarded by %s" % (checked, hosts, GUARD))
     return 0
 
 
