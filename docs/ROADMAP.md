@@ -346,7 +346,7 @@ closed 2026-09-06.
   would reuse all of it.
 
   **The cheap half landed 2026-09-09.**
-  `onLocation(location_id, location_name)` (`scripts/autotracking.lua:282`)
+  `onLocation(location_id, location_name)` (`scripts/autotracking.lua:292`)
   keeps AP's name now instead of dropping it after a debug print, and every
   check says both vocabularies and the tab -- Archipelago's "Northwest Castle -
   Treasury 2" is this board's "North West Castle Chests 3", on Other/Northwest

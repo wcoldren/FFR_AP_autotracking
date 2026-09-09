@@ -26,6 +26,7 @@ ScriptHost:LoadScript("scripts/autotracking/maptab.lua")
 -- After maptab, because the only thing that reads it turns a map id into a
 -- tab through tabPathForMap.
 ScriptHost:LoadScript("scripts/location_maps.lua")
+ScriptHost:LoadScript("scripts/autotracking/hints.lua")
 
 -- Re-assert the board a moment after a session connects.
 --
@@ -119,6 +120,11 @@ function onClear()
   -- The replay burst starts now and is over by the next frame; the
   -- correspondence lines begin after it. See armAPLocationReplay below.
   armAPLocationReplay()
+  -- The slot number is known by now and not before it, which is what the hints
+  -- key is built out of. resetHints first, so a reconnect to another slot does
+  -- not carry the last one's hints over.
+  resetHints()
+  subscribeHints()
 end
 
 function onItem(index, item_id, item_name)
@@ -241,11 +247,15 @@ end
 
 -- Both names and the tab, in one line.
 function describeLocation(id, path)
-  local ap = apLocationName(id)
   local here = packLocationName(path)
-  if not ap or not here then
+  if not here then
     return nil
   end
+  -- A hint can name a location nobody has checked, and only GetLocationName
+  -- answers for one of those. A host too old for it leaves the id, which still
+  -- ties the line to the hint the player is reading -- where dropping the whole
+  -- sentence would leave them with the thing this is meant to fix.
+  local ap = apLocationName(id) or ("location " .. tostring(id))
   local where = locationWhere(path)
   if where then
     return string.format('Archipelago\'s "%s" is this board\'s "%s", on %s',
@@ -303,15 +313,35 @@ end
 -- exist.
 
 function updateEvents(value)
+  -- A map id or nothing. Before anything was subscribed this could only ever be
+  -- called with one; now that data storage is watched it can be handed a table,
+  -- which activateMapTab would store in lastMapId before failing to find a tab
+  -- for it. The cost is one swallowed report -- the next report of a different
+  -- map compares unequal to the table and goes through -- so this is a guard
+  -- against a junk value being read as a map id at all, not a fix for a session
+  -- that would otherwise stay stuck. The dispatch below is what keeps a hints
+  -- payload from arriving here in the first place.
+  if type(value) ~= "number" then
+    return
+  end
   activateMapTab(value)
 end
 
+-- The key is the discriminator. Everything that is not the hints key keeps
+-- exactly the behaviour it had, which is still nothing until AP/worlds/ff1
+-- starts publishing a map.
 function onNotify(key, value, old_value)
-	updateEvents(value)
+  if isHintsKey(key) then
+    return onHints(value)
+  end
+  updateEvents(value)
 end
 
 function onNotifyLaunch(key, value)
-	updateEvents(value)
+  if isHintsKey(key) then
+    return onHints(value)
+  end
+  updateEvents(value)
 end
 
 Archipelago:AddClearHandler("clear handler", onClear)
