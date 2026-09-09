@@ -86,7 +86,25 @@ NOT_AP_LOCATIONS = {
 # decided by IncentivizeCardia, which that cartridge has off, so the comparison
 # ends before the missing id is looked for. A seed that incentivized Cardia *and*
 # rolled the hoard would show it again.
+#
+# `airboatdrydock497` added eight more on 2026-09-09, and they are one finding
+# rather than eight. That cartridge is `AirBoat` and `ShipDrydock` together,
+# which strands the Onrac continent -- FFR's export carries 96 locations where
+# its siblings carry 222, and every Onrac-continent location is gone. So eight
+# of the pack's incentive rows name ids the pool no longer contains, and the
+# gate declines to ring all eight. Two of them, Ordeals and the Earth Cave
+# vampire, do not sit on that continent: the pool shrinking moves what is left
+# as well as removing what is not. `docs/ORACLE.md`, "The one pair the baseline
+# incentives cannot place", has why the cartridge reads this way.
 DEMONSTRATED_GHOSTS = [
+    ("airboatdrydock497", "Castle of Ordeals Top Floor (3F) - Incentive"),
+    ("airboatdrydock497", "CubeBot"),
+    ("airboatdrydock497", "Earth Cave Vampire Floor (B3) - Incentive"),
+    ("airboatdrydock497", "Fairy"),
+    ("airboatdrydock497", "Lefein"),
+    ("airboatdrydock497", "Sarda"),
+    ("airboatdrydock497", "Sea Shrine Mermaids (B1) - Incentive Major"),
+    ("airboatdrydock497", "Sky Fortress Spider (2F) - Incentive"),
     ("notail", "Sea Shrine Mermaids (B1) - Incentive Major"),
 ]
 

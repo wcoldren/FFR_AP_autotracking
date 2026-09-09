@@ -392,6 +392,7 @@ flag decoder accepts a local build of it unmodified.
 | `nofetchitems497` | `oracle497_nofetchitems` | `3B7E1C8A` | `std497` **minus** `NPCFetchItems` | the same question for the fetch half, which turns out to be the incentive pool and not the rules either -- and which of the pack's eight fetch rows FFR actually incentivizes |
 | `hoarddockhike497` | `oracle497_hoard` + `MapBahamutCardiaDock` + `MapAirshipHike` | `3B7E1C8A` | the same three | the three Cardia-relevant flags a played seed rolled, carried on `std497`'s baseline rather than that seed's whole flag set, and the combination the pairs above do not cover |
 | `airboat497` | `oracle497_airboat` | `3B7E1C8A` | `std497` plus `AirBoat` | what welding the Ship and the airship into one vehicle does to the rules, in both directions |
+| `airboatdrydock497` | `oracle497_airboatdrydock` | `3B7E1C8A` | `std497` plus `AirBoat` and `ShipDrydock`, **minus `IncentivizeFetchItems`** | that the two together strand the Onrac continent -- in FFR's own export as well as in the pack's trees -- and that the baseline incentives cannot be placed on such a seed at all |
 
 **Every cartridge here shares `std497`'s seed**, a tighter control than
 `nov`/`nov2`, which hold the flags still and vary the seed. `std497` is the
@@ -430,6 +431,52 @@ Every value was confirmed by decoding it back off the finished cartridge rather
 than trusting the preset. An absent key is not an absent flag; that is the trap
 this paragraph exists to stop, and it is the only thing that made the last two
 rows look harder than `ShipDrydock` was.
+
+### The one pair the baseline incentives cannot place
+
+Measured 2026-09-09, rolling `AirBoat` and `ShipDrydock` together for the first
+time. **`oracle497_std` plus both flags does not generate.** Every attempt ends
+in `InsaneException` from `PredictivePlacement.cs:170` -- "Item Placement could
+not meet incentivization requirements!" -- after the four tries
+`ItemPlacement.cs:91` allows. 0 of 26 seeds placed, `3B7E1C8A` among them; the
+same preset with one flag or the other placed 6 of 6 each. The retry draws from
+the seeded stream, so a failure is a property of the seed rather than a flake,
+and 26 of them is the sample.
+
+**One incentive flag is the whole of it.** All-on-minus-one over the seventeen
+`Incentivize*` values `oracle497_std` sets true: sixteen still fail on all three
+test seeds, and dropping `IncentivizeFetchItems` places 3 of 3. That is the only
+deviation `oracle497_airboatdrydock` carries, and it is a deviation in the
+incentive pool rather than in the rules -- which is what the cartridge is for
+reading. `nofetchitems497` is a different flag (`NPCFetchItems`) and not this
+one.
+
+**The pair strands the Onrac continent, and FFR says so first.** Counting
+locations in each export that sit on Onrac, Cardia, the Waterfall, the Sea
+Shrine, Lefein, Gaia, Sky Palace or Mirage Tower: `std497` 62, `drydock497` 63,
+`airboat497` 62, `airboatdrydock497` **0**. The whole continent leaves the
+export. `Waterfall Cave - Chest 1` is the clean specimen and reads the mechanism
+off in one line:
+
+| cartridge | its rule |
+|---|---|
+| `std497` | `Canoe, Floater` |
+| `drydock497` | `Canoe, Floater` -- the drydocked hull is beside the point, because the airship still rises in the desert |
+| `airboat497` | `Canoe, Floater, Ship` -- the airship *is* the Ship, so flying wants the hull too |
+| `airboatdrydock497` | **no rule; the location is not in the export** |
+
+So the deadlock is the two halves meeting: `AirBoat` makes the flight need the
+Ship, `ShipDrydock` moves the Ship to Gaia, and Gaia is on the continent the
+flight was for. Nothing gets there, and no route the Canoe can offer changes it.
+
+**The pack's trees already said this, and grading them says nothing else.**
+`check_logic --ap-rules` on `airboatdrydock497`: 96 checked, 96 agree, 0
+divergences, over the 96 locations FFR's own placement could use. The
+`$noShipDrydock` guard every `airBoat` sibling carries is therefore right rather
+than over-strict, and the alternative that had been proposed to relax it --
+`airBoat,shipDrydock,floater,ship,canoe` -- is the thing this cartridge refutes.
+`docs/ISSUES.md`, "`AirBoat` and `ShipDrydock` together leave no route to
+`airship`", has the tree walk and what the reading cost.
 
 ### Measured
 
@@ -582,7 +629,7 @@ the 53 are not an artefact of it.
     O7=<corpus>/oracle-4.9.7
     for s in std drydock extended airship landbridge objnpc gaia gaiahwy \
              dock dockbridge hoard hoarddock hoardbridge hoarddockbridge hoardhike \
-             hoarddockhike nonpcitems airboat; do
+             hoarddockhike nonpcitems airboat airboatdrydock; do
         python3 tools/check_logic.py $O7/${s}497/${s}497.nes \
             --ap-rules $O7/${s}497/${s}497.yaml --ff1-world $W
     done
@@ -669,6 +716,12 @@ Generating one of the newer three, for the record:
     dotnet FF1R/bin/Release/net10.0/FF1R.dll generate "<vanilla FF1 ROM>" \
         -j $O7/flags/oracle497_airship.json -s 3B7E1C8A \
         -o $O7/airship497/airship497.nes
+
+`oracle497_airboatdrydock` is `oracle497_std` with three: `AirBoat` and
+`ShipDrydock` on, and `IncentivizeFetchItems` off, without which the preset
+does not generate at all -- see "The one pair the baseline incentives cannot
+place" above for why that third value is there and why it costs the reading
+nothing.
 
 `oracle497_nonpcitems` and `oracle497_nofetchitems` are each `oracle497_std`
 with exactly one boolean flipped -- `NPCItems` and `NPCFetchItems` respectively,

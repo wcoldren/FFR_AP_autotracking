@@ -1263,7 +1263,7 @@ Nothing here is urgent unless it says so.
   a slot FFR cannot incentivize on any flagset does not belong on it.
 
   **`slabTranslated` did not move, which is why the cut is this clean.** The
-  board's own `Melmond/Dr Unne` in `locations/overworld.json:2793` is the same
+  board's own `Melmond/Dr Unne` in `locations/overworld.json:2807` is the same
   section with the two incentive conjuncts stripped from every rule, and it
   hosts `slabTranslated` already, so reachability, the marker clear and
   `tests/test_ram.lua`'s Unne cases all read the board copy and are untouched.
@@ -1859,3 +1859,57 @@ Nothing here is urgent unless it says so.
   board what the console was already saying. Closing this also fixed a warning
   that was wrong: the old `GameMode ~= 0` line fired on every No-Overworld seed
   loaded into the No-Overworld variant it belongs in.
+
+- **`AirBoat` and `ShipDrydock` together leave no route to `airship` at all, and
+  the cartridge says that is correct.** Closed 2026-09-09 by rolling the pair,
+  which is what the entry asked for; the reading went the other way from the one
+  it expected. The two guards compose to a dead end rather
+  than to a stricter route. `notUnderAirBoat` suppresses the `$6004` rule, which
+  is the only RAM source of the airship stage; the clause meant to replace it
+  (`scripts/autotracking/ram_mapping.lua:425-432`) is skipped when `shipDrydock`
+  is Active; and every `airBoat` sibling in the trees carries `$noShipDrydock`.
+  Nothing is left to provide the code. Walking both trees under both flags,
+  109 sections in `locations/overworld.json` and 7 in `locations/incentives.json`
+  have no live alternative -- all of Onrac Continent (79), all of Cardia
+  Islands (29), and the desert `Floater Turn In`, which is the one that should be
+  dead, because `AirBoat` removes the turn-in. The Water Orb is in that set, so
+  the board cannot show the goal reachable on such a seed. Clicking the Floater
+  by hand does not rescue it: `applyRamRules` re-derives `best["floater"]` on
+  every scan and lowers the cell back on the next tick.
+
+  Each half is right on its own and both are argued -- in the comment above the
+  clause and in `docs/FLAG_COVERAGE.md`. `$6000` is possession rather than
+  reachability, so granting flight the moment Bikke hands the Ship over is a
+  false green, and on a drydock seed the hull is at Gaia behind the Canoe, while
+  AirBoat's take-off is on the A button aboard the Ship and so wants the tile.
+  The reading raised against them was that "wants the tile" had been implemented
+  as "never" when the tile is reachable -- Canoe to Gaia, board, take off -- and
+  that the alternative saying so, `airBoat,shipDrydock,floater,ship,canoe`, was
+  the missing one.
+
+  **`airboatdrydock497` refutes exactly that alternative.** Gaia is *on* the
+  continent, so the Canoe does not reach it: `AirBoat` makes the flight need the
+  Ship, `ShipDrydock` puts the Ship at Gaia, and Gaia is only reachable by the
+  flight. FFR's own export draws the same conclusion before the pack does --
+  `Waterfall Cave - Chest 1` reads `Canoe, Floater` on `std497` and on
+  `drydock497`, gains `Ship` on `airboat497`, and on the pair **is not in the
+  export at all**, along with every one of the 62 other Onrac-continent
+  locations its siblings carry. `check_logic --ap-rules` grades 96 of 96 in
+  agreement with 0 divergences, because 96 is all the placement could use. So
+  the 109 dead sections are the board reporting a stranded continent rather than
+  losing one, and `$noShipDrydock` on the siblings stays.
+
+  **Rolling it needed one preset deviation, and finding that out was most of the
+  work.** `oracle497_std` plus the two flags does not generate on any seed --
+  0 of 26, against 6 of 6 for each flag alone -- and the single value that
+  unblocks it is `IncentivizeFetchItems`, off. That is an incentive-pool
+  deviation and not a rules one, which is why the cartridge still reads. The
+  measurement, the bisect and the per-cartridge rule table are `docs/ORACLE.md`,
+  "The one pair the baseline incentives cannot place".
+
+  What is left is nothing to fix and one thing to know: both flags are clickable
+  toggles in the flags grid, so a session with no cartridge can be put in a state
+  no cartridge can be. The board goes red across Onrac and Cardia there, and that
+  is the truth about the flagset rather than a defect. Raised by review
+  2026-09-08; the 109 and 7 above are this pack's own tree walk, re-derived
+  2026-09-09 before the cartridge was rolled, and FFR's export agreed with them.
