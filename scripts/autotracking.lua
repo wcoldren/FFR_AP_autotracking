@@ -23,6 +23,9 @@ ScriptHost:LoadScript("scripts/autotracking/reconcile.lua")
 ScriptHost:LoadScript("scripts/autotracking/ram_mapping.lua")
 ScriptHost:LoadScript("scripts/autotracking/mapValues.lua")
 ScriptHost:LoadScript("scripts/autotracking/maptab.lua")
+-- After maptab, because the only thing that reads it turns a map id into a
+-- tab through tabPathForMap.
+ScriptHost:LoadScript("scripts/location_maps.lua")
 
 -- Re-assert the board a moment after a session connects.
 --
