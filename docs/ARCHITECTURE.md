@@ -17,8 +17,10 @@ that; everything here is on `trunk`.
 
 The pack tracks from two sources at once, and either one can run alone.
 
-**Archipelago** connects to the multiworld server. It reports checked locations
-and items received — and nothing else. `worlds/ff1/__init__.py`'s
+**Archipelago** connects to the multiworld server. It reports checked locations,
+items received, and — since the hints work — the hints standing on this slot,
+which arrive over data storage under `_read_hints_<team>_<slot>` rather than
+through the scout handler. Nothing else. `worlds/ff1/__init__.py`'s
 `fill_slot_data` returns an empty dict, so there is no slot data at all. Chests
 outside the multiworld pool, orbs lit, turn-in stages, the current map, the
 seed's flags, the cartridge's identity and the run clock are all unavailable over
@@ -215,7 +217,10 @@ scripts/map_names.lua         map id -> the cartridge's name for it, what a
                               badge falls back on when no tab claims the map
 
 scripts/autotracking.lua      the Archipelago feed
+scripts/highlights.lua        who lit a pin, and in what colour
+scripts/location_maps.lua     section path -> the map its pin is drawn on
 scripts/autotracking/
+  hints.lua                   the hints feed, off data storage
   uat.lua                     the bridge feed, and the pack's LuaItems
   reconcile.lua               the union of both feeds
   ram_mapping.lua             cart RAM -> codes (orbs, bosses, turn-ins)

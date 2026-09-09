@@ -200,6 +200,27 @@ The colours themselves are PopTracker's rather than the pack's -- packs choose
 which state a pin reports, not what colour the tracker paints it. If you want
 different ones, they come from `colors.json` in your PopTracker config directory.
 
+**A hinted location glows, in the colour the hint asked for.** When somebody
+hints an item that lives on your board, the pin lights up and stays lit until
+you check it or the hint is withdrawn. It wears Archipelago's own hint status --
+gold for priority, white for an ordinary hint, blue for no-priority, red for
+avoid -- so a hint telling you *not* to bother does not look like one telling
+you to hurry.
+
+The tracker also prints the hint in both vocabularies, because Archipelago's name
+for a location and this board's are not the same. It looks like this:
+
+    hint: Archipelago's "Northwest Castle - Treasury 2" is this board's
+          "North West Castle Chests 3", on Other/Northwest Castle
+
+That matters more than it sounds. 81 of the shared names end in a number that
+disagrees and several are crossed over -- Archipelago's Treasury 2 really is
+this board's Chests 3, while its Treasury 3 is this board's Chests 2 -- so
+matching a hint by eye lands you on the wrong chest with nothing to warn you.
+The tab is named too, so you know which one to open. It does not jump you there:
+the map tab follows your party, and a hint stealing it mid-dungeon would be
+taken straight back.
+
 ## What the pin shapes mean
 
     square       an ordinary check

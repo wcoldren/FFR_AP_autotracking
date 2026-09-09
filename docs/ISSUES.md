@@ -645,6 +645,24 @@ Nothing here is urgent unless it says so.
   list, so it reproduced the OR answer by construction and could not have
   disagreed. It is evidence of nothing.
 
+- **The committed location-to-map table under-reports against a regen
+  override.** `scripts/location_maps.lua` is joined out of the four committed
+  location trees, because nothing at runtime can say which map a section is
+  drawn on -- `locationsection.cpp`'s Lua surface offers counts, accessibility
+  and `Highlight`, and nothing about where the pin is. `tools/regen_maps.py`
+  rewrites those trees into the override and adds `map_locations` entries the
+  committed ones do not have, so on a machine with an override a location can be
+  drawn somewhere this table does not name.
+
+  It is the safe direction -- the table is used to say "the pin is on this tab",
+  and a committed answer is still a true answer, just not the only one -- and it
+  is the same relationship `scripts/map_names.lua` has with `mapValues.lua`. The
+  tab itself is not affected: that comes from `MAP_VALUE`, which a regen does
+  rewrite, so `tabPathForMap` picks up an override's own tabs for free.
+  `tools/tests/test_location_maps.py` reads the committed trees only, so it
+  cannot see this; what it does hold is that the standard and No-Overworld trees
+  agree about every location, which is the divergence that would matter.
+
 - **The lane port suite crashes when `FF1_ROM` is the cartridge it ports to.
   Closed 2026-09-06.** Found 2026-09-06, and it predates the branch that found it -- reproduced
   identically at `20afab6`. `tools/tests/test_port_lanes.py` takes `FF1_ROM` as
@@ -1435,6 +1453,66 @@ Nothing here is urgent unless it says so.
   `ruby` stage 1 still provides the bare code after Talk_Titan eats it, so a
   cleared cell does not read red underneath its own marker -- `tests/test_ram.lua`
   holds that case as well as the two either side of it.
+
+- **A hint names a location the board cannot find. Closed 2026-09-09.**
+  Archipelago's location names and this pack's are two vocabularies, and 254 of
+  the 255 they share disagree. 81 end in a number that disagrees and several are
+  transposed: verified from both sides here rather than taken from a page --
+  `worlds/ff1/data/locations.json` gives id 274 the name `Northwest Castle -
+  Treasury 3` and 275 `Treasury 2`, while `LOCATION_MAPPING` gives 274 `Chests
+  2` and 275 `Chests 3`. Match a hint by eye and `Chests 2` looks right.
+
+  Neither vocabulary wanted renaming, so what closed it is the correspondence
+  said out loud -- Archipelago's name, this board's, and the tab it is drawn on
+  -- on every check and on every hint, with the hinted pin lit for as long as
+  the hint stands.
+
+  **The scout handler is the wrong channel**, and this is the half worth not
+  re-deriving. `AddScoutHandler` fires on replies to scouts the pack itself
+  asked for, and `LocationScouts` is refused unless the manifest carries
+  `apmanual` or `aphintgame` -- which let a pack *create* hints, a different and
+  far more invasive feature. Hints reach an ordinary client through data
+  storage, under `_read_hints_<team>_<slot>`; the server answers a `Get` on it
+  and rebroadcasts the whole list on every change, including after a check.
+  `AddSetReplyHandler` and `AddRetrievedHandler` had been registered since long
+  before this with nothing ever subscribed, so both were dead.
+
+  **The status is a colour, not a flag.** `HintStatus` and PopTracker's
+  `Highlight` are the same four states in the same order, and PopTracker's own
+  defaults paint them the colours Archipelago names, so a hint is carried
+  through at its own status rather than flattened to gold.
+
+  **It does not tab there**, which is where the plan's first sketch was wrong:
+  `activateMapTab` follows the party on every floor change, so a tab moved by an
+  arriving hint is intrusive mid-play and taken back at the next change.
+
+  Two things it deliberately does not cover, neither of them new: a hint whose
+  `finding_player` is somebody else has no pin on this board, and the twelve
+  Deep Dungeon ids are in no mapping -- both are named rather than lit, which is
+  more use than a bare id to someone reading the hint. The entry named "The
+  committed location-to-map table under-reports against a regen override" is the
+  one thing this left behind.
+
+- **Three features wrote `Highlight` and one of them said it was the only
+  writer. Closed 2026-09-09.** `scripts/entrance_items.lua` carried a comment
+  that navigate "is the only Lua in the pack that touches Highlight at all",
+  used to justify a load sweep that put out every entrance pin it walked. It was
+  already untrue when written -- `refreshIncentiveHighlights` wrote it too --
+  and the two sets were disjoint only by luck.
+
+  They are not disjoint. **25 section paths are in both `INCENTIVE_SLOTS` and
+  `LOCATION_MAPPING`** -- Coneria Castle's King and Sara, Gaia's Fairy, Nerrick,
+  the Marsh Cave incentive and 20 others -- and the incentive refresh asserted
+  `Highlight.None` over every slot it did not ring. So a hint on any of those
+  would have been put out by the next refresh, which runs on every connect and
+  every toggle.
+
+  `scripts/highlights.lua` owns the writing now: owners claim a path, the claims
+  resolve in one stated order, and an owner can only drop its own. The sweep
+  moved with it, and that is the half the old shape could not have done --
+  pointing a put-out-everything sweep at those 25 paths would have blanked every
+  ring on the board, where re-asserting from claims cannot.
+
 
 ## Open questions
 

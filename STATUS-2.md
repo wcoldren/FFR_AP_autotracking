@@ -2163,3 +2163,87 @@ What says otherwise is a cartridge with the flag on, graded rule by rule, and
 the corpus is where that lives -- the same answer as the bank read and the
 door map before it. The cheap version of that question is "how many rules name
 this code?", and on `AirBoat` the answer was one.
+
+
+## The hints say where they land
+
+Landed 2026-09-09, `16c87a6..f58244c`, five commits. Archipelago's location
+names and this pack's are two vocabularies that disagree on 254 of the 255 they
+share, and the disagreement is not cosmetic: 81 end in a number that differs and
+several are transposed. Verified from both sides rather than taken from the
+page -- `worlds/ff1/data/locations.json` gives id 274 the name `Northwest Castle
+- Treasury 3` and 275 `Treasury 2`, while `LOCATION_MAPPING` gives 274 `Chests
+2` and 275 `Chests 3`. Read a hint, match it by eye, and `Chests 2` looks right.
+
+**Renaming either side was never the answer**, and the reason is worth keeping:
+AP's names are the randomizer's own player-facing set and read as route jargon
+plus a floor label, while the pack's say where the thing is on the drawn floor.
+On a map board the second is the one that helps. What was missing was a lookup,
+and a tooltip cannot be one, because you cannot hover a pin you have not found.
+So the fix is the correspondence stated outright -- both names and the tab --
+on every check and on every hint.
+
+**The scout handler was the wrong channel, and the plan said to use it.**
+`AddScoutHandler` fires on `LocationInfo`, which is a reply to a scout the pack
+itself asked for; `LocationScouts` is refused outright unless the manifest
+carries `apmanual` or `aphintgame`, and those are the flags that let a pack
+*create* hints. This pack carries neither, deliberately. Hints reach an ordinary
+client through data storage instead: the server keeps them under
+`_read_hints_<team>_<slot>`, answers a `Get`, and rebroadcasts the whole list on
+every change -- including after a check, since registering one rechecks its
+hints. It is the key Archipelago's own client watches.
+
+The channel was already half-built and dead. `AddSetReplyHandler` and
+`AddRetrievedHandler` had been registered since long before this with nothing
+anywhere calling `Get` or `SetNotify`, so neither had ever fired. Both are
+needed and neither is redundant: the `Get` answers with hints placed before the
+tracker was opened, which is the common case, and the notify covers the rest.
+
+**The tab is deliberately not moved**, which is the other place the sketch was
+wrong. `activateMapTab` follows the party on every floor change, so a tab yanked
+by an arriving hint is intrusive while somebody is walking and is taken back at
+the next change anyway. The pin lights instead, and stays lit while the hint
+stands.
+
+**`HintStatus` is `Highlight`, colour for colour**, which turned a design
+question into a lookup table. Archipelago paints unspecified white, no-priority
+slateblue, avoid salmon and priority plum; PopTracker's defaults are white,
+slateblue, red and gold for the same four, its own comment saying plum is hard
+to see so it is drawn gold. So a hint is carried through at its own status
+rather than flattened, and one the server says to avoid does not read as one it
+says to chase.
+
+**What the work actually cost was a registry, and the reason is a measurement.**
+Three features now want to write a section's `Highlight`, and
+`entrance_items.lua` carried a comment claiming to be the only Lua in the pack
+that touched one -- already untrue when written, since the incentive rings write
+it too. The two sets were disjoint by luck. Hints are not: **25 section paths
+are in both `INCENTIVE_SLOTS` and `LOCATION_MAPPING`**, and the incentive
+refresh asserted `Highlight.None` over every slot it did not ring, so a hint on
+Coneria Castle's King would have been put out by the next connect. Nobody writes
+`Highlight` now; owners claim, `scripts/highlights.lua` resolves, and an owner
+can only ever drop its own claim.
+
+The load sweep moved with the writing, and that is the half the old shape could
+not have grown into. Sweeping every entrance pin was safe only while those were
+the only lit pins on the board; the same shape pointed at those 25 paths would
+have blanked every ring. Re-asserting from claims cannot, and it is
+order-independent as well -- whether the incentive watches fire before or after
+the sweep, both write the same value.
+
+**Nothing could say which map a location is drawn on**, which was the one real
+gap. `LOCATION_MAPPING` carries a section path and no map, `INCENTIVE_SLOTS`
+carries no map, and a section cannot be asked -- its Lua surface knows its
+counts, its accessibility and its highlight, and nothing about where it is. The
+trees do know, and the join turned out to be total: all 256 locations resolve,
+the standard and No-Overworld trees agree about every one of them, and 246 are
+drawn once. The ten that are not are real rather than ambiguous -- a chest the
+cartridge lays on two floors, and the Temple rows that appear once per ToFR
+mode -- so a path maps to a list and nothing invents a tie-break.
+
+**Two rows in the test are worth their keep for opposite reasons.** The
+transposed pair is asserted by name, so the defect itself is a row rather than a
+story. And the many-to-one case is *synthesised*, because no two ids share a
+section path in the mapping as it stands -- written against the shipped data it
+would have been a row that passed while testing nothing, which is the shape this
+pack keeps finding in its own suites.

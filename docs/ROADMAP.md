@@ -89,6 +89,7 @@ register's. Rewording either end is how a row stops resolving, which
 | lanes | A lane file's `region` is an index the digest does not guard |
 | lanes | A stop at a chest re-orients for free, and nothing says whether it should |
 | tests | Nothing tests the multi-tile OR in `derive()` |
+| maps | The committed location-to-map table under-reports against a regen override — the tab is unaffected, since that comes from `MAP_VALUE`, which a regen does rewrite |
 | board | The No-Overworld incentive poster is missing one slot, not two — of `nerrick` and `airship`, only `nerrick` is |
 | board | The incentive defaults are still a guess on a version with no schema |
 | board | The gold ring stops being gold once this pack's off filter has had it — `showIncentiveRings` may want a drawn "off" image |
@@ -322,38 +323,35 @@ closed 2026-09-06.
   shapes mean", rather than in the Map Key this bullet asked for, because the Map
   Key is rendered art and shape rows would move every marker on every map.
   `docs/ISSUES.md`, "What a diamond means", holds the reasoning.
-- **A hint names a location the board cannot find.** Archipelago's location
-  names and this pack's are two different vocabularies, and 254 of the 255 they
-  share disagree. Both are defensible: AP's are the randomizer's own
-  player-facing set, shipped in `FF1Lib/archipelago/locations.json` and copied
-  into `worlds/ff1/data/`, and they read as route jargon plus a floor label --
-  `Marsh Cave Bottom (B2) - Tetris-Z Middle 1`. The pack's say where the thing
-  is on the drawn floor -- `Marsh Cave Bottom Floor 2,2 2`. On a map board the
-  second is the one that helps, so this is not a case for renaming either side.
+- **A hint names a location the board cannot find. Closed 2026-09-09.**
+  Archipelago's names and this pack's are two vocabularies that disagree on 254
+  of the 255 they share, and neither wanted renaming: AP's read as route jargon
+  plus a floor label, the pack's say where the thing is on the drawn floor, and
+  on a map board the second is the one that helps. The defect was the 81 that
+  end in a number that disagrees, several of them transposed -- AP's `Northwest
+  Castle - Treasury 2` is this pack's `North West Castle Chests 3` while AP's
+  `Treasury 3` is the pack's `Chests 2`, so matching by eye lands on the wrong
+  chest with nothing to say so.
 
-  **81 of the 255 end in a number that disagrees, and several are transposed**:
-  AP's `Northwest Castle - Treasury 2` is this pack's `North West Castle Chests
-  3`, and AP's `Treasury 3` is the pack's `Chests 2`. Anyone matching a hint by
-  eye lands on the wrong chest and has no reason to doubt it. That is the defect
-  here; the naming difference on its own is not.
+  What answers it is the correspondence stated outright, on every check and on
+  every hint, with the tab beside it. The pins a hint names light in the hint's
+  own colour and stay lit while it stands. `docs/ISSUES.md`, "A hint names a
+  location the board cannot find", has the build and what it left behind;
+  `STATUS-2.md`, "The hints say where they land", has the reasoning.
 
-  A tooltip does not answer it, because the question is a lookup -- "a hint
-  names this, where is it?" -- and you cannot hover a pin you have not found
-  yet. What answers it is navigation, and the parts exist: `LOCATION_MAPPING`
-  already resolves an AP id to a section path, and `tabPathForMap` /
-  `activateTabPath` plus the gold highlight already do "take me there" for
-  entrance badges. A scout handler that tabs to a hinted location and lights it
-  would reuse all of it.
+  **The scout handler was the wrong channel**, which is the part worth not
+  re-deriving: `AddScoutHandler` fires on replies to scouts the pack itself
+  asked for, and `LocationScouts` is refused unless the manifest carries
+  `apmanual` or `aphintgame` -- flags that let a pack create hints rather than
+  read them. Hints reach an ordinary client through data storage, under
+  `_read_hints_<team>_<slot>`, which is the key Archipelago's own client
+  watches. The two handlers this pack had registered and never subscribed
+  anything to are the channel now.
 
-  **The cheap half landed 2026-09-09.**
-  `onLocation(location_id, location_name)` (`scripts/autotracking.lua:292`)
-  keeps AP's name now instead of dropping it after a debug print, and every
-  check says both vocabularies and the tab -- Archipelago's "Northwest Castle -
-  Treasury 2" is this board's "North West Castle Chests 3", on Other/Northwest
-  Castle. The lines start after the connect replay, since a burst of 254 of them
-  is noise rather than an answer, and the tab comes from
-  `scripts/location_maps.lua`, which is joined out of the trees because no
-  section can be asked where it is drawn.
+  **It does not tab there**, which is where this bullet's own sketch was wrong.
+  `activateMapTab` follows the party on every floor change, so a tab moved by an
+  arriving hint is both intrusive mid-play and taken back at the next change.
+
 - **Twelve Deep Dungeon locations are in no mapping.** The AP world carries 267
   locations to the randomizer's 255; the twelve extra are Deep Dungeon
   (`DeepDungeon29B_Chest146` and friends, ids 401-404 and 443-451), and
