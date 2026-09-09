@@ -76,7 +76,9 @@ function resetMapTab()
   forgotten = forgotten + 1
 end
 
-Highlight = { None = 0, Priority = 4 }
+-- The host's own values (locationsection.h:12-18), not invented ones: the
+-- fixture used to say Priority = 4, which no PopTracker ever returns.
+Highlight = { Avoid = -1, None = 0, NoPriority = 1, Unspecified = 2, Priority = 3 }
 
 local SECTIONS = {}
 for _, path in pairs(ENTRANCE_LINKS) do
@@ -107,6 +109,9 @@ local function check(label, got, want)
   if not ok then print(string.format("     wanted %s", tostring(want))) end
 end
 
+-- The registry first, the same order init.lua loads them in: entrance_items
+-- claims through it rather than writing Highlight itself.
+dofile(PACK .. "/scripts/highlights.lua")
 dofile(PACK .. "/scripts/entrance_items.lua")
 
 local FWD = "\226\134\146"
@@ -281,25 +286,14 @@ check("clearing twice is not a change", clearEntranceNames(), 0)
 print("\n-- a highlight that outlived its clock")
 ------------------------------------------------------------------
 
--- Highlight is written into the autosave and restored from it; the five-second
--- deadline is a Lua local and is not. So a quit inside the window reopens with
--- a gold pin and no handler registered to take it off, and the sweep is what
--- notices. It is armed as this file loads and fires once, because the section
--- restore lands after the script and would put back anything cleared earlier.
-check("the sweep is armed at load",
-  frameHandlers["entrance highlight sweep"] ~= nil, true)
-
--- Two pins gold and no click behind either: the shape a restored autosave has.
-SECTIONS[STAIR_UP].Highlight = Highlight.Priority
-SECTIONS[DOOR].Highlight = Highlight.Priority
-frameHandlers["entrance highlight sweep"](0.016)
-check("and puts out every pin it finds lit",
-  SECTIONS[STAIR_UP].Highlight == Highlight.None
-    and SECTIONS[DOOR].Highlight == Highlight.None, true)
-check("then takes itself off, being a load-time job",
+-- The load sweep moved to scripts/highlights.lua with the rest of the Highlight
+-- writing, and tests/test_highlights.lua is where it is exercised now. What
+-- stays here is that this file no longer arms one of its own: two sweeps over
+-- the same pins, one of them claim-blind, is the thing the move was for.
+check("no sweep of its own is armed any more",
   frameHandlers["entrance highlight sweep"], nil)
-check("and says nothing was left over on a clean board",
-  clearStaleEntranceHighlights(), 0)
+check("and the pack-side sweeper is gone with it",
+  type(clearStaleEntranceHighlights), "nil")
 
 print("")
 if fail > 0 then

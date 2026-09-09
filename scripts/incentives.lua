@@ -175,6 +175,13 @@ function refreshIncentiveHighlights()
   if not INCENTIVE_SLOTS or refreshing then
     return 0
   end
+  -- A host with no Highlight at all draws no rings, so the count is zero rather
+  -- than the number we would have drawn. The registry declines the write on its
+  -- own; what it cannot know is that this counter means "rings a player can
+  -- see", which is the number tests/test_incentives.lua asserts on.
+  if not Highlight then
+    return 0
+  end
   refreshing = true
   local marked = 0
   local ok, err = pcall(function()
@@ -183,18 +190,26 @@ function refreshIncentiveHighlights()
     for _, slot in ipairs(INCENTIVE_SLOTS) do
       -- Only one of the two incentive trees is loaded, so roughly a third of
       -- these are expected to be nil. tests/test_incentives.lua is what
-      -- catches a path that resolves in neither.
+      -- catches a path that resolves in neither. The lookup stays here rather
+      -- than moving into the registry because `marked` counts rings a player
+      -- can actually see, which is a different question from whether the claim
+      -- was recorded.
       local section = Tracker:FindObjectForCode(slot.path)
-      if section then
-        if rings and slotIsIncentivized(slot) and slotInPool(slot, pool) then
-          section.Highlight = Highlight.Priority
+      -- claim/release rather than writing Highlight, because 25 of these paths
+      -- are also in LOCATION_MAPPING and so can carry a hint. Asserting
+      -- Highlight.None on a slot we do not ring would put that hint out; a
+      -- release only drops our own claim and lets scripts/highlights.lua decide
+      -- what the pin is left showing.
+      if rings and slotIsIncentivized(slot) and slotInPool(slot, pool) then
+        claimHighlight("incentive", slot.path)
+        if section then
           marked = marked + 1
-        else
-          -- Reached with the toggle off as well as for a slot this seed
-          -- passed over or does not have, which is what puts the rings out on
-          -- a click rather than leaving the last set of them painted.
-          section.Highlight = Highlight.None
         end
+      else
+        -- Reached with the toggle off as well as for a slot this seed
+        -- passed over or does not have, which is what puts the rings out on
+        -- a click rather than leaving the last set of them painted.
+        releaseHighlight("incentive", slot.path)
       end
     end
   end)
@@ -213,6 +228,16 @@ function refreshIncentiveHighlights()
     print(string.format("incentives: %d slots ringed", marked))
   end
   return marked
+end
+
+-- Which paths this owner may ever ring, so the registry's load sweep can put
+-- out a ring restored from an autosave that this seed does not want.
+if type(registerHighlightScope) == "function" and INCENTIVE_SLOTS then
+  local paths = {}
+  for _, slot in ipairs(INCENTIVE_SLOTS) do
+    paths[#paths + 1] = slot.path
+  end
+  registerHighlightScope("incentive", paths)
 end
 
 -- One watch per flag, which covers every way a flag can move: the cartridge's

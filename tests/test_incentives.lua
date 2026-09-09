@@ -477,6 +477,9 @@ AUTOTRACKER_ENABLE_DEBUG_LOGGING = false
 -- and the stub answers ProviderCountForCode out of this table rather than out
 -- of the item model. Every ring below is conditional on it.
 provided = { show_gold_rings = 1 }
+-- The registry first, the same order init.lua loads them in: a ring is a claim
+-- through scripts/highlights.lua now, not a write to the section.
+dofile(PACK .. "/scripts/highlights.lua")
 dofile(PACK .. "/scripts/incentives.lua")
 
 -- Wrap it so the depth is visible, then let a watch fire while it runs.

@@ -57,7 +57,7 @@ local DOOR_BADGE_ICON = "images/icons/door_badge.png"
 -- How long the far pin stays lit after a click that tabbed to it, in seconds
 -- of wall time -- see removeEntranceHighlight for where the seconds come from.
 local HIGHLIGHT_SECONDS = 5
-local HIGHLIGHT_SECTION = nil
+local HIGHLIGHT_PATH = nil
 local HIGHLIGHT_ELAPSED = 0
 
 -- Names the badge draws shorter than the tab does.
@@ -197,58 +197,20 @@ function removeEntranceHighlight(elapsed)
     return
   end
   ScriptHost:RemoveOnFrameHandler("entrance highlight")
-  if HIGHLIGHT_SECTION then
-    HIGHLIGHT_SECTION.Highlight = Highlight.None
+  if HIGHLIGHT_PATH then
+    releaseHighlight("entrance", HIGHLIGHT_PATH)
   end
-  HIGHLIGHT_SECTION = nil
+  HIGHLIGHT_PATH = nil
   HIGHLIGHT_ELAPSED = 0
 end
 
--- Every entrance pin back to unlit. The deadline above is what normally does
--- this; this is for the times it never got to run.
---
--- Highlight is saved state and the deadline is not. locationsection.cpp:180-181
--- writes it into the autosave and :194-196 restores it, while HIGHLIGHT_SECTION
--- is a Lua local that starts nil and the frame handler is registered by a click
--- that has not happened yet. So quitting inside the five seconds reopens with a
--- gold pin and nothing left that knows to put it out.
---
--- Sweeping every pin is safe because a highlight standing on one can only be
--- ours: PopTracker has exactly two writers, the state load and Lua
--- (locationsection.cpp:196, :289), there is no UI that sets one, and navigate
--- below is the only Lua in the pack that touches Highlight at all.
-function clearStaleEntranceHighlights()
-  local cleared = 0
-  if not Highlight then
-    return cleared
-  end
-  for path in pairs(ENTRANCE_ITEMS) do
-    local sec = Tracker:FindObjectForCode(path)
-    -- `~= nil` as well as `~= None`, because a host that does not answer the
-    -- read will not accept the write either: Lua_NewIndex returns false and
-    -- PopTracker raises on the assignment. Reading nil is that host saying so.
-    local lit = sec and sec.Highlight
-    if lit ~= nil and lit ~= Highlight.None then
-      sec.Highlight = Highlight.None
-      cleared = cleared + 1
-    end
-  end
-  return cleared
-end
-
--- On the first frame rather than as this file loads, and that is the whole
--- reason it is a frame handler. Tracker::loadState restores lua items before
--- sections (tracker.cpp:1422-1455) and the restore itself runs synchronously a
--- few lines after init.lua returns (poptracker.cpp:1436-1449), so anything
--- cleared from a LoadFunc, or from the bottom of this file, is put straight
--- back by the section pass. The first frame is the earliest moment at which the
--- restored board is the board.
-local STALE_HANDLER = "entrance highlight sweep"
-
-local function sweepStaleEntranceHighlights()
-  ScriptHost:RemoveOnFrameHandler(STALE_HANDLER)
-  clearStaleEntranceHighlights()
-end
+-- The sweep that used to live here is scripts/highlights.lua's, and so is the
+-- reasoning: Highlight is saved state and the deadline above is not, so quitting
+-- inside the five seconds reopens with a gold pin and nothing that knows to put
+-- it out. It moved because sweeping every pin was only ever safe while these
+-- were the only lit pins in the pack, and they are not -- the incentive rings
+-- and now the hints light sections too, and a sweep of this shape over those
+-- would blank them. The registry sweeps from claims instead, which cannot.
 
 -- Tab to where a door goes and light the pin at the far end for a moment.
 --
@@ -288,13 +250,14 @@ local function navigate(mapId, path)
     end
   end
   if path and Highlight then
-    local sec = Tracker:FindObjectForCode(path)
-    if sec then
-      if HIGHLIGHT_SECTION then
-        HIGHLIGHT_SECTION.Highlight = Highlight.None
-      end
-      sec.Highlight = Highlight.Priority
-      HIGHLIGHT_SECTION = sec
+    -- One glow at a time: the previous one is released rather than overwritten,
+    -- so a pin an incentive ring or a hint also holds keeps its colour instead
+    -- of going dark on somebody else's timer.
+    if HIGHLIGHT_PATH and HIGHLIGHT_PATH ~= path then
+      releaseHighlight("entrance", HIGHLIGHT_PATH)
+    end
+    if claimHighlight("entrance", path) or highlightOwnerOf(path) then
+      HIGHLIGHT_PATH = path
       HIGHLIGHT_ELAPSED = 0
       if type(ScriptHost.AddOnFrameHandler) == "function" then
         ScriptHost:AddOnFrameHandler("entrance highlight", removeEntranceHighlight)
@@ -415,7 +378,13 @@ function clearEntranceNames()
   return cleared
 end
 
-if buildEntranceItems() > 0
-    and type(ScriptHost.AddOnFrameHandler) == "function" then
-  ScriptHost:AddOnFrameHandler(STALE_HANDLER, sweepStaleEntranceHighlights)
+-- The pins exist, so tell the registry which paths this owner may light. A pack
+-- with no override builds no items and registers nothing, which is right: it has
+-- no pins to hang them on either.
+if buildEntranceItems() > 0 and type(registerHighlightScope) == "function" then
+  local paths = {}
+  for path in pairs(ENTRANCE_ITEMS) do
+    paths[#paths + 1] = path
+  end
+  registerHighlightScope("entrance", paths)
 end

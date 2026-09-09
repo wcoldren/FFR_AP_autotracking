@@ -46,6 +46,11 @@ else
     Tracker:AddLocations("locations/incentives.json")
 end
 
+-- Before everything that lights a pin, because they claim through it rather
+-- than writing Highlight themselves. It reads no sections at load, so it is
+-- safe this early; the sweep that does runs on the first frame.
+ScriptHost:LoadScript("scripts/highlights.lua")
+
 -- After the locations, because it addresses their sections by path.
 ScriptHost:LoadScript("scripts/incentive_slots.lua")
 ScriptHost:LoadScript("scripts/incentives.lua")
