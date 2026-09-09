@@ -61,6 +61,7 @@ work it is, not how much it matters.
 | §3 | Whether Inspect survives `hide unreachable locations` |
 | §3 | Warn once when a stale override shadows pack edits |
 | §3 | Room-level zoom, after the towns |
+| §3 | Twelve Deep Dungeon locations are in no mapping |
 | §4 | The lanes still to draw: the ported drafts, the by-eye pass, the run-wide order |
 | §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
