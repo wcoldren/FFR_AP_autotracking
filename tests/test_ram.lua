@@ -894,6 +894,41 @@ check("the shuffle closes Dr Unne too", inLogic("Melmond", drUnne), false)
 byCode["objectiveNPCs"].Active = false
 
 ------------------------------------------------------------------
+-- The Titan cell is a turn-in, so it wants what is handed over.
+--
+-- His node is the tunnel's reachability -- Titan's Trove's alternatives with
+-- `ruby` struck out of each -- and for a while the cell rode on that alone, so
+-- it went green on any seed where the airship could reach the tunnel. Nothing
+-- graded it: FFR exports no Titan location at all, because he holds no shuffled
+-- item, so check_logic has nothing to compare the cell against.
+--
+-- The Ruby is on the section rather than the node on purpose: the node is also
+-- what the Trove's own rules hang beside, and reaching the tunnel really is
+-- Ruby-free.
+------------------------------------------------------------------
+local titanCell = sectionRules("Titan's Tunnel Titan", "Titan")
+
+reset()
+MEM[0x602B] = 1                                  -- Floater
+MEM[0x6004] = 1                                  -- airship flying
+applyRamRules(byteAt)
+check("the airship reaches the tunnel", inLogic("Titan's Tunnel Titan"), true)
+check("but Titan is not a turn-in you can do", inLogic("Titan's Tunnel Titan", titanCell), false)
+
+MEM[0x6029] = 1                                  -- Ruby in the bag
+applyRamRules(byteAt)
+check("the Ruby opens the turn-in", inLogic("Titan's Tunnel Titan", titanCell), true)
+
+-- Talk_Titan eats the Ruby and hides him, and `ruby` stage 1 keeps providing
+-- the bare code -- so a cell that has just been cleared does not read red
+-- underneath its own marker.
+MEM[0x6029] = 0
+MEM[0x6214] = 0x00
+applyRamRules(byteAt)
+check("fed Titan provides the cell's code", provided("titan"), true)
+check("and the turn-in stays in logic behind it", inLogic("Titan's Tunnel Titan", titanCell), true)
+
+------------------------------------------------------------------
 -- Sanity on the rule table itself
 ------------------------------------------------------------------
 local unknown = {}

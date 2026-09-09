@@ -1263,7 +1263,7 @@ Nothing here is urgent unless it says so.
   a slot FFR cannot incentivize on any flagset does not belong on it.
 
   **`slabTranslated` did not move, which is why the cut is this clean.** The
-  board's own `Melmond/Dr Unne` in `locations/overworld.json:2790` is the same
+  board's own `Melmond/Dr Unne` in `locations/overworld.json:2793` is the same
   section with the two incentive conjuncts stripped from every rule, and it
   hosts `slabTranslated` already, so reachability, the marker clear and
   `tests/test_ram.lua`'s Unne cases all read the board copy and are untouched.
@@ -1410,6 +1410,31 @@ Nothing here is urgent unless it says so.
   paid for on that tick and no other. `AP_CHECKED` is excluded, which is what
   keeps a session with both feeds behaving the way Archipelago does -- the server
   owns its own retraction through `onClear` and never sends one otherwise.
+
+- **The Titan cell asked for the tunnel and not for the Ruby. Closed
+  2026-09-08**, noticed on the board beside the entry named "Sarda's Cave went
+  green on a forested seed with no Ruby, through the hike row" and on the same
+  cartridge: the cell was green on a seed where the Ruby had not been found, so
+  the turn-in it stands for could not be done.
+
+  `ccf20ed` authored the node as Titan's Trove's alternatives with `ruby` struck
+  out of every one, which is right for the *node* -- reaching Titan's Tunnel
+  really is Ruby-free, and the Trove's own rules hang beside it -- and left the
+  cell riding on that alone. Every other turn-in box carries what is handed
+  over: Astos `crown`, Matoya `crystal`, the Fairy `bottle`, the Floater Turn In
+  `$noAirBoat,inactiveFloater`. This one carried nothing.
+
+  **Nothing could have graded it.** FFR exports no Titan location, because he is
+  one of the eight NPCs holding no shuffled item, so `check_logic` has no rule to
+  compare the cell against -- the same blind spot as a flag combination no
+  cartridge in either corpus has, arrived at from the other direction. The cell
+  is not an Archipelago check either, so no `LOCATION_MAPPING` row covers it and
+  the section is driven from `$6214` alone.
+
+  The Ruby is a section rule now, in both trees, which keeps them byte-identical.
+  `ruby` stage 1 still provides the bare code after Talk_Titan eats it, so a
+  cleared cell does not read red underneath its own marker -- `tests/test_ram.lua`
+  holds that case as well as the two either side of it.
 
 ## Open questions
 

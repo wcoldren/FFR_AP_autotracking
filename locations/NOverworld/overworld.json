@@ -2007,6 +2007,9 @@
                 "sections": [
                     {
                         "name": "Titan",
+                        "access_rules": [
+                            "ruby"
+                        ],
                         "hosted_item": "titan"
                     }
                 ]
