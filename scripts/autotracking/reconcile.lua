@@ -10,7 +10,9 @@
 --
 --   AP_CHECKED   grows as the server reports checks, cleared by onClear
 --   UAT_CHECKED  replaced wholesale on every full-state message from the
---                emulator bridge, so loading an older save un-marks chests
+--                emulator bridge, so loading an older save un-marks chests --
+--                and, through retractedHostedCode, the NPC and incentive cells
+--                whose sections clear from a hosted code rather than a count
 ------------------------------------------------------------------
 
 AP_CHECKED = {}
@@ -181,9 +183,15 @@ local function absorbPlayerEdits(paths)
   end
 end
 
--- Hosted items stay monotonic: set on check, never cleared. That matches how
--- the pack has always behaved (onClear's hosted-item reset is commented out)
--- and avoids fighting a player who toggled one by hand.
+-- Hosted items are set here and never cleared here. What takes one down is a
+-- whole-board reassert -- reassertBoard, or resetForNewGame -- and the reason
+-- for the split is timing rather than direction: a code the player toggled by
+-- hand has to survive the next RAM tick, which during play is a second or two
+-- away, and a per-id clear on every tick is exactly what would not let it.
+--
+-- retractedHostedCode below is what asks for the reassert. It fires only on a
+-- tick where the cartridge itself took a check back, which is a save being
+-- reloaded rather than anything that happens during ordinary play.
 local function applyHostedItem(id)
   local v = LOCATION_MAPPING[id]
   if not (v and v[2]) then
@@ -220,6 +228,35 @@ local function clearHostedItems()
       obj.Active = false
       if obj.CurrentStage ~= nil and obj.CurrentStage ~= 0 then
         obj.CurrentStage = 0
+      end
+    end
+  end
+end
+
+-- Did the cartridge just take back a check whose section clears from a hosted
+-- code? Those are the 26 rows in LOCATION_MAPPING that carry a second element:
+-- the NPC turn-ins and the Incentive Locations pins, which have no item_count
+-- and so grey out on the code having a provider rather than on a count.
+--
+-- Every other id in the mapping already walks back on its own, because
+-- recomputeSection reads the union afresh and UAT_CHECKED is replaced wholesale
+-- -- an older save really does un-mark its chests. A hosted code cannot follow
+-- it, because the set is one-way (see applyHostedItem), so the Fairy stayed
+-- turned in on a board where the Bottle was back in the bag and the turn-in was
+-- open again. Reported from play on a reset, and it is every one of those 26
+-- cells rather than that one.
+--
+-- AP_CHECKED is the exclusion rather than an afterthought. The server owns its
+-- own retractions through onClear and never sends one otherwise, so an id it
+-- has reported is not retracted by the cartridge disagreeing with it -- which
+-- is what keeps a session with both feeds connected behaving the way an
+-- Archipelago session does.
+local function retractedHostedCode(previous)
+  for id in pairs(previous) do
+    if not UAT_CHECKED[id] and not AP_CHECKED[id] then
+      local v = LOCATION_MAPPING[id]
+      if v and v[2] then
+        return id, v[2]
       end
     end
   end
@@ -322,6 +359,7 @@ function setUATChecked(checked)
   -- No unmapped warning here: the UAT feed screens its own ids and reports
   -- them with the byte index attached, which is more useful than an id alone.
   local had = next(UAT_CHECKED) ~= nil
+  local previous = UAT_CHECKED
   UAT_CHECKED = checked or {}
 
   -- Going from checks to no checks at all, on a ROM we are already tracking,
@@ -351,6 +389,23 @@ function setUATChecked(checked)
   -- one-way rule exists to protect.
   if not UAT_REASSERTED then
     UAT_REASSERTED = true
+    reassertBoard()
+    return
+  end
+
+  -- A check the cartridge has taken back, on a cell that clears from a hosted
+  -- code. applyAll cannot lower one, so the whole board is re-asserted instead:
+  -- clearHostedItems drops the lot and applyAll puts back everything still in
+  -- either feed, which leaves exactly the ones the cartridge and the server
+  -- still report.
+  --
+  -- The cost is the hand-set hosted codes, which go with it -- the same deal
+  -- reassertBoard already makes at the bridge's first snapshot. It is paid only
+  -- on a tick where a save was reloaded, rather than on every tick, which is
+  -- what makes it a different bargain from lowering the codes in applyAll.
+  local id, code = retractedHostedCode(previous)
+  if id then
+    print(string.format("uat: the feed took back location %s (%s) -- re-asserting the board", tostring(id), code))
     reassertBoard()
     return
   end

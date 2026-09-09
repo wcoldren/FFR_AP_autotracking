@@ -1383,6 +1383,34 @@ Nothing here is urgent unless it says so.
 
   The row is a pair now, mirroring the `airBoat` split, in all four trees.
 
+- **A turn-in the cartridge took back stayed cleared on the board. Closed
+  2026-09-08**, reported from play: the Bottle was used and the Fairy talked to,
+  the game was reset, and on the board that came back the Bottle was in the bag
+  again and the turn-in open again while `@Gaia/Fairy` stayed grey.
+
+  **The chest half of this already worked.** `setUATChecked` replaces
+  `UAT_CHECKED` wholesale on every snapshot and `recomputeSection` reads the
+  union afresh, so 230 of the 256 mapped ids un-mark on their own when a save is
+  reloaded. The 26 that did not are the rows in `location_mapping.lua` carrying a
+  second element -- the fourteen NPC cells, the eleven Incentive Locations pins
+  and `I: Shop Item`. Those sections have no `item_count`, so they clear from a
+  hosted code having a provider, and `applyHostedItem` only ever set one true.
+
+  Not a gap in what the feed carries: the bridge mirrors the whole flag page
+  every tick, so the retraction was already in hand each time and was thrown
+  away. `reassertBoard` -- `clearHostedItems` then `applyAll`, which puts back
+  everything still in either feed -- was already the right operation too, and was
+  wired to fire once per session on the bridge's first snapshot.
+
+  `retractedHostedCode` now asks for that same reassert on any tick where the
+  cartridge takes back a check on one of those 26. **The reason it is a reassert
+  rather than a per-id clear is timing, not direction.** A hosted code the player
+  set by hand has to survive the next RAM tick, seconds away during play; a
+  retraction only happens on a save being reloaded, so the hand-set codes are
+  paid for on that tick and no other. `AP_CHECKED` is excluded, which is what
+  keeps a session with both feeds behaving the way Archipelago does -- the server
+  owns its own retraction through `onClear` and never sends one otherwise.
+
 ## Open questions
 
 - **The gold ring stops being gold once this pack's off filter has had it.**

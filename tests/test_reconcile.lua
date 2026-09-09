@@ -280,5 +280,53 @@ check("and the AP check still holds its section", sec.AvailableChestCount, full 
 setUATChecked({})
 check("the dropped hand clear does not come back", sec.AvailableChestCount, full - 1)
 
+-- 17. a check the cartridge takes back, on a cell that clears from a hosted
+--     code. The sections beside it already walk back on their own -- test 10
+--     covers that -- but a hosted code cannot, so the cell stayed cleared on a
+--     board where the game had been reset and the turn-in was open again.
+resetChecked()
+AP_CHECKED = {}
+setUATChecked({})
+setUATChecked({ [multiIds[1]] = true, [hostedId] = true })
+check("cartridge lit the hosted cell", objects[hostedCode].Active, true)
+setUATChecked({ [multiIds[1]] = true })
+check("a retracted check re-opens the cell", objects[hostedCode].Active, false)
+check("and the chest beside it is untouched", sec.AvailableChestCount, full - 1)
+
+-- The reassert costs the hand-set hosted codes and nothing else: the manual
+-- offsets are taken against sections, and reassertBoard leaves those alone.
+sec.AvailableChestCount = full - 2                 -- a hand clear on the section
+objects[hostedCode].Active = true                  -- and a hand-set hosted code
+setUATChecked({ [multiIds[1]] = true, [hostedId] = true })
+check("hand clear and a re-lit cell", sec.AvailableChestCount, full - 2)
+setUATChecked({ [multiIds[1]] = true })
+check("the hand-set code goes with the reassert", objects[hostedCode].Active, false)
+check("the hand clear on the section survives", sec.AvailableChestCount, full - 2)
+
+-- Only the cartridge retracts. An id Archipelago has reported stays checked
+-- however the flag page reads, because the server owns its own retraction
+-- through onClear -- so a session with both feeds keeps behaving like AP.
+resetChecked()
+AP_CHECKED = {}
+setUATChecked({})
+markAPChecked(hostedId)
+setUATChecked({ [multiIds[1]] = true, [hostedId] = true })
+check("both feeds report the cell", objects[hostedCode].Active, true)
+setUATChecked({ [multiIds[1]] = true })
+check("the AP check holds the cell lit", objects[hostedCode].Active, true)
+
+-- An id with no hosted code is not worth a whole-board reassert: recompute
+-- already lowers those, and reasserting on one would drop hand-set codes on
+-- every ordinary older-save load.
+resetChecked()
+AP_CHECKED = {}
+setUATChecked({})
+setUATChecked({ [multiIds[1]] = true, [multiIds[2]] = true })
+objects[hostedCode].Active = true                  -- set by hand, nothing reported it
+setUATChecked({ [multiIds[1]] = true })
+check("a plain chest walks back on its own", sec.AvailableChestCount, full - 1)
+check("without disturbing a hand-set code", objects[hostedCode].Active, true)
+objects[hostedCode].Active = false
+
 print(fail == 0 and "\nALL PASS" or string.format("\n%d FAILURE(S)", fail))
 os.exit(fail == 0 and 0 or 1)
