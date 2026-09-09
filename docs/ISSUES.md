@@ -1359,6 +1359,30 @@ Nothing here is urgent unless it says so.
   from art that was drawn, wherever two rules derive the same content
   separately", which is open.
 
+- **Sarda's Cave went green on a forested seed with no Ruby, through the hike
+  row. Closed 2026-09-08**, reported from play on a cartridge carrying
+  `MapSardasForest`, `MapAirshipHike` and `AirBoat` at once (`B9787DA1`).
+
+  The `airBoat` siblings were built right -- one carrying `$noSardasForest`, one
+  carrying `ruby`, so a forested seed with no Ruby fires neither. The
+  `airshipHike` row carried neither term, because it was copied from what FFR
+  exports on `airship497`, where `MapSardasForest` is off:
+  `SardasCave -> Sarda   (Ruby AND Canal AND Ship) OR (Floater AND Ship) OR
+  (Canoe AND Floater)`. **No cartridge in either corpus has the forest and the
+  hike on together**, so `check_logic` could not see the hole -- the same
+  footnote the `AirBoat` drydock clause carries.
+
+  The hike does not reach Sarda. `OverworldMapEdits.AirshipHike` edits tiles at
+  (161-166, 215-218); Sarda's overworld door is at (30, 190)
+  (`Teleporters.cs:438`), inside the block `SardasForest` fills with trees at
+  X 29-34, Y 191-193. What the forested seed leaves is the Titan's tunnel, which
+  is what the Ruby buys -- and the shape FFR exports for `TitansTunnel` on that
+  same cartridge, `(Ruby AND Canal AND Ship) OR (Ruby AND Floater AND Ship) OR
+  (Ruby AND Canoe AND Floater)`, is the one Titan's Trove already carried and
+  Sarda's Cave did not.
+
+  The row is a pair now, mirroring the `airBoat` split, in all four trees.
+
 ## Open questions
 
 - **The gold ring stops being gold once this pack's off filter has had it.**

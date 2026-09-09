@@ -79,6 +79,7 @@ graded against them -- a figure taken here is a measurement, never a grade.
 | `8EF791AA` | `duck-weekly-0831` | 4.9.7 | GameMode 0 | the seed the Cardia pins were reported wrong on; the source of the `std` art until 2026-09-04 |
 | `05436F8E` | `duck-weekly-0831-v2` | 4.9.7 | GameMode 0 | the replay of that flag set, rolled with `Spoilers` on. One setting of 568 differs from `8EF791AA`, and it is `Spoilers`. The cartridge every lane file was first drawn on, and all 57 still resolve on it |
 | `8D5DD816` | `weekly-async-20260905` | 4.9.7 | GameMode 0 | a weekly async rolled to be played. Seven of its layouts -- five towns, Gaia and `tofr1F` -- hashed to digests no lane file had an entry for, so they drew no path until they were authored on 2026-09-05. The second cartridge any lane file has been drawn on |
+| `B9787DA1` | `duck-weekly-20250907-prac3` | 4.9.7 | GameMode 0, ToFRMode 1 (Mid) | the seed Sarda's Cave was reported green on with no Ruby. The first cartridge measured with `MapSardasForest` and `MapAirshipHike` on together, which is the combination neither oracle corpus has and so the one `check_logic` cannot grade |
 | `C189A0EF` | `duck-102` | 4.9.2 | GameMode 0 | the standard seed the sprite and Crown-gate counts were taken on |
 | `2CCBA52F` | `duck-103` | 4.9.2 | GameMode 0 | the second standard seed, so a count has two cartridges behind it |
 | `72A52C25` | `practice-72A52C25` | 4.9.2 | GameMode 0 | the standard control for the Temple of Fiends floor comparison |

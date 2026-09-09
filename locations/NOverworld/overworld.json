@@ -1959,7 +1959,8 @@
                     "airBoat,$standardWorld,$noShipDrydock,ruby,floater,ship",
                     "$standardWorld,$noShipDrydock,ruby,ship,canal",
                     "$standardWorld,melmondRiver,canoe,ruby",
-                    "airshipHike,$standardWorld,$noShipDrydock,floater,ship",
+                    "airshipHike,$standardWorld,$noShipDrydock,$noSardasForest,floater,ship",
+                    "airshipHike,$standardWorld,$noShipDrydock,ruby,floater,ship",
                     "$noOverworld,$hasCanoe",
                     "$noOverworld,ruby",
                     "$noOverworld,tnt"
