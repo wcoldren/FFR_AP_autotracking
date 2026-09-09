@@ -25,6 +25,31 @@
 -- the signal and disappearance is not.
 local HINT_FOUND = 40
 
+-- HintStatus is PopTracker's Highlight, colour for colour, which is why a hint
+-- is not flatly gold. Archipelago paints unspecified white, no-priority
+-- slateblue, avoid salmon and priority plum (NetUtils.status_colors), and
+-- PopTracker's defaults are white, slateblue, red and gold for the same four
+-- (mapwidget.cpp:54-59, whose comment says plum is hard to see so it is drawn
+-- gold). So the status is carried straight through rather than flattened, and
+-- a hint AP says to avoid does not read as one it says to chase.
+local HINT_HIGHLIGHT = {
+  [0] = "Unspecified", [10] = "NoPriority", [20] = "Avoid", [30] = "Priority",
+}
+
+-- Which status wins where two live hints land on the same pin -- several AP ids
+-- can share one section path. Strongest statement first.
+local STATUS_RANK = { [30] = 4, [20] = 3, [10] = 2, [0] = 1 }
+
+local function levelFor(status)
+  local name = HINT_HIGHLIGHT[status] or "Priority"
+  return Highlight and Highlight[name]
+end
+
+-- id -> {path, status} for every hint standing on this board.
+local standing = {}
+-- Which paths this owner currently holds, so one leaving can be put out.
+local claimed = {}
+
 -- Which ids have already been announced, so a rebroadcast -- and the server
 -- sends the whole list every time -- does not reprint every standing hint.
 local announced = {}
@@ -88,6 +113,53 @@ local function warnUnmappedHint(id)
                       tostring(apLocationName(id) or id)))
 end
 
+-- Make one path show what the hints standing on it say, or nothing.
+--
+-- Recomputed from `standing` rather than tracked incrementally, because the
+-- payload is a whole list each time and because a path can carry more than one
+-- id -- reconcile.lua indexes path to a list for that reason, even though no two
+-- ids share one in the mapping as it stands. The only reliable answer to "is
+-- this pin still hinted?" is to ask every hint again.
+local function reconcile(path)
+  local best = nil
+  for _, row in pairs(standing) do
+    if row.path == path then
+      local rank = STATUS_RANK[row.status] or 1
+      if not best or rank > best.rank then
+        best = { rank = rank, status = row.status }
+      end
+    end
+  end
+  if best then
+    claimed[path] = true
+    if type(claimHighlight) == "function" then
+      claimHighlight("hint", path, levelFor(best.status))
+    end
+  elseif claimed[path] then
+    claimed[path] = nil
+    if type(releaseHighlight) == "function" then
+      releaseHighlight("hint", path)
+    end
+  end
+end
+
+-- A check the board saw before the server got round to saying so.
+--
+-- register_location_checks rechecks hints and rebroadcasts, so the payload would
+-- put this out on its own a moment later. This is worth having anyway: it costs
+-- nothing, it removes a visible lag on a slow room, and it also covers a check
+-- that arrived over the emulator bridge, where no payload is coming at all.
+function hintChecked(id)
+  local row = standing[id]
+  if not row then
+    return false
+  end
+  standing[id] = nil
+  announced[id] = nil
+  reconcile(row.path)
+  return true
+end
+
 -- The whole payload, every time. Returns the number of live hints on this
 -- board and the number of rows that were about somebody else's.
 --
@@ -136,6 +208,14 @@ function onHints(value)
     ::continue::
   end
 
+  -- Every path either list touches has to be reconciled: the ones that are
+  -- hinted now, and the ones that were and are not, which is how a hint being
+  -- found or withdrawn puts its pin out.
+  local touched = {}
+  for _, row in pairs(standing) do touched[row.path] = true end
+  for _, row in pairs(live) do touched[row.path] = true end
+  standing = live
+
   local count = 0
   for id, row in pairs(live) do
     count = count + 1
@@ -152,6 +232,9 @@ function onHints(value)
       announced[id] = nil
     end
   end
+  for path in pairs(touched) do
+    reconcile(path)
+  end
   return count, elsewhere
 end
 
@@ -160,5 +243,29 @@ end
 function resetHints()
   announced = {}
   unmapped = {}
+  standing = {}
   key = nil
+  if type(releaseHighlightsFor) == "function" then
+    releaseHighlightsFor("hint")
+  end
+  claimed = {}
+end
+
+-- Every pin a hint could ever light, registered at load rather than when the
+-- first hint arrives.
+--
+-- That is what puts these paths inside the registry's load sweep, and the sweep
+-- is the only thing that can put out gold restored from an autosave written
+-- while a hint stood. A tracker opened on a bridge-only session, or on none,
+-- never receives a payload -- so nothing here would otherwise ever run, and the
+-- pin would stay lit for good.
+if type(registerHighlightScope) == "function" and LOCATION_MAPPING then
+  local paths, seen = {}, {}
+  for _, v in pairs(LOCATION_MAPPING) do
+    if v[1] and not seen[v[1]] then
+      seen[v[1]] = true
+      paths[#paths + 1] = v[1]
+    end
+  end
+  registerHighlightScope("hint", paths)
 end

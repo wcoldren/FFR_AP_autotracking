@@ -47,7 +47,13 @@ Archipelago = {
   end,
 }
 
+-- The host's own values (locationsection.h:12-18).
+Highlight = { Avoid = -1, None = 0, NoPriority = 1, Unspecified = 2, Priority = 3 }
+
 dofile(PACK .. "/scripts/logic.lua")
+-- Before autotracking, which loads hints.lua, which registers its scope as it
+-- loads -- the same order init.lua puts them in.
+dofile(PACK .. "/scripts/highlights.lua")
 dofile(PACK .. "/scripts/autotracking.lua")
 
 local counts = {}
@@ -55,7 +61,10 @@ for _, v in pairs(LOCATION_MAPPING) do
   if v[1] then counts[v[1]] = (counts[v[1]] or 0) + 1 end
 end
 for path, n in pairs(counts) do
-  byCode[path] = { ChestCount = n, AvailableChestCount = n }
+  -- Highlight present and None, which is what a real section reads: the registry
+  -- treats a nil read as a host that will not accept the write either.
+  byCode[path] = { ChestCount = n, AvailableChestCount = n,
+                   Highlight = Highlight.None }
 end
 
 local fail = 0
@@ -223,6 +232,64 @@ check("the board's name and tab are still said",
   saidSomething("North West Castle Chests 3"), true)
 check("  with the id standing in for Archipelago's", saidSomething("location 275"), true)
 Archipelago.GetLocationName = savedGetter
+
+------------------------------------------------------------------
+print("\n-- the pin, and what colour")
+------------------------------------------------------------------
+local TREASURY_PATH = LOCATION_MAPPING[TREASURY][1]
+local function lit(path) return byCode[path].Highlight end
+
+resetHints()
+capture(function() return onHints({ hint(TREASURY) }) end)
+check("a hint lights its pin", lit(TREASURY_PATH), Highlight.Unspecified)
+check("  and the hint owns it", highlightOwnerOf(TREASURY_PATH), "hint")
+
+-- HintStatus is Highlight, colour for colour, so a hint AP says to avoid must
+-- not read as one it says to chase.
+for status, want in pairs({ [30] = Highlight.Priority, [20] = Highlight.Avoid,
+                            [10] = Highlight.NoPriority,
+                            [0] = Highlight.Unspecified }) do
+  capture(function() return onHints({ hint(TREASURY, { status = status }) }) end)
+  check("  status " .. status .. " paints its own colour", lit(TREASURY_PATH), want)
+end
+
+-- The three ways a hint stops standing.
+capture(function() return onHints({ hint(TREASURY, { status = 40 }) }) end)
+check("a found hint puts its pin out", lit(TREASURY_PATH), Highlight.None)
+
+capture(function() return onHints({ hint(TREASURY) }) end)
+capture(function() return onHints({}) end)
+check("a hint that left the payload puts its pin out", lit(TREASURY_PATH), Highlight.None)
+
+capture(function() return onHints({ hint(TREASURY) }) end)
+check("  and a check puts it out before the server says so",
+  hintChecked(TREASURY) and lit(TREASURY_PATH), Highlight.None)
+
+-- Two hints on one pin. No two ids share a section path in the shipped mapping
+-- today, but the shape allows it -- reconcile.lua indexes path to a *list* of
+-- ids for exactly that reason -- so the pair is synthesised rather than found,
+-- which is also what keeps this row from going quiet if the data changes.
+resetHints()
+local SHARED = LOCATION_MAPPING[CHEST][1]
+local TWIN = 9001
+LOCATION_MAPPING[TWIN] = { SHARED }
+
+capture(function()
+  return onHints({ hint(CHEST), hint(TWIN, { status = 30 }) })
+end)
+check("two hints on one pin take the stronger colour",
+  lit(SHARED), Highlight.Priority)
+capture(function() return onHints({ hint(CHEST) }) end)
+check("  and the pin stays lit while either stands",
+  lit(SHARED), Highlight.Unspecified)
+capture(function() return onHints({}) end)
+check("  going dark only when both are gone", lit(SHARED), Highlight.None)
+LOCATION_MAPPING[TWIN] = nil
+
+-- A reconnect to another slot must not carry the last one's gold over.
+capture(function() return onHints({ hint(TREASURY) }) end)
+resetHints()
+check("reset puts out everything the hints held", lit(TREASURY_PATH), Highlight.None)
 
 print("")
 if fail > 0 then

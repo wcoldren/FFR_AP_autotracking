@@ -351,6 +351,12 @@ function markAPChecked(id)
     recomputeSection(v[1])
   end
   applyHostedItem(id)
+  -- A hint on a location that has just been checked has stopped being a place
+  -- to look. The server says so too, a moment later, but this is also the only
+  -- signal on a check that came over the emulator bridge.
+  if type(hintChecked) == "function" then
+    hintChecked(id)
+  end
 end
 
 -- UAT feed: full state, replaces whatever the bridge reported last time.
