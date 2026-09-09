@@ -19,11 +19,12 @@ Tracker = {
   ActiveVariantUID = "6shardHunt",
   FindObjectForCode = function(_, code) return byCode[code] end,
 }
+local frameHandlers = {}
 ScriptHost = {
   LoadScript = function(_, path) dofile(PACK .. "/" .. path) end,
   AddVariableWatch = function() end,
-  AddOnFrameHandler = function() end,
-  RemoveOnFrameHandler = function() end,
+  AddOnFrameHandler = function(_, name, fn) frameHandlers[name] = fn end,
+  RemoveOnFrameHandler = function(_, name) frameHandlers[name] = nil end,
 }
 Archipelago = {
   AddClearHandler = function() end,     AddItemHandler = function() end,
@@ -102,6 +103,70 @@ onClear()
 check("shards zeroed", byCode["shards"].CurrentStage, 0)
 check("crown zeroed", byCode["crown"].CurrentStage, 0)
 check("lute cleared", byCode["lute"].Active, false)
+
+------------------------------------------------------------------
+print("\n-- the two vocabularies, said out loud")
+------------------------------------------------------------------
+-- The defect this answers: a hint names an Archipelago location and the board
+-- calls it something else, and 81 of the shared names end in a number that
+-- disagrees. The pair below is transposed, which is the case that costs a
+-- player something -- matching by eye lands on Chests 2 and looks right.
+-- Verified from both sides: worlds/ff1/data/locations.json gives 274 the name
+-- "Treasury 3" and 275 "Treasury 2", while LOCATION_MAPPING gives 274 "Chests 2"
+-- and 275 "Chests 3". The pair really is crossed.
+local TREASURY_2 = 275      -- AP "Northwest Castle - Treasury 2"
+local TREASURY_PATH = LOCATION_MAPPING[TREASURY_2] and LOCATION_MAPPING[TREASURY_2][1]
+
+local said = {}
+local realPrint = print
+local function capture(fn)
+  said = {}
+  print = function(line) said[#said + 1] = tostring(line) end
+  fn()
+  print = realPrint
+end
+
+-- Nothing is said during the connect replay: a burst of 254 lines is noise, not
+-- an answer. onClear arms the boundary and the first frame after it ends it.
+onClear()
+capture(function() onLocation(TREASURY_2, "Northwest Castle - Treasury 2") end)
+check("the connect replay says nothing", #said, 0)
+check("but the name is kept anyway",
+  AP_LOCATION_NAMES[TREASURY_2], "Northwest Castle - Treasury 2")
+
+check("the replay boundary is armed by onClear",
+  frameHandlers["ap location replay"] ~= nil, true)
+frameHandlers["ap location replay"](0.016)
+check("and takes itself off once the burst is over",
+  frameHandlers["ap location replay"], nil)
+
+capture(function() onLocation(TREASURY_2, "Northwest Castle - Treasury 2") end)
+check("a check after it says both names", #said, 1)
+check("  Archipelago's", said[1]:find('"Northwest Castle - Treasury 2"', 1, true) ~= nil, true)
+check("  and this board's", said[1]:find('"North West Castle Chests 3"', 1, true) ~= nil, true)
+check("  which is not the number that reads alike",
+  said[1]:find("Chests 2", 1, true), nil)
+
+-- GetLocationName answers for any id, checked or not, which is what a hint
+-- needs; the recorded table only knows what the feed has been through.
+check("the pack's own name comes out of the path",
+  packLocationName(TREASURY_PATH), "North West Castle Chests 3")
+check("an unchecked id has no recorded name", AP_LOCATION_NAMES[257], nil)
+Archipelago.GetLocationName = function(_, id, game)
+  return game == AP_GAME_NAME and ("AP name for " .. id) or nil
+end
+check("and the host is asked instead", apLocationName(257), "AP name for 257")
+check("the game name is the manifest's", AP_GAME_NAME, "Final Fantasy")
+Archipelago.GetLocationName = nil
+
+-- Where it is drawn, which is the half that answers "so where do I look?".
+check("a location drawn once names one tab",
+  locationWhere("@North West Castle Chests 3/Chest"),
+  tabPathForMap and tabPathForMap(10))
+check("one drawn on two floors names both",
+  select(2, string.gsub(locationWhere("@Ordeals Chests 2/Chest") or "", " or ", "")), 1)
+check("and a path no tree places says nothing",
+  locationWhere("@Nowhere At All/Chest"), nil)
 
 print("")
 if fail == 0 then

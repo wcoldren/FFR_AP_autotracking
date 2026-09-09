@@ -116,6 +116,9 @@ function onClear()
     end
   end
   armReassert()
+  -- The replay burst starts now and is over by the next frame; the
+  -- correspondence lines begin after it. See armAPLocationReplay below.
+  armAPLocationReplay()
 end
 
 function onItem(index, item_id, item_name)
@@ -169,11 +172,128 @@ function onItem(index, item_id, item_name)
   end
 end
 
+-- Archipelago's name for a location, and this board's, are two different
+-- vocabularies, and 254 of the 255 they share disagree. Both are defensible:
+-- AP's are the randomizer's own player-facing set and read as route jargon plus
+-- a floor label, and this pack's say where the thing is on the drawn floor. On
+-- a map board the second is the one that helps, so neither wants renaming.
+--
+-- What costs a player is that 81 of them end in a number that disagrees, and
+-- several are transposed -- AP's "Northwest Castle - Treasury 2" is this board's
+-- "North West Castle Chests 3", while AP's "Treasury 3" is this board's
+-- "Chests 2". Read a hint, match it by eye, and you land on the wrong chest with
+-- nothing to tell you so.
+--
+-- The name has always arrived here and been thrown away. Keeping it, and saying
+-- both halves out loud, is what makes the correspondence visible.
+AP_GAME_NAME = "Final Fantasy"   -- manifest.json's game_name
+AP_LOCATION_NAMES = {}
+
+-- What Archipelago calls this location id.
+--
+-- GetLocationName answers for any id, checked or not, which is what a hint
+-- needs; the recorded table only knows ids that have come through the feed. So
+-- the getter is preferred and the table is the fallback for a host without it.
+function apLocationName(id)
+  if type(Archipelago.GetLocationName) == "function" then
+    local ok, name = pcall(function()
+      return Archipelago:GetLocationName(id, AP_GAME_NAME)
+    end)
+    if ok and type(name) == "string" and name ~= "" then
+      return name
+    end
+  end
+  return AP_LOCATION_NAMES[id]
+end
+
+-- What this board calls it: the location node out of "@Some Location/Section",
+-- which is the Lua counterpart of tools/split_locations.leaf_of.
+function packLocationName(path)
+  return type(path) == "string" and path:gsub("^@", ""):gsub("/[^/]*$", "") or nil
+end
+
+-- "on Caves & Dungeons/Marsh Cave/Marsh Cave B1", or nil where nothing can say.
+--
+-- LOCATION_MAPS gives the map ids and tabPathForMap turns one into the tab it is
+-- drawn on, which is also what applies the override's own tabs. Where no tab
+-- claims the map, MAP_NAMES is the fallback -- guarded, because that file only
+-- loads on the UAT branch. Where a location is drawn on more than one floor all
+-- of them are named, because the cartridge really does lay it on more than one.
+function locationWhere(path)
+  local maps = LOCATION_MAPS and LOCATION_MAPS[path]
+  if not maps then
+    return nil
+  end
+  local seen, names = {}, {}
+  for _, mapId in ipairs(maps) do
+    local where = (type(tabPathForMap) == "function" and tabPathForMap(mapId))
+                  or (MAP_NAMES or {})[mapId]
+    if where and not seen[where] then
+      seen[where] = true
+      names[#names + 1] = where
+    end
+  end
+  if #names == 0 then
+    return nil
+  end
+  return table.concat(names, " or ")
+end
+
+-- Both names and the tab, in one line.
+function describeLocation(id, path)
+  local ap = apLocationName(id)
+  local here = packLocationName(path)
+  if not ap or not here then
+    return nil
+  end
+  local where = locationWhere(path)
+  if where then
+    return string.format('Archipelago\'s "%s" is this board\'s "%s", on %s',
+                         ap, here, where)
+  end
+  return string.format('Archipelago\'s "%s" is this board\'s "%s"', ap, here)
+end
+
+-- A connect replays every location already checked in one burst, and a line per
+-- check across 254 of them is noise rather than an answer. So the lines start
+-- after the replay, and the boundary is the first frame following onClear --
+-- PopTracker delivers that burst inside one poll cycle, so no clock is needed,
+-- and os.clock in particular would be wrong here for the reason armReassert
+-- above spells out.
+local REPLAY_HANDLER = "ap location replay"
+local replaying = false
+
+local function endReplay()
+  ScriptHost:RemoveOnFrameHandler(REPLAY_HANDLER)
+  replaying = false
+end
+
+-- Global because onClear is defined above this and would not see a local
+-- declared here; it resolves the name when it runs, not when it was written.
+function armAPLocationReplay()
+  if not ScriptHost.AddOnFrameHandler then
+    replaying = false
+    return
+  end
+  replaying = true
+  ScriptHost:AddOnFrameHandler(REPLAY_HANDLER, endReplay)
+end
+
 function onLocation(location_id, location_name)
   if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
     print(string.format("called onLocation: %s, %s", location_id, location_name))
   end
+  if type(location_name) == "string" and location_name ~= "" then
+    AP_LOCATION_NAMES[location_id] = location_name
+  end
   markAPChecked(location_id)
+  if not replaying then
+    local v = LOCATION_MAPPING[location_id]
+    local said = v and describeLocation(location_id, v[1])
+    if said then
+      print("check: " .. said)
+    end
+  end
 end
 
 -- The map tab follows the player; see scripts/autotracking/maptab.lua. The

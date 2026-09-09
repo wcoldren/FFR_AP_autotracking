@@ -345,10 +345,15 @@ closed 2026-09-06.
   entrance badges. A scout handler that tabs to a hinted location and lights it
   would reuse all of it.
 
-  The cheap half first: `onLocation(location_id, location_name)`
-  (`scripts/autotracking.lua:169`) is already handed AP's exact name and drops
-  it after a debug print. Keeping it costs nothing and makes the correspondence
-  visible before any of the above is built.
+  **The cheap half landed 2026-09-09.**
+  `onLocation(location_id, location_name)` (`scripts/autotracking.lua:282`)
+  keeps AP's name now instead of dropping it after a debug print, and every
+  check says both vocabularies and the tab -- Archipelago's "Northwest Castle -
+  Treasury 2" is this board's "North West Castle Chests 3", on Other/Northwest
+  Castle. The lines start after the connect replay, since a burst of 254 of them
+  is noise rather than an answer, and the tab comes from
+  `scripts/location_maps.lua`, which is joined out of the trees because no
+  section can be asked where it is drawn.
 - **Twelve Deep Dungeon locations are in no mapping.** The AP world carries 267
   locations to the randomizer's 255; the twelve extra are Deep Dungeon
   (`DeepDungeon29B_Chest146` and friends, ids 401-404 and 443-451), and
