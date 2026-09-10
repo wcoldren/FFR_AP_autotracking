@@ -1776,7 +1776,9 @@ def verify(out_dir):
     location files, so it already moves on precisely that edit. This is the
     thing that reads it. No cartridge and no rendering -- it hashes the
     checkout's own files and reads the cache -- so it costs milliseconds where
-    a regen costs about six seconds per cartridge.
+    a regen costs about fifteen seconds per cartridge with the lanes drawn, or
+    ten with --lanes none. This line said six for both, which was measured
+    before the lanes were.
 
     Not in either test suite, on purpose: both are documented as needing
     nothing outside the checkout, and this asks about the machine's PopTracker

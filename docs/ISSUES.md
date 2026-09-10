@@ -402,7 +402,7 @@ Nothing here is urgent unless it says so.
   written before the split simply has no per-mode fingerprint, so that mode
   reads as stale and redraws once -- the right answer, reached by doing nothing.
   `tools/regen_maps.py --verify` reads it -- no cartridge, no rendering, a few
-  milliseconds against a regen's six seconds per cartridge -- and exits 1 naming
+  milliseconds against a regen's fifteen seconds per cartridge -- and exits 1 naming
   the stale modes. It is silent where no override is installed, because that is
   not a stale one.
 
@@ -447,8 +447,10 @@ Nothing here is urgent unless it says so.
       tools/regen_maps.py --refresh --mode std
 
   `--mode` narrows it to one mode, which is what somebody sitting down to play
-  a particular cartridge wants: the other mode's redraw is minutes spent at the
-  worst possible moment. It changes nothing about how a mode is redrawn, only
+  a particular cartridge wants: the other mode's redraw is another fifteen
+  seconds spent at the worst possible moment. This said "minutes", which was
+  never measured; a cold redraw of either mode is about fifteen seconds with
+  the lanes drawn. It changes nothing about how a mode is redrawn, only
   which ones are, and a run that leaves the other mode stale says so on its way
   past rather than letting the next `--verify` be the first to mention it.
 
