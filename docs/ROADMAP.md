@@ -550,15 +550,32 @@ closed 2026-09-06.
   they used to refuse, and what is left of the old rule is the seed objection
   alone — which is why this is a No-Overworld set and not a standard one.
 
-  **What is open is the drawing, and it is no longer blocked.** One committed
-  set under `images/maps/nov/`, the 61 rows of `maps/NOverworldMaps.json` that
-  point at it, and the No-Overworld location trees whose crop coordinates go
-  with that art — `regen_maps.py` already writes all three into the override,
-  so the build is selecting a cartridge and committing what it produces rather
-  than writing a renderer. Two things it has to settle: which cartridge the set
-  is drawn from, since that picks which residual everybody gets, and what
-  `build_noverworld_maps_json` should do once the shipped art is rendered rather
-  than hand-drawn — today a std-only regen puts the hand art back.
+  **The art half is measured and ready. The tree half is not, and that is what
+  is left.** Rendering the set is now one command: `--traps none`, landed
+  2026-09-10, drops the trap letters, which are the only thing the renderer
+  draws that FFR rolls per seed. With them off, two No-Overworld cartridges
+  holding flags still render **60 of 61 maps byte-identical** — `waterfall`
+  alone differs, on the stair positions `docs/NOVERWORLD.md` already lists. Add
+  a cartridge whose flags differ and it is 3 maps: `gaia` (20 tiles),
+  `waterfall` (4), `ordeals2F` (13). So the art is honestly about the mode.
+
+  **The location tree cannot be shipped the same way, and copying the regen's
+  would be a regression.** The art is seed-agnostic; the tree is not — it
+  encodes this cartridge's chest ids, its ToFR mode and its NPC placement.
+  Every No-Overworld cartridge on this machine is `ToFRMode` Short, and a tree
+  derived from one drops the Long/Mid pin from every ToFR chest: the committed
+  tree carries `tofrFire[$showPin|chest|tofrLong|tofrMid]` beside
+  `tofrChaos[...|tofrShort]`, and the derived one carries only the second. It
+  also inherits Short's chest-id reuse, which pins ToFR chests onto `cardia`
+  and `sky5F`. `test_maps.lua` check 6 catches all of it.
+
+  So what this wants is a tree at the rendered art's coordinates carrying every
+  mode's pins — the union the committed tree already has, re-measured against
+  the new crops — rather than one cartridge's derivation. That is a design job,
+  not a copy, and it is the whole of what is left. The smaller thing beside it:
+  `build_noverworld_maps_json` puts the hand art back whenever no No-Overworld
+  set has been rendered into the override, which is right today and would
+  clobber a shipped set on any std-only regen.
 
 **Closed.**
 
