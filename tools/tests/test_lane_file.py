@@ -254,17 +254,26 @@ import types  # noqa: E402
 
 
 def flags(**kw):
-    return types.SimpleNamespace(**{"npcs": "none", "lanes": "none",
-                                    "retrace": "auto", **kw})
+    return types.SimpleNamespace(**{"npcs": "none", "traps": "all",
+                                    "lanes": "none", "retrace": "auto", **kw})
 
 
-current = {"npcs": "none", "lanes": "authored", "retrace": "auto",
-           "lane_files": regen_maps.lane_files_sha()}
+current = {"npcs": "none", "traps": "all", "lanes": "authored",
+           "retrace": "auto", "lane_files": regen_maps.lane_files_sha()}
 check("art drawn with the same flags is not stale",
       regen_maps.flag_change(current, flags(lanes="authored")), None)
 check("--npcs is compared whatever the lanes are",
       bool(regen_maps.flag_change(dict(current, lanes="none"),
                                   flags(npcs="gates"))), True)
+# Same reason --npcs is here: it changes a pixel on every run, so art drawn
+# with the letters on has to redraw when they go off. A slot from before the
+# flag reads as "all", which is what that art actually has on it.
+check("and so is --traps",
+      bool(regen_maps.flag_change(dict(current, lanes="none"),
+                                  flags(traps="none"))), True)
+check("a slot predating --traps reads as the letters it was drawn with",
+      regen_maps.flag_change({k: v for k, v in current.items() if k != "traps"},
+                             flags(lanes="authored")), None)
 check("and so is --lanes itself",
       bool(regen_maps.flag_change(current, flags(lanes="solved"))), True)
 check("--retrace is compared where authored lanes are drawn",

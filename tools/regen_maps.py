@@ -564,6 +564,12 @@ def flag_change(was, args):
     if was.get("npcs", "none") != args.npcs:
         return (f"--npcs changed from {was.get('npcs', 'none')} to "
                 f"{args.npcs} since the last run")
+    # Reads as "all" when the slot predates the flag, for the same reason
+    # `npcs` reads as "none": that is what the art in the directory actually
+    # has on it. Every render before this flag existed drew the letters.
+    if was.get("traps", "all") != args.traps:
+        return (f"--traps changed from {was.get('traps', 'all')} to "
+                f"{args.traps} since the last run")
     # Reads as "none" when the slot predates the flag, so art from before the
     # lane pass redraws rather than being trusted -- the safe direction.
     if was.get("lanes", "none") != args.lanes:
@@ -578,13 +584,18 @@ def flag_change(was, args):
     return None
 
 
-def legend_rows(rom, lanes=None):
+def legend_rows(rom, lanes=None, marks=None):
     """{map name: rows of backdrop reserved below it for a Map Key}.
 
     Both kinds of entry share the band: the lane swatches and the trap letters
     are one list, so a map that has both is not pushed up twice.
+
+    `marks` is what the draw will use, so the band matches it. Passing the
+    empty dict reserves no room for letters that are not going to be drawn --
+    a band the height of a key nobody asked for is the visible half of getting
+    this wrong, and the crop underneath is the invisible half.
     """
-    marks = render_maps.trap_marks(rom)
+    marks = render_maps.trap_marks(rom) if marks is None else marks
     out = {}
     for map_id, name in render_maps.MAP_FILES.items():
         used = render_maps.map_trap_marks(
@@ -1834,8 +1845,8 @@ def refresh(out_dir, dry_run, only=None):
     """Redraw every mode `--verify` calls stale, from what it recorded.
 
     The remedy that `--verify` used to only describe. It introduces nothing:
-    each mode is redrawn from the cartridge, npcs, lanes, retrace and marker
-    size already in its own cache entry, so a refresh can only bring the art up
+    each mode is redrawn from the cartridge, npcs, traps, lanes, retrace and
+    marker size already in its own cache entry, so a refresh can only bring the art up
     to the checkout -- never change what it was drawn to show. That is the
     whole reason it is safe to hand to a gate's failure message, where "re-run
     it once per mode, reading the arguments back out of the cache" is a
@@ -1958,6 +1969,7 @@ def refresh(out_dir, dry_run, only=None):
         cmd = [sys.executable, os.path.abspath(__file__), path,
                "--mode", mode,
                "--npcs", was.get("npcs", "none"),
+               "--traps", was.get("traps", "all"),
                "--lanes", was.get("lanes", "none"),
                "--retrace", retrace_slot(was),
                "--marker-size", str(marker[0]),
@@ -2065,6 +2077,13 @@ def main():
                          "townspeople, orbs and bats are what make a town read "
                          "as a town; --npcs none suppresses them, and --npcs "
                          "gates keeps only the NPCs that stand in a doorway")
+    ap.add_argument("--traps", choices=("all", "none"), default="all",
+                    help="letter the trap tiles and key the letters (default), "
+                         "or draw neither. Which monsters a trap tile throws "
+                         "is rolled per seed, so the letters are the one thing "
+                         "on this art that is about your cartridge rather than "
+                         "about the rooms -- which is why the committed "
+                         "No-Overworld set is drawn without them")
     ap.add_argument("--lanes", choices=("none", "solved", "authored"),
                     default="none",
                     help="draw the route to walk on each map: --lanes solved "
@@ -2275,7 +2294,12 @@ def main():
               % (len(lanes), len(unmatched), len(refused_lanes),
                  len(render_maps.MAP_FILES) - len(lanes) - len(unmatched)
                  - len(refused_lanes)))
-    rows = legend_rows(rom, lanes)
+    # One reading of the cartridge's trap tiles, shared by the band and the
+    # draw. `--traps none` makes it empty rather than skipping the draw, so
+    # every place downstream that asks "are there letters on this map" gets the
+    # same answer from the same object.
+    marks = render_maps.trap_marks(rom) if args.traps == "all" else {}
+    rows = legend_rows(rom, lanes, marks)
 
     # Which trees this mode's pins live in, and the tiles the cartridge puts
     # each marker on. Read before anything is drawn, because the overworld's
@@ -2402,7 +2426,7 @@ def main():
 
     # 1. the art, cropped to what each map actually uses and filed by mode
     art = build_images(rom, mode, crops_, rows, graph, only,
-                       render_maps.trap_marks(rom), ow_box, lanes)
+                       marks, ow_box, lanes)
     sizes = {name: (crops_[name].size[0] * TILE_PX,
                     (crops_[name].size[1] + rows[name]) * TILE_PX)
              for name in render_maps.MAP_FILES.values()}
@@ -2710,6 +2734,7 @@ def main():
                        # from wherever the caller happens to be.
                        "rom_path": os.path.abspath(args.rom),
                        "npcs": args.npcs,
+                       "traps": args.traps,
                        "lanes": args.lanes,
                        "retrace": args.retrace,
                        "lane_files": lane_files_sha(),
