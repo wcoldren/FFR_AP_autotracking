@@ -1536,6 +1536,19 @@ Nothing here is urgent unless it says so.
   room. A sweep that reported nothing because it looked at nothing would read
   identically to a clean one.
 
+  **And the floor that sentence needed.** That demonstration exercises the
+  warp-door branch and only it, so for three of the four kinds of candidate the
+  sentence above was a claim the suite was not holding: an `extract_chests`
+  whose return shape changed would have emptied the chest half, left every row
+  reporting "draws no unmarked tile", and left the demonstration passing on its
+  warp. It is a row now -- each of chest, link, NPC and warp-door has to turn up
+  on every cartridge swept -- and the run prints the spans it saw, 251-274
+  chests, 99-165 links, 21 NPCs and 45-74 warp doors across the 52, so a count
+  collapsing towards zero is visible before the row fails. Blinding the chest
+  table is demonstrated on both modes, and what it demonstrates is the reading
+  the sentence above asks nobody to make: blinded, every cartridge still says it
+  draws no unmarked tile, and the floor is the only thing that disagrees.
+
 
 ## Open questions
 

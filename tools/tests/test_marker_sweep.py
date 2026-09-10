@@ -46,6 +46,12 @@ art together and this would report nothing. And the candidate set is the kinds
 of tile this pack marks -- chests, tracked NPCs, links, warp doors -- so a rule
 that loses something else loses it unwatched.
 
+**A clean sweep is worth no more than the candidate set behind it**, so each of
+those four kinds has to turn up on every cartridge, and a run that blinds one of
+them is held to report the blinding rather than a clean sweep. CANDIDATE_KINDS
+below; without that floor a reporting nothing and a looking at nothing are the
+same two words.
+
 Set FF1_ROM or FF1_CORPUS to say where the cartridges are; without either this
 skips. FF1_SLOW=1 sweeps every cartridge on the machine rather than the seed in
 play plus the graded corpus.
@@ -55,7 +61,12 @@ import sys
 from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# tools/ for the modules under test, and HERE for the corpus helper beside this
+# file. Both, because `import corpus` otherwise resolves only through the
+# implicit script-directory entry, which `-m`, runpy and PYTHONSAFEPATH each
+# withhold; test_noverworld_rules.py inserts HERE for the same reason.
 sys.path.insert(0, os.path.dirname(HERE))
+sys.path.insert(0, HERE)
 
 import corpus  # noqa: E402
 import entrance_graph  # noqa: E402
@@ -63,7 +74,6 @@ import extract_chests  # noqa: E402
 import extract_npcs  # noqa: E402
 import regen_maps  # noqa: E402
 import render_maps  # noqa: E402
-import split_locations  # noqa: E402
 
 fails = []
 
@@ -95,11 +105,23 @@ TREES = {"std": "locations/overworld.json",
 
 
 def mode_of(rom, path):
-    """'std', 'nov', or None where the cartridge does not say."""
-    mode, _why = entrance_graph.game_mode(entrance_graph.Rom.of(rom, path))
+    """('std'|'nov', None), or (None, why this cartridge is not swept).
+
+    The reason comes back rather than being collapsed, because
+    regen_maps.mode_of keeps the two apart too and they are not the same event.
+    A vanilla image has no FFR flag block and no mode to read, which is
+    ordinary; a cartridge that answers a GameMode this pack has no art for is a
+    mode that needs adding, and reporting that as "no GameMode to read" reads
+    as the ordinary case and hides it. Deep Dungeon is the live candidate.
+    """
+    mode, why = entrance_graph.game_mode(entrance_graph.Rom.of(rom, path))
     if mode == entrance_graph.GAME_MODE_NOVERWORLD:
-        return "nov"
-    return "std" if mode == 0 else None
+        return "nov", None
+    if mode == 0:
+        return "std", None
+    if mode is None:
+        return None, f"no GameMode to read ({why})"
+    return None, f"GameMode {mode}, which is neither standard nor No-Overworld"
 
 
 def npc_cells_by_code(rom):
@@ -145,11 +167,14 @@ def sweep(path, floor_exits=None):
     demonstration below puts the defect back: a test that only ever sees the
     fixed tree cannot show that it would catch the broken one.
     """
-    graph = entrance_graph.Graph(entrance_graph.Rom(path))
+    rom_obj = corpus.rom_or_none(path)
+    if rom_obj is None:
+        return None, {"mode": None, "why": "not a full FFR or vanilla image"}
+    graph = entrance_graph.Graph(rom_obj)
     rom = graph.rom.data
-    mode = mode_of(rom, path)
+    mode, why = mode_of(rom, path)
     if mode is None:
-        return None, None
+        return None, {"mode": None, "why": why}
 
     real = regen_maps.floor_exits
     if floor_exits is not None:
@@ -167,19 +192,23 @@ def sweep(path, floor_exits=None):
         for cells in members.values():
             marked.update(cells)
 
-        # Deliberate drops, told apart by the reason marker_tiles recorded.
-        # "stranded" is a ToFR chest copy the cartridge lays and never wires,
-        # so the art draws it and nothing may mark it; "backdrop" already
-        # fails stands_on_map below and is counted only to be reported.
+        # The one deliberate drop this has to forgive: "stranded" is a ToFR
+        # chest copy the cartridge lays and never wires, so the art draws it and
+        # nothing may mark it.
+        #
+        # marker_tiles also records "backdrop" drops, and those need no
+        # forgiving here. A backdrop cell is one the edge flood reaches, and the
+        # `drawn` test below is `content_cells` -- defined as the complement of
+        # that same flood -- narrowed further by drop_specks. So a backdrop drop
+        # is never in `drawn` and never reaches the finding list. Counting it
+        # would be counting something this walk cannot see.
         stranded = {d[2:5] for d in dropped if d[-1] == "stranded"}
-        backdrop = [d for d in dropped if d[-1] == "backdrop"]
 
         by_code = npc_cells_by_code(rom)
         no_box = {cell for cell, code in by_code.items()
                   if code in NO_BOX_NPCS}
 
         cand = candidates(graph, rom)
-        outside = {}
         findings = []
         for map_id in sorted(render_maps.MAP_FILES):
             here = {c: k for c, k in cand.items() if c[0] == map_id}
@@ -192,16 +221,21 @@ def sweep(path, floor_exits=None):
                 render_maps.content_cells(tiles), keep)
             for cell, kind in sorted(here.items()):
                 _m, col, row = cell
+                # `drawn` is the only placement test wanted here, and it is
+                # already the stricter one: regen_maps.stands_on_map asks
+                # whether a cell escaped the edge flood, which is exactly what
+                # content_cells answers, and drop_specks then removes more. A
+                # call to it was here and could not change the outcome on any
+                # cell of any map of any cartridge in the corpus -- it only
+                # bought a second decompress and flood of all 61 maps, since
+                # render_maps.map_tiles does not cache the way Graph.grid does.
                 if (col, row) not in drawn:
-                    continue
-                if not regen_maps.stands_on_map(rom, *cell, cache=outside):
                     continue
                 if cell in marked or cell in stranded or cell in no_box:
                     continue
                 findings.append((render_maps.MAP_FILES[map_id], kind, col, row))
-        counts = {"mode": mode, "maps": len(render_maps.MAP_FILES),
-                  "candidates": len(cand), "marked": len(marked),
-                  "stranded": len(stranded), "backdrop": len(backdrop),
+        counts = {"mode": mode, "kinds": Counter(cand.values()),
+                  "marked": len(marked), "stranded": len(stranded),
                   "no_box": len(no_box)}
         return findings, counts
     finally:
@@ -236,24 +270,67 @@ if not carts:
     print("skipped: neither FF1_ROM nor FF1_CORPUS says where cartridges live")
     sys.exit(0)
 
+# Every kind the candidate set is built from, and each one has to turn up on
+# every cartridge swept.
+#
+# This is the floor that keeps a clean sweep from being indistinguishable from a
+# sweep that looks at nothing, which is the failure this file's docstring claims
+# to guard against and did not. The demonstration below exercises the
+# *warp-door* branch alone: without this row, an extract_chests whose return
+# shape changed would empty the chest half of the candidate set, every row would
+# still report "draws no unmarked tile", the demonstration would still pass on
+# its warp, and the chest and NPC halves would have quietly stopped checking
+# anything.
+#
+# A floor and not a fixture. The thinnest cartridge in the corpus offers 251
+# chests, 99 links, 21 NPCs and 45 warp doors, and the counts move from seed to
+# seed, so "at least one" is the only number that is a fact about the rules
+# rather than about a roll. The run prints the spans it actually saw.
+CANDIDATE_KINDS = ("chest", "link", "npc", "warp-door")
+
 # --- the sweep itself
-swept, kinds, unreadable = 0, Counter(), 0
-by_mode = {}
+swept, kinds = 0, Counter()
+by_mode, not_swept, thin, seen = {}, Counter(), [], []
 for path in carts:
     findings, counts = sweep(path)
-    if counts is None:
-        unreadable += 1
+    if counts["mode"] is None:
+        not_swept[counts["why"]] += 1
         continue
     swept += 1
+    seen.append(counts)
     kinds[counts["mode"]] += 1
     by_mode.setdefault(counts["mode"], path)
+    missing = [k for k in CANDIDATE_KINDS if not counts["kinds"].get(k)]
+    if missing:
+        thin.append((os.path.basename(path)[:36], missing))
     check(f"{os.path.basename(path)[:36]:36s} ({counts['mode']}) draws no "
           "unmarked tile", findings, [])
 
 check("and something was actually swept", swept > 0, True)
+check("and every cartridge offered all four kinds of candidate", thin, [])
+
+
+def span(field):
+    """The range one count took across the sweep, collapsed where it did not
+    move: 251-269, or just 21."""
+    lo, hi = min(field(c) for c in seen), max(field(c) for c in seen)
+    return str(lo) if lo == hi else f"{lo}-{hi}"
+
+
 print(f"     {swept} cartridge(s): {kinds['std']} standard, {kinds['nov']} "
-      f"No-Overworld, {len(render_maps.MAP_FILES)} maps each"
-      + (f"; {unreadable} with no GameMode to read" if unreadable else ""))
+      f"No-Overworld, {len(render_maps.MAP_FILES)} maps each")
+if seen:
+    # Printed, not merely computed. These are what the sweep looked at, and a
+    # span collapsing towards zero is the shape of a rule that stopped
+    # answering -- visible in a passing run, before the floor row fails.
+    print("     per cartridge: "
+          + ", ".join(f"{span(lambda c, k=k: c['kinds'].get(k, 0))} {k}"
+                      for k in CANDIDATE_KINDS)
+          + f"; {span(lambda c: c['marked'])} marked, with "
+          f"{span(lambda c: c['stranded'])} stranded and "
+          f"{span(lambda c: c['no_box'])} no-box forgiven")
+for why, n in sorted(not_swept.items()):
+    print(f"     {n} not swept: {why}")
 
 # --- and it has to catch the defect it was written for
 #
@@ -279,6 +356,38 @@ else:
                             floor_exits=lambda g, m, keep=(): real(g, m, ()))
         check("and loses nothing on a No-Overworld cartridge, which has no "
               "such room", [f for f in findings if f[1] == "warp-door"], [])
+
+# --- and the floor has to be a floor
+#
+# The candidate-kinds row above is a gate, so it gets the same treatment as the
+# one before it: the thing it watches for is put back, and the row has to fire.
+# Blinding extract_chests is what the row is actually for -- a return shape that
+# changed under it, leaving the chest half of the candidate set empty. Note what
+# the *other* row reports while that is true: every cartridge still "draws no
+# unmarked tile", which is precisely the reading the floor exists to deny.
+#
+# Both modes, because the two trees resolve chests differently and a floor that
+# only held on standard art would be half a floor.
+real_chests = extract_chests.extract
+
+
+def no_chests(rom):
+    """What a chest table that stopped answering looks like to the sweep."""
+    return {}, {}
+
+
+for label, path in (("standard", std), ("No-Overworld", nov)):
+    if path is None:
+        continue
+    extract_chests.extract = no_chests
+    try:
+        findings, counts = sweep(path)
+    finally:
+        extract_chests.extract = real_chests
+    check(f"blinding the chest table on a {label} cartridge reports no "
+          "findings", findings, [])
+    check(f"and on {label} the floor is what catches it",
+          [k for k in CANDIDATE_KINDS if not counts["kinds"].get(k)], ["chest"])
 
 for f in fails:
     print("     " + f)

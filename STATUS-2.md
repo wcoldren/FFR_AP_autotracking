@@ -2250,7 +2250,7 @@ pack keeps finding in its own suites.
 
 ## Nothing else lost a pin the way Sea Shrine B3 did
 
-Landed 2026-09-09, `8c11a35..dcfd5a6`, two commits. The register had an entry
+Landed 2026-09-09, `98dfdd3..f61a59e`, two commits. The register had an entry
 open since 2026-09-07 -- a pin missing from art that was drawn, wherever two
 rules derive the same content separately -- with one instance fixed and the
 sweep for the rest unstarted. It said what it wanted: a test rather than a
