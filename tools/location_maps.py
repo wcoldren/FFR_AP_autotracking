@@ -24,7 +24,6 @@ free and this table never has to.
 
 import json
 import os
-import re
 import sys
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
@@ -133,14 +132,6 @@ def render(rows):
         lines.append('  ["%s"] = {%s},' % (path, maps))
     lines.append("}")
     return "\n".join(lines) + "\n"
-
-
-def parse(src):
-    """The committed table, read back the way the drift test compares it."""
-    rows = {}
-    for path, body in re.findall(r'\["([^"]+)"\] = \{([^}]*)\}', src):
-        rows[path] = [int(n) for n in re.findall(r'-?\d+', body)]
-    return rows
 
 
 def main(argv):
