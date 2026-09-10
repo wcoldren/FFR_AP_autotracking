@@ -82,7 +82,6 @@ register's. Rewording either end is how a row stops resolving, which
 | | |
 |---|---|
 | doors | A door that lands on the floor it left does not mark itself — the bridge notices a door by a change of map, and a same-floor link is not one |
-| doors | A pin missing from art that was drawn, wherever two rules derive the same content separately — one instance fixed, the sweep open |
 | blocked | The derivation cannot say "reach another location", and Lefein is where that shows — the last `--derived` divergence. Wants the requirements solver in `docs/IDEAS.md`, so it is filed rather than small |
 | maps | Crop boxes are looser than the map on several tabs — two causes, not one |
 | maps | A room bigger than the guard stays shut — Mirage Tower 1F is 458 cells against `ROOM_MAX_CELLS` at 256, and raising it wants a measurement of what else opens |

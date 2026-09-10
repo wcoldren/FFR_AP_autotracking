@@ -68,21 +68,6 @@ Nothing here is urgent unless it says so.
   own `ScreenWipe_Close` is what the map-change reader leans on and is the thing
   to look at first.
 
-- **A pin missing from art that was drawn, wherever two rules derive the same
-  content separately.** One instance found and fixed 2026-09-07 -- see the entry
-  named "The floor-door rule dropped a speck the crop had kept" -- and the sweep
-  for the rest is open. The shape is general: a rule that decides what to *draw*
-  and a rule that decides what to *crop* each build their own content set, and
-  the one that is stricter silently loses a marker on art the other kept.
-  `render_maps.protected_cells` says this about its own two readers and the
-  warning was not applied elsewhere.
-
-  Where to look, since the fixed instance was found by a player rather than by a
-  check: every caller of `render_maps.drop_specks` and `content_cells`, and
-  every place a marker set is intersected with content. The audit wants to be a
-  test rather than a session -- one that walks the corpus and reports any tile
-  the art draws, a rule calls a marker, and no marker stands on.
-
 - **A pinned control cannot survive Reset, and no pack-side change can make it.**
   Found 2026-09-04 while making the `Overworld Tab` choice stick. A stage pinned
   by hand does survive a *restart*: PopTracker autosaves item state and restores
@@ -1375,7 +1360,7 @@ Nothing here is urgent unless it says so.
   only chain to Kraken, and the board could not draw the door the player had
   walked through. The class this belongs to is the entry named "A pin missing
   from art that was drawn, wherever two rules derive the same content
-  separately", which is open.
+  separately", which closed 2026-09-09 with this as its only instance.
 
 - **Sarda's Cave went green on a forested seed with no Ruby, through the hike
   row. Closed 2026-09-08**, reported from play on a cartridge carrying
@@ -1512,6 +1497,44 @@ Nothing here is urgent unless it says so.
   moved with it, and that is the half the old shape could not have done --
   pointing a put-out-everything sweep at those 25 paths would have blanked every
   ring on the board, where re-asserting from claims cannot.
+
+
+- **A pin missing from art that was drawn, wherever two rules derive the same
+  content separately. Closed 2026-09-09**, as the test this entry asked for
+  rather than as a session: `tools/tests/test_marker_sweep.py` walks the corpus
+  and reports any tile the art draws, a rule calls a marker, and no marker
+  stands on. The one instance is the entry named "The floor-door rule dropped a
+  speck the crop had kept"; the sweep found no second one.
+
+  **52 cartridges, 61 maps each, nothing outside two named classes.** Those two
+  are the five NPCs no location tree hosts -- the entry named "Five NPCs the
+  cartridge places have no box anywhere" -- and the ToFR chest copies a
+  cartridge lays and never wires, which marker_tiles already reports as
+  dropped. Both are named in the suite rather than counted, so one leaving the
+  list is a question and not a slightly stale number.
+
+  **The sweep is the mirror of `crop_violations`, and that is the whole of
+  it.** The old guard asks whether the crop cut off something the map points
+  at; nothing asked whether the crop kept a tile that a marker rule then
+  dropped, which is the direction seaB3 went missing in on art that was
+  correct. Its three sets come from three places -- the render for what is
+  drawn, the cartridge's own chest, NPC and teleport tables for what could be a
+  marker, and the pin rules for what is -- because a candidate set taken from a
+  marker rule would agree with itself.
+
+  **What it cannot see, so a clean run is not read as more.** It catches two
+  rules disagreeing, not both being wrong the same way: `drawn` and `marked`
+  both ask `crop_keep`, so a `crop_keep` that lost a room would take the pin
+  and the art together and this would say nothing. And its candidates are the
+  kinds of tile this pack marks, so a rule that loses something else loses it
+  unwatched.
+
+  The demonstration is the part worth keeping: with `floor_exits` ignoring the
+  crop's keep -- the exact pre-fix call -- seaB3 (47,39) comes back, on **all
+  47 standard cartridges here** rather than the five the fix was measured on,
+  and nothing comes back on a No-Overworld cartridge, which has no such sealed
+  room. A sweep that reported nothing because it looked at nothing would read
+  identically to a clean one.
 
 
 ## Open questions

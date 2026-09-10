@@ -2247,3 +2247,67 @@ story. And the many-to-one case is *synthesised*, because no two ids share a
 section path in the mapping as it stands -- written against the shipped data it
 would have been a row that passed while testing nothing, which is the shape this
 pack keeps finding in its own suites.
+
+## Nothing else lost a pin the way Sea Shrine B3 did
+
+Landed 2026-09-09, `8c11a35..dcfd5a6`, two commits. The register had an entry
+open since 2026-09-07 -- a pin missing from art that was drawn, wherever two
+rules derive the same content separately -- with one instance fixed and the
+sweep for the rest unstarted. It said what it wanted: a test rather than a
+session, walking the corpus for any tile the art draws, a rule calls a marker,
+and no marker stands on. That is what this is, and the answer is that there is
+no second instance in 52 cartridges.
+
+**The direction is the whole design.** `crop_violations` has always asked
+whether the crop cut something off, which is how a crop goes wrong. A marker
+rule goes wrong the other way round: the art is correct, the crop kept the
+room, and the rule that decides what to *mark* drops it on its own stricter
+reading. That is what happened on seaB3, and nothing was looking that way.
+
+**Three sets, from three places, or it agrees with itself.** Drawn is the
+render's own `content_cells`/`drop_specks`/`content_crop` with `crop_keep`'s
+keep -- asked, not reimplemented. Marked is what `marker_tiles` and
+`entrance_members` actually emit. The candidates in between come off the
+cartridge's chest, NPC and teleport tables and no marker rule at all, which is
+the part that had to be got right: a candidate set derived from a marker rule
+would have reported a clean board on the day seaB3 was broken.
+
+Warps were the one candidate needing a shape rather than a kind. A town's outer
+border is warp-to-overworld -- 33,282 tiles on the standard oracle against 99
+real links -- so the candidate is a warp cluster of no more than
+`FLOOR_EXIT_CLUSTER`. That is the structural half of `floor_exits`; the half
+that disagreed was which content it stands on, and it is the half deliberately
+not copied.
+
+**A clean sweep is indistinguishable from a sweep that looks at nothing**, so
+the tree gets broken on purpose: `floor_exits` reverted to ignoring the crop's
+keep has to lose seaB3 (47,39) and does, on all 47 standard cartridges here
+rather than the five the original fix was measured on. It has to lose nothing
+on a No-Overworld cartridge, which has no such sealed room, and does -- which
+is what keeps the row read as "this cartridge, this room".
+
+**Two things it cannot see, written into the suite so a clean run is not read
+as more.** It catches two rules disagreeing rather than both being wrong the
+same way -- drawn and marked both ask `crop_keep`, so a `crop_keep` that lost a
+room takes the pin and the art together and this says nothing. And its
+candidates are the kinds of tile this pack marks, so a rule losing anything
+else loses it unwatched.
+
+**Five NPCs and the stranded ToFR copies are named, not tolerated.** The four
+fiends and Dr Unne are drawn, are in `extract_npcs.WANTED`, and no location
+tree hosts them, which is a decision with its own register entry; the ToFR
+copies a cartridge lays and never wires are already reported by `marker_tiles`
+as dropped. Naming them rather than counting them is the same call
+`test_pin_visibility` made about the orb slots: a count going 5 to 4 reads as a
+stale number, where a name leaving the list reads as a question.
+
+**The helper move underneath it broke a doc count, which is the smaller story
+worth keeping.** Three suites wanted the same cartridge search, so it became
+`tools/tests/corpus.py` -- and moving the `os.environ.get("FF1_ROM")` out of a
+suite's own text made `test_docs` report 20 suites gating on it against the 21
+the prose claimed. The prose was right; the suite still skips without a
+cartridge, it just asks the helper now. So `gates_on` follows that one import
+rather than the count being lowered to match, and naming the import as a bare
+substring immediately made the file match itself and report 22 -- the same
+self-counting the `os.environ.get` rule beside it already exists for, hit again
+one layer up, and fixed by reading a whole line.
