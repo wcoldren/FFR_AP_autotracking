@@ -155,8 +155,14 @@ end
 --
 -- register_location_checks rechecks hints and rebroadcasts, so the payload would
 -- put this out on its own a moment later. This is worth having anyway: it costs
--- nothing, it removes a visible lag on a slow room, and it also covers a check
--- that arrived over the emulator bridge, where no payload is coming at all.
+-- nothing and it takes a visible lag off a slow room.
+--
+-- Only the Archipelago feed reaches it, which is worth stating because the
+-- comment here used to claim the opposite. markAPChecked has one caller --
+-- onLocation in scripts/autotracking.lua -- and a check the emulator bridge
+-- reports goes through setUATChecked instead, so a pin the bridge sees checked
+-- first stays lit until the server says so. That costs nothing real: a session
+-- with hints standing in it is one with a server in it, and the server answers.
 function hintChecked(id)
   local row = standing[id]
   if not row then

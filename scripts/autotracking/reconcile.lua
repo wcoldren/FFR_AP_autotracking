@@ -352,8 +352,11 @@ function markAPChecked(id)
   end
   applyHostedItem(id)
   -- A hint on a location that has just been checked has stopped being a place
-  -- to look. The server says so too, a moment later, but this is also the only
-  -- signal on a check that came over the emulator bridge.
+  -- to look. The server says so too, a moment later -- registering a check
+  -- rechecks its hints and rebroadcasts the list -- so this takes a lag off a
+  -- slow room rather than being the only signal. It is the Archipelago feed's
+  -- door and no other: a check the emulator bridge reports arrives through
+  -- setUATChecked below and never reaches here.
   if type(hintChecked) == "function" then
     hintChecked(id)
   end
