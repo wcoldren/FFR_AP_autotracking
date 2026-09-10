@@ -144,7 +144,14 @@ check("and a table on another key is dropped rather than read as a map",
 ------------------------------------------------------------------
 print("\n-- what the payload may be")
 ------------------------------------------------------------------
-for label, value in pairs({ ["nil"] = nil, ["a string"] = "x", ["a number"] = 7 }) do
+-- nil gets its own row rather than a place in the table below, because a table
+-- constructor with a nil value stores no key: `["nil"] = nil` made a row that
+-- read as covered and never ran, and the loop it sat in printed two lines where
+-- somebody counting would have read three. It is also the case onHints' own
+-- comment singles out -- a Get on a key the room has never written answers null
+-- -- so it was the one branch the comment justifies and nothing exercised.
+check("  nil is a quiet no-op", capture(function() return onHints(nil) end), 0)
+for label, value in pairs({ ["a string"] = "x", ["a number"] = 7 }) do
   local n = capture(function() return onHints(value) end)
   check("  " .. label .. " is a quiet no-op", n, 0)
 end
