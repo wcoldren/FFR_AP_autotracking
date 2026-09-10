@@ -539,7 +539,22 @@ HELPER = "tools/tests/corpus.py"
 # report 22 against 21. It is the same self-counting the `os.environ.get` rule
 # above exists for, one layer up, and it fired within a minute of the rule being
 # written -- so the anchor stays even though the two spellings look alike.
+#
+# Both spellings that import the helper, because either one gates. `startswith`
+# on the plain-import form alone would miss `from corpus import cartridges` and
+# silently lower the count the prose is held to -- the same miscount, reached
+# from the other side -- and would also have matched a hypothetical
+# `import corpus_anything`. The plain form is matched exactly and the
+# from-import by its prefix, with a trailing `# noqa` stripped first, since
+# every suite that imports it carries one.
 HELPER_IMPORT = "import" + " corpus"
+HELPER_FROM = "from" + " corpus import "
+
+
+def imports_helper(line):
+    """Does this source line import the shared cartridge search? See HELPER."""
+    code = line.split("#")[0].strip()
+    return code == HELPER_IMPORT or code.startswith(HELPER_FROM)
 
 
 def gates_on(path, var):
@@ -556,7 +571,7 @@ def gates_on(path, var):
              'environ["%s"]' % var, "environ['%s']" % var,
              'getenv("%s"' % var, "getenv('%s'" % var]
     text = "\n".join(read(path))
-    if any(ln.strip().startswith(HELPER_IMPORT) for ln in read(path)):
+    if any(imports_helper(ln) for ln in read(path)):
         text += "\n" + "\n".join(read(HELPER))
     return any(w in text for w in wants)
 
