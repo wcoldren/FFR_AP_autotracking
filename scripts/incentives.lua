@@ -202,7 +202,16 @@ function refreshIncentiveHighlights()
       -- what the pin is left showing.
       if rings and slotIsIncentivized(slot) and slotInPool(slot, pool) then
         claimHighlight("incentive", slot.path)
-        if section then
+        -- Read the pin back rather than counting the claim, because `marked`
+        -- means rings a player can see and a claim is not one. Two things sit
+        -- between them, neither an error. A host that refuses the write: the
+        -- registry catches that and warns rather than raising, so the claim is
+        -- recorded and nothing draws. And a stronger owner: a hint on one of
+        -- those 25 shared paths resolves above us, so the pin shows the hint's
+        -- colour and there is no gold on it. Counting `section ~= nil` said
+        -- neither, and on the first host would have logged a full set of rings
+        -- over a board with no colour on it at all.
+        if section and section.Highlight == Highlight.Priority then
           marked = marked + 1
         end
       else
@@ -216,10 +225,15 @@ function refreshIncentiveHighlights()
   -- Cleared on the failure path too, or one error would stop every later
   -- refresh silently.
   refreshing = false
+  -- Not the Highlight guard any more: scripts/highlights.lua owns that one, so
+  -- all three owners degrade the same way and a host that will not take a
+  -- colour no longer reaches this. What still can is the rest of the pass --
+  -- reading the seed's flags, the pool, or a section -- and one of those
+  -- failing must not stop every later refresh.
   if not ok then
     if not highlightWarned then
       highlightWarned = true
-      print("incentives: cannot ring the incentivized slots (" .. tostring(err)
+      print("incentives: the ring refresh failed (" .. tostring(err)
             .. ") -- the board is right, it just has no gold on it")
     end
     return 0

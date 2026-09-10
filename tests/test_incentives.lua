@@ -676,6 +676,26 @@ seaRow.hosted = savedHosted
 
 pool = nil
 
+-- A host that takes the claim and refuses the colour, which is the failure the
+-- count exists to make visible. scripts/highlights.lua catches the raise and
+-- warns rather than letting it out -- one hostile section must not stop every
+-- later claim -- so the refresh runs to the end and nothing but the count can
+-- say a ring is missing. It said the wrong number until it read the pin back:
+-- counting `section ~= nil` counted a slot whose gold never arrived, and the
+-- log line then reported a full set of rings over a board with no colour on it.
+provided = { show_gold_rings = 1, seaIsIncentive = 1 }
+local ringedClean = refreshIncentiveHighlights()
+local savedSea = sectionsByPath[SEA_BOARD]
+sectionsByPath[SEA_BOARD] = setmetatable({}, {
+  __index = function(_, k) return k == "Highlight" and Highlight.None or nil end,
+  __newindex = function() error("this host takes no highlight") end,
+})
+check("a section that refuses the colour is not counted as a ring",
+  refreshIncentiveHighlights(), ringedClean - 1)
+check("  and the slots beside it ring anyway",
+  sectionsByPath[SEA_SHEET].Highlight, Highlight.Priority)
+sectionsByPath[SEA_BOARD] = savedSea
+
 -- A host with no Highlight at all must not take the board down with it.
 Highlight = nil
 check("no Highlight support means no rings, not an error",
