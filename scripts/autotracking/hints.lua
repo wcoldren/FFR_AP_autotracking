@@ -40,8 +40,16 @@ local HINT_HIGHLIGHT = {
 -- can share one section path. Strongest statement first.
 local STATUS_RANK = { [30] = 4, [20] = 3, [10] = 2, [0] = 1 }
 
+-- Unspecified rather than Priority for a status this table does not know, and
+-- the fallback is the whole point: AP has extended HintStatus once already, so
+-- the next value it adds arrives here. Gold is the loudest thing this board can
+-- say, and saying it about a status nobody has read yet is the same mistake as
+-- flattening Avoid to gold, which the table above exists to avoid. It also puts
+-- the two fallbacks in agreement -- STATUS_RANK gives an unknown status the
+-- lowest rank, so painting it the strongest colour contradicted the rank in the
+-- one case both are reached.
 local function levelFor(status)
-  local name = HINT_HIGHLIGHT[status] or "Priority"
+  local name = HINT_HIGHLIGHT[status] or "Unspecified"
   return Highlight and Highlight[name]
 end
 

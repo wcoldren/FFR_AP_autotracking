@@ -253,6 +253,15 @@ for status, want in pairs({ [30] = Highlight.Priority, [20] = Highlight.Avoid,
   check("  status " .. status .. " paints its own colour", lit(TREASURY_PATH), want)
 end
 
+-- The status AP has not added yet. HintStatus has grown once already, and the
+-- fallback is reached by every value it grows next -- so what it paints is a
+-- decision rather than a detail. Unspecified says "a hint stands here" without
+-- claiming to know how loudly; gold would say chase this, about a statement
+-- nothing in this pack has read.
+capture(function() return onHints({ hint(TREASURY, { status = 25 }) }) end)
+check("  a status this pack does not know is not gold",
+  lit(TREASURY_PATH), Highlight.Unspecified)
+
 -- The three ways a hint stops standing.
 capture(function() return onHints({ hint(TREASURY, { status = 40 }) }) end)
 check("a found hint puts its pin out", lit(TREASURY_PATH), Highlight.None)
