@@ -476,13 +476,16 @@ calling anything done; what follows is what it runs.
 ```
 tests/run.sh         19 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   39 Python suites for the cartridge-reading tools.
-                     21 of them skip, wholly or in part, unless FF1_ROM
+tools/tests/run.sh   40 Python suites for the cartridge-reading tools.
+                     22 of them skip, wholly or in part, unless FF1_ROM
                      points at a cartridge, and three more unless FF1_SEEDS
                      points at the seed tree — so a bare run passes and checks
-                     a good deal less than the count suggests. One slow guard opts in
-                     separately with FF1_SLOW=1 and wants a No-Overworld
-                     cartridge as well. One asks git rather than a cartridge —
+                     a good deal less than the count suggests. Two slow
+                     guards opt in separately with FF1_SLOW=1: the floor-walk
+                     memo, which wants a No-Overworld cartridge as well, and
+                     the marker sweep, which then walks every cartridge on the
+                     machine rather than the seed in play and the graded
+                     corpus. One asks git rather than a cartridge —
                      the regen branch guard — and skips where there is no git;
                      the refresh guards ask it for the branch half alone, and
                      skip that much.
