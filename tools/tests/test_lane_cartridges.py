@@ -30,6 +30,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 
+import corpus  # noqa: E402
 import lane_file as LF  # noqa: E402
 import port_lanes as PL  # noqa: E402
 import regen_maps  # noqa: E402
@@ -46,28 +47,6 @@ def check(what, got, want):
         fails.append(f"{what}: got {got!r}, want {want!r}")
 
 
-def search_roots():
-    """Where to look for cartridges, from what this machine already names.
-
-    FF1_ROM is one seed inside a tree of them, so its parent's parent is the
-    tree; FF1_CORPUS is a directory of them already. Both are optional and
-    either may be absent.
-    """
-    roots = []
-    rom = os.environ.get("FF1_ROM")
-    if rom and os.path.isfile(rom):
-        roots.append(os.path.dirname(os.path.dirname(os.path.abspath(rom))))
-    corpus = os.environ.get("FF1_CORPUS")
-    if corpus and os.path.isdir(corpus):
-        roots.append(os.path.abspath(corpus))
-    out = []
-    for r in roots:
-        if os.path.isdir(r) and not any(
-                r == o or r.startswith(o + os.sep) for o in out):
-            out.append(r)
-    return out
-
-
 # --- what the committed files claim
 wanted = {}
 for name in sorted(set(rm.MAP_FILES.values())):
@@ -82,22 +61,17 @@ if not wanted:
     sys.exit(0)
 
 # --- which of those cartridges are on this machine
-roots = search_roots()
-if not roots:
+found = corpus.cartridges()
+if not found:
     print("skipped: neither FF1_ROM nor FF1_CORPUS says where seeds live")
     sys.exit(0)
 have = {}
-for root in roots:
-    for dirpath, _dirs, files in os.walk(root):
-        for f in sorted(files):
-            if not f.endswith(".nes"):
-                continue
-            p = os.path.join(dirpath, f)
-            with open(p, "rb") as fh:
-                rom = fh.read()
-            stamp = regen_maps.cartridge_id(rom, p)["ffr"]
-            if stamp in wanted and stamp not in have:
-                have[stamp] = p
+for p in found:
+    with open(p, "rb") as fh:
+        rom = fh.read()
+    stamp = regen_maps.cartridge_id(rom, p)["ffr"]
+    if stamp in wanted and stamp not in have:
+        have[stamp] = p
 
 missing = sorted(set(wanted) - set(have))
 if not have:

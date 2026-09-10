@@ -521,6 +521,27 @@ def runner_for(flat, pos):
     return seen[-1] if seen else None
 
 
+# A suite that gets its cartridges from tools/tests/corpus.py gates on that
+# helper's variables and names none of them itself. Followed rather than
+# excused: the sentence being checked says how much of a bare run is real, and a
+# suite that skips without FF1_ROM is one of those whether it reads the
+# environment itself or asks something that does. Two suites moved behind this
+# helper and the count dropped by one, which is the prose going wrong about the
+# thing it exists to say.
+#
+# One hop, and only this helper. A general import walk would end up reading the
+# tools themselves -- half of which mention these variables in a docstring --
+# and start counting suites that do not gate at all, which is the failure the
+# `os.environ.get` rule above already fixed once.
+HELPER = "tools/tests/corpus.py"
+# Read as a whole line rather than as a substring, and that is not tidiness:
+# naming the import here as a bare substring made *this file* match it and
+# report 22 against 21. It is the same self-counting the `os.environ.get` rule
+# above exists for, one layer up, and it fired within a minute of the rule being
+# written -- so the anchor stays even though the two spellings look alike.
+HELPER_IMPORT = "import" + " corpus"
+
+
 def gates_on(path, var):
     """Whether one suite gates itself on `var`.
 
@@ -528,11 +549,15 @@ def gates_on(path, var):
     the comments above, and counting mentions made it count itself and report
     three. Several spellings count, because a suite gating via `os.environ[...]`
     or single quotes is gating just as hard and used to read as ungated.
+
+    A suite importing the shared cartridge search gates through it; see HELPER.
     """
     wants = ['environ.get("%s"' % var, "environ.get('%s'" % var,
              'environ["%s"]' % var, "environ['%s']" % var,
              'getenv("%s"' % var, "getenv('%s'" % var]
     text = "\n".join(read(path))
+    if any(ln.strip().startswith(HELPER_IMPORT) for ln in read(path)):
+        text += "\n" + "\n".join(read(HELPER))
     return any(w in text for w in wants)
 
 

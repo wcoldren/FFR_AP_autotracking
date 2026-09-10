@@ -30,6 +30,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 
+import corpus                                                  # noqa: E402
 import entrance_graph as eg                                    # noqa: E402
 
 fails = []
@@ -140,29 +141,9 @@ else:
 #
 # Looked for beside the cartridges this machine already names rather than at a
 # path written down here, since where seeds live is a fact about the machine.
+# corpus.cartridges is that search, shared with the other suites that need one.
 
-def search_roots():
-    roots = []
-    rom_path = os.environ.get("FF1_ROM")
-    if rom_path and os.path.isfile(rom_path):
-        roots.append(os.path.dirname(os.path.dirname(os.path.abspath(rom_path))))
-    corpus = os.environ.get("FF1_CORPUS")
-    if corpus and os.path.isdir(corpus):
-        roots.append(os.path.abspath(corpus))
-    out = []
-    for r in roots:
-        if os.path.isdir(r) and not any(
-                r == o or r.startswith(o + os.sep) for o in out):
-            out.append(r)
-    return out
-
-
-carts = []
-for root in search_roots():
-    for dirpath, _dirs, files in os.walk(root):
-        for f in sorted(files):
-            if f.endswith(".nes"):
-                carts.append(os.path.join(dirpath, f))
+carts = corpus.cartridges()
 
 # gateway_destinations is the cheap half -- three tables and no decompression
 # -- so every cartridge is asked, and only the ones that answer are walked.
