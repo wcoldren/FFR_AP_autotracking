@@ -65,7 +65,7 @@ work it is, not how much it matters.
 | §4 | The lanes still to draw: the ported drafts, the by-eye pass, the run-wide order |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
 | §4 | Boss names in the Map Key |
-| §4 | Ship a No-Overworld art set — blocked on a provenance decision |
+| §4 | Ship a No-Overworld art set — the decision is taken, the drawing is not |
 | §5 | Three flags filed `unjudged` |
 | §5 | Port from the export — blocked on a provenance decision |
 | §5 | Two location trees, one rule set |
@@ -541,15 +541,24 @@ closed 2026-09-06.
   `docs/IDEAS.md`, "Keep the art you have already drawn" holds that
   measurement and the per-cartridge store that was measured and put down with it.
 
-  **Blocked on a decision, not on effort.** `README.md` refuses whole maps drawn
-  from a cartridge for two welded reasons — that they are the ROM's art, and
-  that they are rolled per seed. The second does not hold for this mode, which
-  is what this bullet establishes; the first stands on its own and is a
-  judgement about provenance rather than a technical question. The pack already
-  draws the line somewhere other than "never", since `images/icons/door_shut.png`
-  is cartridge tile art and ships. **So it gets taken deliberately, against one
-  stated criterion: is a full map rendered from a cartridge shippable here, when
-  a single tile lifted from one already is?** Nothing gets committed before that.
+  **The decision was taken 2026-09-10, and the answer is yes.** The criterion
+  this bullet stated was whether a full map rendered from a cartridge is
+  shippable here when a single tile lifted from one already is, and it is: a map
+  redrawn for a tracker is the same kind of artefact as an icon lifted and
+  recoloured for one, which is what trackers in this community do. So provenance
+  stops being a reason, `README.md` and `docs/ARCHITECTURE.md` both say so where
+  they used to refuse, and what is left of the old rule is the seed objection
+  alone — which is why this is a No-Overworld set and not a standard one.
+
+  **What is open is the drawing, and it is no longer blocked.** One committed
+  set under `images/maps/nov/`, the 61 rows of `maps/NOverworldMaps.json` that
+  point at it, and the No-Overworld location trees whose crop coordinates go
+  with that art — `regen_maps.py` already writes all three into the override,
+  so the build is selecting a cartridge and committing what it produces rather
+  than writing a renderer. Two things it has to settle: which cartridge the set
+  is drawn from, since that picks which residual everybody gets, and what
+  `build_noverworld_maps_json` should do once the shipped art is rendered rather
+  than hand-drawn — today a std-only regen puts the hand art back.
 
 **Closed.**
 

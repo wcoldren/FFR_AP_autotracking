@@ -276,12 +276,14 @@ library — no Pillow, no .NET.
 | `incentive_slots.py` | Writes `scripts/incentive_slots.lua`, the table the rings read |
 | `sprites.py` / `font.py` | NPC sprite art and the cartridge's menu font |
 
-**`regen_maps.py` writes to PopTracker's `user-override/` tree, never into the
-repo.** That keeps rendered maps out of git and is also more correct, since
-some map details are rolled per seed. The rule is about whole maps, not about
-everything a cartridge can yield -- single sprites pulled by `sprites.py` or
-`font.py` may ship as tracker icons; see the README. `--clean` puts the shipped
-art back.
+**`regen_maps.py` writes to PopTracker's `user-override/` tree rather than into
+the repo.** The reason is that its output is drawn from one seed, so committing
+it would serve everybody else art that is confidently wrong about rooms they
+will never see. It is not a rule about what a cartridge may yield: single
+sprites pulled by `sprites.py` or `font.py` ship as tracker icons today, and
+**a whole rendered map may ship too where the seed objection does not apply**,
+decided 2026-09-10 -- the README carries the decision and `docs/ROADMAP.md`
+section 4 the one mode it licenses. `--clean` puts the shipped art back.
 
 **`tools/lanes/*.json` is the stated exception, and it is one because those
 files are an input rather than an output.** Everything else the rule covers is

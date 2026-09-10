@@ -47,12 +47,28 @@ ROM instead is an optional upgrade -- see
 
 No ROM is included or downloaded, and none ever will be.
 
-Whole maps rendered from a cartridge stay out of the repo too:
-`tools/regen_maps.py` writes into PopTracker's user-override directory. A
-full-size map drawn from your ROM is that ROM's art, and it is rolled per seed
-besides, so it has no business in git.
+`tools/regen_maps.py` writes into PopTracker's user-override directory rather
+than into the repo, and that stays the default for a reason that has nothing to
+do with provenance: a full-size map drawn from your ROM is drawn from *your*
+seed, and committing one would serve everybody else art that is confidently
+wrong about rooms they will never see.
 
-Single sprites are a deliberate exception. A tracker cell wants an icon,
+**Provenance is not the reason, decided 2026-09-10.** This paragraph used to
+give two, welded into one sentence -- that a rendered map is the ROM's art, and
+that it is rolled per seed -- and only the second one does any work. A map
+rendered from a cartridge and redrawn for a tracker is the same kind of thing as
+an icon lifted and recoloured for one, which is ordinary practice in this
+community and which this pack already ships. So a rendered map may ship where
+the seed objection does not apply, and there is one place it does not:
+No-Overworld rebuilds its maps deterministically apart from a handful of details
+(`docs/NOVERWORLD.md` lists them), so one committed set would be right about
+that mode for everyone rather than about one roll. Standard is not a second
+case -- the hand-drawn art already is a vanilla layout, which is what a standard
+seed mostly has. What that licenses is not yet drawn; `docs/ROADMAP.md` section
+4 carries it.
+
+Single sprites are the older exception, and the one this decision generalised
+from. A tracker cell wants an icon,
 `tools/sprites.py` and `tools/font.py` can pull one off the cartridge, and an
 icon lifted and recoloured for a tracker is ordinary practice in this community.
 Icons made that way may ship here. Two do: `images/icons/door_shut.png` and
@@ -64,7 +80,7 @@ that has no picture at all, so that cell needs one it cannot see. They are commi
 than left to a regen because `Pack::hasFile` does not consult the user-override,
 so a section image that lives only there falls back to PopTracker's chest. The
 door is vanilla tile art -- byte-identical off all four measured cartridges --
-so it is not rolled per seed the way a map is. Everything else in `images/` is
+so it is not rolled per seed the way a standard map is. Everything else in `images/` is
 either drawn for this pack or inherited from the pack this forked, whose authors
 are in [Credits](#credits).
 
