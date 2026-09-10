@@ -28,7 +28,12 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# tools/ for the modules under test, and HERE for the corpus helper beside this
+# file. Both, because `import corpus` otherwise resolves only through the
+# implicit script-directory entry, which `-m`, runpy and PYTHONSAFEPATH each
+# withhold; test_noverworld_rules.py inserts HERE for the same reason.
 sys.path.insert(0, os.path.dirname(HERE))
+sys.path.insert(0, HERE)
 
 import corpus                                                  # noqa: E402
 import entrance_graph as eg                                    # noqa: E402
@@ -147,13 +152,15 @@ carts = corpus.cartridges()
 
 # gateway_destinations is the cheap half -- three tables and no decompression
 # -- so every cartridge is asked, and only the ones that answer are walked.
+#
+# corpus.rom_or_none rather than a try/except here: eg.Rom reports a non-iNES
+# or too-short file with sys.exit, and SystemExit does not derive from
+# Exception, so the guard this used to have would never have caught the case it
+# was written for.
 gateways = []
 for c in sorted(carts):
-    try:
-        r = eg.Rom(c)
-    except Exception:
-        continue
-    if eg.gateway_destinations(r) is not None:
+    r = corpus.rom_or_none(c)
+    if r is not None and eg.gateway_destinations(r) is not None:
         gateways.append(c)
 
 if not carts:

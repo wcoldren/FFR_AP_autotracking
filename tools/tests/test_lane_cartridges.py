@@ -28,7 +28,12 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# tools/ for the modules under test, and HERE for the corpus helper beside this
+# file. Both, because `import corpus` otherwise resolves only through the
+# implicit script-directory entry, which `-m`, runpy and PYTHONSAFEPATH each
+# withhold; test_noverworld_rules.py inserts HERE for the same reason.
 sys.path.insert(0, os.path.dirname(HERE))
+sys.path.insert(0, HERE)
 
 import corpus  # noqa: E402
 import lane_file as LF  # noqa: E402
@@ -67,9 +72,15 @@ if not found:
     sys.exit(0)
 have = {}
 for p in found:
-    with open(p, "rb") as fh:
-        rom = fh.read()
-    stamp = regen_maps.cartridge_id(rom, p)["ffr"]
+    # Opened through the shared helper rather than read straight off disk:
+    # cartridge_id goes through entrance_graph.Rom, which reports a non-iNES or
+    # too-short file with sys.exit, and the search roots are wide enough to turn
+    # up one. SystemExit does not derive from Exception, so there is no guard to
+    # put here -- the helper is the guard.
+    r = corpus.rom_or_none(p)
+    if r is None:
+        continue
+    stamp = regen_maps.cartridge_id(r.data, p)["ffr"]
     if stamp in wanted and stamp not in have:
         have[stamp] = p
 
