@@ -256,12 +256,20 @@ local function navigate(mapId, path)
     if HIGHLIGHT_PATH and HIGHLIGHT_PATH ~= path then
       releaseHighlight("entrance", HIGHLIGHT_PATH)
     end
-    if claimHighlight("entrance", path) or highlightOwnerOf(path) then
-      HIGHLIGHT_PATH = path
-      HIGHLIGHT_ELAPSED = 0
-      if type(ScriptHost.AddOnFrameHandler) == "function" then
-        ScriptHost:AddOnFrameHandler("entrance highlight", removeEntranceHighlight)
-      end
+    -- Armed whether or not the pin changed colour, because the claim is
+    -- recorded either way and this timer is the only thing that ever drops it.
+    -- claimHighlight answers "did the colour change", which is a different
+    -- question and is false in two ordinary cases: a hint already holds this
+    -- pin at the same level, and a far end whose section does not resolve --
+    -- entering a town lands on a plain tile, so the second is common. Guarding
+    -- on it would leave the claim standing for good. The `or
+    -- highlightOwnerOf(path)` this replaces could not answer it either: a claim
+    -- on a non-nil path always records an owner, so that half was always true.
+    claimHighlight("entrance", path)
+    HIGHLIGHT_PATH = path
+    HIGHLIGHT_ELAPSED = 0
+    if type(ScriptHost.AddOnFrameHandler) == "function" then
+      ScriptHost:AddOnFrameHandler("entrance highlight", removeEntranceHighlight)
     end
   end
   return tab ~= nil
