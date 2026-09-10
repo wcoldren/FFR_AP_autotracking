@@ -508,6 +508,80 @@ here, so the stamp records the file's sha1 and the bridge lets it agree but
 never disagree; `bridge/probe_rom_id.lua` is the measurement that would settle
 it. Detail in `STATUS.md`, "The art on disk now says what it was drawn for".
 
+**Keep the art you have already drawn.** The override holds one bundle per mode,
+so every change of cartridge is a full redraw and the redraw is symmetric: hop
+from the weekly to a practice seed and back and the second hop throws away art
+that was correct ten minutes earlier. A week of practice seeds is a redraw per
+hop, each about fifteen seconds. What is wanted is a store of bundles keyed by
+cartridge, so a cartridge drawn once is never drawn again -- and since two
+standard seeds differ on only a handful of maps, a store addressed by content
+costs the first cartridge and almost nothing for its neighbours.
+
+**Keyed by cartridge, and not by flags, which is the version of this idea to put
+down.** The obvious shape is to enumerate the settings that change the maps,
+render each combination once, and pick the matching one. It does not work, and
+the reason is worth keeping because the idea is an easy one to have twice. Two
+cartridges with a byte-identical flag string draw different maps: the `nov` and
+`nov2` control pair was rolled to prove exactly that and differ in 45987 bytes,
+with Gaia's gateway, both Waterfall stairs and Sky Palace 5F's chest layout all
+moved. The flag says whether a thing is randomized, never how -- the dungeon
+flips shuffle a map list and take a random-length prefix of it, the procgen
+floors are drawn off the RNG stream, and the No-Overworld gateway roll reaches
+no spoiler at all. Worse, a flag moves maps it does not write: `nov` against
+`novnolefein` is one seed with one boolean flipped, and besides Lefein's own 72
+cells, Gaia, Waterfall and Castle Ordeals 2F moved 20, 4 and 14, which
+`docs/ORACLE.md` files as roll churn rather than as the flag. So even an index
+built one flag at a time would not compose. Figures for all of it are in that
+page, under the `novnolefein` and `nov2` sections.
+
+**And the enumeration would be wrong quietly, which is the part that matters.**
+Rendering two cartridges from one weekly practice set -- same flag string, seeds
+apart -- gives 65 of 69 output files byte-identical and four different: Gaia, the
+overworld, ToFR 1F and ToFR Fire. A flags-keyed index serves one of them the
+other's art, and every room is in the right place. That is the failure this pack
+keeps writing tests against rather than the kind a person notices.
+
+**What it would take, and the one thing it buys beyond its own saving.** A
+content-addressed store beside the override, a library entry per cartridge
+recording what a `modes` entry records today plus the hashes of the files it
+wrote, and a switch that writes those files back without reading a cartridge or
+drawing anything. `tools/regen_maps.py` already hashes every output on the way
+past, so the store is one extra write on a path that has the bytes in hand. The
+bound to say out loud is that the input fingerprint covers the tools and the
+pack's own data, so any pack edit invalidates every entry at once -- the store is
+worth its keep during a play week on a fixed checkout and is dead weight during
+pack work. Beyond the saving it changes the entry above: an automatic regen on
+the seed swap the bridge already detects is unattractive while it means a 61-map
+render at the moment the cartridge is first seen, and is cheap when it is a file
+copy. The restart is still irreducible either way.
+
+**Measured 2026-09-10, and the store is not worth building on its own.** The
+case for it rested on a redraw being expensive, and the two figures written down
+disagreed: a docstring said six seconds, the register said minutes. Neither was
+right. A cold redraw is about fifteen seconds with the lanes drawn, ten without,
+and the same cartridge twice is six hundredths of a second. Fifteen seconds,
+once per sitting, inside a script that then launches an emulator and a tracker,
+does not pay for a cache layer, a switch, a warm and a round-trip test proving a
+switch is byte-identical to a redraw. Recorded rather than dropped, because the
+design is sound and only the premise was wrong, and because it returns the
+moment something else needs it -- the automatic regen above is unattractive
+while it means a 61-map render and cheap when it is a file copy.
+
+**One thing to measure before anyone builds the big version.** Two seeds differ
+on four maps out of sixty-one, so most of a redraw redraws identical output.
+A per-map cache keyed on that map's own source bytes would cut the fifteen
+seconds without any of the machinery above -- but only if the cost is in drawing
+rather than in decompressing, since the digest needs the decompressed map
+anyway. That split has not been measured and is one profile run.
+
+**And the half of this that outside consumers care about went elsewhere.** None
+of the above helps somebody who installs the pack and never runs a tool. That
+question -- which art can be committed rather than generated -- is a different
+one with a different answer, since the No-Overworld rebuild is nearly
+seed-independent where the rest of this is not. It is a roadmap bullet now,
+`docs/ROADMAP.md`, "Ship a No-Overworld art set, so somebody who installs this
+pack sees the right rooms".
+
 **Incentive and gate markers want their own shape, and the shape is already
 taken.** Proposed 2026-09-02: incentive slots and gating events draw as diamonds
 on the map tabs while plain chests stay squares, so a glance separates "a key

@@ -66,6 +66,7 @@ work it is, not how much it matters.
 | §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
 | §4 | Boss names in the Map Key |
+| §4 | Ship a No-Overworld art set — blocked on a provenance decision |
 | §5 | Three flags filed `unjudged` |
 | §5 | Port from the export — blocked on a provenance decision |
 | §5 | Two location trees, one rule set |
@@ -520,6 +521,40 @@ closed 2026-09-06.
   two"). Adding it against the existing JPEG is a hand edit plus bumping the nov
   count 20 → 21 in `SHEET_RULED`, `tests/test_pins.lua:160`.
 - **Boss names in the Map Key**, from the formation ids already in hand.
+- **Ship a No-Overworld art set, so somebody who installs this pack sees the
+  right rooms.** Rendering from a cartridge is an optional upgrade and always
+  will be; the shipped hand art is what everyone else gets, and on a
+  No-Overworld seed it is wrong about 34 to 39 of the 61 maps. It draws town
+  walls that mode seals and omits the 75 staircases it stamps. One art set
+  committed for the mode, selected the way the mode is already selected, takes
+  that to about three maps.
+
+  **The mode is nearly seed-independent, which is what makes this the one
+  variant worth shipping.** `docs/NOVERWORLD.md` states it: deterministic apart
+  from the Cardia/Bahamut gateway permutation, the two Waterfall stair
+  positions, and which ToFR chest ids the bonus chests reuse. Two No-Overworld
+  cartridges bear it out — Waterfall's stairs, Sky Palace 5F's chest layout and
+  Gaia are what move. So the residual is small and every part of it is nameable,
+  which is the difference between art that is honestly approximate and art that
+  is quietly wrong.
+
+  **Standard is not a second case.** The hand art already is a vanilla layout,
+  which is what a standard seed mostly has, so a committed standard render would
+  buy nothing the pack does not ship today. And there is no third case: two
+  cartridges with a byte-identical flag string draw different maps, so nothing
+  here generalises to an art set per flag combination.
+  `docs/IDEAS.md`, "Keep the art you have already drawn" holds that
+  measurement and the per-cartridge store that was measured and put down with it.
+
+  **Blocked on a decision, not on effort.** `README.md` refuses whole maps drawn
+  from a cartridge for two welded reasons — that they are the ROM's art, and
+  that they are rolled per seed. The second does not hold for this mode, which
+  is what this bullet establishes; the first stands on its own and is a
+  judgement about provenance rather than a technical question. The pack already
+  draws the line somewhere other than "never", since `images/icons/door_shut.png`
+  is cartridge tile art and ships. **So it gets taken deliberately, against one
+  stated criterion: is a full map rendered from a cartridge shippable here, when
+  a single tile lifted from one already is?** Nothing gets committed before that.
 
 **Closed.**
 
