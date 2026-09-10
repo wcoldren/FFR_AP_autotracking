@@ -63,7 +63,6 @@ work it is, not how much it matters.
 | §3 | Room-level zoom, after the towns |
 | §3 | Twelve Deep Dungeon locations are in no mapping |
 | §4 | The lanes still to draw: the ported drafts, the by-eye pass, the run-wide order |
-| §4 | A traversal lane on the maps with no chest |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
 | §4 | Boss names in the Map Key |
 | §4 | Ship a No-Overworld art set — blocked on a provenance decision |
@@ -501,10 +500,6 @@ closed 2026-09-06.
 
   **A loot lane still walks to a linked chest whose twin an earlier floor would
   have cleared**, which needs a run-wide order the router has no notion of.
-- **A traversal lane on the maps with no chest.** `plan()` returns `None` on an
-  empty `chest_groups`, which was right when every lane was a loot round and is
-  not now: the other 23 maps have a walk through them. Cheap, and deferred off
-  the editor branch only because it moves all 61 images.
 - **The No-Overworld map surface, and the incentive sheet that waits on it.**
   The connection diagram — a hand-drawn pseudo-overworld with the fixed links as
   roads. The topology is measured and stable.
@@ -557,6 +552,19 @@ closed 2026-09-06.
   a single tile lifted from one already is?** Nothing gets committed before that.
 
 **Closed.**
+
+- **A traversal lane on the maps with no chest. Declined 2026-09-10**, on a
+  judgement about the four floors it was actually still asking for. `plan()`
+  returns `None` on an empty `chest_groups`, and that gap was read as 23 maps
+  going undrawn; the editor closed most of it without the planner changing.
+  Eighteen floors carry a route lane and no loot lane today — `bahamut`,
+  `lefein`, four of the Temple floors and thirteen more — because a person drew
+  the walk where the walk was worth drawing. What was left is the four with no
+  lane file at all: `con_castle2F`, `ordeals2F`, `sky4F` and `sky5F`. They are
+  straight shots, and a line drawn down a corridor with one way through it says
+  nothing the art does not already say. So the planner keeps returning `None`
+  on an empty floor, and a chestless floor that does want a walk gets one drawn
+  the way the other eighteen did.
 
 - **Routes on regenerated maps. Built 2026-08-31, authored 2026-09-04.**
   `tools/lane.py` routes and `render_maps.draw_lanes` draws, baked at render
