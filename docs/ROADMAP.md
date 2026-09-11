@@ -561,18 +561,34 @@ closed 2026-09-06.
 
   **The location tree cannot be shipped the same way, and copying the regen's
   would be a regression.** The art is seed-agnostic; the tree is not — it
-  encodes this cartridge's chest ids, its ToFR mode and its NPC placement.
-  Every No-Overworld cartridge on this machine is `ToFRMode` Short, and a tree
-  derived from one drops the Long/Mid pin from every ToFR chest: the committed
-  tree carries `tofrFire[$showPin|chest|tofrLong|tofrMid]` beside
-  `tofrChaos[...|tofrShort]`, and the derived one carries only the second. It
-  also inherits Short's chest-id reuse, which pins ToFR chests onto `cardia`
-  and `sky5F`. `test_maps.lua` check 6 catches all of it.
+  encodes this cartridge's chest ids, its ToFR mode and its NPC placement. A
+  tree derived from a Short cartridge drops the Long/Mid pin from every ToFR
+  chest: the committed tree carries `tofrFire[$showPin|chest|tofrLong|tofrMid]`
+  beside `tofrChaos[...|tofrShort]`, and the derived one carries only the
+  second. Two ToFR chests also come out pinned onto `cardia` and `sky5F`.
+  `test_maps.lua` check 6 catches all of it.
+
+  **Probed 2026-09-10 with a Long cartridge, and the two halves of that come
+  apart.** `novlong` is `nov` with `ToFRMode` alone changed, same seed. Its
+  derived tree is the mirror image on the mode: every ToFR chest carries
+  `tofrLong|tofrMid` and drops `tofrShort`, so the union problem is real and is
+  not about Short — any one cartridge gives one mode's pins. The `cardia` and
+  `sky5F` pins are still there on Long, on *different* chests: Short hung them
+  on Lute Plate Room 2 and Kary Floor 1, Long on Kary Floor 1 and Kary Floor 3.
+  That is because they were never Short's chest-id reuse. They are
+  No-Overworld's two bonus chests, `Cardia (44,8)` and `SkyPalace5F (7,1)` —
+  tiles that exist on no vanilla or standard cartridge — and which ToFR index
+  each borrows is rolled per seed, which `docs/NOVERWORLD.md` already lists as
+  the mode's third rolled detail. Three No-Overworld cartridges, three
+  different pairs of indices. The committed tree carries no pin for either.
+  So they are the tree's trap letters: the one thing in it that is about the
+  cartridge rather than the mode, and a derived tree must drop them rather than
+  attach them to whichever ToFR location the roll happened to alias.
 
   So what this wants is a tree at the rendered art's coordinates carrying every
   mode's pins — the union the committed tree already has, re-measured against
-  the new crops — rather than one cartridge's derivation. That is a design job,
-  not a copy, and it is the whole of what is left. The smaller thing beside it:
+  the new crops — with the two bonus-chest aliases left out. That is a design
+  job, not a copy, and it is the whole of what is left. The smaller thing beside it:
   `build_noverworld_maps_json` puts the hand art back whenever no No-Overworld
   set has been rendered into the override, which is right today and would
   clobber a shipped set on any std-only regen.

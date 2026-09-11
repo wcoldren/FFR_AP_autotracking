@@ -6,11 +6,11 @@ rules FFR hands Archipelago — and `tools/check_logic.py` compares that with th
 pack's rules as truth tables. This file says which cartridge answers which
 question, and how to rebuild any of them from nothing.
 
-Eight cartridges, all 4.9.2, all generated locally with `Spoilers` and
+Nine cartridges, all 4.9.2, all generated locally with `Spoilers` and
 `Archipelago` on so the export is attached.
 
-Seven of them answer a question about the pack's *rules*, through
-`tools/check_logic.py`. The eighth, `entrances`, answers a different one and is
+Eight of them answer a question about the pack's *rules*, through
+`tools/check_logic.py`. The ninth, `entrances`, answers a different one and is
 listed here because it is a corpus cartridge in every other respect: it is the
 only one whose doors have been shuffled, and it is what the bridge's edge log
 and `entrance_graph --grade` are exercised against.
@@ -35,6 +35,7 @@ the export drops ToFR.
 | `novnolefein` | `oracle_novnolefein` | `F2585541` | the same as `nov`, minus `LefeinSuperStore` | what `LefeinSuperStore` does to a No-Overworld seed, which is nothing a router sees |
 | `novhoard` | `oracle_novhoard` | `F2585541` | the same as `nov`, plus `MapDragonsHoard`, with `IncentivizeCardia` still off | the No-Overworld half of the cardia split, which the six standard hoard cartridges could not answer for |
 | `entrances` | `oracle_entrances` | `E17A11CE` | GameMode 0, ToFRMode 0 (Long), `Entrances` + `Towns` + `Floors` | the only cartridge here whose doors move — what the observation channel is graded on |
+| `novlong` | `oracle_novlong` | `F2585541` | the same as `nov`, with `ToFRMode` 0 (Long) | the only No-Overworld cartridge that is not Short: which of a derived tree's ToFR rows are the mode's and which are the seed's — `docs/ROADMAP.md`, the shipped No-Overworld set |
 
 Modes are quoted as **read back off the cartridge**, never off the filename —
 that trap has bitten more than once.
@@ -45,7 +46,7 @@ seed-driven.
 
 **`nov` and `novnolefein` are the other kind of pair**, and share the *seed*
 rather than the flags -- the tighter control, and the one the 4.9.7 corpus uses
-throughout. Three cartridges here now carry seed `F2585541`, so name the slug in
+throughout. Four cartridges here now carry seed `F2585541`, so name the slug in
 prose for these as well; the paragraph below about `F258553F` says why.
 
     std          omlInPoZ8aeRURUYlp1dof0D5xNDnrlGj9iV9YttYmO7Dv1Rmi6B0yqiIVR2PBvLS3STrugBTQeMv5wm1NR0AXzFFQUFmIyOlaB-i7D9BSRt.Lt4Snttst0yPEgyPIqf9Clw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
@@ -56,9 +57,10 @@ prose for these as well; the paragraph below about `F258553F` says why.
     novnolefein  omlY4TDJ0WBi73FLBF5VGzzAxztAsvA1h7hrrqcjdsidtXDK56cD4rAwa.3JnP7xA1eccFbQG-e.47l5WKeeBsCx37sjlvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
     entrances    omlHJbMGe6RWURUYlp1dofYCDVQgVyzSpAduB9BO3eDEYtDcZg688txmIj9XUOac5zPR1R1tZNWsKI9Q7dEI2loLexABq2.aMg88qWtukrNi9bw7cmy8BcEvuNmxVgGcJKrw2RV-9AxD-qr33Lqb6rXFmyBvUxrD89pHBz3zAEWHH4FmWj
     novhoard     omlY4TDJ0WBi73FLBFbuh.G9jOSOon1ZIuedRm9rW-heEZ4V2WL9-Hw-Gyqnw1rWU7PuPNdGWIaJq5Lgg3-We-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
+    novlong      omlInP3nOp.KByFLBF5hW902l51xl72yHm32Rio0v38eGNM0fKy0TT8KJ-a0NWDQIIcxpvj7MlpYDG7gMaaVe-B1jhZllvTugQ53VEQHzfb-1wdKQG2Fnc64238l9e0jitE9LlbLND7XKw-ezMQ4exPzIyBvUxrD89pHBz3zAEWHH4FmWj
 
 Each cartridge sits in its own directory with its spoiler `.txt`, its
-Archipelago `.yaml` and, for the four No-Overworld ones, the derived rules
+Archipelago `.yaml` and, for the five No-Overworld ones, the derived rules
 JSON.
 One cartridge per directory on purpose: `check_logic` globs `*.yaml` beside the
 ROM when `--ap-rules` is not given, and two modes' exports in one directory get
@@ -229,6 +231,8 @@ publishes the permutation as `ff1/rolls` and the rules name the source the seed
 actually rolled, so the six agree on all four No-Overworld cartridges: `nov`
 226 of 227, `nov2` 225 of 225, `novnolefein` 222 of 223 and `novhoard` 224 of
 225, the one remaining row on each being the unrelated `Shop Item` one.
+`novlong`, added 2026-09-10, gives `nov`'s figures row for row -- as it should,
+since ToFR is outside the export and `ToFRMode` is the only flag between them.
 `novhoard` took a second alternative to get there: `MapDragonsHoard` copies all
 thirteen Cardia chests into Bahamut's Cave B2 — measured on that cartridge,
 treasure ids 132-144, with Cardia keeping its own — so on a No-Overworld hoard
@@ -354,8 +358,11 @@ changed:
 | 1 Mid | six — 2F and 3F walled off | 2, both on 3F |
 
 Which is the standard-mode column exactly. `regen_maps.py` draws both without
-complaint. They are not corpus members and were not kept; the recipe above
-rebuilds either in about a minute.
+complaint. Neither was kept at the time; the Long one was rolled again on
+2026-09-10 and is now `novlong`, because a question about the location tree
+needed a No-Overworld cartridge that is not Short -- `docs/ROADMAP.md`, the
+shipped No-Overworld set, has what it answered. The Mid one is still a
+minute's rebuild away.
 
 **The derived-rule files in the corpus were regenerated on 2026-08-30**, when
 the SubEngineer and Titan rows widened the sweep to 2^12. They had been behind
@@ -844,7 +851,6 @@ staircase No-Overworld stamps into the town. None of those is in the store's
 region, so `novnolefein`'s tiles there are what standard mode would hold with
 the flag off.
 
-
 ## Rebuilding
 
 The build tree is a git worktree of the FFR clone, pinned in `pins.yaml` as
@@ -886,8 +892,9 @@ which is what makes a difference in what it draws attributable to the shuffle
 rather than to the seed. `oracle_novnolefein` is `oracle_nov.json` with
 `LefeinSuperStore` set `false` and nothing else, and `oracle_novhoard` is the
 same file with `MapDragonsHoard` set `true` -- `IncentivizeCardia` is already
-`false` there, which is the pair that combination was rolled for. Each differs
-from `oracle_nov` on that one line and the `Name`, and on nothing else.
+`false` there, which is the pair that combination was rolled for. `oracle_novlong`
+is the same file with `ToFRMode` set `0`. Each differs from `oracle_nov` on that
+one line and the `Name`, and on nothing else.
 
 **The rebuild is bit-reproducible.** Regenerating `std` and `nov` from their
 flags JSON at their recorded seeds produced ROMs, spoilers and exports
@@ -905,6 +912,7 @@ touches a map bank.)
     python3 tools/noverworld_rules.py $O/nov2/oracle_nov2.nes               -o $O/nov2/derived_nov2.json
     python3 tools/noverworld_rules.py $O/novnolefein/novnolefein.nes -o $O/novnolefein/derived_novnolefein.json
     python3 tools/noverworld_rules.py $O/novhoard/novhoard.nes       -o $O/novhoard/derived_novhoard.json
+    python3 tools/noverworld_rules.py $O/novlong/novlong.nes         -o $O/novlong/derived_novlong.json
 
     python3 tools/check_logic.py $O/nov/oracle_nov.nes \
         --derived $O/nov/derived_nov.json --ap-rules $O/nov/oracle_nov.yaml --ff1-world $W
@@ -914,6 +922,9 @@ touches a map bank.)
     python3 tools/check_logic.py $O/novhoard/novhoard.nes \
         --derived $O/novhoard/derived_novhoard.json \
         --ap-rules $O/novhoard/novhoard.yaml --ff1-world $W
+    python3 tools/check_logic.py $O/novlong/novlong.nes \
+        --derived $O/novlong/derived_novlong.json \
+        --ap-rules $O/novlong/novlong.yaml --ff1-world $W
     python3 tools/check_logic.py $O/std/oracle_std.nes \
         --ap-rules $O/std/oracle_std.yaml --ff1-world $W
     python3 tools/check_logic.py $O/shard/oracle_shard.nes \
