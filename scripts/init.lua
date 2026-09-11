@@ -14,9 +14,11 @@ Tracker:AddItems("items/rolls.json")
 
 -- NOverworld needs the 53 dungeon maps too, or its per-chest markers have
 -- nowhere to draw; NOverworldMaps.json is loaded second so its entries win.
--- In the shipped pack that is one row, the overworld art. Once regen_maps.py
--- has drawn a No-Overworld cartridge it is every dungeon map as well, which is
--- what keeps that seed's extra staircases off a standard tracker.
+-- It carries the incentive sheet's art and every dungeon map, pointed at the
+-- No-Overworld set the pack ships under images/maps/nov/ -- rendered from a
+-- No-Overworld cartridge, because that mode seals every town and stamps its
+-- own staircases and the hand-drawn art has none of it. The same rows keep
+-- that art off a standard tracker, whose index never loads this file.
 if Tracker.ActiveVariantUID == "7NOverworld" or Tracker.ActiveVariantUID == "8shardHuntNOverworld" then
   Tracker:AddMaps("maps/maps.json")
   Tracker:AddMaps("maps/NOverworldMaps.json")
@@ -35,9 +37,11 @@ ScriptHost:LoadScript("scripts/logic.lua")
 -- The two trees hold the same locations and differ only in where the dungeon
 -- markers sit. They have to be separate files because the art is: a
 -- No-Overworld cartridge and a standard one disagree about 34 to 39 of the 61
--- maps, so tools/regen_maps.py renders and crops a set for each, and a crop
--- box that differs is a pixel coordinate that differs. Without the split the
+-- maps, so the shipped No-Overworld set is cropped to its own rooms and
+-- tools/regen_maps.py crops a set per mode the same way, and a crop box that
+-- differs is a pixel coordinate that differs. Without the split the
 -- No-Overworld variants would draw standard markers on No-Overworld art.
+-- tests/test_maps.lua check 6 is what holds the two to the same shape.
 if Tracker.ActiveVariantUID == "7NOverworld" or Tracker.ActiveVariantUID == "8shardHuntNOverworld" then
     Tracker:AddLocations("locations/NOverworld/overworld.json")
     Tracker:AddLocations("locations/NOverworld/incentives.json")

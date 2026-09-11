@@ -262,6 +262,7 @@ library — no Pillow, no .NET.
 |---|---|
 | `render_maps.py` | Draws all 61 maps out of a ROM using the game's own tile art |
 | `regen_maps.py` | Renders, places every marker, and installs the result |
+| `ship_nov_maps.py` | Writes the committed No-Overworld set: the art off one cartridge, the tree's pins off three |
 | `entrance_graph.py` | Reads the entrance/floor shuffle; routes; self-checks; `--rolls` reads the two permutations no flag string carries |
 | `noverworld_rules.py` | Derives a No-Overworld seed's access rules from the walk |
 | `doormap.py` | A clickable HTML page of the shuffle |
@@ -282,8 +283,11 @@ it would serve everybody else art that is confidently wrong about rooms they
 will never see. It is not a rule about what a cartridge may yield: single
 sprites pulled by `sprites.py` or `font.py` ship as tracker icons today, and
 **a whole rendered map may ship too where the seed objection does not apply**,
-decided 2026-09-10 -- the README carries the decision and `docs/ROADMAP.md`
-section 4 the one mode it licenses. `--clean` puts the shipped art back.
+decided 2026-09-10 -- the README carries the decision, and the one mode it
+licenses is shipped: `ship_nov_maps.py` writes `images/maps/nov/`, the index
+that selects it and the No-Overworld tree at its crops, and the No-Overworld
+variants load those. `--clean` puts the shipped art back, which for those
+variants is that set and for the standard ones the hand-drawn maps.
 
 **`tools/lanes/*.json` is the stated exception, and it is one because those
 files are an input rather than an output.** Everything else the rule covers is
@@ -478,7 +482,7 @@ calling anything done; what follows is what it runs.
 ```
 tests/run.sh         19 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   40 Python suites for the cartridge-reading tools.
+tools/tests/run.sh   41 Python suites for the cartridge-reading tools.
                      22 of them skip, wholly or in part, unless FF1_ROM
                      points at a cartridge, and three more unless FF1_SEEDS
                      points at the seed tree — so a bare run passes and checks

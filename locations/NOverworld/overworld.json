@@ -89,10 +89,8 @@
                         "map_locations": [
                             {
                                 "map": "con_castle",
-                                "x": 256,
-                                "y": 181,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 232,
+                                "y": 136,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -113,10 +111,8 @@
                         "map_locations": [
                             {
                                 "map": "con_castle",
-                                "x": 272,
-                                "y": 181,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 248,
+                                "y": 136,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -137,10 +133,8 @@
                         "map_locations": [
                             {
                                 "map": "con_castle",
-                                "x": 336,
-                                "y": 181,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 312,
+                                "y": 136,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -161,10 +155,8 @@
                         "map_locations": [
                             {
                                 "map": "con_castle",
-                                "x": 352,
-                                "y": 181,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 328,
+                                "y": 136,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -185,10 +177,8 @@
                         "map_locations": [
                             {
                                 "map": "con_castle",
-                                "x": 368,
-                                "y": 181,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 344,
+                                "y": 136,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -210,10 +200,8 @@
                         "map_locations": [
                             {
                                 "map": "con_castle",
-                                "x": 288,
-                                "y": 181,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 264,
+                                "y": 136,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -275,10 +263,8 @@
                         "map_locations": [
                             {
                                 "map": "tof",
-                                "x": 117,
-                                "y": 57,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 40,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -296,10 +282,8 @@
                         "map_locations": [
                             {
                                 "map": "tof",
-                                "x": 133,
-                                "y": 57,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 56,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -317,10 +301,8 @@
                         "map_locations": [
                             {
                                 "map": "tof",
-                                "x": 117,
-                                "y": 521,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 40,
+                                "y": 520,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -341,10 +323,8 @@
                         "map_locations": [
                             {
                                 "map": "tof",
-                                "x": 709,
-                                "y": 521,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 632,
+                                "y": 520,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -365,10 +345,8 @@
                         "map_locations": [
                             {
                                 "map": "tof",
-                                "x": 693,
-                                "y": 57,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 616,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -389,10 +367,8 @@
                         "map_locations": [
                             {
                                 "map": "tof",
-                                "x": 709,
-                                "y": 57,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 632,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -467,30 +443,24 @@
                                 "map_locations": [
                                     {
                                         "map": "tofr3F",
-                                        "x": 312,
-                                        "y": 270,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 280,
+                                        "y": 248,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrLong"
                                         ]
                                     },
                                     {
                                         "map": "tofr1F",
-                                        "x": 291,
-                                        "y": 284,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 264,
+                                        "y": 264,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrMid"
                                         ]
                                     },
                                     {
                                         "map": "tofrChaos",
-                                        "x": 213,
-                                        "y": 53,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 200,
+                                        "y": 40,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrShort"
                                         ]
@@ -508,30 +478,24 @@
                                 "map_locations": [
                                     {
                                         "map": "tofr3F",
-                                        "x": 408,
-                                        "y": 270,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 376,
+                                        "y": 248,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrLong"
                                         ]
                                     },
                                     {
                                         "map": "tofr1F",
-                                        "x": 419,
-                                        "y": 284,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 392,
+                                        "y": 264,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrMid"
                                         ]
                                     },
                                     {
                                         "map": "tofrChaos",
-                                        "x": 309,
-                                        "y": 53,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 296,
+                                        "y": 40,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrShort"
                                         ]
@@ -554,30 +518,24 @@
                                 "map_locations": [
                                     {
                                         "map": "tofrAir",
-                                        "x": 836,
-                                        "y": 532,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 824,
+                                        "y": 520,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrLong|tofrMid"
                                         ]
                                     },
                                     {
                                         "map": "tofrWater",
-                                        "x": 270,
-                                        "y": 270,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 248,
+                                        "y": 248,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrMid"
                                         ]
                                     },
                                     {
                                         "map": "tofrChaos",
-                                        "x": 229,
-                                        "y": 37,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 216,
+                                        "y": 24,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrShort"
                                         ]
@@ -600,20 +558,16 @@
                                 "map_locations": [
                                     {
                                         "map": "tofrFire",
-                                        "x": 130,
-                                        "y": 497,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 120,
+                                        "y": 488,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrLong|tofrMid"
                                         ]
                                     },
                                     {
                                         "map": "tofrChaos",
-                                        "x": 277,
-                                        "y": 37,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 264,
+                                        "y": 24,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrShort"
                                         ]
@@ -636,20 +590,16 @@
                                 "map_locations": [
                                     {
                                         "map": "tofrFire",
-                                        "x": 370,
-                                        "y": 497,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 360,
+                                        "y": 488,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrLong|tofrMid"
                                         ]
                                     },
                                     {
                                         "map": "tofrChaos",
-                                        "x": 293,
-                                        "y": 37,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 280,
+                                        "y": 24,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrShort"
                                         ]
@@ -672,30 +622,24 @@
                                 "map_locations": [
                                     {
                                         "map": "tofrFire",
-                                        "x": 882,
-                                        "y": 561,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 872,
+                                        "y": 552,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrLong|tofrMid"
                                         ]
                                     },
                                     {
                                         "map": "tofrEarth",
-                                        "x": 373,
-                                        "y": 298,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 360,
+                                        "y": 280,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrMid"
                                         ]
                                     },
                                     {
                                         "map": "tofrChaos",
-                                        "x": 245,
-                                        "y": 37,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 232,
+                                        "y": 24,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrShort"
                                         ]
@@ -718,30 +662,24 @@
                                 "map_locations": [
                                     {
                                         "map": "tofrFire",
-                                        "x": 402,
-                                        "y": 849,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 392,
+                                        "y": 840,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrLong|tofrMid"
                                         ]
                                     },
                                     {
                                         "map": "tofrEarth",
-                                        "x": 277,
-                                        "y": 282,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 264,
+                                        "y": 264,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrMid"
                                         ]
                                     },
                                     {
                                         "map": "tofrChaos",
-                                        "x": 261,
-                                        "y": 37,
-                                        "size": 16,
-                                        "border_thickness": 2,
+                                        "x": 248,
+                                        "y": 24,
                                         "restrict_visibility_rules": [
                                             "$showPin|chest|tofrShort"
                                         ]
@@ -835,10 +773,9 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 140,
-                                "y": 70,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 120,
+                                "y": 40,
+                                "shape": "diamond",
                                 "restrict_visibility_rules": [
                                     "$showPin|npc"
                                 ]
@@ -860,10 +797,9 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 284,
-                                "y": 758,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 248,
+                                "y": 760,
+                                "shape": "diamond",
                                 "restrict_visibility_rules": [
                                     "$showPin|npc"
                                 ]
@@ -881,10 +817,8 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 380,
-                                "y": 86,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 360,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -902,10 +836,8 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 380,
-                                "y": 102,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 360,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -926,10 +858,8 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 76,
-                                "y": 646,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 56,
+                                "y": 616,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -950,10 +880,8 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 92,
-                                "y": 646,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 72,
+                                "y": 616,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -974,10 +902,8 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 156,
-                                "y": 694,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 136,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -998,10 +924,8 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 172,
-                                "y": 694,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 152,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1022,10 +946,8 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 188,
-                                "y": 694,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1046,10 +968,8 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 252,
-                                "y": 694,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 232,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1070,10 +990,8 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 268,
-                                "y": 694,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 248,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1094,10 +1012,8 @@
                         "map_locations": [
                             {
                                 "map": "dwarves",
-                                "x": 284,
-                                "y": 694,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 264,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1169,10 +1085,8 @@
                         "map_locations": [
                             {
                                 "map": "nw_castle",
-                                "x": 142,
-                                "y": 255,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 136,
+                                "y": 216,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1193,10 +1107,8 @@
                         "map_locations": [
                             {
                                 "map": "nw_castle",
-                                "x": 206,
-                                "y": 255,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 200,
+                                "y": 216,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1217,10 +1129,8 @@
                         "map_locations": [
                             {
                                 "map": "nw_castle",
-                                "x": 174,
-                                "y": 271,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 232,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1292,9 +1202,7 @@
                             {
                                 "map": "matoya",
                                 "x": 24,
-                                "y": 73,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1313,9 +1221,7 @@
                             {
                                 "map": "matoya",
                                 "x": 24,
-                                "y": 89,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "y": 88,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1334,9 +1240,7 @@
                             {
                                 "map": "matoya",
                                 "x": 24,
-                                "y": 121,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "y": 120,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1424,10 +1328,8 @@
                         "map_locations": [
                             {
                                 "map": "elf_castle",
-                                "x": 395,
-                                "y": 48,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 344,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1448,10 +1350,8 @@
                         "map_locations": [
                             {
                                 "map": "elf_castle",
-                                "x": 411,
-                                "y": 48,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 360,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1472,10 +1372,8 @@
                         "map_locations": [
                             {
                                 "map": "elf_castle",
-                                "x": 427,
-                                "y": 48,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 376,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1496,10 +1394,8 @@
                         "map_locations": [
                             {
                                 "map": "elf_castle",
-                                "x": 443,
-                                "y": 48,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 392,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1619,10 +1515,8 @@
                         "map_locations": [
                             {
                                 "map": "marshB3",
-                                "x": 835,
-                                "y": 114,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 840,
+                                "y": 120,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1640,10 +1534,8 @@
                         "map_locations": [
                             {
                                 "map": "marshB3",
-                                "x": 163,
-                                "y": 386,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 392,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1661,30 +1553,24 @@
                         "map_locations": [
                             {
                                 "map": "marshB3",
-                                "x": 163,
-                                "y": 114,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 120,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
                             },
                             {
                                 "map": "marshB3",
-                                "x": 403,
-                                "y": 386,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 408,
+                                "y": 392,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
                             },
                             {
                                 "map": "marshB3",
-                                "x": 851,
-                                "y": 594,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 856,
+                                "y": 600,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1702,10 +1588,8 @@
                         "map_locations": [
                             {
                                 "map": "marshB3",
-                                "x": 371,
-                                "y": 354,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 376,
+                                "y": 360,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1723,10 +1607,8 @@
                         "map_locations": [
                             {
                                 "map": "marshB3",
-                                "x": 611,
-                                "y": 626,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 616,
+                                "y": 632,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1744,30 +1626,24 @@
                         "map_locations": [
                             {
                                 "map": "marshB2",
-                                "x": 168,
-                                "y": 356,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 152,
+                                "y": 360,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
                             },
                             {
                                 "map": "marshB2",
-                                "x": 322,
-                                "y": 724,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 424,
+                                "y": 776,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
                             },
                             {
                                 "map": "marshB2",
-                                "x": 498,
-                                "y": 724,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 600,
+                                "y": 776,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1785,10 +1661,8 @@
                         "map_locations": [
                             {
                                 "map": "marshB2",
-                                "x": 200,
-                                "y": 356,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 184,
+                                "y": 360,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1806,20 +1680,16 @@
                         "map_locations": [
                             {
                                 "map": "marshB2",
-                                "x": 216,
-                                "y": 100,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 200,
+                                "y": 104,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
                             },
                             {
                                 "map": "marshB2",
-                                "x": 130,
-                                "y": 740,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 232,
+                                "y": 792,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1837,10 +1707,8 @@
                         "map_locations": [
                             {
                                 "map": "marshB2",
-                                "x": 440,
-                                "y": 100,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 424,
+                                "y": 104,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1859,10 +1727,8 @@
                         "map_locations": [
                             {
                                 "map": "marshB3",
-                                "x": 371,
-                                "y": 610,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 376,
+                                "y": 616,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1883,10 +1749,8 @@
                         "map_locations": [
                             {
                                 "map": "marshB3",
-                                "x": 195,
-                                "y": 850,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 200,
+                                "y": 856,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1907,10 +1771,8 @@
                         "map_locations": [
                             {
                                 "map": "marshB3",
-                                "x": 435,
-                                "y": 834,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 440,
+                                "y": 840,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1932,10 +1794,8 @@
                         "map_locations": [
                             {
                                 "map": "marshB3",
-                                "x": 835,
-                                "y": 834,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 840,
+                                "y": 840,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -1984,10 +1844,9 @@
                     },
                     {
                         "map": "sarda",
-                        "x": 58,
-                        "y": 56,
-                        "size": 16,
-                        "border_thickness": 2,
+                        "x": 40,
+                        "y": 40,
+                        "shape": "diamond",
                         "restrict_visibility_rules": [
                             "$showPin|npc"
                         ]
@@ -2062,10 +1921,8 @@
                         "map_locations": [
                             {
                                 "map": "titans",
-                                "x": 101,
-                                "y": 324,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 88,
+                                "y": 312,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2083,10 +1940,8 @@
                         "map_locations": [
                             {
                                 "map": "titans",
-                                "x": 117,
-                                "y": 324,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 104,
+                                "y": 312,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2104,10 +1959,8 @@
                         "map_locations": [
                             {
                                 "map": "titans",
-                                "x": 133,
-                                "y": 324,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 120,
+                                "y": 312,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2125,10 +1978,8 @@
                         "map_locations": [
                             {
                                 "map": "titans",
-                                "x": 149,
-                                "y": 324,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 136,
+                                "y": 312,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2273,10 +2124,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB1",
-                                "x": 405,
-                                "y": 732,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 408,
+                                "y": 712,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2294,10 +2143,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB1",
-                                "x": 421,
-                                "y": 732,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 424,
+                                "y": 712,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2315,10 +2162,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB1",
-                                "x": 485,
-                                "y": 140,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 488,
+                                "y": 120,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2336,10 +2181,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB2",
-                                "x": 511,
-                                "y": 115,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 520,
+                                "y": 120,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2357,10 +2200,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB2",
-                                "x": 527,
-                                "y": 115,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 536,
+                                "y": 120,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2378,10 +2219,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB2",
-                                "x": 559,
-                                "y": 147,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 568,
+                                "y": 152,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2399,10 +2238,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB1",
-                                "x": 581,
-                                "y": 620,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 584,
+                                "y": 600,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2420,10 +2257,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB1",
-                                "x": 597,
-                                "y": 636,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 600,
+                                "y": 616,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2441,10 +2276,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB2",
-                                "x": 223,
-                                "y": 547,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 232,
+                                "y": 552,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2462,10 +2295,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB2",
-                                "x": 239,
-                                "y": 579,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 248,
+                                "y": 584,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2483,10 +2314,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB2",
-                                "x": 271,
-                                "y": 579,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 280,
+                                "y": 584,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2504,10 +2333,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB3",
-                                "x": 367,
-                                "y": 135,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 376,
+                                "y": 104,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2525,10 +2352,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB3",
-                                "x": 143,
-                                "y": 327,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 152,
+                                "y": 296,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2546,10 +2371,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB3",
-                                "x": 671,
-                                "y": 519,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 680,
+                                "y": 488,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2567,10 +2390,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB3",
-                                "x": 671,
-                                "y": 311,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 680,
+                                "y": 280,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2591,10 +2412,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB4",
-                                "x": 159,
-                                "y": 483,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 488,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2615,10 +2434,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB4",
-                                "x": 191,
-                                "y": 499,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 200,
+                                "y": 504,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2639,10 +2456,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB4",
-                                "x": 143,
-                                "y": 531,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 152,
+                                "y": 536,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2663,10 +2478,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB4",
-                                "x": 479,
-                                "y": 83,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 488,
+                                "y": 88,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2687,10 +2500,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB4",
-                                "x": 495,
-                                "y": 83,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 504,
+                                "y": 88,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2711,10 +2522,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB4",
-                                "x": 559,
-                                "y": 83,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 568,
+                                "y": 88,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2735,10 +2544,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB4",
-                                "x": 591,
-                                "y": 83,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 600,
+                                "y": 88,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2759,10 +2566,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB4",
-                                "x": 479,
-                                "y": 115,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 488,
+                                "y": 120,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2781,10 +2586,8 @@
                         "map_locations": [
                             {
                                 "map": "earthB3",
-                                "x": 255,
-                                "y": 519,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 264,
+                                "y": 488,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2968,10 +2771,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB1",
-                                "x": 111,
-                                "y": 409,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 104,
+                                "y": 360,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -2989,10 +2790,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB1",
-                                "x": 159,
-                                "y": 489,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 152,
+                                "y": 440,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3010,10 +2809,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB1",
-                                "x": 319,
-                                "y": 377,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 312,
+                                "y": 328,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3031,10 +2828,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB1",
-                                "x": 335,
-                                "y": 377,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 328,
+                                "y": 328,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3052,10 +2847,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB1",
-                                "x": 351,
-                                "y": 377,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 344,
+                                "y": 328,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3073,10 +2866,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB2",
-                                "x": 689,
-                                "y": 289,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 792,
+                                "y": 136,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3094,10 +2885,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB2",
-                                "x": 721,
-                                "y": 289,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 824,
+                                "y": 136,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3116,10 +2905,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB2",
-                                "x": 705,
-                                "y": 305,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 808,
+                                "y": 152,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3137,10 +2924,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB3",
-                                "x": 305,
-                                "y": 627,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 632,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3158,10 +2943,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB3",
-                                "x": 321,
-                                "y": 627,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 648,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3179,10 +2962,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB3",
-                                "x": 337,
-                                "y": 627,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 664,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3200,10 +2981,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB3",
-                                "x": 305,
-                                "y": 659,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 632,
+                                "y": 696,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3221,10 +3000,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB3",
-                                "x": 321,
-                                "y": 659,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 648,
+                                "y": 696,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3242,10 +3019,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB3",
-                                "x": 337,
-                                "y": 659,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 664,
+                                "y": 696,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3263,10 +3038,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB3",
-                                "x": 145,
-                                "y": 131,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 472,
+                                "y": 168,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3284,10 +3057,8 @@
                         "map_locations": [
                             {
                                 "map": "iceB3",
-                                "x": 161,
-                                "y": 131,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 488,
+                                "y": 168,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3466,10 +3237,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 127,
-                                "y": 547,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 120,
+                                "y": 424,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3487,10 +3256,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 175,
-                                "y": 547,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 424,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3508,10 +3275,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 111,
-                                "y": 563,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 104,
+                                "y": 440,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3529,10 +3294,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 159,
-                                "y": 563,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 152,
+                                "y": 440,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3550,10 +3313,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 175,
-                                "y": 563,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 440,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3571,10 +3332,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 175,
-                                "y": 579,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 456,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3592,10 +3351,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 191,
-                                "y": 579,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 184,
+                                "y": 456,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3613,10 +3370,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 95,
-                                "y": 595,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 88,
+                                "y": 472,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3634,10 +3389,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 111,
-                                "y": 595,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 104,
+                                "y": 472,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3655,10 +3408,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 143,
-                                "y": 595,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 136,
+                                "y": 472,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3676,10 +3427,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 159,
-                                "y": 595,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 152,
+                                "y": 472,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3697,10 +3446,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 175,
-                                "y": 595,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 472,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3718,10 +3465,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 175,
-                                "y": 195,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3739,10 +3484,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 191,
-                                "y": 195,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 184,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3760,10 +3503,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 303,
-                                "y": 339,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 296,
+                                "y": 216,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3781,10 +3522,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 495,
-                                "y": 339,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 488,
+                                "y": 216,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3802,10 +3541,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 415,
-                                "y": 435,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 408,
+                                "y": 312,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3823,10 +3560,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB2",
-                                "x": 431,
-                                "y": 595,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 424,
+                                "y": 472,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3845,10 +3580,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB5",
-                                "x": 102,
+                                "x": 104,
                                 "y": 536,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3866,10 +3599,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 512,
-                                "y": 83,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 504,
+                                "y": 24,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3887,40 +3618,32 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 560,
-                                "y": 115,
-                                "size": 16,
-                                "border_thickness": 2,
-                                "restrict_visibility_rules": [
-                                    "$showPin|chest"
-                                ]
-                            },
-                            {
-                                "map": "volcB5",
-                                "x": 870,
+                                "x": 552,
                                 "y": 56,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
                             },
                             {
                                 "map": "volcB5",
-                                "x": 822,
+                                "x": 824,
                                 "y": 536,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
                             },
                             {
                                 "map": "volcB5",
-                                "x": 886,
+                                "x": 872,
+                                "y": 56,
+                                "restrict_visibility_rules": [
+                                    "$showPin|chest"
+                                ]
+                            },
+                            {
+                                "map": "volcB5",
+                                "x": 888,
                                 "y": 824,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3938,10 +3661,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 288,
-                                "y": 211,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 280,
+                                "y": 152,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3959,10 +3680,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 784,
-                                "y": 563,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 776,
+                                "y": 504,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -3980,10 +3699,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 784,
-                                "y": 579,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 776,
+                                "y": 520,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4001,10 +3718,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 528,
-                                "y": 371,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 520,
+                                "y": 312,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4022,10 +3737,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 560,
-                                "y": 403,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 552,
+                                "y": 344,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4043,10 +3756,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 736,
-                                "y": 243,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 728,
+                                "y": 184,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4064,10 +3775,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 752,
-                                "y": 243,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 744,
+                                "y": 184,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4085,10 +3794,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 48,
-                                "y": 83,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 40,
+                                "y": 24,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4106,10 +3813,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 80,
-                                "y": 83,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 72,
+                                "y": 24,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4127,20 +3832,16 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 80,
-                                "y": 99,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 72,
+                                "y": 40,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
                             },
                             {
                                 "map": "volcB4",
-                                "x": 784,
-                                "y": 259,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 776,
+                                "y": 200,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4158,10 +3859,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 32,
-                                "y": 115,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 24,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4179,10 +3878,8 @@
                         "map_locations": [
                             {
                                 "map": "volcB4",
-                                "x": 80,
-                                "y": 115,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 72,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4325,10 +4022,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 102,
-                                "y": 375,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 104,
+                                "y": 88,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4346,10 +4041,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 134,
-                                "y": 567,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 136,
+                                "y": 280,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4367,10 +4060,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 182,
-                                "y": 567,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 184,
+                                "y": 280,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4431,10 +4122,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 190,
-                                "y": 91,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 280,
+                                "y": 488,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4452,10 +4141,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 206,
-                                "y": 91,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 296,
+                                "y": 488,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4473,10 +4160,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 110,
-                                "y": 123,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 200,
+                                "y": 520,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4556,10 +4241,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 684,
-                                "y": 411,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 824,
+                                "y": 616,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4577,10 +4260,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 684,
-                                "y": 459,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 824,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4598,10 +4279,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 636,
-                                "y": 491,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 776,
+                                "y": 696,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4619,10 +4298,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 348,
-                                "y": 555,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 488,
+                                "y": 760,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4640,10 +4317,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 412,
-                                "y": 555,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 552,
+                                "y": 760,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4662,10 +4337,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 444,
-                                "y": 555,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 584,
+                                "y": 760,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4683,10 +4356,8 @@
                         "map_locations": [
                             {
                                 "map": "cardia",
-                                "x": 444,
-                                "y": 571,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 584,
+                                "y": 776,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4772,10 +4443,8 @@
                         "map_locations": [
                             {
                                 "map": "ordeals3F",
-                                "x": 279,
-                                "y": 344,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 248,
+                                "y": 296,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4793,10 +4462,8 @@
                         "map_locations": [
                             {
                                 "map": "ordeals3F",
-                                "x": 55,
-                                "y": 72,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 24,
+                                "y": 24,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4814,20 +4481,16 @@
                         "map_locations": [
                             {
                                 "map": "ordeals2F",
-                                "x": 366,
-                                "y": 66,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 360,
+                                "y": 24,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
                             },
                             {
                                 "map": "ordeals3F",
-                                "x": 55,
-                                "y": 408,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 24,
+                                "y": 360,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4845,10 +4508,8 @@
                         "map_locations": [
                             {
                                 "map": "ordeals3F",
-                                "x": 391,
-                                "y": 72,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 360,
+                                "y": 24,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4866,10 +4527,8 @@
                         "map_locations": [
                             {
                                 "map": "ordeals3F",
-                                "x": 55,
-                                "y": 88,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 24,
+                                "y": 40,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4887,10 +4546,8 @@
                         "map_locations": [
                             {
                                 "map": "ordeals3F",
-                                "x": 55,
-                                "y": 104,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 24,
+                                "y": 56,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4908,10 +4565,8 @@
                         "map_locations": [
                             {
                                 "map": "ordeals3F",
-                                "x": 71,
-                                "y": 408,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 40,
+                                "y": 360,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4929,10 +4584,8 @@
                         "map_locations": [
                             {
                                 "map": "ordeals3F",
-                                "x": 87,
-                                "y": 408,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 56,
+                                "y": 360,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -4950,10 +4603,8 @@
                         "map_locations": [
                             {
                                 "map": "ordeals3F",
-                                "x": 103,
-                                "y": 408,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 72,
+                                "y": 360,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5135,10 +4786,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage1F",
-                                "x": 345,
-                                "y": 227,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 328,
+                                "y": 184,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5156,10 +4805,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage1F",
-                                "x": 185,
-                                "y": 291,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 168,
+                                "y": 248,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5177,10 +4824,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage1F",
-                                "x": 265,
-                                "y": 291,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 248,
+                                "y": 248,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5198,10 +4843,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage1F",
-                                "x": 281,
-                                "y": 291,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 264,
+                                "y": 248,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5219,10 +4862,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage1F",
-                                "x": 313,
-                                "y": 291,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 296,
+                                "y": 248,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5240,10 +4881,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage1F",
-                                "x": 361,
-                                "y": 291,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 344,
+                                "y": 248,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5261,10 +4900,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage1F",
-                                "x": 297,
-                                "y": 307,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 280,
+                                "y": 264,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5282,10 +4919,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage1F",
-                                "x": 313,
-                                "y": 323,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 296,
+                                "y": 280,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5303,10 +4938,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage2F",
-                                "x": 243,
-                                "y": 244,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 232,
+                                "y": 216,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5324,10 +4957,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage2F",
-                                "x": 291,
-                                "y": 244,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 280,
+                                "y": 216,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5345,10 +4976,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage2F",
-                                "x": 227,
-                                "y": 260,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 216,
+                                "y": 232,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5366,10 +4995,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage2F",
-                                "x": 307,
-                                "y": 260,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 296,
+                                "y": 232,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5387,10 +5014,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage2F",
-                                "x": 211,
-                                "y": 276,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 200,
+                                "y": 248,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5408,10 +5033,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage2F",
-                                "x": 323,
-                                "y": 276,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 312,
+                                "y": 248,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5429,10 +5052,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage2F",
-                                "x": 227,
-                                "y": 292,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 216,
+                                "y": 264,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5450,10 +5071,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage2F",
-                                "x": 307,
-                                "y": 292,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 296,
+                                "y": 264,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5471,10 +5090,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage2F",
-                                "x": 243,
-                                "y": 308,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 232,
+                                "y": 280,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5492,10 +5109,8 @@
                         "map_locations": [
                             {
                                 "map": "mirage2F",
-                                "x": 291,
-                                "y": 308,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 280,
+                                "y": 280,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5680,8 +5295,6 @@
                                 "map": "sky1F",
                                 "x": 56,
                                 "y": 296,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5701,8 +5314,6 @@
                                 "map": "sky1F",
                                 "x": 40,
                                 "y": 312,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5722,8 +5333,6 @@
                                 "map": "sky1F",
                                 "x": 72,
                                 "y": 312,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5743,8 +5352,6 @@
                                 "map": "sky1F",
                                 "x": 88,
                                 "y": 344,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5764,8 +5371,6 @@
                                 "map": "sky1F",
                                 "x": 568,
                                 "y": 312,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5785,8 +5390,6 @@
                                 "map": "sky1F",
                                 "x": 584,
                                 "y": 312,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5806,8 +5409,6 @@
                                 "map": "sky1F",
                                 "x": 552,
                                 "y": 328,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5827,8 +5428,6 @@
                                 "map": "sky1F",
                                 "x": 536,
                                 "y": 344,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5848,8 +5447,6 @@
                                 "map": "sky1F",
                                 "x": 600,
                                 "y": 360,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5869,8 +5466,6 @@
                                 "map": "sky1F",
                                 "x": 312,
                                 "y": 616,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5890,8 +5485,6 @@
                                 "map": "sky2F",
                                 "x": 440,
                                 "y": 152,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5911,8 +5504,6 @@
                                 "map": "sky2F",
                                 "x": 568,
                                 "y": 296,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5932,8 +5523,6 @@
                                 "map": "sky2F",
                                 "x": 584,
                                 "y": 328,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5953,8 +5542,6 @@
                                 "map": "sky2F",
                                 "x": 440,
                                 "y": 536,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5974,8 +5561,6 @@
                                 "map": "sky2F",
                                 "x": 456,
                                 "y": 536,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -5995,8 +5580,6 @@
                                 "map": "sky2F",
                                 "x": 136,
                                 "y": 152,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6016,8 +5599,6 @@
                                 "map": "sky2F",
                                 "x": 184,
                                 "y": 152,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6037,8 +5618,6 @@
                                 "map": "sky2F",
                                 "x": 72,
                                 "y": 312,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6058,8 +5637,6 @@
                                 "map": "sky2F",
                                 "x": 24,
                                 "y": 344,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6080,8 +5657,6 @@
                                 "map": "sky2F",
                                 "x": 168,
                                 "y": 536,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6101,8 +5676,6 @@
                                 "map": "sky3F",
                                 "x": 72,
                                 "y": 328,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6122,8 +5695,6 @@
                                 "map": "sky3F",
                                 "x": 88,
                                 "y": 328,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6143,8 +5714,6 @@
                                 "map": "sky3F",
                                 "x": 104,
                                 "y": 328,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6164,8 +5733,6 @@
                                 "map": "sky3F",
                                 "x": 120,
                                 "y": 328,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6185,8 +5752,6 @@
                                 "map": "sky3F",
                                 "x": 632,
                                 "y": 280,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6206,8 +5771,6 @@
                                 "map": "sky3F",
                                 "x": 664,
                                 "y": 280,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6227,8 +5790,6 @@
                                 "map": "sky3F",
                                 "x": 632,
                                 "y": 296,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6248,8 +5809,6 @@
                                 "map": "sky3F",
                                 "x": 664,
                                 "y": 296,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6269,8 +5828,6 @@
                                 "map": "sky3F",
                                 "x": 632,
                                 "y": 312,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6290,8 +5847,6 @@
                                 "map": "sky3F",
                                 "x": 664,
                                 "y": 312,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6311,8 +5866,6 @@
                                 "map": "sky3F",
                                 "x": 280,
                                 "y": 88,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6332,8 +5885,6 @@
                                 "map": "sky3F",
                                 "x": 312,
                                 "y": 88,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6353,8 +5904,6 @@
                                 "map": "sky3F",
                                 "x": 280,
                                 "y": 104,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6374,8 +5923,6 @@
                                 "map": "sky3F",
                                 "x": 312,
                                 "y": 104,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6461,8 +6008,6 @@
                                 "map": "waterfall",
                                 "x": 248,
                                 "y": 840,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6482,8 +6027,6 @@
                                 "map": "waterfall",
                                 "x": 264,
                                 "y": 840,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6503,8 +6046,6 @@
                                 "map": "waterfall",
                                 "x": 280,
                                 "y": 840,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6524,8 +6065,6 @@
                                 "map": "waterfall",
                                 "x": 296,
                                 "y": 840,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6545,8 +6084,6 @@
                                 "map": "waterfall",
                                 "x": 312,
                                 "y": 840,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6566,8 +6103,6 @@
                                 "map": "waterfall",
                                 "x": 328,
                                 "y": 840,
-                                "size": 16,
-                                "border_thickness": 2,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6741,10 +6276,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB2",
-                                "x": 328,
-                                "y": 48,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 312,
+                                "y": 24,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6762,10 +6295,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB2",
-                                "x": 424,
-                                "y": 624,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 408,
+                                "y": 600,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6783,10 +6314,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB2",
-                                "x": 88,
-                                "y": 688,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 72,
+                                "y": 664,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6804,10 +6333,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB2",
-                                "x": 584,
-                                "y": 736,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 568,
+                                "y": 712,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6828,10 +6355,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB2",
-                                "x": 424,
-                                "y": 400,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 408,
+                                "y": 376,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6849,10 +6374,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 214,
-                                "y": 87,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 200,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6870,10 +6393,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 310,
-                                "y": 87,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 296,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6891,10 +6412,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 342,
-                                "y": 87,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 328,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6912,10 +6431,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 422,
-                                "y": 87,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 408,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6933,10 +6450,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 438,
-                                "y": 87,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 424,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6954,10 +6469,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 326,
-                                "y": 199,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 312,
+                                "y": 184,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6975,10 +6488,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 438,
-                                "y": 199,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 424,
+                                "y": 184,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -6996,10 +6507,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 198,
-                                "y": 311,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 184,
+                                "y": 296,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7017,10 +6526,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 214,
-                                "y": 311,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 200,
+                                "y": 296,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7038,10 +6545,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 230,
-                                "y": 311,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 216,
+                                "y": 296,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7059,10 +6564,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 326,
-                                "y": 423,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 312,
+                                "y": 408,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7080,10 +6583,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 438,
-                                "y": 423,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 424,
+                                "y": 408,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7102,10 +6603,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB1",
-                                "x": 454,
-                                "y": 87,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 440,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7123,10 +6622,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB4",
-                                "x": 505,
-                                "y": 196,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 488,
+                                "y": 104,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7144,10 +6641,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB4",
-                                "x": 521,
-                                "y": 196,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 504,
+                                "y": 104,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7165,10 +6660,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB4",
-                                "x": 553,
-                                "y": 196,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 536,
+                                "y": 104,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7186,10 +6679,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB4",
-                                "x": 553,
-                                "y": 228,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 536,
+                                "y": 136,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7207,10 +6698,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB4",
-                                "x": 233,
-                                "y": 244,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 216,
+                                "y": 152,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7228,10 +6717,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB4",
-                                "x": 73,
-                                "y": 468,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 56,
+                                "y": 376,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7249,10 +6736,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB4",
-                                "x": 137,
-                                "y": 468,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 120,
+                                "y": 376,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7270,10 +6755,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB4",
-                                "x": 121,
-                                "y": 484,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 104,
+                                "y": 392,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7291,10 +6774,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB4",
-                                "x": 633,
-                                "y": 484,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 616,
+                                "y": 392,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7312,10 +6793,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB4",
-                                "x": 681,
-                                "y": 484,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 664,
+                                "y": 392,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7333,10 +6812,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB3",
-                                "x": 98,
-                                "y": 212,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 104,
+                                "y": 216,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7354,10 +6831,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB3",
-                                "x": 562,
-                                "y": 388,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 568,
+                                "y": 392,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7375,10 +6850,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB3",
-                                "x": 718,
-                                "y": 82,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 808,
+                                "y": 72,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]
@@ -7396,10 +6869,8 @@
                         "map_locations": [
                             {
                                 "map": "seaB3",
-                                "x": 670,
-                                "y": 210,
-                                "size": 16,
-                                "border_thickness": 2,
+                                "x": 760,
+                                "y": 200,
                                 "restrict_visibility_rules": [
                                     "$showPin|chest"
                                 ]

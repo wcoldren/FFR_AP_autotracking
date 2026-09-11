@@ -4,5 +4,371 @@
         "location_size": 80,
         "location_border_thickness": 10,
         "img": "images/maps/nooverworldmap.jpg"
+    },
+    {
+        "name": "coneria_town",
+        "img": "images/maps/nov/coneria_town.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "pravoka",
+        "img": "images/maps/nov/pravoka.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "elfland",
+        "img": "images/maps/nov/elfland.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "melmond",
+        "img": "images/maps/nov/melmond.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "crescent_lake",
+        "img": "images/maps/nov/crescent_lake.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "gaia",
+        "img": "images/maps/nov/gaia.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "onrac",
+        "img": "images/maps/nov/onrac.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "lefein",
+        "img": "images/maps/nov/lefein.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "con_castle",
+        "img": "images/maps/nov/con_castle.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "elf_castle",
+        "img": "images/maps/nov/elf_castle.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "nw_castle",
+        "img": "images/maps/nov/nw_castle.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "ordeals1F",
+        "img": "images/maps/nov/ordeals1F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "tof",
+        "img": "images/maps/nov/tof.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "earthB1",
+        "img": "images/maps/nov/earthB1.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "volcB1",
+        "img": "images/maps/nov/volcB1.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "iceB1",
+        "img": "images/maps/nov/iceB1.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "cardia",
+        "img": "images/maps/nov/cardia.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "bahamut",
+        "img": "images/maps/nov/bahamut.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "waterfall",
+        "img": "images/maps/nov/waterfall.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "dwarves",
+        "img": "images/maps/nov/dwarves.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "matoya",
+        "img": "images/maps/nov/matoya.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "sarda",
+        "img": "images/maps/nov/sarda.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "marshB1",
+        "img": "images/maps/nov/marshB1.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "mirage1F",
+        "img": "images/maps/nov/mirage1F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "con_castle2F",
+        "img": "images/maps/nov/con_castle2F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "ordeals2F",
+        "img": "images/maps/nov/ordeals2F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "ordeals3F",
+        "img": "images/maps/nov/ordeals3F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "marshB2",
+        "img": "images/maps/nov/marshB2.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "marshB3",
+        "img": "images/maps/nov/marshB3.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "earthB2",
+        "img": "images/maps/nov/earthB2.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "earthB3",
+        "img": "images/maps/nov/earthB3.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "earthB4",
+        "img": "images/maps/nov/earthB4.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "earthB5",
+        "img": "images/maps/nov/earthB5.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "volcB2",
+        "img": "images/maps/nov/volcB2.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "volcB3",
+        "img": "images/maps/nov/volcB3.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "volcB4",
+        "img": "images/maps/nov/volcB4.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "volcB5",
+        "img": "images/maps/nov/volcB5.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "iceB2",
+        "img": "images/maps/nov/iceB2.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "iceB3",
+        "img": "images/maps/nov/iceB3.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "bahamutB2",
+        "img": "images/maps/nov/bahamutB2.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "mirage2F",
+        "img": "images/maps/nov/mirage2F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "mirage3F",
+        "img": "images/maps/nov/mirage3F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "seaB5",
+        "img": "images/maps/nov/seaB5.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "seaB4",
+        "img": "images/maps/nov/seaB4.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "seaB3",
+        "img": "images/maps/nov/seaB3.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "seaB2",
+        "img": "images/maps/nov/seaB2.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "seaB1",
+        "img": "images/maps/nov/seaB1.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "sky1F",
+        "img": "images/maps/nov/sky1F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "sky2F",
+        "img": "images/maps/nov/sky2F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "sky3F",
+        "img": "images/maps/nov/sky3F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "sky4F",
+        "img": "images/maps/nov/sky4F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "sky5F",
+        "img": "images/maps/nov/sky5F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "tofr1F",
+        "img": "images/maps/nov/tofr1F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "tofr2F",
+        "img": "images/maps/nov/tofr2F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "tofr3F",
+        "img": "images/maps/nov/tofr3F.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "tofrEarth",
+        "img": "images/maps/nov/tofrEarth.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "tofrFire",
+        "img": "images/maps/nov/tofrFire.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "tofrWater",
+        "img": "images/maps/nov/tofrWater.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "tofrAir",
+        "img": "images/maps/nov/tofrAir.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "tofrChaos",
+        "img": "images/maps/nov/tofrChaos.png",
+        "location_size": 14,
+        "location_border_thickness": 2
+    },
+    {
+        "name": "titans",
+        "img": "images/maps/nov/titans.png",
+        "location_size": 14,
+        "location_border_thickness": 2
     }
 ]
