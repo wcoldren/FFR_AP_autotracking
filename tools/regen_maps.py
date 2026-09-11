@@ -37,7 +37,8 @@ The cartridge's own GameMode decides which set its art joins -- images/maps/std
 or images/maps/nov -- and the two live side by side, each with its own
 maps.json index and its own copy of the dungeon location tree. Render one of
 each and a standard tracker and a No-Overworld one each show their own maps.
-Render neither and the pack's hand-drawn art is still there.
+Render neither and the pack's own art is still there: hand-drawn for standard,
+the committed No-Overworld set for that mode.
 
 Markers are built forward, from the cartridge's own chest and NPC tiles, rather
 than moved from where the hand-drawn art put them. That is what lets a map with
@@ -852,28 +853,31 @@ def build_noverworld_maps_json(have, size=MARKER_SIZE, border=MARKER_BORDER):
     them their own 61 dungeon maps, so a No-Overworld seed's extra staircases
     stop appearing on a standard tracker and the reverse.
 
-    When no No-Overworld set has been rendered, this puts back the pack's own
-    hand-drawn art for every map that has some, rather than leaving those
-    variants looking at the standard cartridge's art. The nine maps the pack
-    has no art for -- the towns, Coneria Castle 2F, Bahamut's Lair B2 -- have
-    nothing to put back, so they keep whatever maps.json gave them.
+    When no No-Overworld set has been rendered here, the pack's own index is
+    written as it is. That index already points every map at the committed
+    No-Overworld set under images/maps/nov/ -- tools/ship_nov_maps.py writes
+    both -- so there is nothing to put back and nothing to fall back to. This
+    used to substitute the hand-drawn art for every map that had some, from
+    the days when the pack shipped none of this mode's art; kept as written it
+    would have swapped the committed set out for the vanilla drawings on any
+    standard-only regen, which is most of them.
+
+    The override's copy of the index and the pack's are then byte-identical,
+    and the pack's is the one PopTracker would serve anyway; it is written so
+    a `--verify` has one list of outputs to check rather than one per case.
     """
     entries = lenient(os.path.join(PACK, "maps", "NOverworldMaps.json"))
+    if "nov" not in have:
+        return entries
     by_name = {e["name"]: e for e in entries}
     order = [e["name"] for e in entries]
-    shipped = {e["name"]: e for e in lenient(os.path.join(PACK, "maps", "maps.json"))}
     for name in render_maps.MAP_FILES.values():
-        if "nov" not in have and name not in shipped:
-            continue
         e = by_name.setdefault(name, {"name": name})
         if name not in order:
             order.append(name)
-        e["img"] = (f"images/maps/nov/{name}.png" if "nov" in have
-                    else shipped[name]["img"])
-        # Hand-drawn art keeps the size it was drawn for; only rendered art is
-        # scaled up by the crop.
-        e["location_size"] = size if "nov" in have else 24
-        e["location_border_thickness"] = border if "nov" in have else 3
+        e["img"] = f"images/maps/nov/{name}.png"
+        e["location_size"] = size
+        e["location_border_thickness"] = border
     # No overworld row. These variants point `incentives` at nooverworldmap.jpg
     # and have no Overworld tab at all, and both of those stay until there is
     # an amalgamated map worth putting in one -- see docs/IDEAS.md.
@@ -2846,16 +2850,19 @@ def main():
           "Map Key band")
     # Say what each tracker variant will actually open, because "which art am I
     # looking at" is otherwise a question you can only answer by recognising a
-    # staircase. A mode with no set here falls back to the pack's hand-drawn
-    # art, which is easy to mistake for the tool having done nothing.
+    # staircase. A mode with no set here falls back to what the pack ships --
+    # the hand-drawn art for standard, the committed render for No-Overworld
+    # -- which is easy to mistake for the tool having done nothing.
     print("  what each variant will show:")
+    shipped_art = {"std": "the pack's hand-drawn art",
+                   "nov": "the pack's committed No-Overworld set"}
     for m, variants in (("std", "Standard / Shard Hunt Map Tracker"),
                         ("nov", "NOverworld / NOverworld Shard Hunt Map Tracker")):
         if m in have:
             print(f"    {variants}: images/maps/{m}/, drawn from a "
                   f"{MODE_DIRS[m]} cartridge")
         else:
-            print(f"    {variants}: the pack's hand-drawn art -- no "
+            print(f"    {variants}: {shipped_art[m]} -- no "
                   f"{MODE_DIRS[m]} cartridge has been rendered here. Run this "
                   f"on one to fill it in.")
     if changed and len(changed) < len(files):
