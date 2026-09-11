@@ -570,16 +570,23 @@ closed 2026-09-06.
 
   **Probed 2026-09-10 with a Long cartridge, and the two halves of that come
   apart.** `novlong` is `nov` with `ToFRMode` alone changed, same seed. Its
-  derived tree is the mirror image on the mode: every ToFR chest carries
-  `tofrLong|tofrMid` and drops `tofrShort`, so the union problem is real and is
-  not about Short — any one cartridge gives one mode's pins. The `cardia` and
+  derived tree is the mirror image on the mode: every ToFR chest drops
+  `tofrShort`, five of the seven carry `tofrLong|tofrMid`, and the two Lute
+  Plate rooms carry `tofrLong` alone -- the `tofr3F` pin -- while the five
+  Mid-only pins (`tofrEarth`, `tofr1F`, `tofrWater`) are absent. So the union
+  problem is real and is not about Short: any one cartridge gives one mode's
+  pins, and a Long cartridge does not cover Mid. The `cardia` and
   `sky5F` pins are still there on Long, on *different* chests: Short hung them
   on Lute Plate Room 2 and Kary Floor 1, Long on Kary Floor 1 and Kary Floor 3.
   That is because they were never Short's chest-id reuse. They are
   No-Overworld's two bonus chests, `Cardia (44,8)` and `SkyPalace5F (7,1)` —
   tiles that exist on no vanilla or standard cartridge — and which ToFR index
-  each borrows is rolled per seed, which `docs/NOVERWORLD.md` already lists as
-  the mode's third rolled detail. Three No-Overworld cartridges, three
+  each borrows is rolled per cartridge, which `docs/NOVERWORLD.md` already
+  lists as the mode's third rolled detail. Per cartridge, not per seed: `nov`
+  and `novnolefein` share seed `F2585541` and the same `ToFRMode` and borrow
+  (254, 251) and (254, 253), while `nov2` and `novnolefein`, at different
+  seeds, both borrow (254, 253) -- it is the RNG position that decides, so a
+  same-seed reroll is not safe either. Five No-Overworld cartridges, four
   different pairs of indices. The committed tree carries no pin for either.
   So they are the tree's trap letters: the one thing in it that is about the
   cartridge rather than the mode, and a derived tree must drop them rather than

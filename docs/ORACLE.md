@@ -147,6 +147,7 @@ against regenerated derivations.
 | `nov` vs `nov2`, ToFR shuffle | **0 differences** |
 | `notail`, pack rules vs FFR | **226 checked, 226 agree, 0 divergences** |
 | `novnolefein`, derived rules vs FFR | **222 compared, 221 agree, 1 divergent** (Lefein, the same strict row `nov` has) — **5 granted an off-vocabulary item**; 256 derived, 0 unreachable |
+| `novlong`, derived rules vs FFR | **226 compared, 225 agree, 1 divergent** (Lefein, the same strict row) — **5 granted an off-vocabulary item**; 256 derived, 0 unreachable. `nov`'s figures row for row, as they should be: ToFR is outside the export and `ToFRMode` is the only flag between them |
 | `novhoard`, derived rules vs FFR | **224 compared, 223 agree, 1 divergent** (Lefein again, the same strict row) — **5 granted an off-vocabulary item**; 256 derived, 0 unreachable. So a No-Overworld seed with the hoard on costs nothing: the `BahamutHoard` alternative being guarded `$standardWorld` is now measured rather than merely untested |
 
 `std`'s 225/225 is the baseline to protect: it validates the harness end to end
@@ -855,8 +856,8 @@ the flag off.
 
 The question that prompted this was "the Ship is in Sarda's Cave — which dock
 does it show up at?", and the answer on every cartridge this pack is played on
-is the same dock regardless: **(152,169), `$98,$A9`, the coast south-east of
-Coneria.** FFR chooses the dock at generation time and writes it as the ship's
+is the same dock regardless: **(152,169), `$98,$A9`, the coast seven rows due
+south of Coneria (152,162).** FFR chooses the dock at generation time and writes it as the ship's
 starting position -- the vehicle block at `$B000` in bank 0, the page copied
 into unsram on New Game (`bank_0F.asm`, `lut_InitUnsramFirstPage`). Receiving
 the item only flips `ship_vis`; the game never picks a dock itself.
@@ -887,8 +888,10 @@ Coneria:
 | Matoya's Cave | (158,142) `$9E,$8E` | Matoya's Cave; rewritten to Coneria when `MapBridgeLefein` removes that dock |
 | Gaia drydock | (211,31) `$D3,$1F` | every entry, when `ShipDrydock` is on -- `UpdateDocks` overwrites the whole table |
 
-The other vehicles do not move on the standard map, and vanilla and all
-twenty-one standard cartridges agree byte for byte: airship (221,237) `$DD,$ED`
+The other vehicles do not move on the standard map, and vanilla and every
+cartridge on hand that keeps it agree on the coordinates (the bridge-visible
+byte is the one difference: `0` on vanilla, `1` on every FFR cartridge):
+airship (221,237) `$DD,$ED`
 in the Ryukahn desert (`IsAirshipFree` puts it at the party's start instead;
 `MapAirshipDock` is a map edit, not a spawn), bridge (152,152) (`MapBridgeLefein`
 moves it to (230,123)), canal (102,164). No-Overworld carries a one-entry table
