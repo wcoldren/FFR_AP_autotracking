@@ -15,8 +15,8 @@ file copy:
     are cropped to what each map uses, so none of the shipped coordinates
     survive the swap;
   * ten of the 61 maps -- the eight towns, Coneria Castle 2F and Bahamut's Lair
-    B2 -- have no image in the pack at all, so they have no maps.json entry and
-    no tab;
+    B2 -- have no hand-drawn image, so on the standard side they have no
+    maps.json entry, and on either side no tab, the layouts being shared;
   * and the art is a property of one cartridge. A No-Overworld seed and a
     standard one disagree about 34 to 39 of the 61 maps, so a single set of
     images cannot serve both variants.
@@ -24,9 +24,11 @@ file copy:
 This does all of it as one piece, and writes none of it into the repo. Output
 goes to PopTracker's user-override tree, which Pack::ReadFile consults ahead of
 the pack for every file it loads, images included (pack.cpp:226-243, and
-getImage at :445 goes through the same call). So the checkout keeps shipping the
-hand-drawn maps, ROM-derived art never lands in git, and removing the override
-directory puts everything back.
+getImage at :445 goes through the same call). So the checkout keeps shipping
+what it ships, a run here never lands in git, and removing the override
+directory puts everything back. The one ROM-derived set that is committed --
+images/maps/nov, all 61 maps -- got there through tools/ship_nov_maps.py and
+not through this, and this never writes over it.
 
     tools/regen_maps.py FFR_seed.nes
     tools/regen_maps.py --verify        # is the installed override current?
