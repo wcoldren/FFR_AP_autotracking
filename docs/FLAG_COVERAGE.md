@@ -141,7 +141,7 @@ branch of `applyFFRFlags()`, not by the `GameMode` lines above it.
 | `MapSardasForest` | `sardasForest` | code |
 | `MapAirshipHike` | `airshipHike` | code — 4.9.7+ only. `OverworldMap.cs:62` adds the `AirshipHike` map edit; every rule it rewrites gains a `(Floater AND Ship)` alternative, which is the Floater standing in for having raised the airship where it stands. 124 of the 208 rules `std497` and `airship497` share move (`docs/ORACLE.md`) |
 | `MapCardiaLandBridge` | `cardiaLandBridge` | code — 4.9.7+ only. `OverworldMap.cs:64` adds the land bridge and `:392` moves the Cardia **and Bahamut** overworld teleport coordinates with it, so Bahamut's Cave gains the alternative too; the rewritten rules gain `(Canoe AND Canal AND Ship)`. 42 of 206 shared rules move. `:55` suppresses `BahamutCardiaDock` — but `:67` lays `CardiaLandBridgeBahamutDock` in its place, so the dock alternative stays live and must **not** be guarded against this flag: see "The land bridge does not cancel the dock" below. Also the one of the two read outside `OverworldMap.cs`, at `EntrancesFloorsShuffle.cs:71` |
-| `ShipDrydock` | `shipDrydock`, through `$noShipDrydock` | code — 4.9.7+ only. Every alternative naming `ship` carries the guard, because a drydocked Ship opens nothing (`docs/ORACLE.md`) |
+| `ShipDrydock` | `shipDrydock`, through `$noShipDrydock` | code — 4.9.7+ only. Every alternative naming `ship` carries the guard, because a drydocked Ship opens nothing (`docs/ORACLE.md`; the dock it starts at, and where the ship starts otherwise, is "Where the ship appears" on the same page) |
 | `DisableOWMapModifications` | — | n/a (meta: disables all of the above) |
 
 The last three arrive after 4.9.2 — `git grep` finds no mention of any of them

@@ -851,6 +851,54 @@ staircase No-Overworld stamps into the town. None of those is in the store's
 region, so `novnolefein`'s tiles there are what standard mode would hold with
 the flag off.
 
+## Where the ship appears, which is not where you found it
+
+The question that prompted this was "the Ship is in Sarda's Cave — which dock
+does it show up at?", and the answer on every cartridge this pack is played on
+is the same dock regardless: **(152,169), `$98,$A9`, the coast south-east of
+Coneria.** FFR chooses the dock at generation time and writes it as the ship's
+starting position -- the vehicle block at `$B000` in bank 0, the page copied
+into unsram on New Game (`bank_0F.asm`, `lut_InitUnsramFirstPage`). Receiving
+the item only flips `ship_vis`; the game never picks a dock itself.
+
+Two rules decide the coordinates, either of which alone puts Sarda's ship at
+Coneria:
+
+- **Under `Archipelago` the table is bypassed.** `Randomize.cs:416`:
+  `if (IsShipFree || flags.Archipelago) SetShipLocation(255)`. FFR only knows
+  which dungeon holds the Ship when it placed it; on a multiworld seed the
+  placement is Archipelago's, so FFR writes the fallback entry unconditionally.
+  Read off the cartridges: vanilla starts the ship at Pravoka, (210,153); `std`
+  and all twenty 4.9.7 cartridges start it at (152,169), except the two
+  `ShipDrydock` ones, which start it at (211,31).
+- **On an ordinary FFR seed the dock follows the dungeon the Ship was placed
+  in**, through `ShipLocations` in FFR's `FF1Lib/maps/default.json`, keyed by
+  overworld teleporter (`MapExchange/ShipLocations.cs`; `Dock` in
+  `Items.cs:639`). The
+  table has five docks and twelve entries, and anything not in it falls to
+  entry 255 -- Sarda's Cave, teleporter 22, is not in it.
+
+| Dock | Coords | Ship found through these entrances |
+|---|---|---|
+| Coneria, entry 255 | (152,169) `$98,$A9` | everything not listed below -- Coneria and its castle, ToF, Melmond, Earth Cave, Titan's, Sarda's, Gaia, Onrac, Lefein, Mirage, Ordeals, Cardia, Bahamut, Waterfall -- and every Archipelago seed |
+| Elfland | (141,211) `$8D,$D3` | Elfland, Elfland Castle, Marsh Cave, Northwest Castle, Crescent Lake, Gurgu Volcano |
+| Pravoka | (210,153) `$D2,$99` | Pravoka, Ice Cave |
+| Dwarf Cave | (121,139) `$79,$8B` | Dwarf Cave |
+| Matoya's Cave | (158,142) `$9E,$8E` | Matoya's Cave; rewritten to Coneria when `MapBridgeLefein` removes that dock |
+| Gaia drydock | (211,31) `$D3,$1F` | every entry, when `ShipDrydock` is on -- `UpdateDocks` overwrites the whole table |
+
+The other vehicles do not move on the standard map, and vanilla and all
+twenty-one standard cartridges agree byte for byte: airship (221,237) `$DD,$ED`
+in the Ryukahn desert (`IsAirshipFree` puts it at the party's start instead;
+`MapAirshipDock` is a map edit, not a spawn), bridge (152,152) (`MapBridgeLefein`
+moves it to (230,123)), canal (102,164). No-Overworld carries a one-entry table
+in FFR's `FF1Lib/maps/nooverworld.json`: ship (106,164), airship (113,164), start (104,160).
+Procedural overworlds carry their own table per map file, and none of the
+above applies to them.
+
+The tracker reads none of these bytes today. This is here because the question
+came up at the table and the answer is a cartridge fact rather than a rule.
+
 ## Rebuilding
 
 The build tree is a git worktree of the FFR clone, pinned in `pins.yaml` as
