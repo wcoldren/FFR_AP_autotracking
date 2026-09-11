@@ -182,13 +182,24 @@ def union(*tile_sets):
     return out
 
 
-def remeasure(doc, tiles_by_name, cal, sprite_cells):
+def remeasure(doc, tiles_by_name, cal, sprite_cells, crops_):
     """Re-place every pin on a redrawn map from its tile, in the committed shape.
 
     -> (placed, left_out, failed): counts and reports. `left_out` is every
     tile the committed shape has no marker for, as (name, map name, col, row);
     `failed` is every committed marker this could not re-measure, as
-    (name, map name, why).
+    (name, map name, why) -- and every tile that lies outside the box its map
+    is drawn to, since a pixel off the image is not a placement.
+
+    `crops_` is {map name: render_maps.Crop}, the same boxes the art was cut
+    to. The calibration alone cannot say a tile is off the crop: every region
+    `rendered_calibration` emits spans the whole 64-tile axis, so
+    `marker_pixel` answers for any tile on the grid and the pixel it gives
+    for one outside the box is simply negative or past the edge. The regen
+    catches that on its own tree by checking the pixel against the image
+    (`stray`, on the cartridge it drew from); here the Long and Mid ToFR tiles
+    are measured against the Short cartridge's crop and that check never ran
+    on them, so it is made here, on the tile, before the pixel is kept.
     """
     by_rom = regen_maps.maps_by_rom_id(cal)
     placed = 0
@@ -203,16 +214,23 @@ def remeasure(doc, tiles_by_name, cal, sprite_cells):
             name = n.get("name")
             marks = n.get("map_locations") or []
             # Every tile this node resolves to, as the pixel it would get,
-            # grouped by the map that pixel is on. A tile no drawn map holds
-            # is a tile off the crop, which the regen's own guard would have
-            # stopped on; here it is a failure like any other.
+            # grouped by the map that pixel is on. A tile outside the box its
+            # map is drawn to would get a pixel off the image, and is a
+            # failure like any other rather than a marker quietly off the
+            # edge -- see the docstring for why the calibration cannot say so.
             fresh = {}
             for cell in tiles_by_name.get(name, ()):
+                map_id, col, row = cell
                 ml = regen_maps.marker_pixel(by_rom, *cell, sprite_cells)
                 if ml is None:
-                    failed.append((name, f"rom map {cell[0]}",
-                                   f"tile ({cell[1]},{cell[2]}) is on no "
+                    failed.append((name, f"rom map {map_id}",
+                                   f"tile ({col},{row}) is on no "
                                    "rendered map"))
+                    continue
+                if not crops_[ml["map"]].holds(col, row):
+                    failed.append((name, ml["map"],
+                                   f"tile ({col},{row}) is outside the box "
+                                   "the map is drawn to"))
                     continue
                 fresh.setdefault(ml["map"], []).append((cell, ml))
             out = []
@@ -287,7 +305,8 @@ def main():
                     for map_id in render_maps.MAP_FILES}
 
     doc = regen_maps.lenient(os.path.join(PACK, TREE))
-    placed, left_out, failed = remeasure(doc, tiles_by_name, cal, sprite_cells)
+    placed, left_out, failed = remeasure(doc, tiles_by_name, cal, sprite_cells,
+                                         crops_)
     print(f"{placed} pins re-measured onto the rendered art")
     if left_out:
         print(f"{len(left_out)} placements the committed tree has no marker "

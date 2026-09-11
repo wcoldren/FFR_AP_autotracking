@@ -12,7 +12,10 @@ synthetic tree, without a cartridge:
   * a tile the shape has no marker for is reported, not placed;
   * a marker the tiles cannot re-measure is a failure, not a silent keep;
   * two markers on one map take that map's tiles in tile order;
-  * a marker on a map the regen does not draw is left exactly as it was.
+  * a marker on a map the regen does not draw is left exactly as it was;
+  * a tile outside the box its map is drawn to is a failure, not a pixel off
+    the image -- the calibration cannot say so on its own, since every region
+    it emits spans the whole axis.
 
 And the other half, on the real index: with no No-Overworld render in an
 override, `build_noverworld_maps_json` writes the pack's index unchanged. It
@@ -51,6 +54,10 @@ CAL = {
                "regions": [{"offset_x": 0, "offset_y": 0}]},
 }
 assert "dwarves" in r.REDRAWN and "cardia" in r.REDRAWN
+# The boxes the art was cut to. Full-grid here, so every tile the cases below
+# use is in frame, except where a case narrows one to show the guard fire.
+CROPS = {"dwarves": r.render_maps.Crop((0, 63, 0, 63)),
+         "cardia": r.render_maps.Crop((0, 63, 0, 63))}
 
 TREE = [
     {"name": "Dwarf Cave",
@@ -68,7 +75,7 @@ TREE = [
 doc = copy.deepcopy(TREE)
 tiles = {"Dwarf Cave Dwarf Armory 5": [(19, 10, 41), (20, 37, 27)],
          "Dwarf Cave Chests": [(19, 3, 4), (19, 1, 2)]}
-placed, left_out, failed = ship.remeasure(doc, tiles, CAL, {})
+placed, left_out, failed = ship.remeasure(doc, tiles, CAL, {}, CROPS)
 ok(failed == [], "nothing failed on a tree every marker can be re-measured", failed)
 ok(placed == 3, "three pins re-measured", placed)
 ok(left_out == [("Dwarf Cave Dwarf Armory 5", "cardia", 37, 27)],
@@ -92,7 +99,7 @@ ok(doc[0]["map_locations"] == [{"map": "overworld", "x": 1, "y": 2}],
 #    draw something
 doc = copy.deepcopy(TREE)
 tiles = {"Dwarf Cave Chests": [(19, 3, 4), (19, 1, 2)]}
-placed, left_out, failed = ship.remeasure(doc, tiles, CAL, {})
+placed, left_out, failed = ship.remeasure(doc, tiles, CAL, {}, CROPS)
 ok(failed == [("Dwarf Cave Dwarf Armory 5", "dwarves", "no tile resolves here")],
    "a marker no tile re-measures is reported as a failure", failed)
 ok(doc[0]["children"][0]["map_locations"] == [{"map": "dwarves", "x": 9, "y": 9}],
@@ -102,7 +109,7 @@ ok(doc[0]["children"][0]["map_locations"] == [{"map": "dwarves", "x": 9, "y": 9}
 doc = copy.deepcopy(TREE)
 tiles = {"Dwarf Cave Dwarf Armory 5": [(19, 10, 41)],
          "Dwarf Cave Chests": [(19, 3, 4)]}
-placed, left_out, failed = ship.remeasure(doc, tiles, CAL, {})
+placed, left_out, failed = ship.remeasure(doc, tiles, CAL, {}, CROPS)
 ok(failed == [("Dwarf Cave Chests", "dwarves", "no tile resolves here")],
    "a map with fewer tiles than markers fails the marker left over", failed)
 ok(placed == 2, "and places the ones it could", placed)
@@ -111,11 +118,30 @@ ok(placed == 2, "and places the ones it could", placed)
 doc = copy.deepcopy(TREE)
 tiles = {"Dwarf Cave Dwarf Armory 5": [(19, 10, 41)],
          "Dwarf Cave Chests": [(19, 3, 4), (19, 1, 2)]}
-ship.remeasure(doc, tiles, CAL, {19: {(10, 41)}})
+ship.remeasure(doc, tiles, CAL, {19: {(10, 41)}}, CROPS)
 ok(doc[0]["children"][0]["map_locations"][0].get("shape") == "diamond",
    "a pin on a drawn sprite is a diamond")
 
-# 7. with no No-Overworld render, the regen writes the pack's index unchanged
+# 7. a tile outside the box its map is drawn to fails, and says which box.
+#    The calibration alone would have placed it: tile (10,41) on an 8x8 crop at
+#    the origin gets pixel (168,664) from marker_pixel, off a 128x128 image,
+#    and nothing in CAL knows the image is 128 wide.
+doc = copy.deepcopy(TREE)
+tiles = {"Dwarf Cave Dwarf Armory 5": [(19, 10, 41)],
+         "Dwarf Cave Chests": [(19, 3, 4), (19, 1, 2)]}
+narrow = dict(CROPS, dwarves=r.render_maps.Crop((0, 7, 0, 7)))
+assert r.marker_pixel(r.maps_by_rom_id(CAL), 19, 10, 41) is not None
+placed, left_out, failed = ship.remeasure(doc, tiles, CAL, {}, narrow)
+ok(failed == [("Dwarf Cave Dwarf Armory 5", "dwarves",
+               "tile (10,41) is outside the box the map is drawn to"),
+              ("Dwarf Cave Dwarf Armory 5", "dwarves", "no tile resolves here")],
+   "a tile off the crop is a failure, and so is the marker it leaves bare",
+   failed)
+ok(placed == 2, "and the tiles in the box still place", placed)
+ok(doc[0]["children"][0]["map_locations"] == [{"map": "dwarves", "x": 9, "y": 9}],
+   "the marker off the crop is kept as it was")
+
+# 8. with no No-Overworld render, the regen writes the pack's index unchanged
 shipped = r.lenient(os.path.join(PACK, "maps", "NOverworldMaps.json"))
 ok(r.build_noverworld_maps_json(set()) == shipped,
    "no nov render: the pack's NOverworldMaps.json is written as it is")
