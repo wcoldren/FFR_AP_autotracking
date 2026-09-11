@@ -40,9 +40,11 @@ Working on it rather than using it needs a little more -- Lua, Python and
 optionally a cartridge. See
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#what-you-need-to-work-on-it).
 
-The map tabs work out of the box: the maps that ship with the pack are
-hand-drawn, and need no cartridge and no emulator. Drawing them from your own
-ROM instead is an optional upgrade -- see
+The map tabs work out of the box and need no cartridge and no emulator. The
+standard variants ship hand-drawn maps; the No-Overworld variants ship a set
+rendered from a No-Overworld cartridge, because that mode rebuilds every town
+and stamps its own staircases and the hand art has none of it. Drawing them
+from your own ROM instead is an optional upgrade -- see
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 No ROM is included or downloaded, and none ever will be.
@@ -61,11 +63,12 @@ an icon lifted and recoloured for one, which is ordinary practice in this
 community and which this pack already ships. So a rendered map may ship where
 the seed objection does not apply, and there is one place it does not:
 No-Overworld rebuilds its maps deterministically apart from a handful of details
-(`docs/NOVERWORLD.md` lists them), so one committed set would be right about
-that mode for everyone rather than about one roll. Standard is not a second
-case -- the hand-drawn art already is a vanilla layout, which is what a standard
-seed mostly has. What that licenses is not yet drawn; `docs/ROADMAP.md` section
-4 carries it.
+(`docs/NOVERWORLD.md` lists them), so one committed set is right about that
+mode for everyone rather than about one roll. Standard is not a second case --
+the hand-drawn art already is a vanilla layout, which is what a standard seed
+mostly has. That set is what the No-Overworld variants ship, under
+`images/maps/nov/`, written by `tools/ship_nov_maps.py`; what it is honest
+about and what it is not is in `docs/ROADMAP.md` section 4.
 
 Single sprites are the older exception, and the one this decision generalised
 from. A tracker cell wants an icon,
@@ -343,15 +346,19 @@ rather than as pictures is where most of the map work here came from.
 
 Drawn for a vanilla layout, though. A seed that moves things is showing you the
 right rooms and the wrong exits, and No-Overworld moves a great deal: it seals
-every town's outer wall and stamps 75 new staircases across 34 maps.
+every town's outer wall and stamps 75 new staircases across 34 maps. That is
+why the No-Overworld variants do not use them: they ship a set rendered from a
+No-Overworld cartridge instead, which is right about the mode for everyone
+because the mode lays its floors the same way on every seed but a handful of
+tiles.
 
-So `tools/regen_maps.py` will redraw them from your own cartridge if you want
-that -- your seed's maps, cropped to the part of each floor that is actually map,
-with every chest where the ROM puts it, and rooms drawn open so you can see what
-is in them. It reads the cartridge's game mode and keeps a standard set and a
-No-Overworld set side by side, so each tracker variant shows its own. Nothing is
-written into the pack: it all goes to PopTracker's user-override directory, and
-`--clean` puts DarkmoonEX's art back.
+`tools/regen_maps.py` will redraw either set from your own cartridge if you
+want that -- your seed's maps, cropped to the part of each floor that is
+actually map, with every chest where the ROM puts it, and rooms drawn open so
+you can see what is in them. It reads the cartridge's game mode and keeps a
+standard set and a No-Overworld set side by side, so each tracker variant shows
+its own. Nothing is written into the pack: it all goes to PopTracker's
+user-override directory, and `--clean` puts the shipped art back.
 
     tools/regen_maps.py path/to/FFR_yourseed.nes
 

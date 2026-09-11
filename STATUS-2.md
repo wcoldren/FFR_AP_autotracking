@@ -2311,3 +2311,61 @@ rather than the count being lowered to match, and naming the import as a bare
 substring immediately made the file match itself and report 22 -- the same
 self-counting the `os.environ.get` rule beside it already exists for, hit again
 one layer up, and fixed by reading a whole line.
+
+## The No-Overworld variants ship the right rooms
+
+Landed 2026-09-11. The decision came 2026-09-10 -- a rendered map may ship
+where the seed objection does not apply, and No-Overworld is where it does
+not -- and the art half was measured the same day. What was left was called
+a design job: a tree at the rendered art's coordinates carrying every ToFR
+mode's pins, with the two rolled bonus-chest aliases left out. That is what
+this is, plus the finding that the art half was measured on one ToFR mode.
+
+**The tree is built backwards from a regen's, and that is the design.** A
+regen derives its tree from one cartridge and so encodes that cartridge:
+one ToFR mode's floors, the two bonus chests hung on whichever ToFR index
+the roll aliased, five NPCs gaining a pin the standard tree does not have.
+Starting from the cartridge and subtracting what is seed-specific means
+naming each thing to subtract. Starting from the committed tree's *shape*
+-- the nodes, and the maps each is pinned on, which is exactly what
+`tests/test_maps.lua` check 6 holds the two trees to -- and re-measuring
+every pin from cartridge tiles drops all of it by construction, and the
+run says what it left out rather than the tool promising it.
+`tools/ship_nov_maps.py` is the whole of it: the art by running
+`regen_maps.py --traps none` into a scratch directory with every guard it
+has, the pins from `marker_tiles` on the No-Overworld cartridge, and the
+ToFR pins from the union of that, a Long and a Mid cartridge, since a chest
+is wired only on its own mode's floors and `marker_tiles` already drops the
+copies a cartridge lays and never wires. Fifteen placements were left out:
+the two aliases, the five NPC gains, and one nobody had seen.
+
+**The one nobody had seen is deterministic, and is the next decision.**
+Chest 37, Dwarf Armory 5, resolves to a second tile on Cardia at (37,27) on
+every No-Overworld cartridge here, the same tile on all five. It is the
+Caravan room `MetroidVaniaMap.cs:424-431` builds into Cardia, holding a
+copy of that chest, and opening either copy is the one check. The two
+rolled aliases beside it were the reason to drop foreign pins; this one is
+the mode's and could stand. It does not, because check 6 forbids a nov-only
+pin, and that guard was made to bite on this exact pin before the tree was
+committed -- one Cardia entry on Dwarf Armory 5 fails it by name.
+`docs/ROADMAP.md` section 4 carries the choice.
+
+**ToFRMode moves six maps, and the residual figure had not counted it.**
+"60 of 61 byte-identical" was measured between two Short cartridges, and
+every No-Overworld cartridge on hand was Short until `novlong`. Rendered
+side by side: Long is the base; Mid lays copies and walls on 1F, Earth,
+Fire and Water; Short builds an 85-tile chest room on Chaos and a stair
+each on ToF and 1F. The floors are laid the same for a mode on either
+GameMode -- a Long No-Overworld render and a Long standard one differ on
+`tof` alone, two sealed door tiles -- which is also what licensed reading
+Mid's tiles off a standard cartridge, there being no Mid No-Overworld one.
+The set draws Short: the one community No-Overworld cartridge here is
+Short, the oracle presets are Short, and Long was rolled as a control.
+
+**What it cost.** `build_noverworld_maps_json` had to stop putting the hand
+art back when no No-Overworld set is in the override, which on a pack that
+ships one was a standard-only regen replacing the set with the vanilla
+drawings -- the smaller thing the bullet had already named. And the ten maps
+the pack never had a tab for now have art and still no tab, because the
+layouts are shared with the standard variants; that is filed beside the
+Caravan chest.

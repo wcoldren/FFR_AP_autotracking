@@ -65,10 +65,9 @@ work it is, not how much it matters.
 | §4 | The lanes still to draw: the ported drafts, the by-eye pass, the run-wide order |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
 | §4 | Boss names in the Map Key |
-| §4 | Ship a No-Overworld art set — the decision is taken, the drawing is not |
+| §4 | What the shipped No-Overworld tree leaves out: a Caravan chest, five NPCs, ten tabs |
 | §5 | Three flags filed `unjudged` |
 | §5 | Port from the export — blocked on a provenance decision |
-| §5 | Two location trees, one rule set |
 
 **Defects the register owns.** Open entries in `docs/ISSUES.md` that are work
 someone could pick up, listed so the plan can see them; that page holds the
@@ -516,91 +515,68 @@ closed 2026-09-06.
   two"). Adding it against the existing JPEG is a hand edit plus bumping the nov
   count 20 → 21 in `SHEET_RULED`, `tests/test_pins.lua:160`.
 - **Boss names in the Map Key**, from the formation ids already in hand.
-- **Ship a No-Overworld art set, so somebody who installs this pack sees the
-  right rooms.** Rendering from a cartridge is an optional upgrade and always
-  will be; the shipped hand art is what everyone else gets, and on a
-  No-Overworld seed it is wrong about 34 to 39 of the 61 maps. It draws town
-  walls that mode seals and omits the 75 staircases it stamps. One art set
-  committed for the mode, selected the way the mode is already selected, takes
-  that to about three maps.
+- **What the shipped No-Overworld tree leaves out.** Three things the set
+  could show and does not, each for a reason that is a decision rather than
+  work:
 
-  **The mode is nearly seed-independent, which is what makes this the one
-  variant worth shipping.** `docs/NOVERWORLD.md` states it: deterministic apart
-  from the Cardia/Bahamut gateway permutation, the two Waterfall stair
-  positions, and which ToFR chest ids the bonus chests reuse. Two No-Overworld
-  cartridges bear it out — Waterfall's stairs, Sky Palace 5F's chest layout and
-  Gaia are what move. So the residual is small and every part of it is nameable,
-  which is the difference between art that is honestly approximate and art that
-  is quietly wrong.
-
-  **Standard is not a second case.** The hand art already is a vanilla layout,
-  which is what a standard seed mostly has, so a committed standard render would
-  buy nothing the pack does not ship today. And there is no third case: two
-  cartridges with a byte-identical flag string draw different maps, so nothing
-  here generalises to an art set per flag combination.
-  `docs/IDEAS.md`, "Keep the art you have already drawn" holds that
-  measurement and the per-cartridge store that was measured and put down with it.
-
-  **The decision was taken 2026-09-10, and the answer is yes.** The criterion
-  this bullet stated was whether a full map rendered from a cartridge is
-  shippable here when a single tile lifted from one already is, and it is: a map
-  redrawn for a tracker is the same kind of artefact as an icon lifted and
-  recoloured for one, which is what trackers in this community do. So provenance
-  stops being a reason, `README.md` and `docs/ARCHITECTURE.md` both say so where
-  they used to refuse, and what is left of the old rule is the seed objection
-  alone — which is why this is a No-Overworld set and not a standard one.
-
-  **The art half is measured and ready. The tree half is not, and that is what
-  is left.** Rendering the set is now one command: `--traps none`, landed
-  2026-09-10, drops the trap letters, which are the only thing the renderer
-  draws that FFR rolls per seed. With them off, two No-Overworld cartridges
-  holding flags still render **60 of 61 maps byte-identical** — `waterfall`
-  alone differs, on the stair positions `docs/NOVERWORLD.md` already lists. Add
-  a cartridge whose flags differ and it is 3 maps: `gaia` (20 tiles),
-  `waterfall` (4), `ordeals2F` (13). So the art is honestly about the mode.
-
-  **The location tree cannot be shipped the same way, and copying the regen's
-  would be a regression.** The art is seed-agnostic; the tree is not — it
-  encodes this cartridge's chest ids, its ToFR mode and its NPC placement. A
-  tree derived from a Short cartridge drops the Long/Mid pin from every ToFR
-  chest: the committed tree carries `tofrFire[$showPin|chest|tofrLong|tofrMid]`
-  beside `tofrChaos[...|tofrShort]`, and the derived one carries only the
-  second. Two ToFR chests also come out pinned onto `cardia` and `sky5F`.
-  `test_maps.lua` check 6 catches all of it.
-
-  **Probed 2026-09-10 with a Long cartridge, and the two halves of that come
-  apart.** `novlong` is `nov` with `ToFRMode` alone changed, same seed. Its
-  derived tree is the mirror image on the mode: every ToFR chest drops
-  `tofrShort`, five of the seven carry `tofrLong|tofrMid`, and the two Lute
-  Plate rooms carry `tofrLong` alone -- the `tofr3F` pin -- while the five
-  Mid-only pins (`tofrEarth`, `tofr1F`, `tofrWater`) are absent. So the union
-  problem is real and is not about Short: any one cartridge gives one mode's
-  pins, and a Long cartridge does not cover Mid. The `cardia` and
-  `sky5F` pins are still there on Long, on *different* chests: Short hung them
-  on Lute Plate Room 2 and Kary Floor 1, Long on Kary Floor 1 and Kary Floor 3.
-  That is because they were never Short's chest-id reuse. They are
-  No-Overworld's two bonus chests, `Cardia (44,8)` and `SkyPalace5F (7,1)` —
-  tiles that exist on no vanilla or standard cartridge — and which ToFR index
-  each borrows is rolled per cartridge, which `docs/NOVERWORLD.md` already
-  lists as the mode's third rolled detail. Per cartridge, not per seed: `nov`
-  and `novnolefein` share seed `F2585541` and the same `ToFRMode` and borrow
-  (254, 251) and (254, 253), while `nov2` and `novnolefein`, at different
-  seeds, both borrow (254, 253) -- it is the RNG position that decides, so a
-  same-seed reroll is not safe either. Five No-Overworld cartridges, four
-  different pairs of indices. The committed tree carries no pin for either.
-  So they are the tree's trap letters: the one thing in it that is about the
-  cartridge rather than the mode, and a derived tree must drop them rather than
-  attach them to whichever ToFR location the roll happened to alias.
-
-  So what this wants is a tree at the rendered art's coordinates carrying every
-  mode's pins — the union the committed tree already has, re-measured against
-  the new crops — with the two bonus-chest aliases left out. That is a design
-  job, not a copy, and it is the whole of what is left. The smaller thing beside it:
-  `build_noverworld_maps_json` puts the hand art back whenever no No-Overworld
-  set has been rendered into the override, which is right today and would
-  clobber a shipped set on any std-only regen.
+  * **The Caravan copy of chest 37.** No-Overworld builds a Caravan room into
+    Cardia (`MetroidVaniaMap.cs:424-431`) holding a second copy of the Dwarf
+    Armory 5 chest, at `(37,27)` on every No-Overworld cartridge measured --
+    the same tile on all five, so it is the mode's and not the seed's, unlike
+    the two rolled aliases beside it. Opening either copy is the one check.
+    The shipped tree does not pin it because `tests/test_maps.lua` check 6
+    asks the two trees to agree on which maps a node is drawn on, and the
+    standard tree cannot carry a Cardia pin for a Dwarf Cave chest. Pinning it
+    means teaching check 6 that one nov-only pin is allowed, by name; that is
+    the decision.
+  * **Five NPCs on their own maps.** A regen gives Astos, Matoya, Bikke, the
+    Fairy and Bahamut a pin on the map they stand on; the committed trees pin
+    them on the overworld only. Same guard, same decision -- and it is the
+    standard tree's to take first, since `tools/map_calibration.json` could
+    place them on the hand art today.
+  * **Ten maps with art and no tab.** The set carries the eight towns, Coneria
+    Castle 2F and Bahamut's Lair B2, which `maps/NOverworldMaps.json` now
+    names and no layout shows: `layouts/shared.json` is shared with the
+    standard variants, which have no art for them. A regen adds the tabs to
+    the override's copy; the shipped layouts want the same tabs on the
+    No-Overworld variants only, which is a per-variant layout rather than a
+    shared one.
 
 **Closed.**
+- **Ship a No-Overworld art set. Shipped 2026-09-11.** `images/maps/nov/`,
+  61 maps rendered from `oracle_nov` with `--traps none`, selected by
+  `maps/NOverworldMaps.json` the way the mode was already selected, with
+  `locations/NOverworld/overworld.json` re-measured onto the rendered crops.
+  `tools/ship_nov_maps.py` writes all three and is the record of how; the
+  tree is built the other way round from a regen's -- the committed shape,
+  every pin re-measured from cartridge tiles, ToFR tiles unioned across a
+  Short, a Long and a Mid cartridge -- so it carries every mode's pins under
+  the rules the hand tree already had and drops the two rolled bonus-chest
+  aliases by construction. The run says what it left out, and it was the
+  aliases, five NPC gains and the Caravan chest above, nothing else.
+
+  **What the art is honest about, measured.** Across the five No-Overworld
+  cartridges on hand with the letters off: `waterfall` moves per seed (the
+  two stairs), `gaia` per cartridge (the gateway roll), `lefein` on two
+  tiles between the oracle presets and `duck-104`. And **ToFRMode moves six
+  more, which the bullet had not counted** because every No-Overworld
+  cartridge was Short until `novlong` was rolled: Long is the base; Mid lays
+  copies and walls on 1F, Earth, Fire and Water (21 tiles); Short builds an
+  85-tile chest room on Chaos and one stair each on ToF and 1F. The floors
+  are laid the same for a mode on either GameMode -- a Long No-Overworld
+  render and a Long standard one differ on `tof` alone, on two sealed door
+  tiles -- so the mode is the whole of that residual. The set draws them as
+  Short has them: every No-Overworld cartridge here that a person rolled is
+  Short, the oracle presets are Short, and Long exists only as the control.
+  A Long or Mid player sees Short's Chaos room with no pin on it and Mid's
+  five copies pinned on floors that draw no chest under the pin, which is
+  the residual the hand art already had for every mode.
+
+  **The clobber went with it.** `build_noverworld_maps_json` used to put the
+  hand art back whenever no No-Overworld set was in the override, which on a
+  pack that ships one would have swapped the set out on every standard-only
+  regen; it now writes the pack's index as it is.
+
 
 - **A traversal lane on the maps with no chest. Declined 2026-09-10**, on a
   judgement about the four floors it was actually still asking for. `plan()`
@@ -673,20 +649,19 @@ closed 2026-09-06.
   provenance rather than a technical question, so it gets taken deliberately, in
   its own session, against one stated criterion: is the cartridge sweep alone
   enough cover?** Nothing here gets built before that.
-- **Two location trees, one rule set.** `isNoOverworld()` landed, and **the
-  byte-identical claim is true of the overworld pair only** —
-  `locations/overworld.json` and `locations/NOverworld/overworld.json` share an
-  md5, but the two incentive sheets genuinely differ, by 241 lines, with
-  different region names and a different node structure. So this is one file
-  pair, not two.
-
-  Either collapse that pair or make `test_maps.lua` check 6 able to fail (a
-  deliberately diverged fixture); check 6 compares only the overworld pair, so
-  today it cannot fail for any reason. Decide alongside the section 4 map
-  surface, since a differently-cropped No-Overworld dungeon tree is the one
-  reason to keep two.
-
 **Closed.**
+- **Two location trees, one rule set. Closed 2026-09-11**, by the thing the
+  bullet said would decide it: the No-Overworld dungeon tree is now the
+  differently-cropped one, so the pair stays two files and the collapse is
+  off the table. `locations/overworld.json` and
+  `locations/NOverworld/overworld.json` differ in every dungeon pixel and in
+  nothing else, which is exactly the agreement `tests/test_maps.lua` check 6
+  was written to hold and could not: with the files byte-identical it had
+  nothing to compare. **It can fail now, and was made to** -- one Cardia pin
+  added to the nov tree's Dwarf Armory 5 fails it by name, and is the
+  Caravan chest section 4 leaves out. The incentive sheets were never the
+  pair in question and still differ by design.
+
 
 - **The flag-coverage test. Closed 2026-09-01.**
   `tools/tests/test_flag_coverage.py` fails when FFR grows a flag nothing in
