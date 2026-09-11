@@ -1500,12 +1500,16 @@ def place_locations(cal, tiles_by_name, path, sprite_cells=None):
 
     A location that resolves to a tile and carries *no* dungeon marker gets one
     built. That is not a rebuild but a gain, and it is where the tracked NPCs
-    live: the pack put Astos, Matoya, Bikke, the Fairy and Bahamut on the
-    overworld pin of the town or cave that holds them and never on the tab for
-    the map itself, so five NPCs the cartridge places to the tile had no pin
-    standing on them. Only three did -- Nerrick, the Smith and Sarda -- which
-    is why only three pins ever came out as diamonds. Nothing here decides
-    which nodes those are: a node gains a marker exactly when the cartridge
+    live: the pack put them on the overworld pin of the town or cave that
+    holds them and never on the tab for the map itself, so twelve NPCs the
+    cartridge places to the tile had no pin standing on them -- the King,
+    Sara, Astos, Matoya, the Elf Prince, Titan, the Robot and Bahamut, whose
+    nodes carry no marker at all, and Bikke, the sages, the Fairy and the
+    Lefeinish, whose nodes are the towns and carry the overworld's. Twelve on
+    either cartridge kind, measured 2026-09-11; it had read as five here.
+    Only three did -- Nerrick, the Smith and Sarda -- which is why only three
+    pins ever came out as diamonds. Nothing here decides which nodes those
+    are: a node gains a marker exactly when the cartridge
     resolves it to a tile. The incentive sheet, whose pins live on one
     hand-drawn image rather than on a map, is handed no tiles at all and so
     passes through untouched -- see the call site for why that is done by
@@ -2492,7 +2496,7 @@ def main():
         # would be dropped here otherwise -- and the toggles would go quiet on
         # exactly the seeds an override exists for. Stamping rather than
         # preserving is also what gives the pins this cartridge newly places --
-        # Astos, Matoya, Bikke, the Fairy, Bahamut -- their rule on arrival.
+        # the twelve NPCs place_locations names -- their rule on arrival.
         # Then the overworld half, onto the same document -- on a standard
         # cartridge only, ow_maps being empty otherwise.
         if rel is incentive_locations and mode == "std":

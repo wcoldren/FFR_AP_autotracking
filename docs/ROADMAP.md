@@ -65,7 +65,7 @@ work it is, not how much it matters.
 | §4 | The lanes still to draw: the ported drafts, the by-eye pass, the run-wide order |
 | §4 | The No-Overworld map surface, and the incentive sheet behind it |
 | §4 | Boss names in the Map Key |
-| §4 | What the shipped No-Overworld tree leaves out: a Caravan chest, five NPCs, ten tabs |
+| §4 | What the shipped No-Overworld tree leaves out: a Caravan chest, twelve NPC pins, ten tabs |
 | §5 | Three flags filed `unjudged` |
 | §5 | Port from the export — blocked on a provenance decision |
 
@@ -529,11 +529,16 @@ closed 2026-09-06.
     standard tree cannot carry a Cardia pin for a Dwarf Cave chest. Pinning it
     means teaching check 6 that one nov-only pin is allowed, by name; that is
     the decision.
-  * **Five NPCs on their own maps.** A regen gives Astos, Matoya, Bikke, the
-    Fairy and Bahamut a pin on the map they stand on; the committed trees pin
-    them on the overworld only. Same guard, same decision -- and it is the
-    standard tree's to take first, since `tools/map_calibration.json` could
-    place them on the hand art today.
+  * **Twelve NPCs on their own maps.** A regen gives a pin on the map they
+    stand on to twelve nodes the committed trees give none of their own:
+    eight carry no marker at all and sit under their parent's overworld pin
+    -- the King, Sara, Astos, Matoya, the Elf Prince, Titan, the Robot,
+    Bahamut -- and four are town nodes whose only pin is the overworld's --
+    Pravoka, Crescent Lake, Gaia, Lefein. Counted from the ship tool's own
+    left-out report, which had been read as five (Astos, Matoya, Bikke, the
+    Fairy, Bahamut) until the run was read back. Same guard, same decision --
+    and it is the standard tree's to take first, since
+    `tools/map_calibration.json` could place them on the hand art today.
   * **Ten maps with art and no tab.** The set carries the eight towns, Coneria
     Castle 2F and Bahamut's Lair B2, which `maps/NOverworldMaps.json` now
     names and no layout shows: `layouts/shared.json` is shared with the
@@ -552,8 +557,9 @@ closed 2026-09-06.
   every pin re-measured from cartridge tiles, ToFR tiles unioned across a
   Short, a Long and a Mid cartridge -- so it carries every mode's pins under
   the rules the hand tree already had and drops the two rolled bonus-chest
-  aliases by construction. The run says what it left out, and it was the
-  aliases, five NPC gains and the Caravan chest above, nothing else.
+  aliases by construction. The run says what it left out: fifteen placements,
+  which are the two aliases, the Caravan chest above and the twelve NPC pins
+  above, nothing else.
 
   **What the art is honest about, measured.** Across the five No-Overworld
   cartridges on hand with the letters off: `waterfall` moves per seed (the

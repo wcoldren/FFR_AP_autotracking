@@ -28,9 +28,12 @@ encodes the cartridge and not the mode:
     five cartridges give four pairs. A derived tree hangs a pin on whichever
     ToFR location the roll aliased. The committed tree carries neither, on
     purpose: they are the tree's trap letters.
-  * A cartridge places NPCs the hand tree pins only on the overworld -- Astos,
-    Matoya, Bikke, the Fairy, Bahamut -- and a regen gives each a pin on its
-    own map. `tests/test_maps.lua` check 6 asks the two trees to agree on which
+  * A cartridge places twelve NPCs the hand tree gives no pin of their own
+    map -- eight nodes with no marker at all, under their parent's overworld
+    pin (the King, Sara, Astos, Matoya, the Elf Prince, Titan, the Robot,
+    Bahamut), and four town nodes whose only pin is the overworld's (Pravoka,
+    Crescent Lake, Gaia, Lefein) -- and a regen gives each a pin on its own
+    map. `tests/test_maps.lua` check 6 asks the two trees to agree on which
     maps every node is drawn on, so the shipped tree cannot gain those until
     the standard one does.
 
