@@ -129,10 +129,12 @@ def tofr_mode(raw, path):
 
 
 def want_mode(raw, path, mode, role):
+    """Stop unless the cartridge's ToFRMode is `mode`; `role` names the
+    argument it came in as, the way the usage line spells it."""
     got = tofr_mode(raw, path)
     if got != mode:
         sys.exit(f"{path}: ToFRMode is {tofr_diff.MODE_NAME.get(got, got)}, "
-                 f"and --{role} wants {tofr_diff.MODE_NAME[mode]}")
+                 f"and {role} wants {tofr_diff.MODE_NAME[mode]}")
 
 
 def render(rom_path, out_dir):
@@ -279,11 +281,11 @@ def main():
     raw = read_rom(args.rom)
     if regen_maps.mode_of(raw, args.rom) != "nov":
         sys.exit(f"{args.rom}: not a No-Overworld cartridge")
-    want_mode(raw, args.rom, SHORT, "rom")
+    want_mode(raw, args.rom, SHORT, "the No-Overworld cartridge")
     raw_long = read_rom(args.long)
-    want_mode(raw_long, args.long, LONG, "long")
+    want_mode(raw_long, args.long, LONG, "--long")
     raw_mid = read_rom(args.mid)
-    want_mode(raw_mid, args.mid, MID, "mid")
+    want_mode(raw_mid, args.mid, MID, "--mid")
 
     # The tiles, before the render: a cartridge that cannot place its own
     # tree is not worth fifteen seconds of drawing.
