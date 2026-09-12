@@ -272,6 +272,7 @@ library — no Pillow, no .NET.
 | `overworld_reach.py` | Walks the overworld for reachability |
 | `check_logic.py` | Diffs the pack's access rules against FFR's own spoiler |
 | `ffr_flags/` | The offline flag decoder and schema generator |
+| `blursings.py` | The class info screens: blursings, the rolled party, the class behind each fiend |
 | `extract_chests.py` / `extract_npcs.py` | Chest and NPC tile positions |
 | `pin_visibility.py` | Stamps the pin toggles' rules onto the location trees |
 | `incentive_slots.py` | Writes `scripts/incentive_slots.lua`, the table the rings read |
@@ -482,8 +483,8 @@ calling anything done; what follows is what it runs.
 ```
 tests/run.sh         19 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   41 Python suites for the cartridge-reading tools.
-                     22 of them skip, wholly or in part, unless FF1_ROM
+tools/tests/run.sh   42 Python suites for the cartridge-reading tools.
+                     23 of them skip, wholly or in part, unless FF1_ROM
                      points at a cartridge, and three more unless FF1_SEEDS
                      points at the seed tree — so a bare run passes and checks
                      a good deal less than the count suggests. Two slow
