@@ -59,6 +59,23 @@ def _unfilter(raw, w, h, bpp):
 
 def read_rgb(path):
     """-> (width, height, bytearray of RGB triples). Handles colour types 2,3,6."""
+    w, h, rgba = read_rgba(path)
+    rgb = bytearray(w * h * 3)
+    for i in range(w * h):
+        rgb[i * 3:i * 3 + 3] = rgba[i * 4:i * 4 + 3]
+    return w, h, rgb
+
+
+def read_rgba(path):
+    """-> (width, height, bytearray of RGBA quads), opaque where the file has
+    no alpha. Colour types 2, 3 and 6.
+
+    read_rgb used to be the only reader, and it composites an RGBA file onto
+    black -- fine for comparing a committed icon against a drawn one, wrong
+    for lifting a sprite off one to paste onto something else, which is what
+    make_slot_icons.py does with the creature icons. So the alpha is read here
+    and read_rgb drops it.
+    """
     data = open(path, "rb").read()
     if data[:8] != _SIG:
         raise ValueError("not a PNG")
@@ -80,16 +97,16 @@ def read_rgb(path):
     if bpp is None:
         raise ValueError(f"unsupported colour type {ctype}")
     flat = _unfilter(zlib.decompress(bytes(idat)), w, h, bpp)
-    if ctype == 2:
+    if ctype == 6:
         return w, h, flat
-    rgb = bytearray(w * h * 3)
-    if ctype == 3:
-        for i in range(w * h):
-            rgb[i * 3:i * 3 + 3] = plte[flat[i] * 3:flat[i] * 3 + 3]
-    else:  # 6 = RGBA, composite onto black
-        for i in range(w * h):
-            rgb[i * 3:i * 3 + 3] = flat[i * 4:i * 4 + 3]
-    return w, h, rgb
+    rgba = bytearray(w * h * 4)
+    for i in range(w * h):
+        if ctype == 3:
+            rgba[i * 4:i * 4 + 3] = plte[flat[i] * 3:flat[i] * 3 + 3]
+        else:
+            rgba[i * 4:i * 4 + 3] = flat[i * 3:i * 3 + 3]
+        rgba[i * 4 + 3] = 255
+    return w, h, rgba
 
 
 def write_rgb(path, w, h, rgb):
