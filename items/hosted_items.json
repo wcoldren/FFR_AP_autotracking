@@ -20,7 +20,7 @@
     {
         "name": "Coneria Locked",
         "type": "toggle",
-        "img": "images/locations/coneriaLocked.png",
+        "img": "images/locations/chest_coneriaLocked.png",
         "codes": "coneriaLocked"
     },
     {
@@ -94,37 +94,37 @@
     {
         "name": "Marsh",
         "type": "toggle",
-        "img": "images/locations/marsh.png",
+        "img": "images/locations/chest_marsh.png",
         "codes": "marsh"
     },
     {
         "name": "Marsh Locked",
         "type": "toggle",
-        "img": "images/locations/marshLocked.png",
+        "img": "images/locations/chest_marshLocked.png",
         "codes": "marshLocked"
     },
     {
         "name": "Ice Cave",
         "type": "toggle",
-        "img": "images/locations/iceCave.png",
+        "img": "images/locations/chest_iceCave.png",
         "codes": "iceCave"
     },
     {
         "name": "Ordeals",
         "type": "toggle",
-        "img": "images/locations/ordeals.png",
+        "img": "images/locations/chest_ordeals.png",
         "codes": "ordeals"
     },
     {
         "name": "Titan's Trove",
         "type": "toggle",
-        "img": "images/locations/titan.png",
+        "img": "images/locations/chest_titansTrove.png",
         "codes": "titansTrove"
     },
     {
         "name": "Cardia Isle Incentive",
         "type": "toggle",
-        "img": "images/locations/cardiaIncentive.png",
+        "img": "images/locations/chest_cardiaIncentive.png",
         "codes": "cardiaIncentive"
     },
     {
@@ -136,25 +136,25 @@
     {
         "name": "Earth",
         "type": "toggle",
-        "img": "images/locations/earth.png",
+        "img": "images/locations/chest_earth.png",
         "codes": "earth"
     },
     {
         "name": "Volcano",
         "type": "toggle",
-        "img": "images/locations/redD.png",
+        "img": "images/locations/chest_volcano.png",
         "codes": "volcano"
     },
     {
         "name": "Sky",
         "type": "toggle",
-        "img": "images/locations/skyPalace.png",
+        "img": "images/locations/chest_sky.png",
         "codes": "sky"
     },
     {
         "name": "Sea Shrine",
         "type": "toggle",
-        "img": "images/locations/seaShrine.png",
+        "img": "images/locations/chest_sea.png",
         "codes": "sea"
     },
     {

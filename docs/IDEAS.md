@@ -669,7 +669,14 @@ None of that is knowable without drawing it.
 
 **The icon half is a separate change, to the Locations grid rather than the
 maps, and it is a redraw of cells that already exist rather than a new
-encoding.** The rule: an incentive slot that is a *chest* draws as a chest
+encoding. Built 2026-09-13**, the other way up from the table below: the chest
+is the badge and the creature stays the picture, because a preview of the
+chest-first version showed eleven identical silhouettes the moment the cells
+were greyed, and greyed is a slot's resting state. `tools/make_slot_icons.py`
+writes the eleven and the Titan's own cell; `STATUS-2.md`, "The chest slots
+say they are chests", has the preview that decided it. The table is kept as
+written because it is the inventory the tool draws from, glyph column aside.
+The rule: an incentive slot that is a *chest* draws as a chest
 carrying the area's glyph, and a key as well where the slot is behind a locked
 door. An incentive slot that is a *person* keeps the person. What the icon is
 for is telling the player what they are hunting, and today it does the opposite

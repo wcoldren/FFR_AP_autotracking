@@ -202,67 +202,67 @@
     {
         "name": "Ice Cave is Incentive",
         "type": "toggle",
-        "img": "images/locations/iceCave.png",
+        "img": "images/locations/chest_iceCave.png",
         "codes": "iceCaveIsIncentive"
     },
     {
         "name": "Ordeals is Incentive",
         "type": "toggle",
-        "img": "images/locations/ordeals.png",
+        "img": "images/locations/chest_ordeals.png",
         "codes": "ordealsIsIncentive"
     },
     {
         "name": "Marsh is Incentive",
         "type": "toggle",
-        "img": "images/locations/marsh.png",
+        "img": "images/locations/chest_marsh.png",
         "codes": "marshIsIncentive"
     },
     {
         "name": "Titan's Trove is Incentive",
         "type": "toggle",
-        "img": "images/locations/titan.png",
+        "img": "images/locations/chest_titansTrove.png",
         "codes": "titansTroveIsIncentive"
     },
     {
         "name": "Earth is Incentive",
         "type": "toggle",
-        "img" : "images/locations/earth.png",
+        "img" : "images/locations/chest_earth.png",
         "codes" : "earthIsIncentive"
     },
     {
         "name": "Volcano is Incentive",
         "type": "toggle",
-        "img": "images/locations/redD.png",
+        "img": "images/locations/chest_volcano.png",
         "codes": "volcanoIsIncentive"
     },
     {
         "name": "Sky is Incentive",
         "type": "toggle",
-        "img" : "images/locations/skyPalace.png",
+        "img" : "images/locations/chest_sky.png",
         "codes": "skyIsIncentive"
     },
     {
         "name": "Sea Shrine is Incentive",
         "type": "toggle",
-        "img" : "images/locations/seaShrine.png",
+        "img" : "images/locations/chest_sea.png",
         "codes" : "seaIsIncentive"
     },
     {
         "name": "Coneria Locked is Incentive",
         "type": "toggle",
-        "img": "images/locations/coneriaLocked.png",
+        "img": "images/locations/chest_coneriaLocked.png",
         "codes": "coneriaLockedIsIncentive"
     },
     {
         "name": "Marsh Locked is Incentive",
         "type": "toggle",
-        "img": "images/locations/marshLocked.png",
+        "img": "images/locations/chest_marshLocked.png",
         "codes": "marshLockedIsIncentive"
     },
     {
         "name": "Cardia Island is Incentive",
         "type": "toggle",
-        "img": "images/locations/cardiaIncentive.png",
+        "img": "images/locations/chest_cardiaIncentive.png",
         "codes": "cardiaIsIncentive"
     },
     {

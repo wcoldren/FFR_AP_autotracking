@@ -2369,3 +2369,70 @@ drawings -- the smaller thing the bullet had already named. And the ten maps
 the pack never had a tab for now have art and still no tab, because the
 layouts are shared with the standard variants; that is filed beside the
 Caravan chest.
+
+## The chest slots say they are chests
+
+Written 2026-09-13. Rows 3 and 4 of the Locations grid are the eleven
+incentive slots that are a chest, and nine of them were drawn as the creature
+you meet near it -- the Vampire for the Earth Cave, a mermaid for the Sea
+Shrine, the Eye for the Ice Cave, the Titan himself for his Trove. Rows 1 and
+2 are the slots that are a person, drawn as that person. The grid already made
+the split; the pictures were the one thing out of step with it, and the asks
+that prompted this were the duplicates it produced: `titan.png` on two
+adjacent rows, `earth.png` on the Bosses row and on a chest slot, and a Titan
+that was the one location icon on the board not made of pixels -- 303
+colours, a filtered upscale, beside cells that are all exact 2x doubles of
+4-colour art (measured: zero non-uniform 2x2 blocks across the seven
+creatures, in colour; `earth.png` carries one stray edge pixel in alpha).
+
+`tools/make_slot_icons.py` draws the eleven and the Titan's own cell, in the
+shape the door icons already use: one tile off the cartridge, a `--check`
+mode, and `tools/tests/test_slot_icons.py` holding the committed bytes to what
+the writer draws. The chest is the slot's own floor's `TP_SPEC_TREASURE` tile
+in that floor's inside palette -- every chest tile in a tileset draws the same
+art, so "the first one" is the floor's chest, and outdoors the same tile is
+the roof slab the room hides under on every floor looked at. It came out
+byte-identical off the weekly cartridge and both oracle cartridges, standard
+and No-Overworld, which is the same licence the door has to be committed.
+Cardia's badge comes off Cardia rather than Bahamut's Cave, because that cave
+has a chest only on a seed that rolled `MapDragonsHoard` and the oracle
+cartridges refused it by name -- the first thing the writer's self-check
+caught.
+
+**The design was drawn one way and shipped the other, and a preview is what
+decided it.** `docs/IDEAS.md` asked for a chest carrying the area's mark, and
+that was drawn first: the chest at 2x filling the cell, the creature at 1x in
+its corner. In full colour it read as what it was for -- a row of chests.
+Greyed, it read as eleven identical chests with a half-brightness smudge in
+one corner, and greyed is a hosted toggle's resting state: a slot is dim until
+its check clears, so that is the row a player looks at for most of a run.
+Today's cells survive greying because their *silhouettes* differ, and a
+uniform chest throws that away. The other way up -- the creature at 2x, the
+chest at 1x at its feet -- keeps every silhouette in both states and still
+says "chest", and it is the composition the pack already shipped for Cardia
+(`cardiaIncentive.png`, Bahamut beside two chests), so it is closer to the
+pack's own vocabulary rather than farther from it. The preview sheet was
+twelve columns by four rows: current and drawn, each in full colour and under
+`grayscale, dim`, the filter `settings.json` actually applies.
+
+What moved: eleven `hosted_items.json` rows and their eleven `*IsIncentive`
+flags point at `images/locations/chest_<slot>.png`, so a flag and the slot it
+speaks for still wear one picture; `titan.png` is the lifted sprite at 2x with
+no badge, and the Trove is the same Titan with a chest at his feet; `earth.png`
+is the Vampire on the Bosses row and nowhere else. The three hand-drawn
+composites the cells wore -- `cardiaIncentive`, `coneriaLocked`,
+`marshLocked` -- join the unreferenced list in `docs/ISSUES.md`, which was
+re-counted on the way and had gone stale twice. The six creature icons do not
+join it: they are the writer's inputs now.
+
+Two things the test holds beyond the bytes. Every `img` an item names is a
+file in the pack, because PopTracker draws a missing one as nothing and says
+so nowhere. And no chest cell wears a picture a person cell or a boss cell
+wears -- the defect stated as a rule over `layouts/shared.json` rather than
+as a list of the cells that were wrong, shown to fail by pointing the Earth
+slot back at the Vampire before it was believed.
+
+Left alone on purpose: the flags grid reusing the King, Sarda, the Sage and
+Ordeals for "Early X", since the flag is about that person or place; and Astos
+and Bikke appearing in both the NPC grid and the Bosses row, which is one item
+with one code shown twice, by the Bosses row's design.

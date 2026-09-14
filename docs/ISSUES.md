@@ -200,6 +200,20 @@ Nothing here is urgent unless it says so.
   `volcanoArmory`), `misc/gil_shop_item.png`, `misc/northernDocks-old.png` and
   `misc/unne.png`.
 
+  **Sixteen of 324 on 2026-09-13**, re-counted by full path when the chest
+  slots were redrawn, and the line above had gone stale twice without saying
+  so: the No-Overworld map set took the denominator to 313, and
+  `items/rolls.json` took `misc/unne.png` off the list when the objective-NPC
+  roll got a cell. The redraw adds three: `locations/cardiaIncentive.png`,
+  `coneriaLocked.png` and `marshLocked.png`, the hand-drawn composites the
+  chest cells wore and nothing reads now. The six creature icons those cells
+  also wore -- `iceCave`, `marsh`, `ordeals`, `redD`, `seaShrine`,
+  `skyPalace` -- are *not* on the list though no item names them: they are the
+  inputs `tools/make_slot_icons.py` reads, and the writer names each by path.
+  `redD.png` and `volcano.png` are still the same dragon and the writer reads
+  the one that was referenced. `locations/earth.png` is still the Vampire on
+  the Bosses row.
+
   Recorded rather than deleted, and the distinction is the point. Most are
   inherited from the pack this forked and credited in the README; a few name
   things the pack decided differently about (`items/airorb.png` lost to the

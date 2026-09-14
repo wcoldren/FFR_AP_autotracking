@@ -83,7 +83,16 @@ that has no picture at all, so that cell needs one it cannot see. They are commi
 than left to a regen because `Pack::hasFile` does not consult the user-override,
 so a section image that lives only there falls back to PopTracker's chest. The
 door is vanilla tile art -- byte-identical off all four measured cartridges --
-so it is not rolled per seed the way a standard map is. Everything else in `images/` is
+so it is not rolled per seed the way a standard map is.
+
+The chest slots in the Locations grid are the second set, since 2026-09-13.
+Each is the creature or key that cell already showed with a chest at its
+feet, so a slot that is a chest reads as one rather than as the monster you
+meet near it; the chest is the slot's own floor's chest tile, lifted the same
+way as the door and the same on every cartridge measured, and the Titan is
+lifted off the cartridge too, where his cell used to be a filtered upscale.
+`tools/make_slot_icons.py` writes them and says why the chest is the badge
+rather than the picture. Everything else in `images/` is
 either drawn for this pack or inherited from the pack this forked, whose authors
 are in [Credits](#credits).
 

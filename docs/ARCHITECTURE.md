@@ -277,6 +277,7 @@ library — no Pillow, no .NET.
 | `pin_visibility.py` | Stamps the pin toggles' rules onto the location trees |
 | `incentive_slots.py` | Writes `scripts/incentive_slots.lua`, the table the rings read |
 | `sprites.py` / `font.py` | NPC sprite art and the cartridge's menu font |
+| `make_door_icons.py` / `make_slot_icons.py` | The committed cartridge-lifted icons: the entrance tooltip's door, and the Locations grid's chest slots |
 
 **`regen_maps.py` writes to PopTracker's `user-override/` tree rather than into
 the repo.** The reason is that its output is drawn from one seed, so committing
@@ -483,8 +484,8 @@ calling anything done; what follows is what it runs.
 ```
 tests/run.sh         19 Lua suites. Needs only Lua 5.4+ — no ROM, no emulator,
                      no PopTracker. The APIs are stubbed; the scripts are real.
-tools/tests/run.sh   42 Python suites for the cartridge-reading tools.
-                     23 of them skip, wholly or in part, unless FF1_ROM
+tools/tests/run.sh   43 Python suites for the cartridge-reading tools.
+                     24 of them skip, wholly or in part, unless FF1_ROM
                      points at a cartridge, and three more unless FF1_SEEDS
                      points at the seed tree — so a bare run passes and checks
                      a good deal less than the count suggests. Two slow
