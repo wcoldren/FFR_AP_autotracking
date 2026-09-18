@@ -168,7 +168,10 @@ The bridge reports which map you are standing on, so the map tab follows you int
 whichever floor you just walked into. `Auto-Tab` in the flags grid turns that off
 if you would rather stay on the floor you are reading; it is on by default. This
 needs the emulator bridge -- Archipelago on its own does not report your position
--- and only the four map variants have dungeon tabs to switch between.
+-- and only the four map variants have dungeon tabs to switch between. When the
+bridge disconnects -- the emulator closed, or the bridge script stopped -- the
+tab goes back to the overworld rather than staying on the last floor. A reset
+is not a disconnect and leaves the tab alone.
 
 If you have run `tools/regen_maps.py`, the eight towns have tabs of their own
 under `Other > Towns`, and walking into one brings its tab up like any dungeon

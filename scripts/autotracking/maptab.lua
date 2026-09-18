@@ -249,3 +249,49 @@ end
 if ScriptHost.AddVariableWatch then
   ScriptHost:AddVariableWatch("ff1map", { "ff1/map", "ff1/ready" }, onFF1Map)
 end
+
+-- Go home when the bridge goes away.
+--
+-- Following the player leaves the tab on whatever floor they were on when the
+-- emulator closed, and the next thing anyone wants to see is the overworld.
+-- PopTracker has no disconnect callback -- the UAT variables are not even
+-- cleared, ff1/map still reads the old floor -- but it does report the
+-- backend's state (AutoTracker:GetConnectionState, since 0.20.2: 3 is
+-- game-connected, anything lower is not), so a frame handler watches for the
+-- drop out of 3. A reset is not a disconnect: ff1/ready going false keeps the
+-- socket, and onFF1Map above deliberately sits still for it.
+--
+-- lastMapId is cleared with the move so a reconnect follows the party again
+-- even when they come back on the same floor; without that the change
+-- detection in activateMapTab would leave them on the overworld.
+local UAT_READY = 3
+local DISCONNECT_HANDLER = "maptab disconnect"
+local lastUatState = nil
+
+function onUatState(state)
+  local was = lastUatState
+  lastUatState = state
+  if was ~= UAT_READY or state == UAT_READY then
+    return false
+  end
+  resetMapTab()
+  if not mapTabHasTabs() or not switchingEnabled() then
+    return false
+  end
+  activateTabPath(overworldTab())
+  if AUTOTRACKER_ENABLE_DEBUG_LOGGING then
+    print("maptab: bridge disconnected -> " .. overworldTab())
+  end
+  return true
+end
+
+local function pollUatState()
+  onUatState(AutoTracker:GetConnectionState("UAT"))
+end
+
+-- AutoTracker is userdata on the host, like Tracker, so the check is for the
+-- method rather than for a table.
+if type(ScriptHost.AddOnFrameHandler) == "function"
+    and AutoTracker and type(AutoTracker.GetConnectionState) == "function" then
+  ScriptHost:AddOnFrameHandler(DISCONNECT_HANDLER, pollUatState)
+end

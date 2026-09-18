@@ -26,6 +26,11 @@ M.TRACKER = {
   ActiveVariantUID = true, BulkUpdate = true, AllowDeferredLogicUpdate = true,
 }
 
+-- doc/AUTOTRACKING.md:176, and autotracker.cpp:15; userdata, like Tracker
+M.AUTOTRACKER = {
+  GetConnectionState = true,
+}
+
 M.SCRIPTHOST = {
   -- methods, scripthost.cpp:16-32
   LoadScript = true, AddMemoryWatch = true, RemoveMemoryWatch = true,

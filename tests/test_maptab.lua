@@ -218,7 +218,17 @@ Tracker = {
   FindObjectForCode = function(self, c) return objects[c] end,
   UiHint = function(self, kind, value) hints[#hints + 1] = kind .. ":" .. value end,
 }
-ScriptHost = { AddVariableWatch = function() end }
+local frameHandlers = {}
+ScriptHost = {
+  AddVariableWatch = function() end,
+  AddOnFrameHandler = function(self, name, fn) frameHandlers[name] = fn end,
+  RemoveOnFrameHandler = function(self, name) frameHandlers[name] = nil end,
+}
+local uatState = 1
+AutoTracker = { GetConnectionState = function(self, backend)
+  if backend ~= "UAT" then return -1 end
+  return uatState
+end }
 
 dofile(PACK .. "/scripts/autotracking/location_mapping.lua")
 dofile(PACK .. "/scripts/autotracking/maptab.lua")
@@ -317,6 +327,55 @@ check("ready acts", take(),
   "ActivateTab:Fiend Dungeons,ActivateTab:Earth Cave,ActivateTab:Earth Cave B1")
 onFF1Map(store(false, -1))
 check("a reset does not drag the tab away", take(), "")
+
+-- 6b. a disconnect does. The bridge going away is the UAT backend dropping out
+--     of state 3, polled from a frame handler because the host has no callback
+--     for it, and the tab goes back to the overworld the fallback would pick.
+local poll = frameHandlers["maptab disconnect"]
+check("the disconnect poll is registered", poll ~= nil, true)
+resetMapTab()
+uatState = 3
+poll()
+check("connecting moves nothing", take(), "")
+onFF1Map(store(true, 13))
+take()
+uatState = 1
+poll()
+check("disconnecting goes home", take(), "ActivateTab:Incentive Locations")
+poll()
+check("  once", take(), "")
+-- and the reconnect follows the party again, even onto the floor they left on
+uatState = 3
+poll()
+check("reconnecting moves nothing by itself", take(), "")
+onFF1Map(store(true, 13))
+check("  the same floor is followed again", take(),
+  "ActivateTab:Fiend Dungeons,ActivateTab:Earth Cave,ActivateTab:Earth Cave B1")
+-- a drop that never saw ready is not a disconnect
+uatState = 1
+poll()
+take()
+uatState = 2
+poll()
+uatState = 1
+poll()
+check("socket-only drop is ignored", take(), "")
+-- the Auto-Tab toggle covers this too
+uatState = 3
+poll()
+objects.tab_switch.Active = false
+uatState = 1
+poll()
+check("toggle off keeps the tab where it is", take(), "")
+objects.tab_switch.Active = true
+-- the full-overworld mode sends it to the full map instead
+uatState = 3
+poll()
+objects.tab_mode = { CurrentStage = 2 }
+uatState = 1
+poll()
+check("tab mode Full goes to the full Overworld", take(), "ActivateTab:Overworld")
+objects.tab_mode = nil
 
 
 -- 7. which overworld tab the fallback lands on follows the Archipelago pool.
